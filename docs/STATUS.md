@@ -7,7 +7,7 @@
 **Quy tắc phạm vi:** đóng băng, không thêm tính năng mới cho tới khi dùng MVP ít nhất hai tuần. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
-- iPhone 16, **iOS 27** (_ghi rõ bản beta hay bản chính thức khi biết_).
+- iPhone 16, **iOS 27 bản chính thức**.
 - PC Windows. Có thẻ VISA (cần bật được R2, kiểm tra ở Phase 0).
 - Người dùng tự lo việc gia hạn app mỗi 7 ngày.
 - Ngoài phạm vi: CarPlay, widget.
@@ -17,11 +17,12 @@
 - Backend: Cloudflare Worker (Hono + Zod) + R2. Không dùng nhiều tài khoản để lách giới hạn free.
 - Token nhập trong app, lưu SecureStore.
 - Ký app: Apple ID miễn phí + Sideloadly/AltStore (gia hạn 7 ngày).
+- Bundle ID: **`com.dinhgiaan.beatify`** (bản dev: `com.dinhgiaan.beatify.dev`).
 - Expo SDK: **57 ổn định + Xcode 26.x ghim**, chưa dùng SDK 58 beta (xem `docs/PLAN.md` mục 12.7).
 - MVP = Phase 0 đến 2. Phase 3 trở đi làm sau khi đã dùng thật.
 - Công cụ (khoá phiên bản chính xác, khai báo chung ở `pnpm-workspace.yaml` mục `catalog`): Node 22, pnpm 12.5.1 (`packageManager`), TypeScript 6.0.3 (typescript-eslint 8.70 chỉ hỗ trợ TypeScript dưới 6.1), Zod 4.6.5, Vitest 5.0.1, ESLint 10.11.0, Prettier 3.9.8.
 - Runner build: nhãn **`macos-26`** (ghim, không dùng `macos-latest`) + Xcode **26.6** tại `/Applications/Xcode_26.6.app`. Nguồn: danh sách phần mềm image macos-26 (runner-images, image 20260831) ghi Xcode 26.6 là bản mặc định và có Xcode 26.0 đến 26.5. Cần kiểm tra lại nếu image đổi.
-- Repo: **private** (người dùng chọn). Phút macOS bị giới hạn (hệ số 10, khoảng 200 phút macOS/tháng nếu gói Free), nên chỉ build khi cần, dùng dev client + hot reload cho thay đổi JS/TS, và đặt `timeout-minutes` thấp. Kiểm tra mức đã dùng ở GitHub → Settings → Billing and plans → Usage.
+- Repo: **private** (`https://github.com/dinhgiaan/Beatify`). Phút macOS bị giới hạn (hệ số 10, khoảng 200 phút macOS/tháng nếu gói Free), nên chỉ build khi cần, dùng dev client + hot reload cho thay đổi JS/TS, và đặt `timeout-minutes` thấp. Kiểm tra mức đã dùng ở GitHub → Settings → Billing and plans → Usage.
 
 ## Phase 0: Nền tảng và spike
 - [x] Monorepo pnpm (`apps/mobile`, `apps/api`, `tools/indexer`, `packages/shared`), có `packageManager` và script `typecheck`, `lint`, `test` ở gốc (`apps/mobile`, `apps/api` và `tools/indexer` mới là thư mục giữ chỗ chỉ có README; đã chạy `typecheck`, `lint`, `test` đều qua trong môi trường Agent)
@@ -123,15 +124,11 @@
 | 19 | Vẽ sóng âm mượt trên Hermes với khoảng 100 cột, cập nhật theo vị trí phát | Spike hoặc lúc làm SeekBar ở Phase 2 | Chưa |
 
 ## Việc đang chờ người dùng
-1. **Bạn:** mở PowerShell, gõ `node -v` và `pnpm -v` (Agent đã kích hoạt `pnpm@12.5.1` qua corepack, Node v24.19.0 - đã kiểm tra hoàn tất).
-2. **Bạn:** trên GitHub tạo repo **private rỗng** (không tích thêm README), gửi địa chỉ repo HTTPS cho Agent.
-3. **Agent & Bạn:** Agent đã chạy `pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (toàn bộ 15 test đã qua, không có lỗi). Chờ bạn cung cấp địa chỉ repo GitHub để thực hiện: `git init`, `git branch -M main`, commit và `git push -u origin main`.
-   - Nếu `git commit` báo "Please tell me who you are": bạn chạy `git config --global user.name "Tên của bạn"` và `git config --global user.email "email-github-của-bạn"` (trên máy đã cấu hình sẵn `dinhgiaan` / `dinhgiaanforwork@gmail.com`).
-   - Khi `git push`, Windows có thể mở cửa sổ trình duyệt để đăng nhập GitHub: **bạn phải đăng nhập**, nếu không lệnh sẽ treo. Nên dùng địa chỉ repo dạng HTTPS.
-   - Cảnh báo về `LF`/`CRLF` khi `git add` là bình thường. Nếu push bị từ chối, **không** dùng `--force`, hãy hỏi lại.
-4. **Bạn:** vào GitHub → tab **Actions**, workflow **CI** phải có dấu xanh. Nếu đỏ, dán log của bước bị đỏ cho Agent.
-5. **Bạn:** chưa bấm chạy workflow **Build iOS** (chưa có app để build).
-6. **Bạn:** app đã có tên là **Beatify**. Cho Agent biết bundle ID thật (dạng `com.<tên-github-của-bạn>.beatify`, bản dev thêm `.dev`) — **chốt trước lần cài đầu tiên**, vì đổi sau sẽ thành app mới và mất dữ liệu của app cũ. Cũng cho biết iPhone đang chạy iOS 27 bản beta hay bản chính thức (Cài đặt → Cài đặt chung → Cập nhật phần mềm, nếu có mục Cập nhật beta đang bật thì là beta).
+1. **Agent:** thêm remote `origin` (`https://github.com/dinhgiaan/Beatify.git`) và đẩy code lên nhánh `main`.
+2. **Bạn:** khi Agent push, Windows có thể mở cửa sổ trình duyệt để đăng nhập GitHub: **bạn đăng nhập**, nếu không lệnh sẽ treo.
+3. **Bạn:** vào GitHub repo → tab **Actions**, workflow **CI** phải có dấu xanh. Nếu đỏ, dán log của bước bị đỏ cho Agent.
+4. **Bạn:** chưa bấm chạy workflow **Build iOS** (chưa có app để build).
+5. **Đã chốt:** Bundle ID `com.dinhgiaan.beatify` (dev: `com.dinhgiaan.beatify.dev`), thiết bị iPhone 16 chạy iOS 27 bản chính thức.
 
 ## Vấn đề đã biết
 - `build-ios.yml` là mẫu chưa chạy thử. So với mẫu, đã đổi: (a) nhãn `macos-26` thay `macos-latest`, (b) Xcode 26.6 cụ thể và chặn nếu không phải Xcode 26.x, (c) thêm job kiểm tra Linux trước khi bật macOS, (d) cache kho tải CocoaPods (`~/Library/Caches/CocoaPods`) thay vì thư mục `ios/Pods`, vì `expo prebuild --clean` xoá `ios/` và tự chạy `pod install` nên cache `Pods` đặt sau prebuild không có tác dụng (suy luận, cần xác nhận ở lần build đầu).
