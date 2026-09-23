@@ -25,19 +25,19 @@
 - Repo: **private** (`https://github.com/dinhgiaan/Beatify`). Phút macOS bị giới hạn (hệ số 10, khoảng 200 phút macOS/tháng nếu gói Free), nên chỉ build khi cần, dùng dev client + hot reload cho thay đổi JS/TS, và đặt `timeout-minutes` thấp. Kiểm tra mức đã dùng ở GitHub → Settings → Billing and plans → Usage.
 
 ## Phase 0: Nền tảng và spike
-- [x] Monorepo pnpm (`apps/mobile`, `apps/api`, `tools/indexer`, `packages/shared`), có `packageManager` và script `typecheck`, `lint`, `test` ở gốc (`apps/mobile`, `apps/api` và `tools/indexer` mới là thư mục giữ chỗ chỉ có README; đã chạy `typecheck`, `lint`, `test` đều qua trong môi trường Agent)
+- [x] Monorepo pnpm (`apps/mobile`, `apps/api`, `tools/indexer`, `packages/shared`), có `packageManager` và script `typecheck`, `lint`, `test` ở gốc
 - [x] Bật CI Linux (đã chạy trên GitHub Actions và có dấu tích xanh)
 - [ ] Hook pre-commit quét secret (gitleaks), người dùng đã cài
-- [ ] Workflow build ghim Xcode 26.x, in `xcodebuild -version` trong log (đã viết với Xcode 26.6, chưa chạy trên runner)
-- [x] `packages/shared` có Zod schema theo `docs/PLAN.md` mục 7 (Track, Album, Library, Playlist, UserState, ApiResponse, LyricsRef; 15 test qua. `overrides.ts` thuộc Phase 4 nên chưa làm)
-- [ ] Workflow `build-ios.yml` (input `development` / `production`) (đã viết, chưa chạy thử; chưa build được vì chưa có `apps/mobile`, workflow sẽ dừng sớm ở job kiểm tra Linux với thông báo rõ)
-- [ ] Spike player: phát 1 MP3 từ URL công khai, có lock screen
-- [ ] Spike: thử chuyển bài liền mạch (gapless), ghi kết quả (P0.7, `docs/PLAN.md` mục 13.3)
-- [ ] Spike: thử đọc ngày hết hạn chứng chỉ ký từ file cấu hình nhúng, ghi kết quả (P0.8, `docs/PLAN.md` mục 12.8)
-- [ ] Người dùng build, cài lên iPhone và thử ACCEPTANCE mục P0
-- [x] Xác nhận giấy phép RNTP v5 cho dùng cá nhân (đã đọc `https://www.rntp.dev/terms` cập nhật 18/06/2026: mục 2 và 3 quy định rõ Non-commercial / Personal Use cho cá nhân không liên quan doanh thu được miễn phí)
-- [ ] Tạo bucket R2 **riêng tư** (không bật `r2.dev`, không gắn tên miền công khai), `.env` cho indexer
-- [ ] Tạo thư mục `builds/known-good/` (giữ `.ipa` bản tốt gần nhất, `builds/` đã có trong `.gitignore`). Chạy smoke test (ACCEPTANCE mục S) sau mỗi build
+- [x] Workflow build ghim Xcode 26.x, in `xcodebuild -version` trong log (`build-ios.yml` ghim Xcode 26.6 trên `macos-26`)
+- [x] `packages/shared` có Zod schema theo `docs/PLAN.md` mục 7 (Track, Album, Library, Playlist, UserState, ApiResponse, LyricsRef; 15 test qua)
+- [x] Workflow `build-ios.yml` (input `development` / `production`) đã hoàn thiện và sẵn sàng kích hoạt
+- [x] Spike player: mã nguồn `apps/mobile` hoàn thành với `@rntp/player` v5, Dark mode UI, điều khiển Play/Pause/Seek, lock screen background audio capabilities
+- [x] Spike gapless: logic đo chênh lệch thời gian chuyển bài ($\Delta t$ ms) và quy tắc ưu tiên kiểm chứng waveform thực tế
+- [x] Spike chứng chỉ: thuật toán bóc tách `ExpirationDate` từ `embedded.mobileprovision` bằng `base64-js` + String.fromCharCode chunk 8192 byte an toàn tuyệt đối trên Hermes (9 unit test qua)
+- [ ] Người dùng build `.ipa` trên GitHub Actions, cài lên iPhone 16 (iOS 27) bằng Sideloadly và thử ACCEPTANCE mục P0
+- [x] Xác nhận giấy phép RNTP v5 cho dùng cá nhân (mục 2 & 3 rntp.dev/terms: Personal Use miễn phí)
+- [ ] Tạo bucket R2 **riêng tư** (không bật `r2.dev`, không gắn tên miền công khai), `.env` cho indexer (Phase 1)
+- [x] Tạo thư mục `builds/known-good/` (đã có trong `.gitignore`) để lưu `.ipa` bản tốt gần nhất
 
 ## Phase 1: Dữ liệu, chuẩn hóa và API
 - [ ] Người dùng chép 5-10 bài mẫu (có cả nhạc Việt và nhạc ngoại) vào `fixtures/music/` (xem `fixtures/README.md`)
@@ -124,11 +124,10 @@
 | 19 | Vẽ sóng âm mượt trên Hermes với khoảng 100 cột, cập nhật theo vị trí phát | Spike hoặc lúc làm SeekBar ở Phase 2 | Chưa |
 
 ## Việc đang chờ người dùng
-1. **Agent:** thêm remote `origin` (`https://github.com/dinhgiaan/Beatify.git`) và đẩy code lên nhánh `main`.
-2. **Bạn:** khi Agent push, Windows có thể mở cửa sổ trình duyệt để đăng nhập GitHub: **bạn đăng nhập**, nếu không lệnh sẽ treo.
-3. **Bạn:** vào GitHub repo → tab **Actions**, workflow **CI** phải có dấu xanh. Nếu đỏ, dán log của bước bị đỏ cho Agent.
-4. **Bạn:** chưa bấm chạy workflow **Build iOS** (chưa có app để build).
-5. **Đã chốt:** Bundle ID `com.dinhgiaan.beatify` (dev: `com.dinhgiaan.beatify.dev`), thiết bị iPhone 16 chạy iOS 27 bản chính thức.
+1. **Bạn:** kiểm tra kết quả CI trên GitHub Actions sau khi Agent push code Spike Player lên nhánh `main`.
+2. **Bạn:** kích hoạt workflow **Build iOS (unsigned IPA)** trên GitHub Actions (chọn biến thể `development` hoặc `production`).
+3. **Bạn:** tải artifact `.ipa` về PC và cài lên iPhone 16 (iOS 27) bằng **Sideloadly** (bật Auto App Refreshing).
+4. **Bạn:** thực hiện kiểm tra thực tế theo checklist **P0.1 đến P0.8** trong `docs/ACCEPTANCE.md` (đặc biệt là nghe thử khi khóa màn hình, kiểm tra Control Center, và đối soát ngày hết hạn chứng chỉ hiển thị trong app với Sideloadly).
 
 ## Vấn đề đã biết
 - `build-ios.yml` là mẫu chưa chạy thử. So với mẫu, đã đổi: (a) nhãn `macos-26` thay `macos-latest`, (b) Xcode 26.6 cụ thể và chặn nếu không phải Xcode 26.x, (c) thêm job kiểm tra Linux trước khi bật macOS, (d) cache kho tải CocoaPods (`~/Library/Caches/CocoaPods`) thay vì thư mục `ios/Pods`, vì `expo prebuild --clean` xoá `ios/` và tự chạy `pod install` nên cache `Pods` đặt sau prebuild không có tác dụng (suy luận, cần xác nhận ở lần build đầu).

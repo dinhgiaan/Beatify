@@ -1,0 +1,203 @@
+import TrackPlayer, {
+  Event,
+  PlaybackState,
+  PlayerCommand,
+  RepeatMode as RntpRepeatMode,
+} from '@rntp/player';
+import type { Track } from '@music-app/shared';
+import type { IPlayerService, PlayerState, RepeatMode } from './types';
+import { gainToVolume } from '../../utils/gainToVolume';
+
+/**
+ * Hiện thực IPlayerService sử dụng @rntp/player v5
+ * Tuân thủ Dependency Inversion, bảo toàn tính tương thích với iOS background audio
+ */
+export class RntpPlayerService implements IPlayerService {
+  private isInitialized = false;
+  private currentTracks: Track[] = [];
+  private listeners: Set<(state: PlayerState) => void> = new Set();
+  private lastTrackEndTime: number | null = null;
+  private gaplessDeltaMs: number | null = null;
+
+  async setup(): Promise<void> {
+    if (this.isInitialized) return;
+
+    // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe
+    TrackPlayer.setupPlayer({
+      contentType: 'music',
+      handleAudioBecomingNoisy: true,
+    });
+
+    // Cấu hình các nút điều khiển trên lock screen và Control Center
+    TrackPlayer.setCommands({
+      capabilities: [
+        PlayerCommand.PlayPause,
+        PlayerCommand.Next,
+        PlayerCommand.Previous,
+        PlayerCommand.Seek,
+      ],
+      handling: 'native',
+    });
+
+    // Đăng ký lắng nghe sự kiện từ RNTP v5
+    TrackPlayer.addEventListener(Event.MediaItemTransition, (event) => {
+      const now = Date.now();
+      if (this.lastTrackEndTime !== null) {
+        this.gaplessDeltaMs = now - this.lastTrackEndTime;
+      }
+      this.lastTrackEndTime = now;
+
+      // Áp dụng ReplayGain cho bài hát mới
+      if (event.item && event.item.mediaId) {
+        const currentTrack = this.currentTracks.find((t) => t.id === event.item?.mediaId);
+        if (currentTrack) {
+          const volume = gainToVolume(currentTrack.replayGain);
+          TrackPlayer.setVolume(volume);
+        }
+      }
+      this.notifyListeners();
+    });
+
+    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, () => {
+      this.notifyListeners();
+    });
+
+    TrackPlayer.addEventListener(Event.IsPlayingChanged, () => {
+      this.notifyListeners();
+    });
+
+    TrackPlayer.addEventListener(Event.PlaybackStateChanged, () => {
+      this.notifyListeners();
+    });
+
+    this.isInitialized = true;
+  }
+
+  async playQueue(tracks: Track[], startIndex = 0): Promise<void> {
+    await this.setup();
+    this.currentTracks = tracks;
+
+    const mediaItems = tracks.map((track) => ({
+      mediaId: track.id,
+      url: track.file, // Ở Phase 0 spike dùng URL stream hoặc sample public MP3
+      title: track.title,
+      artist: track.artist,
+      albumTitle: track.album,
+      duration: track.duration,
+    }));
+
+    TrackPlayer.setMediaItems(mediaItems, startIndex);
+    TrackPlayer.play();
+    this.notifyListeners();
+  }
+
+  async play(): Promise<void> {
+    await this.setup();
+    TrackPlayer.play();
+    this.notifyListeners();
+  }
+
+  async pause(): Promise<void> {
+    await this.setup();
+    TrackPlayer.pause();
+    this.notifyListeners();
+  }
+
+  async next(): Promise<void> {
+    await this.setup();
+    this.lastTrackEndTime = Date.now();
+    TrackPlayer.skipToNext();
+    this.notifyListeners();
+  }
+
+  async previous(): Promise<void> {
+    await this.setup();
+    TrackPlayer.skipToPrevious();
+    this.notifyListeners();
+  }
+
+  async seekTo(seconds: number): Promise<void> {
+    await this.setup();
+    TrackPlayer.seekTo(seconds);
+    this.notifyListeners();
+  }
+
+  async setRepeatMode(mode: RepeatMode): Promise<void> {
+    await this.setup();
+    let rntpMode: RntpRepeatMode;
+    switch (mode) {
+      case 'track':
+        rntpMode = RntpRepeatMode.One;
+        break;
+      case 'queue':
+        rntpMode = RntpRepeatMode.All;
+        break;
+      case 'off':
+      default:
+        rntpMode = RntpRepeatMode.Off;
+        break;
+    }
+    TrackPlayer.setRepeatMode(rntpMode);
+  }
+
+  async getQueue(): Promise<Track[]> {
+    return this.currentTracks;
+  }
+
+  /**
+   * Lấy khoảng chênh lệch gapless đo được (ms)
+   */
+  getGaplessDeltaMs(): number | null {
+    return this.gaplessDeltaMs;
+  }
+
+  getCurrentState(): PlayerState {
+    if (!this.isInitialized) {
+      return {
+        isPlaying: false,
+        isBuffering: false,
+        activeTrackId: null,
+        positionSec: 0,
+        durationSec: 0,
+        bufferedSec: null,
+      };
+    }
+
+    const isPlaying = TrackPlayer.isPlaying();
+    const playbackState = TrackPlayer.getPlaybackState();
+    const progress = TrackPlayer.getProgress();
+    const activeItem = TrackPlayer.getActiveMediaItem();
+
+    return {
+      isPlaying,
+      isBuffering: playbackState === PlaybackState.Buffering,
+      activeTrackId: activeItem?.mediaId ?? null,
+      positionSec: progress.position,
+      durationSec: progress.duration,
+      bufferedSec: progress.buffered,
+    };
+  }
+
+  subscribe(listener: (state: PlayerState) => void): () => void {
+    this.listeners.add(listener);
+    // Báo trạng thái hiện tại ngay lập tức khi đăng ký
+    listener(this.getCurrentState());
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyListeners(): void {
+    const state = this.getCurrentState();
+    for (const listener of this.listeners) {
+      try {
+        listener(state);
+      } catch {
+        // Tránh ngoại lệ từ listener làm gián đoạn các subscriber khác
+      }
+    }
+  }
+}
+
+// Singleton player service cho toàn bộ ứng dụng
+export const playerService = new RntpPlayerService();
