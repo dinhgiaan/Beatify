@@ -26,7 +26,7 @@
 
 ## Phase 0: Nền tảng và spike
 - [x] Monorepo pnpm (`apps/mobile`, `apps/api`, `tools/indexer`, `packages/shared`), có `packageManager` và script `typecheck`, `lint`, `test` ở gốc (`apps/mobile`, `apps/api` và `tools/indexer` mới là thư mục giữ chỗ chỉ có README; đã chạy `typecheck`, `lint`, `test` đều qua trong môi trường Agent)
-- [ ] Bật CI Linux (đã tạo `.github/workflows/ci.yml`, chưa chạy trên GitHub, chờ thấy dấu xanh)
+- [x] Bật CI Linux (đã chạy trên GitHub Actions và có dấu tích xanh)
 - [ ] Hook pre-commit quét secret (gitleaks), người dùng đã cài
 - [ ] Workflow build ghim Xcode 26.x, in `xcodebuild -version` trong log (đã viết với Xcode 26.6, chưa chạy trên runner)
 - [x] `packages/shared` có Zod schema theo `docs/PLAN.md` mục 7 (Track, Album, Library, Playlist, UserState, ApiResponse, LyricsRef; 15 test qua. `overrides.ts` thuộc Phase 4 nên chưa làm)
@@ -35,7 +35,7 @@
 - [ ] Spike: thử chuyển bài liền mạch (gapless), ghi kết quả (P0.7, `docs/PLAN.md` mục 13.3)
 - [ ] Spike: thử đọc ngày hết hạn chứng chỉ ký từ file cấu hình nhúng, ghi kết quả (P0.8, `docs/PLAN.md` mục 12.8)
 - [ ] Người dùng build, cài lên iPhone và thử ACCEPTANCE mục P0
-- [ ] Xác nhận giấy phép RNTP v5 cho dùng cá nhân (hoặc chuyển sang `expo-audio`)
+- [x] Xác nhận giấy phép RNTP v5 cho dùng cá nhân (đã đọc `https://www.rntp.dev/terms` cập nhật 18/06/2026: mục 2 và 3 quy định rõ Non-commercial / Personal Use cho cá nhân không liên quan doanh thu được miễn phí)
 - [ ] Tạo bucket R2 **riêng tư** (không bật `r2.dev`, không gắn tên miền công khai), `.env` cho indexer
 - [ ] Tạo thư mục `builds/known-good/` (giữ `.ipa` bản tốt gần nhất, `builds/` đã có trong `.gitignore`). Chạy smoke test (ACCEPTANCE mục S) sau mỗi build
 
@@ -103,7 +103,7 @@
 ## Giả định chưa kiểm chứng (đóng dần ở Phase 0)
 | # | Giả định | Cách kiểm chứng | Trạng thái |
 |---|---|---|---|
-| 1 | Người dùng dùng RNTP v5 miễn phí cho mục đích cá nhân | Đọc `https://www.rntp.dev/terms` | Chưa |
+| 1 | Người dùng dùng RNTP v5 miễn phí cho mục đích cá nhân | Đọc `https://www.rntp.dev/terms` | Đã xác nhận (mục 2 & 3: Personal Use miễn phí) |
 | 2 | RNTP v5 chạy với Expo SDK 57 và trên iOS 27 | Spike trên iPhone 16 | Chưa |
 | 3 | App build bằng Xcode 26.x chạy được trên iOS 27 | Spike (P0.1 và P0.6) | Chưa |
 | 4 | Sideloadly cài được lên iOS 27 | Cài bản spike | Chưa |
