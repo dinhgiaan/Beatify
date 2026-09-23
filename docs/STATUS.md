@@ -112,7 +112,7 @@
 | 7 | Hạn mức Cloudflare Workers/R2 đủ cho dùng cá nhân | Đọc lại trang giá | Chưa |
 | 8 | LRCLIB phủ đủ nhạc Việt và nhạc ngoại | Bước L0 (Phase 4) | Chưa |
 | 9 | Whisper nhận dạng tiếng Việt được hát đủ tốt | Thử 10 bài Việt (Phase 4, tuỳ chọn) | Chưa |
-| 10 | Chuyển bài liền mạch (gapless) hoạt động với RNTP v5 và định dạng nhạc của bạn | Spike, mục P0.7 | Chưa |
+| 10 | Chuyển bài liền mạch (gapless) hoạt động với RNTP v5 và định dạng nhạc của bạn; độ trễ setVolume khi transition không tạo cảm giác khựng âm lượng | Spike, mục P0.7 (đo waveform + nghe tai) | Chưa |
 | 11 | Crossfade khả thi với thư viện audio và khi khoá màn hình | Thử nghiệm nhỏ trên iPhone thật (Phase 4, chỉ khi bạn yêu cầu) | Chưa |
 | 12 | Tô dần từng chữ bằng nội suy đủ tự nhiên với nhạc Việt | Thử vài bài Việt sau khi làm L1b | Chưa |
 | 13 | Metro dùng được `@music-app/shared` từ mã nguồn TypeScript trong pnpm workspace (và Worker, Vite, `tsx` cũng dùng được) | Spike khi thêm `apps/mobile`, và Phase 1 cho Worker/indexer | Chưa |
