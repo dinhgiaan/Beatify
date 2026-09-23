@@ -9,6 +9,7 @@ Agent: **không tự làm** ý tưởng nào không có trong `docs/STATUS.md` v
 | Dọn file mồ côi trên R2 (liệt kê, chỉ xoá khi người dùng xác nhận) | Người dùng chưa chọn, xem lại sau MVP |
 | Gửi file từ iPhone lên thư viện | Chưa nằm trong kế hoạch, cần PC xử lý |
 | Vạch đánh dấu các dòng lời trên thanh tiến trình | Mỗi dòng lời có mốc thời gian được in một dấu nhỏ lên thanh, giống vạch chương của video. Chỉ dùng được với bài có lời theo mốc thời gian (`lrc`), cần gộp bớt dấu ở bài nhiều lời. Đã giải thích cho người dùng, **đang chờ quyết định** |
+| SideStore (tự động ký lại trực tiếp trên iPhone qua VPN cục bộ) | Phương án dự phòng nếu Apple siết thu hồi (early revoke) chứng chỉ miễn phí hoặc Sideloadly Auto-Refresh qua Wi-Fi không thuận tiện. Cần cài đặt ban đầu qua PC rồi có thể tự refresh trực tiếp trên iPhone |
 
 ## Đã loại
 

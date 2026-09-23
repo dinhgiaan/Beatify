@@ -5,7 +5,7 @@ Cách dùng: tìm dòng khớp triệu chứng, thử cách xử lý theo thứ 
 | Triệu chứng | Nguyên nhân thường gặp | Cách xử lý |
 |---|---|---|
 | App văng ngay khi mở, hoặc mở ra màn hình trắng/đen | Chưa bật Developer Mode, chưa "Tin cậy" Apple ID, chứng chỉ đã hết hạn, hoặc lỗi tương thích iOS 27 với bản build | Làm lại các bước cài trong `docs/RUNBOOK.md` mục 2 và 3. Vẫn lỗi thì báo Agent (kèm việc bạn đã làm) |
-| Báo không thể xác minh, hoặc không mở được sau khoảng 7 ngày | Chứng chỉ Apple ID miễn phí hết hạn | Cài lại `.ipa` bằng Sideloadly (cùng bundle ID), xem `docs/RUNBOOK.md` mục 2 |
+| Báo không thể xác minh, hoặc không mở được sau 2-7 ngày | Chứng chỉ Apple ID miễn phí hết hạn hoặc bị Apple thu hồi sớm (early revoke) | Cắm cáp vào PC và dùng Sideloadly ký lại ngay (dữ liệu app vẫn giữ nguyên do cùng bundle ID), xem `docs/RUNBOOK.md` mục 2. Nếu Sideloadly Auto-Refresh không ổn định, cân nhắc SideStore (xem `docs/IDEAS.md`) |
 | Sideloadly báo lỗi khi cài | Sideloadly hoặc iTunes/iCloud cũ, dùng bản Microsoft Store, hoặc đã đạt giới hạn App ID của Apple ID miễn phí | Cập nhật Sideloadly, dùng iTunes và iCloud bản tải từ trang Apple, thử lại. Vẫn lỗi thì thử AltStore hoặc Apple ID khác |
 | `pnpm` không nhận lệnh | Chưa cài Node hoặc pnpm | Gõ `node -v` (phải từ 22.13), rồi `npm install -g pnpm@12.5.1` |
 | CI trên GitHub báo đỏ | Lỗi mã, lỗi cài công cụ, hoặc lỗi cấu hình | Mở bước bị đỏ, copy log cho Agent |
