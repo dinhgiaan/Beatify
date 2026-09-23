@@ -1,0 +1,31 @@
+# Chạy trên Linux nên rất rẻ (hệ số 1) so với macOS (hệ số 10). Dùng để bắt lỗi trước khi tốn phút macOS.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Huỷ lần chạy cũ khi có commit mới để tiết kiệm phút
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6 # phiên bản pnpm lấy từ trường "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test

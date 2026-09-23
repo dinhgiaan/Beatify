@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+# Khoá phiên bản dùng chung cho các workspace (tham chiếu bằng "catalog:" trong package.json)
+# TypeScript ghim < 6.1 vì typescript-eslint 8.70 chỉ hỗ trợ tới đó.
+catalog:
+  typescript: 6.0.3
+  vitest: 5.0.1
+  zod: 4.6.5

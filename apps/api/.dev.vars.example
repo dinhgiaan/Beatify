@@ -1,0 +1,3 @@
+# Sao chép thành .dev.vars khi chạy `wrangler dev` (file .dev.vars KHÔNG được commit)
+# Production: dùng `wrangler secret put API_TOKEN`
+API_TOKEN=doi-thanh-chuoi-ngau-nhien-dai

@@ -1,0 +1,7 @@
+# Luôn dùng LF để script và workflow không bị lỗi khi chép từ Windows
+* text=auto eol=lf
+*.ipa binary
+*.png binary
+*.jpg binary
+*.mp3 binary
+*.m4a binary

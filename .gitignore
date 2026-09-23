@@ -1,0 +1,44 @@
+# Phụ thuộc và build
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Expo / iOS (dùng Continuous Native Generation, không commit thư mục native)
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.ipa
+
+# Cloudflare Worker
+.wrangler/
+.dev.vars
+
+# Secret: tuyệt đối không commit
+.env
+.env.*
+!.env.example
+
+# Nhạc mẫu để thử indexer (người dùng tự chép vào, không commit)
+fixtures/music/*
+!fixtures/music/.gitkeep
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Trạng thái indexer chứa đường dẫn máy cá nhân
+tools/indexer/.state/
+
+# Bản sao lưu dữ liệu cá nhân (có lời bài hát)
+backups/
+
+# Giữ .ipa bản tốt gần nhất trên máy, không đưa lên GitHub
+builds/
+
+# Tài liệu tham khảo tải về
+music-app-docs-*/
+music-app-plan.md

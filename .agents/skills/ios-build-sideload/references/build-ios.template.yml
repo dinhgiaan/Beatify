@@ -1,0 +1,89 @@
+# MẪU chưa chạy thử. Khi triển khai: chạy thật, đọc log, chỉnh theo lỗi thực tế.
+# Đặt tại .github/workflows/build-ios.yml
+name: Build iOS (unsigned IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Biến thể build'
+        type: choice
+        options:
+          - production
+          - development
+        default: production
+
+jobs:
+  build:
+    runs-on: macos-latest
+    # Repo private: 1 phút macOS = 10 phút hạn mức. 35 phút chặn tối đa khoảng 350 phút nếu build treo.
+    # Nếu build thật sự dài hơn, tăng sau khi đã đo được thời gian chạy thực tế.
+    timeout-minutes: 35
+    env:
+      APP_VARIANT: ${{ inputs.variant }}
+      EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }} # hiển thị ở màn hình Debug
+    steps:
+      - uses: actions/checkout@v4
+
+      # Phiên bản pnpm lấy từ trường "packageManager" trong package.json gốc
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Cài dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Ghim Xcode 26.x: app build bằng SDK iOS 27 cần UIScene, chưa dùng ở dự án này.
+      # Thay <PHIÊN_BẢN> bằng phiên bản Xcode 26.x có trong danh sách runner-images hiện hành.
+      - name: Chọn Xcode
+        run: |
+          set -euo pipefail
+          ls /Applications | grep -i '^Xcode' || true
+          sudo xcode-select -s "/Applications/Xcode_<PHIÊN_BẢN>.app/Contents/Developer"
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos
+
+      - name: Sinh dự án iOS (prebuild)
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('apps/mobile/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
+      - name: Build (không ký)
+        working-directory: apps/mobile
+        run: |
+          set -euo pipefail
+          # Lấy tên workspace và scheme động sau prebuild
+          WORKSPACE=$(ls -d ios/*.xcworkspace | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          if [ "$APP_VARIANT" = "development" ]; then CONFIG=Debug; else CONFIG=Release; fi
+
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIG" \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+          # Gói .app thành .ipa
+          APP_PATH=$(ls -d build/Build/Products/${CONFIG}-iphoneos/*.app | head -n 1)
+          echo "Đã build: $APP_PATH"
+          rm -rf Payload && mkdir Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qr "app-${APP_VARIANT}.ipa" Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa-${{ inputs.variant }}
+          path: apps/mobile/app-${{ inputs.variant }}.ipa
+          retention-days: 14

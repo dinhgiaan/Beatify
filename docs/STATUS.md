@@ -1,0 +1,140 @@
+# Trạng thái dự án
+
+> Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
+
+**Phase hiện tại:** Phase 0, bước 1 (monorepo, `packages/shared`, CI, workflow build) đã khởi tạo git và commit xong, chờ link remote GitHub để push và xác nhận CI xanh
+**Cập nhật lần cuối:** 2026-09-23
+**Quy tắc phạm vi:** đóng băng, không thêm tính năng mới cho tới khi dùng MVP ít nhất hai tuần. Ý tưởng mới ghi vào `docs/IDEAS.md`.
+
+## Thiết bị và điều kiện
+- iPhone 16, **iOS 27** (_ghi rõ bản beta hay bản chính thức khi biết_).
+- PC Windows. Có thẻ VISA (cần bật được R2, kiểm tra ở Phase 0).
+- Người dùng tự lo việc gia hạn app mỗi 7 ngày.
+- Ngoài phạm vi: CarPlay, widget.
+
+## Quyết định đã chốt
+- Audio: `@rntp/player` (RNTP v5), dự phòng `expo-audio`. Giấy phép dùng cá nhân: **chưa xác nhận** (đọc `https://www.rntp.dev/terms` ở Phase 0).
+- Backend: Cloudflare Worker (Hono + Zod) + R2. Không dùng nhiều tài khoản để lách giới hạn free.
+- Token nhập trong app, lưu SecureStore.
+- Ký app: Apple ID miễn phí + Sideloadly/AltStore (gia hạn 7 ngày).
+- Expo SDK: **57 ổn định + Xcode 26.x ghim**, chưa dùng SDK 58 beta (xem `docs/PLAN.md` mục 12.7).
+- MVP = Phase 0 đến 2. Phase 3 trở đi làm sau khi đã dùng thật.
+- Công cụ (khoá phiên bản chính xác, khai báo chung ở `pnpm-workspace.yaml` mục `catalog`): Node 22, pnpm 12.5.1 (`packageManager`), TypeScript 6.0.3 (typescript-eslint 8.70 chỉ hỗ trợ TypeScript dưới 6.1), Zod 4.6.5, Vitest 5.0.1, ESLint 10.11.0, Prettier 3.9.8.
+- Runner build: nhãn **`macos-26`** (ghim, không dùng `macos-latest`) + Xcode **26.6** tại `/Applications/Xcode_26.6.app`. Nguồn: danh sách phần mềm image macos-26 (runner-images, image 20260831) ghi Xcode 26.6 là bản mặc định và có Xcode 26.0 đến 26.5. Cần kiểm tra lại nếu image đổi.
+- Repo: **private** (người dùng chọn). Phút macOS bị giới hạn (hệ số 10, khoảng 200 phút macOS/tháng nếu gói Free), nên chỉ build khi cần, dùng dev client + hot reload cho thay đổi JS/TS, và đặt `timeout-minutes` thấp. Kiểm tra mức đã dùng ở GitHub → Settings → Billing and plans → Usage.
+
+## Phase 0: Nền tảng và spike
+- [x] Monorepo pnpm (`apps/mobile`, `apps/api`, `tools/indexer`, `packages/shared`), có `packageManager` và script `typecheck`, `lint`, `test` ở gốc (`apps/mobile`, `apps/api` và `tools/indexer` mới là thư mục giữ chỗ chỉ có README; đã chạy `typecheck`, `lint`, `test` đều qua trong môi trường Agent)
+- [ ] Bật CI Linux (đã tạo `.github/workflows/ci.yml`, chưa chạy trên GitHub, chờ thấy dấu xanh)
+- [ ] Hook pre-commit quét secret (gitleaks), người dùng đã cài
+- [ ] Workflow build ghim Xcode 26.x, in `xcodebuild -version` trong log (đã viết với Xcode 26.6, chưa chạy trên runner)
+- [x] `packages/shared` có Zod schema theo `docs/PLAN.md` mục 7 (Track, Album, Library, Playlist, UserState, ApiResponse, LyricsRef; 15 test qua. `overrides.ts` thuộc Phase 4 nên chưa làm)
+- [ ] Workflow `build-ios.yml` (input `development` / `production`) (đã viết, chưa chạy thử; chưa build được vì chưa có `apps/mobile`, workflow sẽ dừng sớm ở job kiểm tra Linux với thông báo rõ)
+- [ ] Spike player: phát 1 MP3 từ URL công khai, có lock screen
+- [ ] Spike: thử chuyển bài liền mạch (gapless), ghi kết quả (P0.7, `docs/PLAN.md` mục 13.3)
+- [ ] Spike: thử đọc ngày hết hạn chứng chỉ ký từ file cấu hình nhúng, ghi kết quả (P0.8, `docs/PLAN.md` mục 12.8)
+- [ ] Người dùng build, cài lên iPhone và thử ACCEPTANCE mục P0
+- [ ] Xác nhận giấy phép RNTP v5 cho dùng cá nhân (hoặc chuyển sang `expo-audio`)
+- [ ] Tạo bucket R2 **riêng tư** (không bật `r2.dev`, không gắn tên miền công khai), `.env` cho indexer
+- [ ] Tạo thư mục `builds/known-good/` (giữ `.ipa` bản tốt gần nhất, `builds/` đã có trong `.gitignore`). Chạy smoke test (ACCEPTANCE mục S) sau mỗi build
+
+## Phase 1: Dữ liệu, chuẩn hóa và API
+- [ ] Người dùng chép 5-10 bài mẫu (có cả nhạc Việt và nhạc ngoại) vào `fixtures/music/` (xem `fixtures/README.md`)
+- [ ] Dọn tag bằng `beets` (người dùng chạy)
+- [ ] `packages/shared` (có test): `normalizeText` kèm test "golden" (vì `albumId` tính từ nó), `isValidTrackId`/`isValidAlbumId`, hằng số (`LYRICS_MAX_BYTES`, `REPLAYGAIN_TARGET_LUFS`, `LIBRARY_SCHEMA_VERSION`), `utf8ByteLength`. Thêm quy tắc ESLint cấm `node:*`, `fs`, `path`, `crypto` trong `packages/shared` (mục 8.1)
+- [ ] Indexer: scan → id ổn định → loudness → covers → `library.json` → upload
+- [ ] `pnpm indexer waveform` (tuỳ chọn, chạy sau `sync`): tạo dữ liệu đỉnh sóng bằng `ffmpeg`, upload `waveforms/{id}.json` lên R2, Worker `GET /waveforms/:id`
+- [ ] Worker: auth, `/api/library`, `/api/health`, `/stream/:id` (Range), `/covers/:albumId` (`?v=<coverVersion>`), mã lỗi dùng chung
+- [ ] Bucket không truy cập công khai (P1.7). Luật giới hạn tần suất cho `/stream` và `/covers` (kiểm tra gói free cho phép), cảnh báo chi phí
+- [ ] `packages/shared/src/testing/`: `library.sample.json`, `generateFakeLibrary(n, seed)`, xuất `@music-app/shared/testing` (kiểm chứng subpath với Metro, Vite, wrangler)
+- [ ] `packages/shared`: `ERROR_CODES`/`ErrorCode` (đổi `ApiResponse.error` thành `ErrorCode | null`, cập nhật test), `HealthSchema`, `Album.coverVersion` (tuỳ chọn)
+- [ ] Indexer: đặt `Album.coverVersion`, ghi `trackCount`/`albumCount`/`generatedAt` vào metadata của `library.json` trên R2
+- [ ] Nghiệm thu ACCEPTANCE mục P1
+
+## Phase 2: MVP app
+- [ ] Màn hình Kết nối, Library, Now Playing, MiniPlayer
+- [ ] Màn hình Hàng đợi (xem, kéo sắp xếp, xoá, "Phát tiếp theo")
+- [ ] Bố cục, tab và điều hướng theo `docs/SCREENS.md`. Chế độ demo (chỉ biến thể development, có nhãn DEMO)
+- [ ] Thanh tiến trình (`SeekBar`) theo `docs/SCREENS.md`: kéo để tua (chỉ tua khi thả), chạm để tua, nội suy vị trí cho mượt, trạng thái đang tải, vạch tiến trình ở MiniPlayer. Hàm thuần `positionFromTouch`, `clampSeek` có test, `formatTime` hỗ trợ `h:mm:ss` và dạng còn lại
+- [ ] Xử lý lỗi `INVALID_TOKEN`: về màn hình nhập lại token, không crash. Nút Kiểm tra kết nối dùng `/api/health`. Thông báo tiếng Việt theo `ErrorCode` (bảng đầy đủ)
+- [ ] `formatTime` trong `packages/shared` (có test), app import từ `@music-app/shared`
+- [ ] Lock screen, Control Center, ReplayGain, queue, repeat, lưu hàng đợi
+- [ ] Shuffle theo đặc tả mục 13.3: thứ tự tính trước, không lặp bài, Previous theo lịch sử, hàm thuần `buildShuffleOrder` có test
+- [ ] Nghiệm thu ACCEPTANCE mục 1-11
+
+## Phase 3: Tiện ích
+- [ ] Search (bỏ dấu), Albums, Playlists, Favorites
+- [ ] Nghe gần đây (lưu MMKV, tối đa 200 bài, không đồng bộ)
+- [ ] Duyệt theo Nghệ sĩ (danh sách, trang nghệ sĩ), hàm thuần `groupByArtist` có test
+- [ ] Cảnh báo sắp hết hạn chứng chỉ trong Settings (chỉ làm nếu P0.8 đọc được)
+- [ ] `buildSearchIndex`, `searchTracks` trong `packages/shared` (có test), dùng chung với dashboard
+- [ ] Cache thư viện offline, xuất/nhập playlist JSON, màn hình Debug
+- [ ] Nghiệm thu ACCEPTANCE mục 12+
+
+## Phase 4: Nâng cao (tùy chọn)
+- [ ] Sync `state.json`, sleep timer
+- [ ] Nghe offline (`docs/PLAN.md` mục 13.4): tải bài/album/playlist/yêu thích, **chỉ tải qua Wi-Fi (mặc định bật)**, quản lý dung lượng. Làm thử nghiệm nhỏ trước cho 3 giả định (bảng bên dưới). Nghiệm thu ACCEPTANCE mục G
+- [ ] Dashboard local (chỉ bắt đầu khi Phase 3 đạt và người dùng đồng ý), gồm:
+  - [ ] `overrides.json` + gộp vào `library.json`
+  - [ ] Server local `pnpm indexer ui` (bind 127.0.0.1, token phiên, kiểm tra Host/Origin)
+  - [ ] Thư viện, sửa metadata, xem trước sync, thống kê, chạy sync
+  - [ ] Sức khoẻ thư viện (báo cáo, `LibraryHealthReportSchema`)
+  - [ ] Gộp nghệ sĩ (`artistAliases`, xem trước bài bị ảnh hưởng)
+  - [ ] Quản lý ảnh bìa (`albumCovers`, `coverVersion`, hỏi trước khi thêm thư viện xử lý ảnh)
+  - [ ] Lịch sử chỉnh sửa `overrides.json` (20 bản, khôi phục)
+  - [ ] Sao lưu một nút: `pnpm indexer backup` và `restore` (mặc định chỉ xem trước), thêm `backups/` vào `.gitignore`
+  - [ ] Nhập nhạc (kéo thả): thư mục tạm, xem trước (mới/trùng/nghi trùng/lỗi/cảnh báo), sửa tag trong bảng, chép vào `MUSIC_IMPORT_DIR` (chỉ thêm file mới), hoàn tác lô, `pnpm indexer import`, thêm `MUSIC_IMPORT_DIR` vào `.env.example`
+  - [ ] Nhập từ link tải trực tiếp (tuỳ chọn, làm sau cùng): chặn địa chỉ nội bộ, không hỗ trợ link trang web hay video
+  - [ ] Playlist editor (tuỳ chọn)
+  - [ ] Nghiệm thu ACCEPTANCE mục D
+- [ ] Lời bài hát (chỉ bắt đầu khi Phase 3 đạt và người dùng đồng ý):
+  - [ ] L0: báo cáo độ phủ (nhạc Việt và nhạc ngoại tách riêng), người dùng quyết định bước tiếp
+  - [ ] L1: tra cứu (tag nhúng, LRCLIB), `/lyrics/:id`, hiển thị trong app
+  - [ ] L1b: tô dần từng chữ bằng nội suy (mức 2)
+  - [ ] L1: đọc file `.lrc` cạnh file nhạc (sidecar), thứ tự sidecar → tag nhúng → LRCLIB
+  - [ ] `packages/shared/src/lrc/`: `parseLrc`, `stringifyLrc`, `detectLyricsFormat`, `applyOffset`, `interpolateWordTimes` (có test), và `overrides.ts` nếu làm dashboard
+  - [ ] L2: thêm và sửa lời ngay trong app (dán, sửa chữ, chỉnh lệch, khôi phục bản gốc), lưu ở `lyrics-manual/`, Worker `PUT/DELETE /lyrics/:id`
+  - [ ] L2 (sau cùng): chạm để đồng bộ
+  - [ ] L2b: trình sửa lời nâng cao trong dashboard (tuỳ chọn)
+  - [ ] L3/L4: Python căn thời gian/nhận dạng (tuỳ chọn, cần người dùng duyệt sau L0)
+  - [ ] Nghiệm thu ACCEPTANCE mục E
+
+## Giả định chưa kiểm chứng (đóng dần ở Phase 0)
+| # | Giả định | Cách kiểm chứng | Trạng thái |
+|---|---|---|---|
+| 1 | Người dùng dùng RNTP v5 miễn phí cho mục đích cá nhân | Đọc `https://www.rntp.dev/terms` | Chưa |
+| 2 | RNTP v5 chạy với Expo SDK 57 và trên iOS 27 | Spike trên iPhone 16 | Chưa |
+| 3 | App build bằng Xcode 26.x chạy được trên iOS 27 | Spike (P0.1 và P0.6) | Chưa |
+| 4 | Sideloadly cài được lên iOS 27 | Cài bản spike | Chưa |
+| 5 | Thẻ VISA bật được R2 | Người dùng đăng ký R2 | Chưa |
+| 6 | Một lần build iOS mất 15-30 phút | Đo ở build đầu tiên | Chưa |
+| 7 | Hạn mức Cloudflare Workers/R2 đủ cho dùng cá nhân | Đọc lại trang giá | Chưa |
+| 8 | LRCLIB phủ đủ nhạc Việt và nhạc ngoại | Bước L0 (Phase 4) | Chưa |
+| 9 | Whisper nhận dạng tiếng Việt được hát đủ tốt | Thử 10 bài Việt (Phase 4, tuỳ chọn) | Chưa |
+| 10 | Chuyển bài liền mạch (gapless) hoạt động với RNTP v5 và định dạng nhạc của bạn | Spike, mục P0.7 | Chưa |
+| 11 | Crossfade khả thi với thư viện audio và khi khoá màn hình | Thử nghiệm nhỏ trên iPhone thật (Phase 4, chỉ khi bạn yêu cầu) | Chưa |
+| 12 | Tô dần từng chữ bằng nội suy đủ tự nhiên với nhạc Việt | Thử vài bài Việt sau khi làm L1b | Chưa |
+| 13 | Metro dùng được `@music-app/shared` từ mã nguồn TypeScript trong pnpm workspace (và Worker, Vite, `tsx` cũng dùng được) | Spike khi thêm `apps/mobile`, và Phase 1 cho Worker/indexer | Chưa |
+| 14 | Đọc được ngày hết hạn chứng chỉ ký từ mã JavaScript của app | Spike, mục P0.8 | Chưa |
+| 15 | Phát từ file cục bộ (offline) với RNTP v5, và tải có tiếp tục khi tắt màn hình | Thử nghiệm nhỏ trước khi làm offline | Chưa |
+| 16 | Nhận biết đúng Wi-Fi và dữ liệu di động (kể cả điểm phát Wi-Fi) bằng thư viện mạng của Expo | Thử nghiệm nhỏ trước khi làm offline | Chưa |
+| 17 | Gói free của Cloudflare cho phép luật giới hạn tần suất cho `/stream` và `/covers` | Đọc tài liệu Cloudflare (Phase 1) | Chưa |
+| 18 | Subpath `@music-app/shared/testing` chạy được với Metro, Vite và wrangler | Phase 1, khi tạo dữ liệu mẫu | Chưa |
+| 19 | Vẽ sóng âm mượt trên Hermes với khoảng 100 cột, cập nhật theo vị trí phát | Spike hoặc lúc làm SeekBar ở Phase 2 | Chưa |
+
+## Việc đang chờ người dùng
+1. **Bạn:** mở PowerShell, gõ `node -v` và `pnpm -v` (Agent đã kích hoạt `pnpm@12.5.1` qua corepack, Node v24.19.0 - đã kiểm tra hoàn tất).
+2. **Bạn:** trên GitHub tạo repo **private rỗng** (không tích thêm README), gửi địa chỉ repo HTTPS cho Agent.
+3. **Agent & Bạn:** Agent đã chạy `pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (toàn bộ 15 test đã qua, không có lỗi). Chờ bạn cung cấp địa chỉ repo GitHub để thực hiện: `git init`, `git branch -M main`, commit và `git push -u origin main`.
+   - Nếu `git commit` báo "Please tell me who you are": bạn chạy `git config --global user.name "Tên của bạn"` và `git config --global user.email "email-github-của-bạn"` (trên máy đã cấu hình sẵn `dinhgiaan` / `dinhgiaanforwork@gmail.com`).
+   - Khi `git push`, Windows có thể mở cửa sổ trình duyệt để đăng nhập GitHub: **bạn phải đăng nhập**, nếu không lệnh sẽ treo. Nên dùng địa chỉ repo dạng HTTPS.
+   - Cảnh báo về `LF`/`CRLF` khi `git add` là bình thường. Nếu push bị từ chối, **không** dùng `--force`, hãy hỏi lại.
+4. **Bạn:** vào GitHub → tab **Actions**, workflow **CI** phải có dấu xanh. Nếu đỏ, dán log của bước bị đỏ cho Agent.
+5. **Bạn:** chưa bấm chạy workflow **Build iOS** (chưa có app để build).
+6. **Bạn:** app đã có tên là **Beatify**. Cho Agent biết bundle ID thật (dạng `com.<tên-github-của-bạn>.beatify`, bản dev thêm `.dev`) — **chốt trước lần cài đầu tiên**, vì đổi sau sẽ thành app mới và mất dữ liệu của app cũ. Cũng cho biết iPhone đang chạy iOS 27 bản beta hay bản chính thức (Cài đặt → Cài đặt chung → Cập nhật phần mềm, nếu có mục Cập nhật beta đang bật thì là beta).
+
+## Vấn đề đã biết
+- `build-ios.yml` là mẫu chưa chạy thử. So với mẫu, đã đổi: (a) nhãn `macos-26` thay `macos-latest`, (b) Xcode 26.6 cụ thể và chặn nếu không phải Xcode 26.x, (c) thêm job kiểm tra Linux trước khi bật macOS, (d) cache kho tải CocoaPods (`~/Library/Caches/CocoaPods`) thay vì thư mục `ios/Pods`, vì `expo prebuild --clean` xoá `ios/` và tự chạy `pod install` nên cache `Pods` đặt sau prebuild không có tác dụng (suy luận, cần xác nhận ở lần build đầu).
+- `pnpm/action-setup` đã nâng từ `v4` lên `v6` (ở `ci.yml`, `build-ios.yml` và mẫu trong skill) vì README hiện hành của action này dùng `v6` làm ví dụ và ghi vẫn hỗ trợ pnpm 11 và 12, còn `v4` (phát hành từ 2025) chưa được kiểm chứng với pnpm 12. Các action còn lại (`checkout`, `setup-node`, `cache`, `upload-artifact`) vẫn để `v4`, có thể có cảnh báo về phiên bản runtime khi chạy thật. Nếu bước cài pnpm vẫn lỗi ở lần chạy CI đầu tiên, dùng action kế nhiệm `pnpm/setup` (chỉ cho pnpm 11 trở lên) thay cho `pnpm/action-setup` + `actions/setup-node`.
+- `LibrarySchema` dùng `z.literal(1)`: app phải đọc `version` trước khi parse để hiện "Cần cập nhật app" thay vì lỗi (PLAN mục 7.4). Việc này làm ở Phase 2.
+- `lyrics.ts` chỉ có `LyricsRefSchema` vì `TrackSchema` cần import; phần còn lại của lời bài hát thuộc Phase 4.
