@@ -84,6 +84,7 @@ export class RntpPlayerService implements IPlayerService {
       artist: track.artist,
       albumTitle: track.album,
       duration: track.duration,
+      artworkUrl: track.cover,
     }));
 
     TrackPlayer.setMediaItems(mediaItems, startIndex);
@@ -113,6 +114,13 @@ export class RntpPlayerService implements IPlayerService {
   async previous(): Promise<void> {
     await this.setup();
     TrackPlayer.skipToPrevious();
+    this.notifyListeners();
+  }
+
+  async skipToIndex(index: number): Promise<void> {
+    await this.setup();
+    this.lastTrackEndTime = Date.now();
+    TrackPlayer.skipToIndex(index);
     this.notifyListeners();
   }
 

@@ -22,6 +22,7 @@ export interface IPlayerService {
   pause(): Promise<void>;
   next(): Promise<void>;
   previous(): Promise<void>;
+  skipToIndex(index: number): Promise<void>;
   seekTo(seconds: number): Promise<void>;
   setRepeatMode(mode: RepeatMode): Promise<void>;
   getQueue(): Promise<Track[]>;
