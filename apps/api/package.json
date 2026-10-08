@@ -1,0 +1,23 @@
+{
+  "name": "@music-app/api",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@music-app/shared": "workspace:*",
+    "hono": "^4.7.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "^3.111.0"
+  }
+}

@@ -5,6 +5,11 @@ packages:
 
 # Khoá phiên bản dùng chung cho các workspace (tham chiếu bằng "catalog:" trong package.json)
 # TypeScript ghim < 6.1 vì typescript-eslint 8.70 chỉ hỗ trợ tới đó.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
 catalog:
   typescript: 6.0.3
   vitest: 5.0.1

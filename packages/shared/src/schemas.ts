@@ -64,6 +64,36 @@ export const UserStateSchema = z.object({
 });
 export type UserState = z.infer<typeof UserStateSchema>;
 
+// Thông tin phản hồi kiểm tra sức khỏe thư viện (/api/health)
+export const HealthSchema = z.object({
+  status: z.literal('ok'),
+  trackCount: z.number().int().nonnegative(),
+  albumCount: z.number().int().nonnegative(),
+  generatedAt: z.string().optional(),
+  dataVersion: z.number().int().optional(),
+});
+export type Health = z.infer<typeof HealthSchema>;
+
+// Cấu trúc Override không phá huỷ (PLAN.md mục 13.1 và skill local-dashboard)
+export const TrackOverrideSchema = z.object({
+  title: z.string().min(1).optional(),
+  artist: z.string().min(1).optional(),
+  album: z.string().optional(),
+  year: z.number().int().optional(),
+  trackNumber: z.number().int().optional(),
+  hidden: z.boolean().optional(),
+  deletedAt: z.string().optional(),
+  purged: z.boolean().optional(),
+  purgedAt: z.string().optional(),
+});
+export type TrackOverride = z.infer<typeof TrackOverrideSchema>;
+
+export const OverridesSchema = z.object({
+  version: z.literal(1).default(1),
+  tracks: z.record(z.string(), TrackOverrideSchema).default({}),
+});
+export type Overrides = z.infer<typeof OverridesSchema>;
+
 // Response chuẩn cho toàn bộ API JSON (trừ endpoint binary)
 export interface ApiResponse<T> {
   status: number;
@@ -71,3 +101,16 @@ export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
 }
+
+// Request cập nhật bài hát (dùng cho mobile và API)
+export const UpdateTrackSchema = z.object({
+  title: z.string().min(1).optional(),
+  artist: z.string().min(1).optional(),
+  album: z.string().optional(),
+  year: z.number().int().optional(),
+  lyrics: z.string().optional(),
+});
+export type UpdateTrack = z.infer<typeof UpdateTrackSchema>;
+
+
+

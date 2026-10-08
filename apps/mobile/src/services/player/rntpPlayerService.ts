@@ -107,26 +107,42 @@ export class RntpPlayerService implements IPlayerService {
   async next(): Promise<void> {
     await this.setup();
     this.lastTrackEndTime = Date.now();
-    TrackPlayer.skipToNext();
+    try {
+      TrackPlayer.skipToNext();
+    } catch (err) {
+      console.warn('Không thể chuyển bài tiếp:', err);
+    }
     this.notifyListeners();
   }
 
   async previous(): Promise<void> {
     await this.setup();
-    TrackPlayer.skipToPrevious();
+    try {
+      TrackPlayer.skipToPrevious();
+    } catch (err) {
+      console.warn('Không thể quay lại bài trước:', err);
+    }
     this.notifyListeners();
   }
 
   async skipToIndex(index: number): Promise<void> {
     await this.setup();
     this.lastTrackEndTime = Date.now();
-    TrackPlayer.skipToIndex(index);
+    try {
+      TrackPlayer.skipToIndex(index);
+    } catch (err) {
+      console.warn('Không thể nhảy tới vị trí:', err);
+    }
     this.notifyListeners();
   }
 
   async seekTo(seconds: number): Promise<void> {
     await this.setup();
-    TrackPlayer.seekTo(seconds);
+    try {
+      TrackPlayer.seekTo(seconds);
+    } catch (err) {
+      console.warn('Không thể tua nhạc:', err);
+    }
     this.notifyListeners();
   }
 

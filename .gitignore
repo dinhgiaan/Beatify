@@ -23,6 +23,7 @@ apps/mobile/android/
 # Nhạc mẫu để thử indexer (người dùng tự chép vào, không commit)
 fixtures/music/*
 !fixtures/music/.gitkeep
+music_source/
 
 # Hệ điều hành / editor
 .DS_Store

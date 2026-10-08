@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const LyricsRefSchema = z.object({
   file: z.string(), // "lyrics/{id}.lrc" hoặc "lyrics/{id}.txt"
   format: z.enum(['lrc', 'txt']), // lrc = có mốc thời gian, txt = lời thường
-  source: z.enum(['embedded', 'lrclib', 'aligned', 'asr', 'manual']),
+  source: z.enum(['embedded', 'lrclib', 'aligned', 'asr', 'manual', 'sidecar']),
   language: z.string().optional(), // 'vi', 'en', ...
   reviewed: z.boolean().default(false),
 });

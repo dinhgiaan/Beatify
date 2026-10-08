@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,22 +8,49 @@ import {
   ActivityIndicator,
   Image,
   TextInput,
+  Alert,
+  Vibration,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import type { Track } from '@music-app/shared';
+import { type Track, type UpdateTrack, smartShuffle } from '@music-app/shared';
 import { playerService } from '../src/services/player/rntpPlayerService';
 import type { PlayerState, RepeatMode } from '../src/services/player/types';
 import { parseMobileprovisionExpiration } from '../src/utils/mobileprovision';
+import { EditTrackModal } from '../src/components/EditTrackModal';
+import { ProfileModal } from '../src/components/ProfileModal';
+import { statsStorage } from '../src/services/stats/statsStorage';
+import { MusicApiClient } from '../src/services/api/musicApiClient';
+import {
+  PlayIcon,
+  PauseIcon,
+  NextIcon,
+  PrevIcon,
+  SeekBackwardIcon,
+  SeekForwardIcon,
+  ShuffleIcon,
+  RepeatIcon,
+  RepeatOneIcon,
+  ProfileIcon,
+  EditIcon,
+  MysteryIcon,
+  QuestionIcon,
+  DiscIcon,
+} from '../src/components/icons/SvgIcons';
 
 function formatTime(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) return '0:00';
-  const mins = Math.floor(seconds / 60);
+  if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return '0:00';
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
+  if (hours > 0) {
+    return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  }
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
 export default function SpikePlayerScreen() {
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [originalTracks, setOriginalTracks] = useState<Track[]>([]);
   const [customUrl, setCustomUrl] = useState<string>('');
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
@@ -36,7 +63,25 @@ export default function SpikePlayerScreen() {
   const [expirationDate, setExpirationDate] = useState<string | null>('Đang kiểm tra...');
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+  const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
   const [barWidth, setBarWidth] = useState<number>(0);
+
+  // State cho Profile & Thống kê
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const lastRecordedTrackRef = useRef<string | null>(null);
+
+  // State cho Edit / Delete Modal & Đồng bộ Cloudflare
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [serverUrl, setServerUrl] = useState<string>(
+    process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787'
+  );
+  const [serverToken, setServerToken] = useState<string>(
+    process.env.EXPO_PUBLIC_API_TOKEN || ''
+  );
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
 
   useEffect(() => {
     // 1. Khởi tạo player và đăng ký theo dõi trạng thái
@@ -90,12 +135,36 @@ export default function SpikePlayerScreen() {
     };
   }, [tracks]);
 
+  // Tự động ghi nhận lượt nghe cho Profile & Replay khi nghe >= 15 giây
+  useEffect(() => {
+    if (
+      playerState.isPlaying &&
+      playerState.activeTrackId &&
+      playerState.positionSec >= 15 &&
+      lastRecordedTrackRef.current !== playerState.activeTrackId
+    ) {
+      lastRecordedTrackRef.current = playerState.activeTrackId;
+      const t = tracks.find((x) => x.id === playerState.activeTrackId);
+      if (t) {
+        statsStorage.recordTrackListen({
+          trackId: t.id,
+          title: t.title,
+          artist: t.artist,
+          album: t.album,
+          durationSec: t.duration || Math.round(playerState.durationSec),
+          listenedSec: Math.round(playerState.positionSec),
+        }).catch((err) => console.warn('Lỗi ghi stats:', err));
+      }
+    }
+  }, [playerState.isPlaying, playerState.activeTrackId, playerState.positionSec, tracks]);
+
   const handlePlayQueue = async (trackList = tracks, startIndex = currentTrackIndex) => {
     if (trackList.length === 0) return;
     await playerService.playQueue(trackList, startIndex);
   };
 
   const handleTogglePlay = async () => {
+    Vibration.vibrate(10);
     if (playerState.isPlaying) {
       await playerService.pause();
     } else {
@@ -123,23 +192,29 @@ export default function SpikePlayerScreen() {
 
     const newTrackList = [...tracks, newTrack];
     setTracks(newTrackList);
+    if (isSmartShuffle) {
+      setOriginalTracks((prev) => [...prev, newTrack]);
+    }
     setCustomUrl('');
     await handlePlayQueue(newTrackList, newTrackList.length - 1);
   };
 
   const handleNext = async () => {
+    Vibration.vibrate(10);
     if (tracks.length > 0) {
       await playerService.next();
     }
   };
 
   const handlePrevious = async () => {
+    Vibration.vibrate(10);
     if (tracks.length > 0) {
       await playerService.previous();
     }
   };
 
   const handleSkipToTrack = async (index: number) => {
+    Vibration.vibrate(10);
     if (!playerState.activeTrackId) {
       await handlePlayQueue(tracks, index);
     } else {
@@ -148,12 +223,18 @@ export default function SpikePlayerScreen() {
   };
 
   const handleSeekOffset = async (secondsOffset: number) => {
-    const target = Math.max(0, playerState.positionSec + secondsOffset);
+    Vibration.vibrate(10);
+    const currTrack = tracks[currentTrackIndex];
+    const totalSec = playerState.durationSec || (currTrack ? currTrack.duration : 0);
+    const target = totalSec > 0
+      ? Math.min(totalSec, Math.max(0, playerState.positionSec + secondsOffset))
+      : Math.max(0, playerState.positionSec + secondsOffset);
     await playerService.seekTo(target);
   };
 
   const handleBarPress = async (locationX: number) => {
     if (barWidth <= 0 || tracks.length === 0) return;
+    Vibration.vibrate(10);
     const currentTrack = tracks[currentTrackIndex];
     const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
     if (totalDuration <= 0) return;
@@ -163,11 +244,164 @@ export default function SpikePlayerScreen() {
   };
 
   const handleCycleRepeat = async () => {
+    Vibration.vibrate(10);
     const nextMode: RepeatMode =
       repeatMode === 'off' ? 'track' : repeatMode === 'track' ? 'queue' : 'off';
     setRepeatMode(nextMode);
     await playerService.setRepeatMode(nextMode);
   };
+
+  const handleToggleSmartShuffle = async () => {
+    Vibration.vibrate(10);
+    if (tracks.length === 0) return;
+
+    if (!isSmartShuffle) {
+      // 1. Kích hoạt Smart Shuffle
+      setOriginalTracks([...tracks]);
+      const currentTrack = tracks[currentTrackIndex];
+      const shuffled = smartShuffle(tracks, currentTrack?.id);
+      setTracks(shuffled);
+      setCurrentTrackIndex(0);
+      setIsSmartShuffle(true);
+      await playerService.playQueue(shuffled, 0);
+    } else {
+      // 2. Tắt Smart Shuffle, hoàn trả thứ tự bài ban đầu
+      const currentTrack = tracks[currentTrackIndex];
+      const restored = originalTracks.length > 0 ? originalTracks : tracks;
+      const restoredIdx = currentTrack
+        ? Math.max(0, restored.findIndex((t) => t.id === currentTrack.id))
+        : 0;
+      setTracks(restored);
+      setCurrentTrackIndex(restoredIdx);
+      setIsSmartShuffle(false);
+      await playerService.playQueue(restored, restoredIdx);
+    }
+  };
+
+  const handleOpenEdit = (track: Track) => {
+    setEditingTrack(track);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
+    // 1. Optimistic Update ngay lập tức trên Mobile
+    const updatedList = tracks.map((t) => {
+      if (t.id === trackId) {
+        return {
+          ...t,
+          ...(updates.title !== undefined ? { title: updates.title } : {}),
+          ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
+          ...(updates.album !== undefined ? { album: updates.album } : {}),
+          ...(updates.year !== undefined ? { year: updates.year } : {}),
+        };
+      }
+      return t;
+    });
+    setTracks(updatedList);
+    if (originalTracks.length > 0) {
+      setOriginalTracks((prev) =>
+        prev.map((t) => {
+          if (t.id === trackId) {
+            return {
+              ...t,
+              ...(updates.title !== undefined ? { title: updates.title } : {}),
+              ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
+              ...(updates.album !== undefined ? { album: updates.album } : {}),
+              ...(updates.year !== undefined ? { year: updates.year } : {}),
+            };
+          }
+          return t;
+        })
+      );
+    }
+
+    // 2. Gửi request đồng bộ lên Cloudflare Worker (nếu đã cấu hình server)
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+    const cleanToken = serverToken.trim();
+    if (cleanUrl && !trackId.startsWith('custom-')) {
+      try {
+        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+        await client.updateTrack(trackId, updates);
+        setSyncStatus(`Đã lưu và đồng bộ "${updates.title || 'bài hát'}" lên Cloudflare R2!`);
+      } catch (err) {
+        console.warn('Lỗi đồng bộ Cloudflare:', err);
+        setSyncStatus(`Lưu cục bộ thành công (Đồng bộ Cloudflare thất bại: ${String(err)})`);
+      }
+    } else {
+      setSyncStatus(`Đã cập nhật bài hát "${updates.title || ''}" trên app`);
+    }
+  };
+
+  const handleDeleteTrack = async (trackId: string) => {
+    // 1. Optimistic Update ngay lập tức trên Mobile
+    const targetIdx = tracks.findIndex((t) => t.id === trackId);
+    const updatedList = tracks.filter((t) => t.id !== trackId);
+    setTracks(updatedList);
+    if (originalTracks.length > 0) {
+      setOriginalTracks((prev) => prev.filter((t) => t.id !== trackId));
+    }
+
+    // Nếu bài đang phát bị xóa, chuyển bài hoặc dừng
+    if (tracks[currentTrackIndex]?.id === trackId) {
+      if (updatedList.length > 0) {
+        const nextIdx = Math.min(targetIdx, updatedList.length - 1);
+        setCurrentTrackIndex(nextIdx);
+        await handlePlayQueue(updatedList, nextIdx);
+      } else {
+        setCurrentTrackIndex(0);
+        await playerService.pause();
+      }
+    } else if (targetIdx < currentTrackIndex) {
+      // Bảo toàn vị trí bài đang phát khi xóa bài đứng trước
+      setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+    }
+
+    // 2. Gửi request xóa lên Cloudflare Worker (nếu là bài từ Cloudflare)
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+    const cleanToken = serverToken.trim();
+    if (cleanUrl && !trackId.startsWith('custom-')) {
+      try {
+        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+        await client.deleteTrack(trackId);
+        setSyncStatus(`Đã chuyển bài hát vào thùng rác trên Cloudflare R2!`);
+      } catch (err) {
+        console.warn('Lỗi xóa trên Cloudflare:', err);
+        setSyncStatus(`Đã xóa khỏi app (Đồng bộ Cloudflare thất bại: ${String(err)})`);
+      }
+    } else {
+      setSyncStatus('Đã xóa bài hát khỏi danh sách phát');
+    }
+  };
+
+  const handleSyncLibrary = async () => {
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+    const cleanToken = serverToken.trim();
+    if (!cleanUrl) {
+      Alert.alert('Chưa nhập Server URL', 'Vui lòng nhập địa chỉ Worker để đồng bộ');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus('Đang tải danh sách bài hát từ Cloudflare R2...');
+    try {
+      const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+      const lib = await client.fetchLibrary();
+      setTracks(lib.tracks);
+      setOriginalTracks(lib.tracks);
+      setIsSmartShuffle(false);
+      setSyncStatus(`Đã đồng bộ thành công ${lib.tracks.length} bài hát từ Cloudflare!`);
+      if (lib.tracks.length > 0 && !playerState.isPlaying) {
+        setCurrentTrackIndex(0);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSyncStatus(`Lỗi đồng bộ: ${msg}`);
+      Alert.alert('Lỗi kết nối Cloudflare', msg);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
   const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
@@ -183,12 +417,40 @@ export default function SpikePlayerScreen() {
       {/* Thẻ hiển thị bài hát chính */}
       <View style={styles.card}>
         <View style={styles.badgeRow}>
-          <Text style={styles.badge}>BEATIFY PLAYER</Text>
-          <TouchableOpacity style={styles.repeatBadge} onPress={handleCycleRepeat}>
-            <Text style={styles.repeatBadgeText}>
-              Repeat: {repeatMode.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.badgeLeftGroup}>
+            <Text style={styles.badge}>BEATIFY PLAYER</Text>
+            {isSmartShuffle && (
+              <View style={styles.shuffleActivePill}>
+                <ShuffleIcon size={11} color="#1DB954" />
+                <Text style={styles.shuffleActivePillText}>TRỘN BÀI</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.badgeRightGroup}>
+            <TouchableOpacity
+              style={styles.profileHeaderBtn}
+              onPress={() => {
+                Vibration.vibrate(10);
+                setProfileModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <ProfileIcon size={14} color="#1DB954" />
+              <Text style={styles.profileHeaderBtnText}>Hồ sơ</Text>
+            </TouchableOpacity>
+            {currentTrack ? (
+              <TouchableOpacity
+                style={styles.subtleEditBtn}
+                onPress={() => handleOpenEdit(currentTrack)}
+                activeOpacity={0.6}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <EditIcon size={13} color="#888888" />
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 24 }} />
+            )}
+          </View>
         </View>
 
         {/* Khung ảnh bìa hoặc Icon khi thư viện trống */}
@@ -201,8 +463,8 @@ export default function SpikePlayerScreen() {
             />
           ) : (
             <View style={styles.artworkPlaceholder}>
-              <Text style={styles.artworkPlaceholderText}>🎵</Text>
-              <Text style={styles.artworkEmptyText}>
+              <DiscIcon size={64} color="#333333" />
+              <Text style={[styles.artworkEmptyText, { marginTop: 10 }]}>
                 {tracks.length === 0 ? 'Thư viện trống' : 'Không có ảnh bìa'}
               </Text>
             </View>
@@ -236,48 +498,143 @@ export default function SpikePlayerScreen() {
           <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
         </View>
 
-        {/* Cụm điều khiển phát nhạc */}
+        {/* Cụm điều khiển phát nhạc chính (Chỉ dùng biểu tượng SVG chuẩn Apple/Spotify) */}
         <View style={styles.controlsRow}>
+          {/* Tua lùi 5s */}
           <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={styles.seekBtn}
             disabled={tracks.length === 0}
             onPress={() => handleSeekOffset(-5)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.btnText}>-5s</Text>
+            <SeekBackwardIcon size={22} color="#ffffff" />
           </TouchableOpacity>
 
+          {/* Bài trước (Prev) */}
           <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={styles.skipBtn}
             disabled={tracks.length === 0}
             onPress={handlePrevious}
+            activeOpacity={0.7}
           >
-            <Text style={styles.btnText}>Prev</Text>
+            <PrevIcon size={22} color="#ffffff" />
           </TouchableOpacity>
 
+          {/* Phát / Dừng (Play / Pause tròn lớn) */}
           <TouchableOpacity
-            style={[styles.playBtn, tracks.length === 0 && styles.playBtnDisabled]}
+            style={[styles.playCircleBtn, tracks.length === 0 && styles.playCircleBtnDisabled]}
             disabled={tracks.length === 0 && !playerState.isPlaying}
             onPress={handleTogglePlay}
+            activeOpacity={0.8}
           >
-            <Text style={styles.playBtnText}>{playerState.isPlaying ? 'PAUSE' : 'PLAY'}</Text>
+            {playerState.isPlaying ? (
+              <PauseIcon size={26} color="#000000" />
+            ) : (
+              <PlayIcon size={26} color="#000000" />
+            )}
           </TouchableOpacity>
 
+          {/* Bài tiếp (Next) */}
           <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={styles.skipBtn}
             disabled={tracks.length === 0}
             onPress={handleNext}
+            activeOpacity={0.7}
           >
-            <Text style={styles.btnText}>Next</Text>
+            <NextIcon size={22} color="#ffffff" />
+          </TouchableOpacity>
+
+          {/* Tua tới 5s */}
+          <TouchableOpacity
+            style={styles.seekBtn}
+            disabled={tracks.length === 0}
+            onPress={() => handleSeekOffset(5)}
+            activeOpacity={0.7}
+          >
+            <SeekForwardIcon size={22} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Hàng nút chế độ: Lặp lại & Trộn bài thông minh */}
+        <View style={styles.modeButtonsRow}>
+          <TouchableOpacity
+            style={[styles.modeBottomBtn, repeatMode !== 'off' && styles.modeBottomBtnActive]}
+            onPress={handleCycleRepeat}
+            activeOpacity={0.7}
+          >
+            {repeatMode === 'track' ? (
+              <RepeatOneIcon size={16} color="#1DB954" />
+            ) : (
+              <RepeatIcon size={16} color={repeatMode !== 'off' ? '#1DB954' : '#71717a'} />
+            )}
+            <Text style={[styles.repeatBottomText, repeatMode !== 'off' && styles.repeatActiveColor]}>
+              {repeatMode === 'off' ? 'Không lặp' : repeatMode === 'track' ? 'Lặp 1 bài' : 'Lặp danh sách'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.secondaryBtn}
-            disabled={tracks.length === 0}
-            onPress={() => handleSeekOffset(5)}
+            style={[styles.modeBottomBtn, isSmartShuffle && styles.modeBottomBtnActive]}
+            onPress={handleToggleSmartShuffle}
+            activeOpacity={0.7}
           >
-            <Text style={styles.btnText}>+5s</Text>
+            <ShuffleIcon size={16} color={isSmartShuffle ? '#1DB954' : '#71717a'} />
+            <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
+              {isSmartShuffle ? 'Trộn: BẬT' : 'Trộn: Tắt'}
+            </Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Khung kết nối & Đồng bộ Cloudflare R2 */}
+      <View style={styles.syncCard}>
+        <Text style={styles.syncCardTitle}>ĐỒNG BỘ TỨC THÌ VỚI CLOUDFLARE R2</Text>
+        <Text style={styles.syncCardSubtitle}>
+          Khi sửa hoặc xóa bài trên điện thoại, dữ liệu sẽ được cập nhật trực tiếp lên Cloudflare R2 và đồng bộ ngược về PC.
+        </Text>
+        <View style={styles.syncInputGroup}>
+          <Text style={styles.syncInputLabel}>Địa chỉ Cloudflare Worker:</Text>
+          <TextInput
+            style={styles.inputField}
+            placeholder="http://192.168.1.x:8787 hoặc domain Worker"
+            placeholderTextColor="#666666"
+            value={serverUrl}
+            onChangeText={setServerUrl}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        <View style={[styles.syncInputGroup, { marginTop: 8 }]}>
+          <Text style={styles.syncInputLabel}>API Token (Bearer):</Text>
+          <TextInput
+            style={styles.inputField}
+            placeholder="Token bí mật để xác thực"
+            placeholderTextColor="#666666"
+            value={serverToken}
+            onChangeText={setServerToken}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.syncBtn, isSyncing && styles.syncBtnDisabled]}
+          disabled={isSyncing}
+          onPress={handleSyncLibrary}
+        >
+          {isSyncing ? (
+            <ActivityIndicator size="small" color="#000" />
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <RepeatIcon size={15} color="#000000" />
+              <Text style={[styles.syncBtnText, { marginLeft: 6 }]}>Tải toàn bộ thư viện từ Cloudflare</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {syncStatus && (
+          <View style={styles.syncStatusBox}>
+            <Text style={styles.syncStatusText}>{syncStatus}</Text>
+          </View>
+        )}
       </View>
 
       {/* Khung nhập link nhạc thật (Không dùng mock data) */}
@@ -305,27 +662,106 @@ export default function SpikePlayerScreen() {
       {/* Danh sách hàng đợi nếu đã có bài hát */}
       {tracks.length > 0 && (
         <View style={styles.queueCard}>
-          <Text style={styles.queueHeader}>DANH SÁCH BÀI HÁT ({tracks.length})</Text>
+          <View style={styles.queueHeaderRow}>
+            <Text style={styles.queueHeader}>DANH SÁCH BÀI HÁT ({tracks.length})</Text>
+            {isSmartShuffle && (
+              <View style={styles.mysteryQueueTag}>
+                <MysteryIcon size={12} color="#1DB954" />
+                <Text style={styles.mysteryQueueTagText}>BÍ MẬT HÀNG ĐỢI</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Banner giải thích tính năng bất ngờ của Smart Shuffle */}
+          {isSmartShuffle && (
+            <View style={styles.mysteryBannerBox}>
+              <MysteryIcon size={20} color="#1DB954" />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.mysteryBannerTitle}>Trộn bài thông minh đang bật</Text>
+                <Text style={styles.mysteryBannerDesc}>
+                  Thứ tự các bài tiếp theo được giữ bí mật để mang lại cảm giác tò mò và bất ngờ!
+                </Text>
+              </View>
+            </View>
+          )}
+
           {tracks.map((track, idx) => {
             const isActive = idx === currentTrackIndex;
+            const isMysterious = isSmartShuffle && idx > currentTrackIndex;
+
             return (
-              <TouchableOpacity
+              <View
                 key={track.id}
-                style={[styles.queueItem, isActive && styles.queueItemActive]}
-                onPress={() => handleSkipToTrack(idx)}
+                style={[
+                  styles.queueItem,
+                  isActive && styles.queueItemActive,
+                  isMysterious && styles.queueItemMysterious,
+                ]}
               >
-                <View style={styles.queueItemInfo}>
-                  <Text style={[styles.queueItemTitle, isActive && styles.queueItemTitleActive]}>
-                    {idx + 1}. {track.title}
-                  </Text>
-                  <Text style={styles.queueItemArtist}>{track.artist}</Text>
+                <View style={styles.queueIndexBox}>
+                  {isMysterious ? (
+                    <QuestionIcon size={13} color="#71717a" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.queueIndexText,
+                        isActive && styles.queueIndexTextActive,
+                      ]}
+                    >
+                      {idx + 1}
+                    </Text>
+                  )}
                 </View>
-                {isActive && (
-                  <Text style={styles.queueActiveBadge}>
-                    {playerState.isPlaying ? '▶ ĐANG PHÁT' : '⏸ ĐÃ CHỌN'}
+
+                <TouchableOpacity
+                  style={styles.queueItemInfo}
+                  onPress={() => handleSkipToTrack(idx)}
+                >
+                  <Text
+                    style={[
+                      styles.queueItemTitle,
+                      isActive && styles.queueItemTitleActive,
+                      isMysterious && styles.queueItemTitleMysterious,
+                    ]}
+                  >
+                    {isMysterious ? 'Bài hát bí ẩn' : track.title}
                   </Text>
-                )}
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.queueItemArtist,
+                      isMysterious && styles.queueItemArtistMysterious,
+                    ]}
+                  >
+                    {isMysterious
+                      ? 'Sẽ được tiết lộ khi bài này phát'
+                      : `${track.artist} ${track.album ? `• ${track.album}` : ''}`}
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.queueActionsRow}>
+                  {isActive && (
+                    <View style={{ marginRight: 6 }}>
+                      {playerState.isPlaying ? (
+                        <PlayIcon size={13} color="#1DB954" />
+                      ) : (
+                        <PauseIcon size={13} color="#1DB954" />
+                      )}
+                    </View>
+                  )}
+                  {isMysterious ? (
+                    <View style={styles.mysteryBadgePill}>
+                      <Text style={styles.mysteryBadgePillText}>Sắp đến</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.queueEditBtn}
+                      onPress={() => handleOpenEdit(track)}
+                    >
+                      <EditIcon size={13} color="#a1a1aa" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
             );
           })}
         </View>
@@ -352,6 +788,22 @@ export default function SpikePlayerScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Modal Chỉnh sửa bài hát trên Mobile */}
+      <EditTrackModal
+        visible={editModalVisible}
+        track={editingTrack}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleSaveTrack}
+        onDelete={handleDeleteTrack}
+      />
+
+      {/* Modal Hồ sơ cá nhân & Thống kê Beatify Replay */}
+      <ProfileModal
+        visible={profileModalVisible}
+        onClose={() => setProfileModalVisible(false)}
+        totalLibraryTracksCount={tracks.length}
+      />
     </ScrollView>
   );
 }
@@ -472,33 +924,90 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 14,
+    marginTop: 4,
   },
-  playBtn: {
+  seekBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1c1c1c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
+  seekArrow: {
+    color: '#1DB954',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  seekNumber: {
+    color: '#d4d4d8',
+    fontSize: 10.5,
+    fontWeight: '700',
+    marginHorizontal: 1,
+  },
+  skipBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1f1f1f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  skipIcon: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  playCircleBtn: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#1DB954',
-    paddingVertical: 14,
-    paddingHorizontal: 26,
-    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1DB954',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
-  playBtnDisabled: {
+  playCircleBtnDisabled: {
     backgroundColor: '#282828',
     opacity: 0.5,
+    shadowOpacity: 0,
   },
-  playBtnText: {
+  playCircleIcon: {
+    fontSize: 20,
     color: '#000000',
     fontWeight: 'bold',
-    fontSize: 14,
   },
-  secondaryBtn: {
-    backgroundColor: '#282828',
-    paddingVertical: 10,
+  repeatBottomBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 5,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 14,
+    backgroundColor: '#1c1c1c',
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#262626',
   },
-  btnText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '500',
+  repeatBottomIcon: {
+    fontSize: 13,
+    color: '#71717a',
+  },
+  repeatBottomText: {
+    fontSize: 11,
+    color: '#71717a',
+    fontWeight: '600',
+  },
+  repeatActiveColor: {
+    color: '#1DB954',
   },
   inputCard: {
     backgroundColor: '#141414',
@@ -631,4 +1140,254 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
+  subtleEditBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#1c1c1c',
+    opacity: 0.45,
+    borderWidth: 1,
+    borderColor: '#282828',
+  },
+  subtleEditIcon: {
+    color: '#a1a1aa',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  syncCard: {
+    backgroundColor: '#121212',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#242424',
+  },
+  syncCardTitle: {
+    color: '#1DB954',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  syncCardSubtitle: {
+    color: '#888888',
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  syncInputGroup: {
+    marginBottom: 4,
+  },
+  syncInputLabel: {
+    color: '#a1a1aa',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  syncBtn: {
+    backgroundColor: '#1DB954',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  syncBtnDisabled: {
+    opacity: 0.6,
+  },
+  syncBtnText: {
+    color: '#000000',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  syncStatusBox: {
+    backgroundColor: '#181818',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#1DB954',
+  },
+  syncStatusText: {
+    color: '#a1a1aa',
+    fontSize: 12,
+  },
+  queueActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  queueEditBtn: {
+    backgroundColor: '#27272a',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueEditBtnText: {
+    color: '#d4d4d8',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  queueIndexBox: {
+    width: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  queueIndexText: {
+    color: '#71717a',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  queueIndexTextActive: {
+    color: '#1DB954',
+    fontWeight: 'bold',
+  },
+  badgeLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  badgeRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  profileHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#222222',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  profileHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  shuffleActivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(29, 185, 84, 0.15)',
+    borderWidth: 1,
+    borderColor: '#1DB954',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  shuffleActivePillText: {
+    color: '#1DB954',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  modeButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  modeBottomBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#202020',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2e2e2e',
+  },
+  modeBottomBtnActive: {
+    backgroundColor: '#262626',
+    borderColor: '#1DB954',
+  },
+  queueHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  mysteryQueueTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    borderWidth: 1,
+    borderColor: '#eab308',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  mysteryQueueTagText: {
+    color: '#eab308',
+    fontSize: 9.5,
+    fontWeight: 'bold',
+  },
+  mysteryBannerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1b1b1f',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.3)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    gap: 10,
+  },
+  mysteryBannerIcon: {
+    fontSize: 22,
+  },
+  mysteryBannerTitle: {
+    color: '#eab308',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mysteryBannerDesc: {
+    color: '#888888',
+    fontSize: 10.5,
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  queueItemMysterious: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#333333',
+    backgroundColor: '#161618',
+  },
+  queueIndexTextMysterious: {
+    color: '#eab308',
+    fontSize: 13,
+  },
+  queueItemTitleMysterious: {
+    color: '#cccccc',
+    fontStyle: 'italic',
+    letterSpacing: 0.2,
+  },
+  queueItemArtistMysterious: {
+    color: '#666666',
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  mysteryBadgePill: {
+    backgroundColor: '#242426',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  mysteryBadgePillText: {
+    color: '#888888',
+    fontSize: 10,
+    fontWeight: '600',
+  },
 });
+

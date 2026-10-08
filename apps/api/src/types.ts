@@ -1,0 +1,39 @@
+import type { Library, Health, Overrides } from '@music-app/shared';
+
+export interface Env {
+  MUSIC_BUCKET: R2Bucket;
+  API_TOKEN?: string;
+}
+
+export interface RangeOption {
+  offset?: number;
+  length?: number;
+  suffix?: number;
+}
+
+export interface StorageObjectMetadata {
+  size: number;
+  etag: string;
+  contentType?: string;
+  customMetadata?: Record<string, string>;
+}
+
+export interface StorageObject {
+  body: ReadableStream;
+  size: number;
+  etag: string;
+  contentType?: string;
+  range?: R2Range;
+}
+
+export interface IStorageRepository {
+  getLibrary(): Promise<{ library: Library; etag: string } | null>;
+  saveLibrary(library: Library): Promise<void>;
+  getHealth(): Promise<Health | null>;
+  getAudioStream(id: string, range?: RangeOption): Promise<{ object: StorageObject; totalSize: number } | null>;
+  getCover(albumId: string): Promise<StorageObject | null>;
+  getOverrides(): Promise<Overrides>;
+  saveOverrides(overrides: Overrides): Promise<void>;
+  saveLyrics(id: string, content: string): Promise<void>;
+}
+
