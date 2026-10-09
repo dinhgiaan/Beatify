@@ -30,7 +30,7 @@ export function PauseIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 3. Next Icon (Bỏ qua bài kế tiếp - 2 mũi tên + thanh chặn chuẩn Apple Music)
+// 3. Next Icon (Bỏ qua bài kế tiếp - vector 2 mũi tên + thanh chặn)
 export function NextIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -42,7 +42,7 @@ export function NextIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 4. Prev Icon (Quay lại bài trước chuẩn Apple Music)
+// 4. Prev Icon (Quay lại bài trước - vector 2 mũi tên + thanh chặn)
 export function PrevIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -54,7 +54,7 @@ export function PrevIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 5. Seek Backward 5s (Vòng cung tua lại 5 giây phong cách Apple Podcasts)
+// 5. Seek Backward 5s (Vòng cung tua lại 5 giây)
 export function SeekBackwardIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -162,7 +162,7 @@ export function RepeatOneIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 10. Profile User Icon (Hồ sơ cá nhân chuẩn Apple ID / SF Symbols)
+// 10. Profile User Icon (Hồ sơ người dùng)
 export function ProfileIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -192,7 +192,7 @@ export function EditIcon({ size = 20, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 12. Mystery Box / Sparkles Icon (Bài hát bí ẩn phong cách Apple Music)
+// 12. Mystery Box / Sparkles Icon (Bài hát bí ẩn)
 export function MysteryIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -217,7 +217,7 @@ export function DiscIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 14. Music Note Icon (Nốt nhạc kép chuẩn Apple Music)
+// 14. Music Note Icon (Nốt nhạc kép)
 export function MusicNoteIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

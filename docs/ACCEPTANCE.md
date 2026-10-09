@@ -1,15 +1,16 @@
 # Checklist nghiệm thu trên iPhone thật
 
-Cách dùng: sau mỗi lần cài bản mới, thử từng mục, đánh dấu Đạt/Lỗi và ghi chú. Gửi các mục **Lỗi** cho Agent kèm log từ màn hình Debug (Settings → Debug → Copy) hoặc ảnh chụp màn hình.
+Cách dùng: sau mỗi lần cài bản mới, thử từng mục, đánh dấu Đạt/Lỗi và ghi chú. Gửi các mục **Lỗi** cho Agent kèm ảnh chụp màn hình bảng Debug ở cuối màn hình chính.
 
-Bản build đang thử: `__________` (mã commit hiển thị trong màn hình Debug)
+Bản build đang thử: `__________` (dòng `Build SHA` hiển thị trong bảng Debug ở cuối màn hình chính, biến thể: **development**)  
+Ngày ký chứng chỉ: `__________` (ghi rõ ngày ký để theo dõi hạn 7 ngày)
 
 ## S: Smoke test sau mỗi bản build (khoảng 5 phút)
 Chạy sau **mỗi** lần cài bản mới, trước khi làm việc khác. Có mục lỗi thì **đừng** coi bản này là "bản tốt".
 | # | Việc thử | Kỳ vọng | Kết quả |
 |---|---|---|---|
 | S1 | Mở app | Không văng, có nội dung (không màn hình trắng hoặc đen) | ☐ Đạt ☐ Lỗi |
-| S2 | Mở Settings → Debug | Mã commit khớp với bản vừa build | ☐ Đạt ☐ Lỗi |
+| S2 | Cuộn xuống cuối màn hình chính xem bảng Debug | Dòng `Build SHA` và `Hạn chứng chỉ` hiển thị thông tin | ☐ Đạt ☐ Lỗi |
 | S3 | Phát một bài | Có tiếng | ☐ Đạt ☐ Lỗi |
 | S4 | Khoá màn hình 1 phút | Vẫn phát, lock screen đúng tên bài và nút hoạt động | ☐ Đạt ☐ Lỗi |
 | S5 | (Từ Phase 2) Bật chế độ máy bay rồi mở lại app | Thư viện đã cache vẫn xem được | ☐ Đạt ☐ Lỗi |
@@ -17,17 +18,40 @@ Chạy sau **mỗi** lần cài bản mới, trước khi làm việc khác. Có
 
 Đạt hết thì chép file `.ipa` vào `builds/known-good/` (thay bản cũ) để có đường quay lại.
 
-## P0: Spike player (Phase 0)
-| # | Việc thử | Kỳ vọng | Kết quả | Ghi chú |
-|---|---|---|---|---|
-| P0.1 | Cài `.ipa` bằng Sideloadly, mở app | App mở được, không crash | ☐ Đạt ☐ Lỗi | |
-| P0.2 | Bấm phát bài thử | Có tiếng | ☐ Đạt ☐ Lỗi | |
-| P0.3 | Khoá màn hình 10 phút | Nhạc vẫn phát | ☐ Đạt ☐ Lỗi | |
-| P0.4 | Xem lock screen | Đúng tên bài, ca sĩ, ảnh bìa, thanh tiến trình | ☐ Đạt ☐ Lỗi | |
-| P0.5 | Bấm play/pause/next/previous và tua từ lock screen | Đều hoạt động (nếu nút next/previous không có, ghi rõ) | ☐ Đạt ☐ Lỗi | |
-| P0.6 | Nhìn màn hình sau khi mở app trên iPhone 16 (iOS 27) | Có nội dung, không màn hình trắng hoặc đen (lỗi đã gặp ở một số bản Expo trên iOS 27 beta) | ☐ Đạt ☐ Lỗi | |
-| P0.7 | Phát hai bài liền nhau (một MP3, một M4A nếu có), để bài đầu tự hết | Ghi rõ **có hay không** khoảng lặng giữa hai bài (đây là dữ liệu để quyết định, không phải đạt/lỗi cứng) | ☐ Không lặng ☐ Có lặng | |
-| P0.8 | Mở Settings/Debug ở bản spike có thử đọc ngày hết hạn chứng chỉ | Ghi rõ **đọc được hay không** và ngày hiển thị có khớp lần ký gần nhất (dữ liệu để quyết định, không phải đạt/lỗi cứng) | ☐ Đọc được ☐ Không đọc được | |
+## P0: Bộ tiêu chí nghiệm thu thiết bị thật Phase 0 (Bảng C3 — 15 tiêu chí)
+Điều kiện chuẩn: iPhone 16 iOS 27, Wi-Fi ~50 Mbps, pin > 20%, nhiệt độ máy bình thường (không quá nóng do sạc nhanh), file MP3 ~5MB. Ghi lại điều kiện đo môi trường khi thử nghiệm. Đo ≥ 3 lần cho mỗi tiêu chí (nếu kết quả sát ngưỡng, đo thêm để tăng độ tin cậy).  
+*Lưu ý quan trọng:*
+- Build biến thể **development** để không bị chặn kết nối HTTP local.
+- **Trần thời gian debug:** Tối đa 2 giờ debug cho mỗi điều kiện dừng cụ thể gặp phải; **khi tổng thời gian debug tích lũy chạm trần 4 giờ thì dừng toàn bộ Phase 0 bất kể còn điều kiện nào khác**.
+
+*Quy tắc điều kiện dừng Phase 0 (8 điều kiện dừng — tính nhất quán theo từng loại):*  
+- **P0.1 (Thời gian phát — tính theo trung bình):** Đo 3 lần, tính trung bình. Trung bình ≤ 3s = PASS; 3–5s = Đạt có cảnh báo. Kích hoạt dừng khi **Trung bình > 5s sau tối đa 2 giờ debug**.  
+- **Lỗi tất định (P0.2a, P0.4a.2):** Kích hoạt dừng khi **3/3 lần đo đều thất bại** sau tối đa 2 giờ debug.  
+- **Lỗi cài đặt (P0.6):** Kích hoạt dừng khi **cả Sideloadly và AltStore** đều không cài hoặc không mở được app.  
+- **Lỗi chập chờn / độ tin cậy (P0.2c, P0.3, P0.4a.1, P0.4b):** Kích hoạt dừng khi **≥ 2/3 lần đo thất bại**.  
+
+| # | Tiêu chí | Kỳ vọng (PASS) | Lần 1 | Lần 2 | Lần 3 | Kết quả | Ghi chú & Quyết định nếu FAIL |
+|---|---|---|---|---|---|---|---|
+| P0.1 | Player setup & phát | Tiếng phát ≤ 3s sau khi tap Play (trung bình 3 lần đo: ≤ 3s PASS, 3–5s Cảnh báo) | | | | ☐ Đạt ☐ Lỗi | Delay 200ms sau setup; Trung bình > 5s sau ≤ 2h debug → **Dừng Phase 0** |
+| P0.2a | Lock screen — Metadata | Hiển thị đúng tên bài, nghệ sĩ | | | | ☐ Đạt ☐ Lỗi | 3/3 lần luôn trống → **Dừng Phase 0** |
+| P0.2b | Lock screen — Ảnh bìa | Hiển thị đúng artwork | | | | ☐ Đạt ☐ Lỗi | Không hiện → Chấp nhận tạm |
+| P0.2c | Lock screen — Next/Prev | Bấm Next chuyển bài ≤ 1s | | | | ☐ Đạt ☐ Lỗi | Thử hybrid mode; ≥ 2/3 lần không chuyển bài → **Dừng Phase 0** |
+| P0.3 | Background audio | Khóa màn hình vẫn phát: mốc 1 (≥ 5 phút), mốc 2 (≥ 30 phút) | | | | ☐ Đạt ☐ Lỗi | ≥ 2/3 lần < 5 phút → **Dừng Phase 0**; 5–30 phút → ghi nhận Phase 2 |
+| P0.4a.1 | Tua vị trí trên app | Kéo thanh tua đến 60% → phát tiếp ≤ 2s | | | | ☐ Đạt ☐ Lỗi | Tăng/giảm buffer; ≥ 2/3 lần đo không phát tiếp ≤ 2s → **Dừng Phase 0** |
+| P0.4a.2 | HTTP Range — Worker | Log Worker Cloudflare ghi nhận request có header `Range: bytes=X-` (mã 206) | | | | ☐ Đạt ☐ Lỗi | Kiểm tra Hono handler & console.log; 3/3 lần không có Range request → **Dừng Phase 0** |
+| P0.4b | HTTP Range — Tua dồn dập | Tua 5 lần trong 10s → không crash văng app | | | | ☐ Đạt ☐ Lỗi | ≥ 2/3 lần app crash/văng → **Dừng Phase 0** |
+| P0.5 | Gapless Δt | Đo ≥ 10 lần. Trung vị Δt ≤ 100ms (đo chính: local; phụ: stream) | | | | ☐ Đạt ☐ Lỗi | 100–300ms: ghi nhận; >300ms: ghi nhận (không block MVP) |
+| P0.6 | Sideloadly iOS 27 | Cài thành công, mở app không crash trong 30s | | | | ☐ Đạt ☐ Lỗi | Thử AltStore; Cả hai công cụ fail → **Dừng Phase 0** |
+| P0.7 | ExpirationDate chứng chỉ | Ngày trên Debug card khớp lần ký trên Sideloadly | | | | ☐ Đạt ☐ Lỗi | Không đọc được → Ghi nhận bỏ qua |
+| P0.8 | Rút tai nghe vật lý | Rút tai nghe → nhạc dừng; cắm lại → không tự phát | | | | ☐ Đạt ☐ Lỗi | Không dừng → Sửa trước MVP |
+| P0.9 | Tai nghe Bluetooth | Bấm Next/Prev trên tai nghe (AirPods) hoạt động chuẩn | | | | ☐ Đạt ☐ Lỗi | Không nhận tín hiệu → Ghi nhận |
+| P0.10 | Mất mạng hoàn toàn | Tắt Wi-Fi và di động (SIM data tắt) → theo dõi 30s | | | | ☐ Đạt ☐ Lỗi | Crash văng app → Sửa trước MVP; Freeze → Phase 4 |
+| P0.11 | Bền vững dữ liệu Stats & Xác minh Overwrite | **Chuẩn bị:** Gỡ cài đặt app cũ trên iPhone rồi cài mới lại (đảm bảo file stats chưa tồn tại trên đĩa để Bước A là lần ghi đầu tiên thật sự).<br>**Bước A (Tạo mới):** Nghe bài 1 > 15s → chờ dòng `Hàng đợi ghi đĩa` báo "Đã ghi xong" → dòng `Atomic Write Branch` hiện `moveAsync trực tiếp (tạo mới)` → **chụp toàn bộ bảng Debug (bao gồm cả dòng Khôi phục .tmp) trước khi kill** → vuốt kill app → mở lại → Profile nhận bài 1.<br>**Bước B (Kiểm chứng Overwrite thực tế):** Nghe bài 2 > 15s → chờ `Hàng đợi ghi đĩa` báo "Đã ghi xong" → quan sát `Atomic Write Branch` (`moveAsync trực tiếp (overwrite)` hay `fallback (delete + move)`) và dòng `Lỗi move trực tiếp` (nếu có) → **chụp toàn bộ bảng Debug trước khi kill** → vuốt kill app → mở lại → Profile nhận đủ 2 bài.<br>*Giới hạn diễn giải:* Nhãn overwrite thành công chứng minh Expo FileSystem cho phép di chuyển đè trên iOS 27 không ném lỗi; tính an toàn khi app bị kill giữa chừng được bảo đảm bởi cơ chế khôi phục `.tmp`. | | | | ☐ Đạt ☐ Lỗi | Mất toàn bộ lịch sử → Nâng ưu tiên B17 |
+| P0.12 | Swipe kill khi đang phát | Vuốt tắt app khi đang phát → mở lại app không crash | | | | ☐ Đạt ☐ Lỗi | Mở lại bị crash → Sửa trước MVP |
+| P0.13 | Chuyển mạng Wi-Fi → 4G | Tắt Wi-Fi khi 4G bật → app rebuffer rồi phát tiếp | | | | ☐ Đạt ☐ Lỗi | Dừng nhạc → Ghi nhận; Crash → Sửa trước MVP |
+| P0.14 | Header Authorization RNTP | (Spike thử nghiệm riêng ở nhánh phụ): Gửi header Auth → Worker nhận đúng, không query `?t=` | | | | ☐ Đạt ☐ Lỗi | Không gửi header → Giữ tạm `?t=` |
+| P0.15 | Cuộc gọi / Siri ngắt quãng | Có cuộc gọi → nhạc dừng → kết thúc → tự phát tiếp | | | | ☐ Đạt ☐ Lỗi | Không tự phát lại → Ghi nhận Phase 2 |
+
 
 ## P1: Dữ liệu và API (Phase 1)
 Agent chạy các lệnh này và báo kết quả, người dùng chỉ cần xác nhận khi được yêu cầu.

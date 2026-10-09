@@ -68,6 +68,10 @@ export default function SpikePlayerScreen() {
 
   // State cho Profile & Thống kê
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [atomicWriteBranch, setAtomicWriteBranch] = useState<string>('Chưa ghi');
+  const [lastMoveError, setLastMoveError] = useState<string | null>(null);
+  const [recoveryStatus, setRecoveryStatus] = useState<string>('Không có khôi phục');
+  const [writeQueueStatus, setWriteQueueStatus] = useState<string>('Đã ghi xong (hàng đợi rỗng)');
   const lastRecordedTrackRef = useRef<string | null>(null);
 
   // State cho Edit / Delete Modal & Đồng bộ Cloudflare
@@ -146,6 +150,7 @@ export default function SpikePlayerScreen() {
       lastRecordedTrackRef.current = playerState.activeTrackId;
       const t = tracks.find((x) => x.id === playerState.activeTrackId);
       if (t) {
+        setWriteQueueStatus('Đang ghi (1 tác vụ)...');
         statsStorage.recordTrackListen({
           trackId: t.id,
           title: t.title,
@@ -153,7 +158,17 @@ export default function SpikePlayerScreen() {
           album: t.album,
           durationSec: t.duration || Math.round(playerState.durationSec),
           listenedSec: Math.round(playerState.positionSec),
-        }).catch((err) => console.warn('Lỗi ghi stats:', err));
+        })
+          .then(() => {
+            setAtomicWriteBranch(statsStorage.getLastWriteBranch());
+            setLastMoveError(statsStorage.getLastMoveError());
+            setRecoveryStatus(statsStorage.getLastRecoveryStatus());
+            setWriteQueueStatus(statsStorage.getWriteQueueStatus());
+          })
+          .catch((err) => {
+            console.warn('Lỗi ghi stats:', err);
+            setWriteQueueStatus('Lỗi ghi đĩa');
+          });
       }
     }
   }, [playerState.isPlaying, playerState.activeTrackId, playerState.positionSec, tracks]);
@@ -498,7 +513,7 @@ export default function SpikePlayerScreen() {
           <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
         </View>
 
-        {/* Cụm điều khiển phát nhạc chính (Chỉ dùng biểu tượng SVG chuẩn Apple/Spotify) */}
+        {/* Cụm điều khiển phát nhạc chính (Dùng biểu tượng vector SVG) */}
         <View style={styles.controlsRow}>
           {/* Tua lùi 5s */}
           <TouchableOpacity
@@ -786,6 +801,28 @@ export default function SpikePlayerScreen() {
           <Text style={styles.debugVal}>
             {gaplessMs !== null ? `${gaplessMs} ms` : 'Chưa đo'}
           </Text>
+        </View>
+
+        <View style={styles.debugRow}>
+          <Text style={styles.debugLabel}>Atomic Write Branch:</Text>
+          <Text style={styles.debugVal}>{atomicWriteBranch}</Text>
+        </View>
+
+        {lastMoveError && (
+          <View style={styles.debugRow}>
+            <Text style={styles.debugLabel}>Lỗi move trực tiếp:</Text>
+            <Text style={[styles.debugVal, { color: '#ff6b6b' }]}>{lastMoveError}</Text>
+          </View>
+        )}
+
+        <View style={styles.debugRow}>
+          <Text style={styles.debugLabel}>Khôi phục .tmp:</Text>
+          <Text style={styles.debugVal}>{recoveryStatus}</Text>
+        </View>
+
+        <View style={styles.debugRow}>
+          <Text style={styles.debugLabel}>Hàng đợi ghi đĩa:</Text>
+          <Text style={styles.debugVal}>{writeQueueStatus}</Text>
         </View>
       </View>
 

@@ -112,5 +112,17 @@ export const UpdateTrackSchema = z.object({
 });
 export type UpdateTrack = z.infer<typeof UpdateTrackSchema>;
 
+// Schema bản ghi lịch sử nghe bài hát cho Replay & Stats
+// passthrough() cho phép giữ lại các trường mở rộng trong tương lai, tránh mất dữ liệu khi app phiên bản khác đọc/ghi
+export const ListeningRecordSchema = z.object({
+  trackId: z.string(),
+  title: z.string(),
+  artist: z.string(),
+  album: z.string().optional(),
+  durationSec: z.number(),
+  listenedSec: z.number(),
+  timestamp: z.number(),
+}).passthrough();
+
 
 

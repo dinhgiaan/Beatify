@@ -7,6 +7,7 @@ import {
   PlaylistSchema,
   TrackSchema,
   UserStateSchema,
+  ListeningRecordSchema,
 } from './schemas';
 
 const NOW = '2026-09-20T04:00:00.000Z';
@@ -107,5 +108,33 @@ describe('UserStateSchema', () => {
   it('chấp nhận trạng thái rỗng', () => {
     const state = { version: 1, updatedAt: NOW, playlists: [], favoriteIds: [] };
     expect(UserStateSchema.safeParse(state).success).toBe(true);
+  });
+});
+
+describe('ListeningRecordSchema', () => {
+  const validRecord = {
+    trackId: 'track_1',
+    title: 'Bài Hát',
+    artist: 'Nghệ Sĩ',
+    durationSec: 180,
+    listenedSec: 120,
+    timestamp: 1234567890,
+  };
+
+  it('chấp nhận bản ghi hợp lệ', () => {
+    expect(ListeningRecordSchema.safeParse(validRecord).success).toBe(true);
+  });
+
+  it('giữ lại các trường mở rộng trong tương lai nhờ .passthrough()', () => {
+    const withExtra = { ...validRecord, futureField: 'extra_value', deviceId: 'iphone_16' };
+    const parsed = ListeningRecordSchema.parse(withExtra);
+    expect(parsed).toHaveProperty('futureField', 'extra_value');
+    expect(parsed).toHaveProperty('deviceId', 'iphone_16');
+  });
+
+  it('từ chối khi thiếu trường bắt buộc', () => {
+    const withoutTitle: Record<string, unknown> = { ...validRecord };
+    delete withoutTitle.title;
+    expect(ListeningRecordSchema.safeParse(withoutTitle).success).toBe(false);
   });
 });

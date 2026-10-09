@@ -10,7 +10,8 @@ export interface ListeningRecord {
 
 export interface UserProfile {
   displayName: string;
-  avatarEmoji: string;
+  avatarKey: string;
+  avatarEmoji?: string; // Tương thích ngược phiên bản cũ trước migration
   joinedDate: string; // YYYY-MM-DD
   bio: string;
 }
@@ -50,7 +51,8 @@ export interface FullReplayReport {
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
   displayName: 'Người Yêu Nhạc',
-  avatarEmoji: '🎧',
+  avatarKey: 'headphones',
+  avatarEmoji: 'headphones',
   joinedDate: new Date().toISOString().slice(0, 10),
   bio: 'Bộ sưu tập âm nhạc cá nhân chất lượng cao trên Beatify',
 };

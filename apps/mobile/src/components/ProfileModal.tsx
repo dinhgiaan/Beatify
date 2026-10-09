@@ -112,9 +112,10 @@ export function ProfileModal({
   const handleCycleAvatar = async () => {
     if (!report) return;
     Vibration.vibrate(10);
-    const currIdx = AVATAR_OPTIONS.indexOf(report.profile.avatarEmoji);
+    const currentKey = report.profile.avatarKey || report.profile.avatarEmoji || 'headphones';
+    const currIdx = AVATAR_OPTIONS.indexOf(currentKey);
     const nextKey = AVATAR_OPTIONS[(currIdx + 1) % AVATAR_OPTIONS.length] ?? 'headphones';
-    const updated: UserProfile = { ...report.profile, avatarEmoji: nextKey };
+    const updated: UserProfile = { ...report.profile, avatarKey: nextKey, avatarEmoji: nextKey };
     await statsStorage.saveUserProfile(updated);
     setReport({ ...report, profile: updated });
   };
@@ -169,7 +170,7 @@ export function ProfileModal({
                 activeOpacity={0.8}
                 accessibilityLabel="Bấm để đổi biểu tượng đại diện"
               >
-                {renderAvatarSvg(report.profile.avatarEmoji, 34, '#1DB954')}
+                {renderAvatarSvg(report.profile.avatarKey || report.profile.avatarEmoji || 'headphones', 34, '#1DB954')}
                 <View style={styles.avatarBadge}>
                   <EditIcon size={10} color="#000000" />
                 </View>

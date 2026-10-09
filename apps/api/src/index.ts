@@ -160,6 +160,7 @@ const handleStream = async (c: Context<{ Bindings: Env }>) => {
     }
 
     if (parsed) {
+      console.log(`[stream:${id}] Nhận Range header: "${rangeHeader}" -> Phản hồi HTTP 206 (bytes ${parsed.start}-${parsed.end}/${totalSize})`);
       const rangedResult = await repo.getAudioStream(id, {
         offset: parsed.start,
         length: parsed.length,
@@ -192,6 +193,7 @@ const handleStream = async (c: Context<{ Bindings: Env }>) => {
   }
 
   // Yêu cầu bình thường (không Range) -> 200 OK
+  console.log(`[stream:${id}] Yêu cầu stream toàn bộ (không có Range header) -> Phản hồi HTTP 200 (${totalSize} bytes)`);
   const headers = new Headers();
   headers.set('Accept-Ranges', 'bytes');
   headers.set('Content-Length', totalSize.toString());

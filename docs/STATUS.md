@@ -71,7 +71,7 @@
     - **Hồ sơ cá nhân & Thống kê Replay (ProfileModal)**: Tùy chỉnh tên người dùng, chọn biểu tượng đại diện vector SVG (tai nghe, đĩa than, nốt nhạc, trái tim, ngọn lửa, ngôi sao, cúp, mặt trăng), tab xem lại số phút nghe/lượt nghe/top bài hát/top nghệ sĩ theo Tuần này, Tháng này, Năm 2026, các cột mốc kỷ niệm kèm SVG badge.
     - **Smart Shuffle (Trộn bài thông minh)**: Tự động phân tán bài cùng ca sĩ, ghim bài đang phát ở đầu, khôi phục thứ tự ban đầu khi tắt trộn.
     - **Bí ẩn hàng đợi (Mystery Upcoming Queue)**: Khi bật Smart Shuffle, toàn bộ danh sách các bài hát tiếp theo được giấu tên (`Bài hát bí ẩn` kèm biểu tượng Sparkles/Dấu hỏi chấm SVG tối giản), tạo cảm giác tò mò và bất ngờ như yêu cầu; nút sửa bị khóa cho bài bí ẩn để bảo toàn bí mật.
-    - **Chuyển đổi 100% sang Biểu tượng SVG (chuẩn Apple Music & Spotify)**:
+    - **Chuyển đổi sang Biểu tượng vector SVG (phong cách phẳng hiện đại, thay thế emoji)**:
       - Loại bỏ hoàn toàn tất cả emoji và icon ký tự Unicode thô khỏi ứng dụng.
       - Tích hợp `react-native-svg` (v15.15.4 ghim chuẩn theo Expo SDK 57).
       - Xây dựng hệ thống SVG Icons tại `src/components/icons/SvgIcons.tsx` (Play, Pause, Next, Prev, Seek ±5s, Shuffle, Repeat, RepeatOne, Profile, Edit, Trash, Close, Disc, Star, Trophy, Moon, Flame, Check, Question).
@@ -86,8 +86,21 @@
       - Bọc `try/catch` an toàn cho các thao tác player (`skipToNext`, `skipToPrevious`, `skipToIndex`, `seekTo`), ngăn chặn hoàn toàn exception khi ở cuối danh sách.
       - Chuẩn hóa URL đồng bộ Cloudflare R2: tự động cắt bỏ khoảng trắng và dấu gạch chéo cuối để tránh lỗi 404.
       - Giới hạn lưu trữ 10.000 bản ghi lịch sử nghe tối đa trong `statsStorage` tránh phình dung lượng.
-  - Kiểm thử toàn diện: **89/89 tests passed (100%)** trên toàn bộ monorepo, `pnpm typecheck` và `pnpm lint` sạch 100%.
-- [ ] Người dùng kích hoạt GitHub Actions build lại `.ipa` (vì đã thêm `react-native-svg`) và cài lên iPhone
+      - **Hoàn thành Bug B4 (`avatarKey` migration)**: Bổ sung `avatarKey` vào `UserProfile`, migration guard tự động chuyển `avatarEmoji` cũ sang `avatarKey` trong `loadUserProfile()`, giao diện `ProfileModal` hiển thị chuẩn icon SVG vector.
+      - **Hoàn thiện phòng vệ B17 toàn diện cho `statsStorage`**:
+        - Tách biệt `loadSucceeded` khỏi `cachedRecords` chống kẹt `writeBlocked` vĩnh viễn khi lỗi I/O.
+        - Buffer RAM `pendingOnError` có trần 100 bản ghi + trần retry `MAX_LOAD_RETRIES = 3` chống kẹt vòng lặp I/O.
+        - Cứu dữ liệu từ `.tmp` hợp lệ: khi đọc vào RAM thành công, nếu `moveAsync` sang file chính thất bại vẫn trả về dữ liệu trong RAM (không trả về null làm mất dữ liệu khi ghi tiếp); phân biệt rõ lỗi I/O tạm thời (chặn ghi, retry) với không có file `.tmp`.
+        - Bảo toàn `.tmp` trong `_doWrite`: cờ `mainFileDeleted = true` ngăn chặn xóa `.tmp` nếu file chính đã bị xóa; giới hạn nhánh fallback chỉ chạy khi xác nhận file đích đang tồn tại.
+        - Xác thực từng bản ghi qua `ListeningRecordSchema` (Zod) trong `@music-app/shared`, áp trần `STATS_MAX_RECORDS` sau khi merge pending.
+        - Ghi log và hiển thị riêng biệt `Atomic Write Branch` (phân biệt 'tạo mới' vs 'overwrite' vs 'đích không xác định do lỗi I/O check'), `Lỗi move trực tiếp` (khi rơi vào fallback), `Khôi phục .tmp` và `Hàng đợi ghi đĩa` (`pendingWriteCount` thay thế boolean `isWriting`) trực tiếp trên bảng Debug (`index.tsx`) phục vụ nghiệm thu C3 #11.
+        - Tự động sao lưu file gốc dạng `.partial-<timestamp>` nếu phát hiện bản ghi không khớp Zod schema; lập tức **chặn ghi (`writeBlocked = true`) nếu sao lưu `.partial` thất bại** để phòng ngừa xóa mất dữ liệu gốc không khớp schema. Giới hạn dọn dẹp tự động tối đa 3 bản `.partial` gần nhất (`_pruneOldPartials`) tránh rác đĩa.
+        - Schema `ListeningRecordSchema` sử dụng `.passthrough()` bảo toàn các trường mở rộng trong tương lai, có 3 unit tests chuyên biệt trong `packages/shared`.
+        - Bộ test `statsStorage.test.ts` gồm 14 tests bao phủ toàn diện các nhánh I/O hiểm nghèo, partial backup failure, destState unknown, lastMoveError và B4 migration guard.
+    - **Đóng băng Báo cáo Kiểm tra (Audit Report v3.10 — Bản hoàn thiện trước build)**: Chuẩn hóa 8 bug, 1 lỗ hổng bảo mật, **8 điều kiện dừng Phase 0** với quy tắc tinh chỉnh (tách bạch P0.4a.1 vs P0.4a.2, chuẩn hóa công thức P0.1 theo trung bình, trần debug tích lũy ≤ 4h), giới hạn diễn giải C3 #11 (gỡ app cũ trước Bước A, overwrite thành công chỉ chứng minh tương thích Expo FileSystem trên iOS 27 không ném lỗi; an toàn crash dựa vào phục hồi `.tmp`), loại bỏ toàn bộ nhận xét thẩm mỹ chủ quan và đồng bộ trọn vẹn **15 tiêu chí đo đạc C3** vào `docs/ACCEPTANCE.md`. Dừng rà soát tài liệu để chuyển sang build và đo thực tế trên thiết bị.
+  - Kiểm thử toàn diện: **106 tests passed** trên toàn bộ monorepo (shared: 46, mobile: 41, api: 18, indexer: 1), `pnpm typecheck` và `pnpm lint` sạch 0 lỗi.
+- [ ] Người dùng kích hoạt GitHub Actions build lại `.ipa` (biến thể `development`, do thêm `react-native-svg`) và cài lên iPhone
+- [ ] Người dùng chạy nghiệm thu thực tế 15 tiêu chí Phase 0 (bảng C3) trong `docs/ACCEPTANCE.md`
 - [ ] Người dùng chạy đồng bộ thư viện nhạc thật lên Cloudflare R2
 
 ## Phase 2: MVP app
@@ -165,7 +178,7 @@
 1. **Bạn:** kiểm tra kết quả CI trên GitHub Actions sau khi Agent push code Spike Player lên nhánh `main`.
 2. **Bạn:** kích hoạt workflow **Build iOS (unsigned IPA)** trên GitHub Actions (chọn biến thể `development` hoặc `production`).
 3. **Bạn:** tải artifact `.ipa` về PC và cài lên iPhone 16 (iOS 27) bằng **Sideloadly** (bật Auto App Refreshing).
-4. **Bạn:** thực hiện kiểm tra thực tế theo checklist **P0.1 đến P0.8** trong `docs/ACCEPTANCE.md` (đặc biệt là nghe thử khi khóa màn hình, kiểm tra Control Center, và đối soát ngày hết hạn chứng chỉ hiển thị trong app với Sideloadly).
+4. **Bạn:** thực hiện kiểm tra thực tế theo checklist **P0.1 đến P0.15** trong `docs/ACCEPTANCE.md` (cuộn xuống cuối màn hình chính để đối soát `Build SHA`, `Hạn chứng chỉ`, `Atomic Write Branch` và `Khôi phục .tmp` trên bảng Debug).
 
 ## Vấn đề đã biết
 - `build-ios.yml` là mẫu chưa chạy thử. So với mẫu, đã đổi: (a) nhãn `macos-26` thay `macos-latest`, (b) Xcode 26.6 cụ thể và chặn nếu không phải Xcode 26.x, (c) thêm job kiểm tra Linux trước khi bật macOS, (d) cache kho tải CocoaPods (`~/Library/Caches/CocoaPods`) thay vì thư mục `ios/Pods`, vì `expo prebuild --clean` xoá `ios/` và tự chạy `pod install` nên cache `Pods` đặt sau prebuild không có tác dụng (suy luận, cần xác nhận ở lần build đầu).
