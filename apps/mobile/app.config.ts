@@ -9,6 +9,7 @@ const config: ExpoConfig = {
   version: '0.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
+  icon: './assets/icon.png',
   ios: {
     supportsTablet: false,
     bundleIdentifier: IS_DEV ? 'com.dinhgiaan.beatify.dev' : 'com.dinhgiaan.beatify',
