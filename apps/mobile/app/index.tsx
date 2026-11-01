@@ -87,6 +87,26 @@ export default function SpikePlayerScreen() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
+  const CONFIG_FILE = `${FileSystem.documentDirectory || ''}beatify_server_config.json`;
+
+  // Tự động nạp cấu hình máy chủ & token đã lưu từ các lần quét trước
+  useEffect(() => {
+    async function loadSavedConfig() {
+      try {
+        const info = await FileSystem.getInfoAsync(CONFIG_FILE);
+        if (info.exists) {
+          const raw = await FileSystem.readAsStringAsync(CONFIG_FILE);
+          const data = JSON.parse(raw);
+          if (data.serverUrl) setServerUrl(data.serverUrl);
+          if (data.serverToken !== undefined) setServerToken(data.serverToken);
+        }
+      } catch (err) {
+        console.warn('Lỗi đọc cấu hình server đã lưu:', err);
+      }
+    }
+    loadSavedConfig();
+  }, [CONFIG_FILE]);
+
 
   useEffect(() => {
     // 1. Khởi tạo player và đăng ký theo dõi trạng thái
@@ -158,6 +178,12 @@ export default function SpikePlayerScreen() {
             const cleanToken = decodeURIComponent(newToken).trim();
             setServerUrl(cleanUrl);
             setServerToken(cleanToken);
+
+            // Lưu vĩnh viễn cấu hình vào ổ đĩa điện thoại
+            FileSystem.writeAsStringAsync(
+              CONFIG_FILE,
+              JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
+            ).catch((e) => console.warn('Lỗi ghi file cấu hình server:', e));
 
             Vibration.vibrate([0, 80, 50, 80]);
             Alert.alert(
@@ -452,6 +478,11 @@ export default function SpikePlayerScreen() {
       Alert.alert('Chưa nhập Server URL', 'Vui lòng nhập địa chỉ Worker để đồng bộ');
       return;
     }
+
+    FileSystem.writeAsStringAsync(
+      CONFIG_FILE,
+      JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
+    ).catch(() => {});
 
     setIsSyncing(true);
     setSyncStatus('Đang tải danh sách bài hát từ Cloudflare R2...');
