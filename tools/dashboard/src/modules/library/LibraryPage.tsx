@@ -529,7 +529,7 @@ export const LibraryPage: React.FC<{
           </div>
 
           {/* Cột 4: Trạng thái Cloud (R2) */}
-          <div className="w-28 shrink-0 text-center">
+          <div className="w-36 shrink-0 text-center">
             <span>Sao lưu R2</span>
           </div>
 
@@ -725,11 +725,11 @@ export const LibraryPage: React.FC<{
                     </span>
                   </div>
 
-                  {/* Cột 4: Trạng thái Cloud (R2) - Biểu tượng tinh tế, không còn badge thô thiển rác mắt */}
-                  <div className="w-28 shrink-0 flex items-center justify-center">
+                  {/* Cột 4: Trạng thái Cloud (R2) - Luôn hiển thị trên 1 dòng chuẩn chỉ */}
+                  <div className="w-36 shrink-0 flex items-center justify-center">
                     {t.isSynced ? (
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 whitespace-nowrap shadow-xs"
                         title="Đã sao lưu an toàn lên Cloudflare R2"
                       >
                         <Check size={11} className="stroke-[2.5]" />
@@ -737,7 +737,7 @@ export const LibraryPage: React.FC<{
                       </span>
                     ) : (
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25 whitespace-nowrap shadow-xs"
                         title="Chưa upload lên R2 (chỉ lưu trên máy tính)"
                       >
                         <CloudOff size={11} />
