@@ -82,19 +82,19 @@ export const SideloadExpiryWidget: React.FC<{
         </button>
       </div>
 
-      <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-white/[0.04]">
-        <span>iPhone 16 (Sideloadly)</span>
-        {onOpenConnectModal && (
+      {onOpenConnectModal && (
+        <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-white/[0.04]">
+          <span className="text-zinc-500">SideStore / Sideload</span>
           <button
             type="button"
             onClick={onOpenConnectModal}
-            className="text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"
+            className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-medium transition-colors"
           >
-            <Smartphone size={10} />
-            <span>Mã QR</span>
+            <Smartphone size={11} />
+            <span>Mã QR kết nối</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
