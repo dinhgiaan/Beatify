@@ -43,7 +43,7 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
     if (!isOpen) return;
 
     QRCode.toDataURL(deepLink, {
-      width: 260,
+      width: 220,
       margin: 1.5,
       color: {
         dark: '#000000',
@@ -92,37 +92,37 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
       onOpenChange={(open) => !open && onClose()}
       title="Kết nối App iPhone với Beatify"
       description="Quét mã bằng Camera mặc định trên iPhone 16 để nhận diện và cấu hình ứng dụng tức thì."
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-3xl"
     >
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch py-1 text-left">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch text-left">
         {/* Cột Trái (5/12): Khung mã QR Stage */}
-        <div className="md:col-span-5 flex flex-col items-center justify-between p-6 rounded-2xl bg-[#141418] border border-white/10 shadow-xl text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="md:col-span-5 flex flex-col items-center justify-between p-4 sm:p-5 rounded-2xl bg-[#141418] border border-white/10 shadow-lg text-center">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>Sẵn sàng kết nối qua Camera iOS</span>
           </div>
 
-          <div className="my-4 p-3 bg-white rounded-2xl shadow-2xl border border-white/20 transition-transform duration-200 hover:scale-[1.02]">
+          <div className="my-3 p-2.5 bg-white rounded-2xl shadow-xl border border-white/20 transition-transform duration-200 hover:scale-[1.02]">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
                 alt="Mã QR kết nối Beatify"
-                className="w-48 h-48 rounded-xl object-contain"
+                className="w-40 h-40 rounded-lg object-contain"
               />
             ) : (
-              <div className="w-48 h-48 flex items-center justify-center text-zinc-400">
-                <RefreshCw size={24} className="animate-spin text-zinc-400" />
+              <div className="w-40 h-40 flex items-center justify-center text-zinc-400">
+                <RefreshCw size={22} className="animate-spin text-zinc-400" />
               </div>
             )}
           </div>
 
-          <div className="space-y-1 w-full">
-            <div className="text-xs text-zinc-300 font-medium flex items-center justify-center gap-1.5">
+          <div className="space-y-0.5 w-full">
+            <div className="text-[11.5px] text-zinc-300 font-medium flex items-center justify-center gap-1.5">
               <span>Giao thức:</span>
               <span className="text-emerald-400 font-semibold">beatify://connect</span>
             </div>
-            <p className="text-[11px] text-zinc-400">
-              Tự động truyền URL máy chủ và mã xác thực an toàn
+            <p className="text-[10.5px] text-zinc-400">
+              Tự động truyền URL máy chủ &amp; token bảo mật
             </p>
           </div>
 
@@ -130,96 +130,81 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
             variant="secondary"
             size="sm"
             onClick={handleDownloadQR}
-            className="mt-4 gap-2 text-xs border-white/10 hover:border-white/20 w-full"
+            className="mt-3 gap-1.5 text-[11.5px] border-white/10 hover:border-white/20 w-full h-7"
           >
-            <Download size={13} />
+            <Download size={12} />
             <span>Tải ảnh QR về máy</span>
           </Button>
         </div>
 
         {/* Cột Phải (7/12): Hướng dẫn 3 bước & Cấu hình thủ công */}
-        <div className="md:col-span-7 flex flex-col justify-between space-y-5">
+        <div className="md:col-span-7 flex flex-col justify-between space-y-3.5">
           {/* 3 Bước thực hiện */}
-          <div className="space-y-2.5">
-            <h5 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Smartphone size={14} className="text-zinc-400" />
+          <div className="space-y-2">
+            <h5 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Smartphone size={13} className="text-zinc-400" />
               <span>3 bước thao tác nhanh trên iPhone</span>
             </h5>
 
-            <div className="space-y-2">
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="space-y-1.5">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-white/10 text-white font-medium text-[11px] flex items-center justify-center shrink-0">
                   1
                 </div>
-                <div className="space-y-0.5 text-xs">
-                  <div className="text-white font-medium flex items-center gap-1.5">
-                    <Camera size={13} className="text-zinc-400" />
-                    <span>Mở ứng dụng Camera mặc định</span>
-                  </div>
-                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
-                    Không cần cài đặt ứng dụng quét mã ngoài, chỉ cần dùng ứng dụng Camera có sẵn trên iPhone.
-                  </p>
+                <div className="text-xs text-zinc-300 flex items-center gap-1.5 flex-1 min-w-0">
+                  <Camera size={13} className="text-zinc-400 shrink-0" />
+                  <span className="truncate">Mở ứng dụng <strong>Camera mặc định</strong> trên iPhone</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-white/10 text-white font-medium text-[11px] flex items-center justify-center shrink-0">
                   2
                 </div>
-                <div className="space-y-0.5 text-xs">
-                  <div className="text-white font-medium flex items-center gap-1.5">
-                    <ScanLine size={13} className="text-zinc-400" />
-                    <span>Hướng ống kính vào mã QR</span>
-                  </div>
-                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
-                    Giữ camera cách màn hình khoảng 20 - 40cm cho đến khi hiện liên kết màu vàng trên khung ngắm.
-                  </p>
+                <div className="text-xs text-zinc-300 flex items-center gap-1.5 flex-1 min-w-0">
+                  <ScanLine size={13} className="text-zinc-400 shrink-0" />
+                  <span className="truncate">Hướng ống kính vào <strong>mã QR</strong> ở khung bên cạnh</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-white/10 text-white font-medium text-[11px] flex items-center justify-center shrink-0">
                   3
                 </div>
-                <div className="space-y-0.5 text-xs">
-                  <div className="text-white font-medium flex items-center gap-1.5">
-                    <ExternalLink size={13} className="text-zinc-400" />
-                    <span>Chạm vào banner &quot;Mở trong Beatify&quot;</span>
-                  </div>
-                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
-                    Ứng dụng Beatify trên iPhone sẽ tự khởi động và lưu thông tin kết nối thành công.
-                  </p>
+                <div className="text-xs text-zinc-300 flex items-center gap-1.5 flex-1 min-w-0">
+                  <ExternalLink size={13} className="text-zinc-400 shrink-0" />
+                  <span className="truncate">Chạm vào banner vàng <strong>&quot;Mở trong Beatify&quot;</strong></span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Form cấu hình Server & Token thủ công */}
-          <div className="space-y-3 pt-4 border-t border-white/10">
-            <h5 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-zinc-400" />
+          <div className="space-y-2.5 pt-2.5 border-t border-white/10">
+            <h5 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck size={13} className="text-zinc-400" />
               <span>Thông tin máy chủ &amp; Xác thực</span>
             </h5>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-[11px]">
                   <label className="text-zinc-300 font-medium">
                     URL Server (Cloudflare Worker hoặc LAN IP)
                   </label>
                   <button
                     type="button"
                     onClick={handleCopyUrl}
-                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
+                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     {copiedType === 'url' ? (
                       <>
-                        <Check size={12} className="text-emerald-400" />
-                        <span className="text-emerald-400">Đã copy</span>
+                        <Check size={11} className="text-emerald-400" />
+                        <span className="text-emerald-400 font-medium">Đã copy</span>
                       </>
                     ) : (
                       <>
-                        <Copy size={12} />
+                        <Copy size={11} />
                         <span>Sao chép</span>
                       </>
                     )}
@@ -230,28 +215,28 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
                   value={apiUrl}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiUrl(e.target.value)}
                   placeholder="Ví dụ: http://192.168.1.100:8787 hoặc domain Worker"
-                  className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 transition-all"
                 />
               </div>
 
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-[11px]">
                   <label className="text-zinc-300 font-medium">
                     Token xác thực (Bearer Token)
                   </label>
                   <button
                     type="button"
                     onClick={handleCopyToken}
-                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
+                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     {copiedType === 'token' ? (
                       <>
-                        <Check size={12} className="text-emerald-400" />
-                        <span className="text-emerald-400">Đã copy</span>
+                        <Check size={11} className="text-emerald-400" />
+                        <span className="text-emerald-400 font-medium">Đã copy</span>
                       </>
                     ) : (
                       <>
-                        <Copy size={12} />
+                        <Copy size={11} />
                         <span>Sao chép</span>
                       </>
                     )}
@@ -262,17 +247,17 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
                   value={apiToken}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiToken(e.target.value)}
                   placeholder="Để trống nếu máy chủ không cài đặt token bảo mật"
-                  className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end pt-1">
+            <div className="flex justify-end pt-0.5">
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleSaveConfig}
-                className="text-xs px-4"
+                className="text-xs px-3.5 h-7.5"
               >
                 Lưu cấu hình
               </Button>

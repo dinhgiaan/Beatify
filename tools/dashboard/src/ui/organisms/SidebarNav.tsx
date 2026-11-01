@@ -140,7 +140,7 @@ export const SidebarNav: React.FC<{
 
   return (
     <aside
-      className="w-64 border-r flex flex-col shrink-0 select-none h-full min-h-screen text-xs relative z-20"
+      className="w-64 border-r flex flex-col shrink-0 select-none h-full min-h-0 text-xs relative z-20"
       style={{
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border)',

@@ -368,7 +368,7 @@ export const Layout: React.FC = () => {
 
   return (
     <div
-      className="h-screen overflow-hidden flex flex-row select-none"
+      className="h-screen overflow-hidden flex flex-col select-none"
       style={{ backgroundColor: 'var(--bg-page)' }}
     >
       <Toaster
@@ -380,49 +380,51 @@ export const Layout: React.FC = () => {
         gap={8}
       />
 
-      <SidebarNav onOpenSyncModal={() => setIsSyncModalOpen(true)} />
+      {/* Workspace Area: Sidebar & Main Page Content */}
+      <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
+        <SidebarNav onOpenSyncModal={() => setIsSyncModalOpen(true)} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Scrollable Page Outlet with Error Boundary */}
-        <main className={`flex-1 overflow-y-auto ${currentTrack ? 'pb-24' : ''}`}>
-          <div className="content-compact-scale animate-in fade-in duration-150">
-            <ErrorBoundary>
-              <Outlet
-                context={{
-                  onPlayTrack: handlePlayTrack,
-                  onOpenSyncModal: () => setIsSyncModalOpen(true),
-                  playingTrackId: currentTrack?.id,
-                  isAudioPlaying: isPlaying,
-                  onTogglePlayPause: togglePlayPause,
-                }}
-              />
-            </ErrorBoundary>
-          </div>
-        </main>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          {/* Scrollable Page Outlet with Error Boundary */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="content-compact-scale animate-in fade-in duration-150">
+              <ErrorBoundary>
+                <Outlet
+                  context={{
+                    onPlayTrack: handlePlayTrack,
+                    onOpenSyncModal: () => setIsSyncModalOpen(true),
+                    playingTrackId: currentTrack?.id,
+                    isAudioPlaying: isPlaying,
+                    onTogglePlayPause: togglePlayPause,
+                  }}
+                />
+              </ErrorBoundary>
+            </div>
+          </main>
+        </div>
+      </div>
 
-        {/* Audio Player Dock Portal - luôn hiển thị nổi trên mọi Dialog (z-[9999]) và thao tác được */}
-        {typeof document !== 'undefined' &&
-          createPortal(
-            <AnimatePresence>
-              {currentTrack && (
-                <motion.div
-                  data-player-dock="true"
-                  initial={{ y: 80, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 80, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                  className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto border-t border-[var(--border)] bg-[var(--bg-surface)] px-6 py-2.5 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.85)] gap-4 select-none"
-                  style={{ backgroundColor: 'var(--bg-surface)' }}
-                >
-              {/* Left: Cover & Info */}
-              <div className="flex items-center gap-3 min-w-0 w-[240px] shrink-0">
-                <div className="w-11 h-11 rounded-lg overflow-hidden border border-[var(--border)] bg-black/40 shrink-0 flex items-center justify-center shadow-sm relative">
-                  <Music size={18} className="text-[#1DB954] shrink-0" />
-                  {currentTrack.coverUrl && (
-                    <img
-                      key={`${currentTrack.id || ''}-${currentTrack.coverUrl}`}
-                      src={currentTrack.coverUrl}
+      {/* Audio Player Dock - Footer Bar chuẩn Spotify (chân trang cố định trong flex, không che đè Sidebar) */}
+      <AnimatePresence>
+        {currentTrack && (
+          <motion.div
+            data-player-dock="true"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+            className="shrink-0 w-full z-40 border-t border-[var(--border)] bg-[var(--bg-surface)] px-6 py-2.5 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.85)] gap-4 select-none relative"
+            style={{ backgroundColor: 'var(--bg-surface)' }}
+          >
+            {/* Left: Cover & Info */}
+            <div className="flex items-center gap-3 min-w-0 w-[240px] shrink-0">
+              <div className="w-11 h-11 rounded-lg overflow-hidden border border-[var(--border)] bg-black/40 shrink-0 flex items-center justify-center shadow-sm relative">
+                <Music size={18} className="text-[#1DB954] shrink-0" />
+                {currentTrack.coverUrl && (
+                  <img
+                    key={`${currentTrack.id || ''}-${currentTrack.coverUrl}`}
+                    src={currentTrack.coverUrl}
                       alt={currentTrack.title}
                       className="w-full h-full object-cover absolute inset-0"
                       onError={(e) => {
@@ -705,9 +707,7 @@ export const Layout: React.FC = () => {
               />
             </motion.div>
           )}
-        </AnimatePresence>,
-        document.body
-      )}
+        </AnimatePresence>
 
       {/* Full Lyrics Stage Screen - Chuẩn Spotify & Apple Music (z-[9995]) */}
       {typeof document !== 'undefined' &&
@@ -871,7 +871,6 @@ export const Layout: React.FC = () => {
           </AnimatePresence>,
           document.body
         )}
-      </div>
 
       {/* Cloudflare Sync Modal */}
       <SyncModal

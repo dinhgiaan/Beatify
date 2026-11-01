@@ -25,7 +25,7 @@ export const Dialog: React.FC<DialogProps> = ({
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay
-          className="fixed inset-0 z-50 bg-black/70 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
         />
         <RadixDialog.Content
           onPointerDownOutside={(e) => {
@@ -40,7 +40,7 @@ export const Dialog: React.FC<DialogProps> = ({
               e.preventDefault();
             }
           }}
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] ${maxWidth} rounded-xl focus:outline-none p-5 shadow-2xl border animate-in fade-in slide-in-from-bottom-2 duration-150 select-none`}
+          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10001] w-[95vw] ${maxWidth} max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl focus:outline-none p-5 sm:p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-2 duration-150 select-none scrollbar-thin`}
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border)',
