@@ -786,8 +786,8 @@ export const Layout: React.FC = () => {
                         onClick={() => {
                           setIsAutoScrollLyrics((prev) => {
                             const next = !prev;
-                            if (next) toast.success('Đã BẬT tự cuộn lời');
-                            else toast.info('Đã TẮT tự cuộn lời');
+                            if (next) toast.success('Scroll: On');
+                            else toast.info('Scroll: Off');
                             return next;
                           });
                         }}
@@ -796,9 +796,9 @@ export const Layout: React.FC = () => {
                             ? 'bg-[#1DB954]/15 border-[#1DB954]/30 text-[#1DB954]'
                             : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
                         }`}
-                        title={isAutoScrollLyrics ? 'Tự cuộn đang bật' : 'Bấm để bật tự cuộn'}
+                        title={isAutoScrollLyrics ? 'Scroll: On' : 'Scroll: Off'}
                       >
-                        <span>{isAutoScrollLyrics ? 'Tự cuộn: Bật' : 'Tự cuộn: Tắt'}</span>
+                        <span>{isAutoScrollLyrics ? 'Scroll: On' : 'Scroll: Off'}</span>
                       </button>
                     )}
 
