@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,7 +19,6 @@ import {
   Minus,
   Plus,
   Infinity as InfinityIcon,
-  Sparkles,
 } from 'lucide-react';
 import { SidebarNav } from '../ui/organisms/SidebarNav';
 import { SyncModal } from '../modules/sync/SyncModal';
@@ -38,7 +37,6 @@ export interface PlayingTrack {
 }
 
 export const Layout: React.FC = () => {
-  const navigate = useNavigate();
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Audio player dock state

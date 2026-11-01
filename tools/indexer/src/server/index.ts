@@ -445,7 +445,9 @@ const handleGetCover = async (c: Context) => {
           buf = await fs.readFile(customPath);
           cachedCovers.set(cleanId, buf);
           break;
-        } catch {}
+        } catch {
+          // Bỏ qua lỗi đọc file ảnh custom
+        }
       }
     }
   }
@@ -468,7 +470,9 @@ const handleGetCover = async (c: Context) => {
             matched.coverBuffer = buf;
             cachedCovers.set(cleanId, buf);
           }
-        } catch {}
+        } catch {
+          // Bỏ qua lỗi parse metadata ảnh
+        }
       }
     }
   }
@@ -491,7 +495,9 @@ const handleGetCover = async (c: Context) => {
           }
         }
       }
-    } catch {}
+    } catch {
+      // Bỏ qua lỗi quét thư mục nhanh
+    }
   }
 
   if (!buf) return c.text('No cover', 404);
@@ -2382,7 +2388,9 @@ const handleGetDownloadCover = async (c: Context) => {
             return new Response(buf, {
               headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
             });
-          } catch {}
+          } catch {
+            // Bỏ qua lỗi đọc coverPath
+          }
         }
       }
 
@@ -2399,7 +2407,9 @@ const handleGetDownloadCover = async (c: Context) => {
               return new Response(buf, {
                 headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
               });
-            } catch {}
+            } catch {
+              // Bỏ qua lỗi đọc candidate ảnh
+            }
           }
         }
         // cover.jpg trong cùng folder
@@ -2410,7 +2420,9 @@ const handleGetDownloadCover = async (c: Context) => {
             return new Response(buf, {
               headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
             });
-          } catch {}
+          } catch {
+            // Bỏ qua lỗi đọc dirCover
+          }
         }
       }
     }
@@ -2426,7 +2438,9 @@ const handleGetDownloadCover = async (c: Context) => {
           return new Response(buf, {
             headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
           });
-        } catch {}
+        } catch {
+          // Bỏ qua lỗi đọc custom cover
+        }
       }
     }
 
@@ -2469,7 +2483,9 @@ app.get('/local-api/static/*', async (c) => {
         return new Response(buf, {
           headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
         });
-      } catch {}
+      } catch {
+        // Bỏ qua lỗi đọc file tĩnh cục bộ
+      }
     }
   }
   return c.text('Not found', 404);
@@ -2681,7 +2697,9 @@ app.get('/local-api/state', async (c) => {
       const content = await fs.readFile(LOCAL_STATE_FILE, 'utf-8');
       const parsed = UserStateSchema.safeParse(JSON.parse(content));
       if (parsed.success) state = parsed.data;
-    } catch {}
+    } catch {
+      // Bỏ qua lỗi đọc state file local
+    }
   }
 
   // 3. Fallback mặc định

@@ -23,7 +23,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
-  Sparkles,
 } from 'lucide-react';
 import { PageHeader } from '../../../ui/organisms/PageHeader';
 import { Button } from '../../../ui/atoms/Button';
@@ -45,6 +44,7 @@ import { fetchArtistsApi } from '../../artists/api';
 import { useJobSSE } from '../../../core/use-sse';
 import type {
   YoutubeMusicFormat,
+  YoutubeMusicLyricsSource,
   YoutubeMusicPreviewResponse,
   YoutubeMusicPreviewItem,
   YoutubeMusicJobPayload,
@@ -1284,9 +1284,12 @@ export const YoutubeMusicPage: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setCustomFolderMap((prev) => {
-                                    const next = { ...prev };
-                                    delete next[item.id];
-                                    delete next[item.url];
+                                    const next: Record<string, string> = {};
+                                    for (const [k, v] of Object.entries(prev)) {
+                                      if (k !== item.id && k !== item.url) {
+                                        next[k] = v;
+                                      }
+                                    }
                                     return next;
                                   });
                                   toast.info('Đã khôi phục mặc định lưu theo nghệ sĩ');
@@ -1713,7 +1716,7 @@ export const YoutubeMusicPage: React.FC = () => {
                       ? {
                           ...it,
                           customLyrics: lyrics,
-                          lyricsSource: source as any,
+                          lyricsSource: (source as YoutubeMusicLyricsSource) || null,
                         }
                       : it
                   ),

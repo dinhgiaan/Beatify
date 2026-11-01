@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Clipboard,
   Eraser,
-  Clock,
   Upload,
   AlignLeft,
   Trash2,

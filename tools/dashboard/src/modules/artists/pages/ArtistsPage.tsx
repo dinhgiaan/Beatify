@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Users,
   Search,
@@ -15,7 +15,6 @@ import {
   Play,
   ArrowUpDown,
   RefreshCw,
-  X,
   Music,
   Disc,
   CheckCircle2,
