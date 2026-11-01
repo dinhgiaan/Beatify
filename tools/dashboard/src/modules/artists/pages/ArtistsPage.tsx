@@ -277,7 +277,7 @@ export const ArtistsPage: React.FC<ArtistsPageProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm nghệ sĩ theo tên (bỏ dấu tiếng Việt)..."
+            placeholder="Tìm kiếm theo tên nghệ sĩ..."
             className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 transition-colors"
           />
         </div>
