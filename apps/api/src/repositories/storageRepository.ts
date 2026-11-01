@@ -94,14 +94,14 @@ export class R2StorageRepository implements IStorageRepository {
 
   async getOverrides(): Promise<Overrides> {
     const object = await this.bucket.get('_meta/overrides.json');
-    if (!object) return { version: 1, tracks: {} };
+    if (!object) return { version: 1, tracks: {}, artistAliases: {} };
 
     try {
       const data = await object.json();
       const parsed = OverridesSchema.safeParse(data);
-      return parsed.success ? parsed.data : { version: 1, tracks: {} };
+      return parsed.success ? parsed.data : { version: 1, tracks: {}, artistAliases: {} };
     } catch {
-      return { version: 1, tracks: {} };
+      return { version: 1, tracks: {}, artistAliases: {} };
     }
   }
 

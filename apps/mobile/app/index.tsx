@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   Vibration,
+  Linking,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { type Track, type UpdateTrack, smartShuffle } from '@music-app/shared';
@@ -138,6 +139,62 @@ export default function SpikePlayerScreen() {
       unsubscribe();
     };
   }, [tracks]);
+
+  // Lắng nghe Deep Link khi người dùng quét mã QR từ camera iPhone: beatify://connect?api=...&token=...
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      try {
+        if (!event.url) return;
+        const rawUrl = event.url;
+        if (rawUrl.includes('connect?') || rawUrl.includes('api=')) {
+          const queryString = rawUrl.split('?')[1];
+          if (!queryString) return;
+          const params = new URLSearchParams(queryString);
+          const newApiUrl = params.get('api');
+          const newToken = params.get('token') || '';
+
+          if (newApiUrl) {
+            const cleanUrl = decodeURIComponent(newApiUrl).trim().replace(/\/+$/, '');
+            const cleanToken = decodeURIComponent(newToken).trim();
+            setServerUrl(cleanUrl);
+            setServerToken(cleanToken);
+
+            Vibration.vibrate([0, 80, 50, 80]);
+            Alert.alert(
+              'Kết nối thành công! 🎉',
+              `Đã nhận cấu hình máy chủ từ mã QR của Beatify Dashboard:\n\nServer: ${cleanUrl}\n\nĐang tự động đồng bộ thư viện nhạc...`
+            );
+
+            // Tự động tải thư viện ngay
+            try {
+              setIsSyncing(true);
+              setSyncStatus('Đang tải danh sách bài hát...');
+              const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+              const lib = await client.fetchLibrary();
+              setTracks(lib.tracks);
+              setOriginalTracks(lib.tracks);
+              setSyncStatus(`Đã đồng bộ ${lib.tracks.length} bài hát từ Cloudflare!`);
+            } catch (syncErr) {
+              setSyncStatus(`Lỗi tải nhạc: ${String(syncErr)}`);
+            } finally {
+              setIsSyncing(false);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi xử lý Deep Link:', err);
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // Tự động ghi nhận lượt nghe cho Profile & Replay khi nghe >= 15 giây
   useEffect(() => {

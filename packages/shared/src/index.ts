@@ -5,3 +5,4 @@ export * from './errors';
 export * from './utils';
 export * from './smartShuffle';
 export * from './stats';
+export * from './youtube';

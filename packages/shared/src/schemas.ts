@@ -81,6 +81,8 @@ export const TrackOverrideSchema = z.object({
   album: z.string().optional(),
   year: z.number().int().optional(),
   trackNumber: z.number().int().optional(),
+  loudnessLufs: z.number().optional(),
+  replayGain: z.number().optional(),
   hidden: z.boolean().optional(),
   deletedAt: z.string().optional(),
   purged: z.boolean().optional(),
@@ -91,6 +93,7 @@ export type TrackOverride = z.infer<typeof TrackOverrideSchema>;
 export const OverridesSchema = z.object({
   version: z.literal(1).default(1),
   tracks: z.record(z.string(), TrackOverrideSchema).default({}),
+  artistAliases: z.record(z.string(), z.string()).optional().default({}),
 });
 export type Overrides = z.infer<typeof OverridesSchema>;
 

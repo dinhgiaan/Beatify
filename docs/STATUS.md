@@ -43,7 +43,155 @@
 - [x] `packages/shared` (có test): `normalizeText`, `isValidTrackId`/`isValidAlbumId`, hằng số (`LYRICS_MAX_BYTES`, `REPLAYGAIN_TARGET_LUFS`, `LIBRARY_SCHEMA_VERSION`), `utf8ByteLength`, `ERROR_CODES`, `HealthSchema` (21 unit test qua)
 - [x] Worker (`apps/api`): auth constant-time, `/api/library` (ETag), `/api/health` (head meta), `/stream/:id` (HTTP Range 206), `/covers/:albumId`, mã lỗi dùng chung (11 unit test qua)
 - [x] Indexer (`tools/indexer`): scan → id sha1 ổn định → đọc tag `music-metadata` → cover album → `library.json` → upload R2 S3 SDK
-- [x] Web Dashboard local (`tools/indexer/src/server`): server local Hono bind `127.0.0.1:4000`, giao diện Admin Console Dark Mode, kéo thả file nhạc kèm ảnh bìa hoặc chọn ảnh bìa chung/riêng ngay khi nhập, sửa metadata & ảnh bìa (`covers` - tự động dọn xoá ảnh cũ khi đổi hoặc gỡ), nhập/sửa lời bài hát (`lyrics` / `.lrc`), công cụ thao tác hàng loạt (Batch apply Ca sĩ/Album/Ảnh bìa chung), gợi ý autocomplete Ca sĩ/Album (datalist), xem trước & xác nhận nhập nhạc (Import Preview với ảnh bìa), Thùng rác lưu trữ 14 ngày (khôi phục/xoá vĩnh viễn), xác nhận xoá an toàn, nút chọn thư mục trực quan (Native Windows Folder Picker) cho từng path, nút đồng bộ lên Cloudflare R2
+- [x] Web Dashboard: Nâng cấp UI/UX modal Thùng rác (Track Preview Card giàu thông tin: ảnh bìa, nghệ sĩ, album, thời lượng, định dạng audio, banner lưu trữ an toàn 14 ngày) và hỗ trợ chọn nhiều bài hát (Multi-select, Floating Batch Bar, Batch Trash với danh sách cuộn compact chống vỡ layout).
+- [x] Web Dashboard: Tối ưu triệt để hiệu năng Modal/Dialog (triệt tiêu `backdrop-blur` ngốn GPU, bỏ `zoom-in` gây nhòe và rung giật font chữ, chuyển sang fade/slide nhẹ 100-150ms êm mắt; thêm nút xem nhanh/full page trực tiếp 1-click trên thẻ nghệ sĩ).
+- [x] Web Dashboard: Chuẩn hoá 100% SVG Vector Icons với `lucide-react`, loại bỏ hoàn toàn emoji (`🎵`, `💿`, `📁`), nâng cấp Tooltip thành Premium Glassmorphism Card (header badge trạng thái, metrics chips, box bài hát nổi bật, đường dẫn thư mục sắc nét).
+- [x] Web Dashboard: Tái thiết kế Popover Vòng lặp dạng Horizontal Capsule siêu mỏng gọn (1 hàng ngang `h-8/h-9`, Stepper lặp X lần + Vô tận); Portal Audio Player Dock trực tiếp ra `document.body` ở tầng `z-[70]` (nổi trên mọi Dialog `z-50`, bấm phát nhạc trong dialog là thanh player hiện và điều khiển được ngay).
+- [x] Web Dashboard & Backend: Chuẩn hoá phân loại Singles & Albums chuẩn Spotify (phân tách Album phòng thu vs Singles & EPs, đếm `albumCount` chuẩn xác chỉ tính album thật, hiển thị `X album • Y đĩa đơn` trên toàn bộ Card Grid, Table View, Dialog và Full Page View).
+- [x] Backend & Image Service: Nâng cấp định dạng tải ảnh đại diện nghệ sĩ sang `.png` chất lượng cao Lossless (`artist.png`), đồng thời giữ nguyên cơ chế tương thích Windows Explorer (`folder.png` + `desktop.ini` trỏ tới `artist.png`) bảo đảm thư mục hiển thị ảnh bìa 100%.
+- [x] Web Dashboard UI/UX: Nâng cấp Popup Dialog chi tiết nghệ sĩ to bự hơn (`w-[94vw] max-w-5xl max-h-[88vh]`, avatar to 160px, bố cục Album & Singles 5 cột rộng rãi), xóa bỏ trang riêng toàn màn hình và hộp thoại Choice Modal rườm rà, click vào bất kỳ thẻ hay hàng nghệ sĩ là mở trực tiếp popup dialog ngay lập tức.
+- [x] Web Dashboard & YouTube Music Suite (`tools/dashboard` + `tools/indexer`):
+  - Thay thế hoàn toàn giao diện inline HTML cũ bằng ứng dụng **React 18 + Vite + Tailwind CSS + Lucide Icons SPA** chuyên nghiệp, thiết kế chuẩn token dark/light, không dùng emoji, micro-animations mượt mà, layout Sidebar Responsive.
+  - Tích hợp trọn vẹn module **YouTube Music Downloader** từ dự án `Toolkit`:
+    - Hỗ trợ tải đơn bài và playlist YouTube/YouTube Music với hàng đợi tiến trình đa luồng (concurrency tuỳ chỉnh).
+    - Bộ lọc metadata và làm sạch tên bài / nghệ sĩ tự động thông minh bằng Regex chuẩn hoá NFC (loại bỏ junk tags như `(Official Audio)`, `| @432 hz`, `Lyric Video`...).
+    - Tra cứu và tự động nhúng lời bài hát đồng bộ (`synced .lrc` hoặc `plain lyrics`) từ **LRCLIB** và phụ đề chính thức/tự động YouTube CC (`yt-subs`) theo tiêu chuẩn của Beatify.
+    - Dialog chỉnh sửa siêu dữ liệu (Title, Artist, Album) trước khi tải.
+    - Dialog xem và biên tập lời bài hát `.lrc` trực tiếp trên giao diện: sửa lỗi không nhận lời đã preview sẵn (`customLyrics`), khắc phục thứ tự tham số `title`/`artist` khi gọi LRCLIB, tăng cường retry chống 503/429 và tự động kích hoạt trích xuất phụ đề YouTube CC làm lớp dự phòng an toàn; nâng cấp kích thước rộng rãi (`max-w-5xl`, layout ngang 2 cột: cột trái thông tin bài hát + công cụ, cột phải trình soạn thảo monospace), loại bỏ hoàn toàn `backdrop-blur` và hiệu ứng scale giật cục giúp mở mượt mà 60fps không lag.
+    - Trình quản lý & Chọn thư mục cây dàn Layout ngang (Horizontal Directory Tree & Miller Columns):
+      - Xem toàn bộ cấu trúc thư mục dạng cây/lưới ngang, thanh breadcrumb tương tác trực tiếp (`D:\ > Music > ...`), lùi cấp thư mục cha (`ArrowUp`), danh sách ổ đĩa (`C:\`, `D:\`) và lối tắt thư viện chính.
+      - **Tạo thư mục mới trực tiếp trên Web (+ Tạo thư mục mới)**: Nhập tên thư mục mới ngay tại chỗ, tự động tạo trên ổ cứng bằng chuẩn an toàn Windows `PathSanitizer`.
+      - **Đổi tên thư mục (Rename)**: Chỉnh sửa và đổi tên trực tiếp các thư mục hiện có mà không cần mở Windows Explorer.
+      - Nút dự phòng mở Windows Explorer truyền thống nếu người dùng cần.
+    - Tự động phát hiện & khớp thư mục lưu theo nghệ sĩ trong thư viện máy tính:
+      - Bổ sung nút **"Tự động khớp thư mục"** trên thanh công cụ: tự động đối chiếu nghệ sĩ của các bài đang chọn với toàn bộ thư mục nghệ sĩ hiện có trong thư viện máy tính để gán đường dẫn ngay lập tức.
+      - Nút chọn nhanh 1-click **`📁 [Nghệ sĩ] (Có sẵn)`** ngay tại từng dòng ở cột "Thư mục lưu": hiển thị rõ nghệ sĩ đã có folder trên máy, bấm 1 cái là áp dụng luôn không cần duyệt tìm thủ công.
+    - Cập nhật công cụ `yt-dlp` trực tiếp từ Web Dashboard qua WinGet / CLI.
+    - Bảng danh sách xem trước phân tích URL YouTube chuẩn chỉnh (Full Table & Pagination):
+      - Thay thế hoàn toàn giao diện div list đơn giản bằng **bảng dữ liệu chuyên nghiệp có Header dính cố định (sticky thead)**.
+      - **Đánh số thứ tự (STT index #)** tăng liên tục qua từng trang (`startIndex + index + 1`).
+      - **Hệ thống phân trang đầy đủ (Pagination Footer)**: tuỳ chọn `25`, `50`, `100`, `200` bài/trang, hiển thị khoảng dòng và đầy đủ các nút điều hướng (First, Prev, Page Index, Next, Last).
+      - **Cột Trạng thái 3 tầng tương tác trực tiếp**:
+        - **Check file tệp**: `Đã có` / `Mất file` / `Chưa tải` (tự động so khớp với lịch sử tải trên máy).
+        - **Check Lời bài hát (.lrc)**: `.lrc (Đã sửa)`, `.lrc`, `Text`, `Thiếu lời`, `Chờ quét`; click trực tiếp vào badge để mở hộp thoại xem/sửa lời `LyricsEditorDialog`.
+        - **Check Ảnh bìa 1:1**: `Có bìa`, `Thiếu bìa`; click trực tiếp vào badge để mở `CoverViewerDialog` xem ảnh gốc độ phân giải cao.
+      - **Bộ lọc thông minh trên Action Bar**: Nút "Chỉ bài chưa tải", "Chỉ bài có .lrc", "Đổi thư mục ({count})", "Chọn tất cả" / "Bỏ chọn tất cả".
+      - **Ước tính dung lượng thông minh**: Tự động tính toán dung lượng dự kiến của toàn bộ các bài đang chọn theo bitrate định dạng âm thanh đã chọn (`M4A`, `MP3`, `FLAC`, `Opus`).
+      - **Tự động lấy Avatar Channel Nghệ sĩ YouTube & Cấu hình Windows Explorer Folder View**:
+        - Tự động phân tích và trích xuất ảnh avatar gốc của YouTube channel nghệ sĩ qua trang kênh hoặc video page với chất lượng cao nhất (độ phân giải 900x900 pixel vuông chuẩn).
+        - **Định vị thư mục Nghệ sĩ thông minh (`resolveArtistDirectory`)**: Tự động nhận diện cấu trúc phân cấp (lùi khỏi các thư mục con `Singles`, `Albums`, hoặc tên Album cụ thể) để lưu chính xác vào thư mục gốc của Nghệ sĩ (ví dụ: `D:\music for app\(rap)\DAWGS F\artist.jpg`, không đặt lẫn vào trong thư mục bài lẻ `Singles`).
+        - **Kiểm tra thông minh chống ghi đè (`hasArtistImage`)**: Quét kiểm tra xem thư mục nghệ sĩ đã có sẵn `artist.jpg`, `folder.jpg`, `cover.jpg`... hay chưa. Nếu đã có thì giữ nguyên vẹn tệp của người dùng, không tải đè.
+        - **Hiển thị Avatar ngoài Windows File Explorer**: Tự động lưu `folder.jpg` (gán thuộc tính ẩn hệ thống `attrib +h +s`), khởi tạo `desktop.ini` (`FolderType=Generic`, `Logo=artist.jpg`, gán `attrib +h +s`) và đặt thuộc tính Read-Only `attrib +r` cho thư mục nghệ sĩ để Windows Explorer hiển thị ảnh đại diện kênh ngay ngoài icon thư mục.
+        - **Ghi nhận đầy đủ vào `info.txt`**: Tự động ghi nhật ký trạng thái lấy avatar nghệ sĩ vào mục Activity Log trong tệp `info.txt` của bài hát.
+      - **Tự động trích xuất phụ đề chính thức (YouTube CC Subtitles) sang lời đồng bộ `.lrc`**:
+        - Tự động bổ sung tầng trích xuất phụ đề CC của YouTube qua `yt-dlp --write-sub` (ưu tiên phụ đề tiếng Việt `vi`, tiếp đến tiếng Anh `en`) khi LRCLIB chưa có bản lời đồng bộ hoặc không tìm thấy lời.
+        - Xây dựng bộ chuyển đổi `LyricsService.convertVttToLrc`: parse chính xác các mốc timeline `WebVTT/SRT` sang định dạng chuẩn LRC `[mm:ss.xx]`, loại bỏ rác styling HTML, lọc bỏ các chú thích nhạc vô nghĩa `[music]`, `[âm nhạc]`.
+        - Đảm bảo các bài hát như Young Money (`Yung Ni99`) hoặc các video ca nhạc có CC đều tự động có badge `.lrc` xanh và trích xuất nguyên vẹn file `.lrc` đồng bộ khi tải về máy.
+      - **Khắc phục triệt để hiển thị Tooltip & Tránh che khuất trên bảng**:
+        - Chuyển hướng hiển thị của các badge trạng thái (Tệp, Lời .lrc, Ảnh bìa) sang `position="bottom" align="end"`, hoàn toàn không bị `thead sticky` che lấp phần trên khi hover ở các dòng đầu tiên.
+        - Tăng kích thước phông chữ và khoảng đệm trong `Tooltip.tsx` và nội dung badge: tiêu đề `12px - 12.5px`, mô tả `11px - 11.5px`, nền nổi bật `shadow-2xl` và `z-[999]` giúp đọc rõ ràng, sắc nét.
+    - Lịch sử tải nhạc đầy đủ: tìm kiếm, lọc theo định dạng (`m4a`, `mp3`, `flac`), mở nhanh thư mục trong Windows Explorer, xem/sửa file `.lrc` trên đĩa.
+    - Trang **Quản lý bài tải** (`/youtube-music/manager`):
+      - Phân loại rõ ràng giữa bài **Đã upload R2 Cloud** và **Chưa upload**, lọc bài mất tệp trên đĩa cứng, nút **Kiểm tra tệp đĩa** (Verify files on disk) quét kiểm tra sự tồn tại thực tế của tệp âm thanh và file lời `.lrc`.
+      - **Hợp nhất Nhập file từ máy tính**: Bỏ trang "Nhập file" riêng trên Sidebar; tích hợp nút **"Nhập file từ máy"** trực tiếp vào trang Quản lý bài tải kèm **Modal Review** xem trước thẻ ID3, ảnh bìa, chỉnh sửa inline và tuỳ chọn tải thẳng lên Cloudflare R2 sau khi nhập.
+      - **Modal Review Upload lên Cloudflare R2**: Xem lại danh sách, ảnh bìa, thời lượng, định dạng và trạng thái lời `.lrc` trước khi tải lên mây; hỗ trợ chọn hàng loạt bài để upload cùng lúc qua Batch Action Bar.
+      - **Xóa đồng bộ đĩa cứng & Cloudflare R2**: Hộp thoại xác nhận an toàn, hỗ trợ chọn xóa file trên đĩa và xóa sạch object trên Cloudflare R2, tự động dọn dẹp khỏi thư viện app mobile.
+      - **Đổi thư mục thông minh (Smart Relocate / Re-link)**: Hộp thoại đổi thư mục khi chuyển ổ đĩa hoặc di chuyển file, hỗ trợ tự động quét đối chiếu tên file/dung lượng để khôi phục liên kết hàng loạt, hoặc thay thế tiền tố đường dẫn chỉ với 1 click.
+      - Phát nghe thử trực tiếp trên Audio Dock qua HTTP Range stream, nút mở vị trí tệp trên Windows Explorer, dialog sửa lời `.lrc` và tích hợp phím tắt đồng bộ R2 Cloud.
+    - **Đồng bộ bố cục & Tỉ lệ UI/UX Dashboard theo phản hồi người dùng**:
+      - Mở rộng container chủ thể sang `w-full max-w-[1720px] mx-auto px-8 py-6 space-y-6` trên tất cả 6 trang, thu hẹp khoảng cách trống thừa thãi 2 bên lề trái/phải, tạo khoảng đệm cân đối vừa đủ và tận dụng tối đa không gian màn hình PC.
+      - Tăng độ to UI/UX thêm 10% (đặt `zoom: 0.9`, chỉ giảm 10% so với bản gốc) giúp chữ, icon và các khối hiển thị rõ ràng, dễ nhìn hơn; độc lập giữ nguyên kích thước Sidebar.
+      - Tích hợp chuẩn giao diện **Dependency Pills & Rich Tooltips** kế thừa từ Toolkit: hover vào `yt-dlp`, `ffmpeg`, `Node.js` sẽ hiện tooltip đầy đủ thông tin (tên engine, phiên bản ngày CalVer/build, trạng thái hoạt động, mô tả, và ô chứa **đường dẫn tệp thực thi đầy đủ Full Path** hỗ trợ select/copy).
+      - Sửa dứt điểm lỗi hiển thị thiếu yt-dlp & ffmpeg: nạp PATH động từ Windows Registry (User + Machine) và thư mục WinGet Packages vào tiến trình in-memory, server đã nhận diện chính xác 100% cả `yt-dlp` và `ffmpeg`.
+    - **Nâng cấp Animation với Framer Motion & Mang toàn bộ chi tiết Lịch sử Tải nhạc từ Toolkit**:
+      - Cài đặt `framer-motion` cho `tools/dashboard`.
+      - Chuyển trọn vẹn 100% trang `HistoryPage.tsx` từ `Toolkit`:
+        - Thanh thẻ thống kê tương tác (Interactive Stats Bar) gồm 6 thẻ: Tổng số bài, Hoàn tất, Có lời .lrc, Chưa có lời, Có ảnh bìa, Thiếu ảnh bìa kèm tính năng click lọc tức thì.
+        - Thanh filter pills định dạng (`Tất cả`, `M4A`, `MP3`, `OPUS`, `FLAC`) và filter pills trạng thái metadata/lời (`Tất cả`, `Có .lrc`, `Thiếu lời`, `Có bìa`, `Thiếu bìa`).
+        - Thanh tác vụ hàng loạt (Batch Bar) xuất hiện trôi nổi khi chọn bài với nút Xoá hàng loạt.
+        - Thanh action bar: nút "Chọn tất cả", "Kiểm tra thư mục lưu", nhãn hiển thị số bài, dropdown chọn số bài mỗi trang (`20`, `50`, `100`, `200`).
+        - Bảng danh sách bài hát compact chi tiết: Checkbox chọn bài, `#`, Thumbnail zoom, Tên bài, Nghệ sĩ, Album, Badge định dạng, Trạng thái (Hoàn tất/Lỗi/Định vị lại), Lời bài hát (.lrc/Plain/Thiếu lời), Ảnh bìa (Có bìa/Thiếu bìa), Thời gian tải, Đường dẫn tệp tin (hỗ trợ copy path), Cột thao tác (Mở folder, Tải lại, Xóa).
+        - Thanh phân trang (Pagination controls) ở footer đầy đủ nút First, Prev, Next, Last.
+        - Các hộp thoại xác nhận xoá đơn bài và xoá hàng loạt có tuỳ chọn xoá tệp trên đĩa cứng.
+      - Nâng cấp toàn bộ các Dialogs (`CoverViewerDialog`, `MetadataEditDialog`, `CustomFolderDialog`, `LyricsEditorDialog`) và `Tooltip` sử dụng `framer-motion` (`AnimatePresence`, `motion.div`) với hiệu ứng pop-up scale/fade-in mượt mà chuẩn như Toolkit.
+      - **Sáng tạo Animation toàn diện với Framer Motion trên toàn ứng dụng**:
+        - **Sidebar Navigation**: Nền active và thanh chỉ báo xanh lá tự động trượt di chuyển mượt mà (`layoutId="sidebar-active-bg"`, `layoutId="sidebar-active-indicator"`, `layoutId="sidebar-active-dot"`) khi chuyển tab/trang, kèm hiệu ứng hover micro-shift `x: 3px`.
+        - **Dependency Status Pills**: Khi đang kiểm tra môi trường, hiển thị pill loading hiện đại với chấm xanh pulse nhịp thở; khi kiểm tra xong, khối pill tự động nở rộng chiều rộng từ từ ra ngoài (`width: 0 -> auto`) với spring easing hiện đại, không bị giật hay nhảy giao diện.
+        - **Sửa dứt điểm lỗi màn hình đen khi chuyển trang**: Nguyên nhân do `<AnimatePresence mode="wait">` xung đột với cơ chế context của React Router `<Outlet />`, khiến `useOutletContext` bị ngắt kết nối trong pha unmount làm sập render tree. Đã gỡ bỏ bọc `mode="wait"` ngoài Outlet, chuyển sang hiệu ứng CSS fade-in mượt mà, bổ sung bộ phòng vệ [ErrorBoundary.tsx](file:///d:/apps%20on%20phone/Beatify/tools/dashboard/src/ui/molecules/ErrorBoundary.tsx) và fallback an toàn tuyệt đối cho `useOutletContext`.
+        - **Bổ sung trang Bảng điều khiển (Dashboard)** (`/dashboard`):
+          - Tổng quan số liệu kho nhạc: 4 thẻ KPI Hero Metrics (Tổng bài tải, Tỷ lệ đồng bộ Cloudflare R2, Dung lượng % / 10GB Free, Độ phủ lời .lrc & ảnh bìa 1:1).
+          - Giám sát môi trường & Engine Health: Hiển thị chi tiết tình trạng sẵn sàng và phiên bản của `yt-dlp`, `FFmpeg`, `Node.js` và `Cloudflare R2 Bucket`.
+          - Danh sách bài hát tải gần đây: Xem nhanh 6 bài tải mới nhất, hỗ trợ nghe thử tức thì trên Audio Dock và nút mở folder Windows Explorer.
+          - Lối tắt tính năng nhanh: Các thẻ điều hướng sang Tải YouTube, Quản lý bài tải, Lịch sử và Thư viện.
+          - Tích hợp mục "Bảng điều khiển" lên đầu Sidebar Navigation với icon `LayoutDashboard`.
+        - **Audio Dock Player**: Hiệu ứng trồi lên từ đáy màn hình với spring transition (`initial y: 50 -> 0`).
+        - **Filter Chips & Tabs**: Hiệu ứng sliding pill (`layoutId`) trên bộ lọc Định dạng & Trạng thái tại cả trang Lịch sử và trang Quản lý bài tải.
+        - **Floating Batch Bar**: Hiệu ứng trượt xuất hiện/biến mất mượt mà khi tích chọn bài hát.
+      - **Tối ưu hóa DependencyChecker**: Bổ sung `stdio: 'pipe'` ngăn chặn rò rỉ log lỗi stderr ra terminal console Windows, dùng đường dẫn tuyệt đối cho PowerShell an toàn tuyệt đối.
+    - **Trang Quản lý Nghệ sĩ (Artists Management) chuyên sâu trên Web Dashboard (`/artists`)**:
+      - **Hero KPI Metrics**: 4 thẻ thống kê đầu trang: Tổng số nghệ sĩ, Đã có ảnh đại diện (avatar), Chưa có ảnh đại diện, Tổng thời lượng âm nhạc của toàn bộ nghệ sĩ.
+      - **Thanh tìm kiếm & Bộ lọc linh hoạt**: Tìm kiếm không dấu tiếng Việt theo tên nghệ sĩ, lọc trạng thái ảnh đại diện (`Tất cả`, `Đã có ảnh`, `Chưa có ảnh`), sắp xếp đa chiều (`Nhiều bài hát nhất`, `Thời lượng nhiều nhất`, `Tên A → Z`, `Tên Z → A`).
+      - **Chế độ xem kép Grid / Table**: Tuỳ chọn chuyển đổi giữa dạng lưới Card phong cách hiện đại và dạng bảng chi tiết danh sách nghệ sĩ.
+      - **Hộp thoại Chi tiết Nghệ sĩ (ArtistDetailDialog)**: Mở modal toàn diện phong cách Spotify, hiển thị ảnh đại diện cỡ lớn, 3 thẻ KPI (Tổng bài hát, Album/Single, Tổng thời lượng), danh sách Album phát hành và danh sách toàn bộ bài hát kèm nút nghe thử tức thì trên Audio Dock.
+      - **Cập nhật & Tải Avatar Nghệ sĩ từ YouTube (ArtistAvatarDialog)**: Hỗ trợ dán link kênh YouTube Channel hoặc video YouTube để tự động trích xuất avatar 900x900 pixel vuông, hoặc dán URL ảnh trực tiếp; tự động lưu `artist.jpg`, `folder.jpg` và `desktop.ini` trên máy tính.
+      - **Gộp Nghệ sĩ (ArtistMergeDialog) & Chuẩn hóa Overrides**: Tính năng gộp nghệ sĩ thông minh với gợi ý tên tương đồng (Levenshtein/Substring distance), lưu ánh xạ vào `overrides.json` (`artistAliases`) và tự động chuẩn hóa toàn bộ bài hát liên quan mà không phá hủy file gốc.
+      - **Tương tác Windows File Explorer**: Nút mở thư mục nghệ sĩ trực tiếp trên máy tính (`explorer.exe`).
+      - Điều hướng tích hợp trên Sidebar Nav (`/artists`) trong nhóm KHO NHẠC với icon `Users`.
+    - **Hoàn thiện gói 14 cải tiến UI/UX & Tối ưu hoá toàn diện Web Dashboard**:
+      - **1. Phân loại & rà soát toàn diện thao tác**: Nhận diện và củng cố toàn bộ các liên hệ giữa Download, Quản lý tệp cục bộ, Lịch sử, R2 Cloud và Nghệ sĩ.
+      - **2. Đồng bộ trạng thái Tải nhạc & Tách Tooltip Portal**:
+        - Tự động chuyển tag `Chưa tải` sang `Đã tải` ngay khi Job tải hoàn tất qua SSE events listener; tự động nhận diện và đồng bộ sidecar `.lrc` và ảnh bìa `.jpg`.
+        - Nâng cấp `Tooltip.tsx` dùng `createPortal` vào `document.body` với toạ độ `fixed`, loại bỏ 100% hiện tượng đè lấn hoặc làm giãn nở chiều cao dòng của bảng.
+      - **3. Chống load lại khi đổi trang**: Cấu hình `staleTime: 5 phút`, `gcTime: 30 phút` cho TanStack QueryClient; chuyển tab tức thì không giật lag.
+      - **4. Chuẩn hóa Action Explorer & Nâng cấp Audio Dock**:
+        - Chuẩn hóa đường dẫn tuyệt đối với `path.normalize(path.resolve())` khi mở `explorer.exe` (sửa triệt để lỗi mở sai folder).
+        - Nâng cấp Audio Dock toàn diện: Cover thumbnail, Title, Artist, Timeline seeker bar, thời gian `00:00 / 00:00`, nút tua lùi `↺ 5s`, tua tới `5s ↻`, Volume slider + Mute toggle.
+        - Đồng bộ hai chiều icon Play/Pause giữa Audio Dock và nút trên danh sách (hiển thị icon `Pause` ⏸ khi bài đang phát).
+      - **5. Native Folder Picker (Hộp thoại chọn thư mục Windows)**: Thêm endpoint `POST /local-api/folders/pick` sử dụng PowerShell `System.Windows.Forms.FolderBrowserDialog` mở hộp thoại native Windows trực quan.
+      - **6. Dọn dẹp Sidebar**: Loại bỏ nút "Đồng bộ R2 Cloud" thừa thãi ở footer Sidebar.
+      - **7. Tinh chỉnh Thẻ Dung lượng**: Hiển thị định dạng nhỏ gọn trong ngoặc đơn: `(Đã dùng: X MB - Y bài, Chưa upload: A MB - B bài)` trên Dashboard và Sidebar.
+      - **8. Trạng thái Loading**: Bổ sung spinner animation khi đang tải dữ liệu danh sách bài hát trên trang Library và Download Manager.
+      - **9. Quản lý Tệp mất trên Đĩa & Nút "Kiểm tra tệp đĩa"**: Hiển thị badge "Mất tệp" / "Có tệp", chặn phát và toast cảnh báo khi file bị xóa ngoài máy tính; thêm nút "Kiểm tra tệp đĩa" trực tiếp trên Thư viện.
+      - **10. Widget Đồng hồ & Ngày tháng Việt Nam trên Sidebar**: Đặt dưới logo Beatify với đồng hồ Live `HH:mm:ss` (chấm xanh pulse) và ngày tháng chuẩn `Thứ X, DD/MM/YYYY`.
+      - **11. Tính năng Player nâng cao**: Tích hợp Shuffle (Ngẫu nhiên), Loop (Lặp lại: Tắt / Lặp N lần / Lặp vô tận), và nút Mic mở Popup xem lời bài hát trực tiếp trên Audio Dock.
+      - **12. Kế thừa chuẩn dự án**: Rà soát và áp dụng trọn vẹn các logic tải, sidecar `.lrc`, cover folder ẩn và log `info.txt`.
+      - **13. Định dạng Ngày Việt Nam & Icon Mic**: Format ngày phát hành yt-dlp chuẩn `DD/MM/YYYY`; đổi icon thẻ Metadata & Lời thành icon Mic (`Mic2`).
+      - **14. Kiểm thử toàn diện**: Toàn bộ dự án vượt qua `pnpm typecheck`, `pnpm lint`, `pnpm test` (41/41 unit test mobile, 18/18 test indexer, 0 lỗi TypeScript).
+      - **Cập nhật khắc phục 8 vấn đề chi tiết (Update Session 2)**:
+        - **1. Sửa lỗi mở Explorer**: Chuẩn hóa lệnh `explorer.exe /select,"path"` khi mở tệp trên Windows; tự động fallback sang thư mục cha nếu tệp bị di chuyển hoặc bị xóa.
+        - **2. Gắn tag Mất tệp & Kiểm tra tệp đĩa chuẩn xác**: Kiểm tra động `existsSync` thực tế trên đĩa cứng ngay khi lấy danh sách tải; hiển thị tag "Mất tệp" màu đỏ/cam nổi bật kèm cảnh báo chặn phát.
+        - **3. Đồng bộ icon Play/Pause ở Quản lý bài tải**: Đồng bộ nút Play ở cả trên ảnh thumbnail và cột hành động bên phải bảng khi phát nhạc.
+        - **4. Tinh chỉnh Đồng hồ & Ngày tháng Sidebar**: Giảm kích thước (`text-[10px]`), bỏ font-weight đậm, hiển thị thanh mảnh, tinh tế và tối giản.
+        - **5. Sửa lỗi Tag 'Đã lên Cloud' sai lệch**: Loại bỏ logic gán nhầm tệp `MUSIC_SOURCE_DIR` cục bộ vào danh sách R2 keys; chỉ bài hát thực sự có trên Cloudflare R2 bucket mới được gắn nhãn `Đã lên Cloud`.
+        - **6. Nâng cấp Nghệ sĩ (2 Options Modal & Trang Full View & Hover Preview)**:
+          - Bổ sung Modal lựa chọn khi click vào Nghệ sĩ: **Xem nhanh (Popup Dialog)** hoặc **Trang chuyên sâu (Toàn màn hình)**.
+          - Xây dựng component `ArtistFullPageView`: Banner cỡ lớn, thẻ thống kê chuyên biệt, phân bố định dạng (FLAC, M4A, MP3, OPUS), danh sách album và bảng đầy đủ bài hát có nút phát tất cả.
+          - Bổ sung Rich Tooltip khi hover: hiển thị tóm tắt top bài hát, số album, thời lượng và đường dẫn thư mục.
+        - **7. Đồng bộ xoá dữ liệu & Invalidate Queries tức thì**: Mặc định chọn `deleteFiles: true` khi xóa bản ghi; dọn dẹp `cachedScannedTracks` trong RAM; tự động gọi `purgeFromTrash` trong `overrides`; kích hoạt invalidate đồng bộ 7 queries liên quan để mọi trang cập nhật tức thì.
+        - **8. Củng cố chức năng Verify**: Quét chuẩn xác từng đường dẫn `libraryRootPath` + `relativeFilePath`, kiểm tra thực tế trên ổ đĩa và cập nhật tức thì vào bảng.
+        - **9. Xóa Breadcrumb & Tối ưu không gian**: Loại bỏ hoàn toàn dải thanh breadcrumb thừa ở đầu trang (`Beatify > Section > Page`), giúp giao diện sạch sẽ, giải phóng không gian dọc và đồng bộ với PageHeader của từng trang.
+        - **10. Tùy biến Popover Vòng Lặp & Thông báo Toast Xịn sò**:
+          - Thiết kế Popover dạng **Horizontal Capsule siêu nhỏ gọn**: toàn bộ dàn trên 1 hàng ngang duy nhất (`flex items-center gap-1.5`, chiều cao chỉ 36px, bo góc viên thuốc mềm mại `rounded-2xl`, hiệu ứng kính mờ `backdrop-blur-xl`).
+          - **Ẩn triệt để spinner mặc định của trình duyệt**: loại bỏ hoàn toàn nút mũi tên lên xuống xám mặc định của `input[type="number"]` bằng CSS `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`.
+        - **11. Nâng cấp Toàn diện Tương tác Web Dashboard & Mobile App (iPhone 16 / iOS 27)**:
+          - **Mã QR Kết nối Nhanh (ConnectAppModal)**: Sinh mã QR chứa Deep Link chuẩn `beatify://connect?api=...&token=...`. Người dùng chỉ cần mở Camera mặc định trên iPhone 16 quét mã là app tự động nhận cấu hình server và tải thư viện, không cần gõ phím.
+          - **Bộ đếm & Cảnh báo Hết hạn Sideload 7 ngày (SideloadExpiryWidget)**: Hiển thị ngay trên Sidebar Web Dashboard; cảnh báo màu vàng khi còn 1-2 ngày và màu đỏ khi hết hạn; có nút bấm "Đã gia hạn hôm nay (Reset 7 ngày)" tiện lợi cho người dùng Windows Sideloadly.
+          - **Mobile Deep Link Handler (`apps/mobile/app/index.tsx`)**: Tích hợp hook lắng nghe `Linking` tự động bóc tách tham số `api` và `token` từ mã QR, rung phản hồi và tự động kích hoạt đồng bộ thư viện nhạc.
+        - **12. Nâng cấp Full Lyrics Stage & Tối ưu Trải nghiệm Nghe nhạc**:
+          - **Loại bỏ Popup trôi nổi co giật**: Thay thế cửa sổ nổi bằng **Full Lyrics Stage (Split Layout chuẩn Spotify & Apple Music)** nằm cố định trên thanh Player Dock.
+          - **Bố cục 2 cột cân xứng**: Cột trái hiển thị bìa album lớn (280-320px), tên bài hát và tên nghệ sĩ; cột phải hiển thị dòng lời bài hát cuộn êm đềm với hiệu ứng Gradient Mask mờ dần ở đỉnh và đáy (loại bỏ hoàn toàn cảm giác chóng mặt/buồn nôn).
+          - **Tối ưu triệt để độ mượt (60fps)**: Khắc phục root cause code gọi `scrollTo` bị nhầm là user scroll và khóa 2.5s; đồng bộ `requestAnimationFrame` 60fps; loại bỏ background highlight hộp và số giây thừa thãi theo yêu cầu người dùng.
+          - **ArtistHoverCard & Tooltip Nghệ sĩ**: Nâng cấp card xem trước thông tin nghệ sĩ với mini-tracklist thanh lịch, rút gọn đường dẫn thư mục và bổ sung các nút CTA nhanh (Hồ sơ, Mở thư mục Explorer, Sao chép tên).
+          - Cung cấp đầy đủ các thao tác nằm ngang: Nút **Tắt** (`RotateCcw`), cụm stepper ngang gồm nút `[-]`, ô số căn giữa, nút `[+]`, nút kích hoạt xanh **Lặp N lần**, và nút **Vô tận (∞)**.
+          - Tích hợp thông báo Toast cao cấp (`sonner`) khi bật/tắt Shuffle và khi thiết lập vòng lặp (báo rõ số lần lặp hoặc vô tận).
+        - **11. Phóng to Thẻ Nghệ sĩ, Sửa lỗi Mở Folder & Chuẩn hoá Con trỏ chuột Cursor Pointer**:
+          - **Phóng to Thẻ Nghệ sĩ**: Chuyển lưới từ 6 cột hẹp sang 3-4 cột rộng rãi (`grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6`); tăng kích thước Avatar nghệ sĩ từ 96px lên 144px - 160px (`w-36 h-36 md:w-40 md:h-40`), nút Play to 48px, tên nghệ sĩ to rõ font 16-18px sang trọng chuẩn Spotify.
+          - **Sửa triệt để nút Mở thư mục trên máy tính**: Khắc phục lỗi `execFile` không mở được Explorer trên Windows; endpoint `/local-api/artists/:name/open-folder` chuyển sang dùng `youtubeJobRunner.openFolderInExplorer(targetDir)`, tiếp nhận `folderPath` truyền từ frontend, tự động quét fallback từ thư viện local hoặc YouTube downloads; hiển thị Toast phản hồi kết quả mở thư mục rõ ràng.
+          - **Sửa đường dẫn phát nhạc Audio**: Đồng bộ route phát nhạc nghệ sĩ sang `/local-api/stream/${track.id}` kèm thông báo Toast tên bài hát khi bắt đầu phát.
+          - **Chuẩn hóa Cursor Pointer**: Rà soát và gắn class `cursor-pointer` cho toàn bộ các nút thao tác (Play, Camera, Folder), thẻ Album, hàng bảng Table, các nút chuyển tab, và các tùy chọn trong hộp thoại.
+    - Server-Sent Events (SSE) `/api/jobs/:id/events` hiển thị tiến trình tải bài hát thời gian thực theo từng giai đoạn (Tải audio, Trích xuất, Tải cover, Gắn tag ID3, Căn lời bài hát).
+    - Khắc phục triệt để lỗi **Minified React error #310** (vi phạm Rules of Hooks): dọn dẹp vị trí `useState` nằm dưới early return trong `LyricsEditorDialog.tsx`, quét tĩnh bảo đảm 100% component tuân thủ nghiêm ngặt quy tắc Hooks của React.
+    - Tương thích 100% monorepo: TypeScript strict, 0 lỗi lint, 0 lỗi typecheck, 59/59 test passed.
 - [x] Tính năng Chỉnh sửa & Xóa bài hát trên Mobile và đồng bộ 2 chiều Cloudflare R2:
   - `packages/shared`: `UpdateTrackSchema`, hàm thuần `applyTrackUpdate`, `applyTrackDeletion` (25 unit test qua)
   - `apps/api`: `PATCH /api/tracks/:id` (sửa metadata & lyrics), `DELETE /api/tracks/:id` (đưa vào thùng rác trên R2), `GET/PUT /api/overrides` (đồng bộ 2 chiều với PC) (18 unit test qua)
@@ -62,7 +210,20 @@
     - Sắp xếp cột linh hoạt (Sortable Columns): Bấm vào tiêu đề cột (Tên bài, Ca sĩ, Album, Dung lượng, Thời lượng) để đảo chiều tăng/giảm với ký hiệu mũi tên trực quan.
     - Thanh tác vụ hàng loạt (Floating Batch Bar): Hỗ trợ checkbox từng dòng hoặc chọn tất cả, thanh công cụ trôi nổi hiển thị số bài đang chọn và các thao tác: Đổi Ca sĩ hàng loạt, Đổi Album hàng loạt, Đổi Ảnh bìa hàng loạt, Chuyển vào Thùng rác hàng loạt.
     - Thanh phát nhạc chân trang nâng cao (Audio Dock): Bổ sung nút chuyển bài trước `⏮`, chuyển bài tiếp `⏭`, công tắc tự động chuyển bài `🔁 Tiếp: BẬT/Tắt`, và bộ phím tắt bàn phím tiện lợi (`Space` để Phát/Dừng, `←`/`→` tua 5s, `Shift+←`/`Shift+→` đổi bài).
-    - Toàn bộ kịch bản kiểm tra tự động chạy thành công 100%, 57 unit tests passed, lint và typecheck sạch 100%.
+- [x] Tích hợp Module Nhập Nhạc Từ YouTube & Lời Đồng Bộ LRCLIB vào Web Console (`tools/indexer`):
+  - Kế thừa & tái cấu trúc các dịch vụ từ Toolkit (`d:\Extensions\Toolkit`):
+    - `MetadataCleaner`: Tự động cắt từ rác `[Official MV]`, `(Lyric Video)`, chuẩn hóa kênh (` - Topic`, `VEVO`), phân tách đa nghệ sĩ `feat.`, `ft.`, `x`, `&`, Title Case an toàn tiếng Việt.
+    - `PathSanitizer`: Chuẩn hóa tên file trên Windows, khống chế ngân sách độ dài `MAX_PATH` (260 ký tự), `safeMoveFile` có cơ chế retry chống lỗi khóa file `EBUSY / EPERM`.
+    - `LyricsService`: Tích hợp API **LRCLIB** lấy lời đồng bộ `.lrc`, throttle 300ms, retry khi gặp 503 ServerOverloaded, cảnh báo lệch thời lượng > 3s.
+    - `DependencyChecker`: Tự động kiểm tra `yt-dlp` và `ffmpeg`, làm mới biến môi trường `PATH` từ Windows Registry.
+    - `YoutubeService`: Hỗ trợ URL video đơn và Playlist, tải audio chất lượng cao (`m4a`, `mp3`, `flac`), tự động crop tâm ảnh thumbnail thành tỷ lệ vuông 1:1 làm bìa album, đóng gói ID3 tag qua `ffmpeg`, lưu `.lrc` và ảnh bìa vào `custom_covers/`, tự động cập nhật `overrides.json`.
+  - Giao diện Web Console (Tab mới **"Nhập từ YouTube"**):
+    - Khung nhập URL kèm nút "Dán từ clipboard" và "Kiểm tra & Xem trước".
+    - Smart Preview Card: Hiển thị ảnh bìa album 1:1, form sửa nhanh Tên bài, Ca sĩ, Album, Lời bài hát `.lrc` trước khi tải.
+    - Thanh tiến trình tải thời gian thực hiển thị % và giai đoạn rõ ràng.
+    - Hỗ trợ tải Playlist: danh sách bảng chọn từng bài hát trong playlist.
+    - Nút phát thử nhạc ngay sau khi tải (`Audio Dock`) và nút đồng bộ lên Cloudflare R2 tức thì.
+  - Bộ kiểm thử tự động toàn diện: 17 unit tests trong `tools/indexer` (thêm 16 unit tests mới cho `metadataCleaner`, `pathSanitizer`, `lyricsService`, `youtubeService`), lint và typecheck sạch 100%.
 - [x] Người dùng cấu hình thông tin R2 vào `tools/indexer/.env` và máy chủ tự động nhận diện thành công
 - [x] Khắc phục triệt để hiển thị ảnh bìa tùy chỉnh (tự động tính lại `albumId` khi ghi đè ca sĩ/album và nạp `custom_covers/`); bổ sung Modal xác nhận Xóa vĩnh viễn với tùy chọn rõ ràng (không dùng confirm trình duyệt) và cơ chế dọn dẹp an toàn.
 - [x] Nâng cấp trải nghiệm Mobile Delight (Profile, Beatify Replay Stats, Smart Shuffle, Mystery Queue):

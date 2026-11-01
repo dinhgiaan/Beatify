@@ -13,7 +13,32 @@
     "815b5e9f8224": {
       "title": "Dương Tiểu My Vol 1",
       "artist": "Chưa rõ nghệ sĩ",
-      "album": "Single"
+      "album": "Single",
+      "hidden": true,
+      "deletedAt": "2026-10-26T08:37:16.686Z",
+      "purged": true,
+      "purgedAt": "2026-10-26T08:37:21.983Z"
+    },
+    "ef30be9575e9": {
+      "title": "Young Money",
+      "artist": "Yung Ni99",
+      "album": "Singles",
+      "year": 2026,
+      "loudnessLufs": -9.2,
+      "replayGain": -8.8,
+      "hidden": true,
+      "deletedAt": "2026-11-01T02:24:58.898Z",
+      "purged": true,
+      "purgedAt": "2026-11-01T02:25:06.598Z"
+    },
+    "93f5811d58cd": {
+      "title": "quicksand",
+      "artist": "morray",
+      "album": "Singles",
+      "year": 2020,
+      "loudnessLufs": -9.78,
+      "replayGain": -8.22
     }
-  }
+  },
+  "artistAliases": {}
 }

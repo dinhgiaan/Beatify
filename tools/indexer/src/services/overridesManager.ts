@@ -11,7 +11,7 @@ const OVERRIDES_FILE = process.cwd().endsWith('indexer')
 
 export async function getOverrides(): Promise<Overrides> {
   if (!existsSync(OVERRIDES_FILE)) {
-    return { version: 1, tracks: {} };
+    return { version: 1, tracks: {}, artistAliases: {} };
   }
   try {
     const raw = await fs.readFile(OVERRIDES_FILE, 'utf-8');
@@ -20,9 +20,9 @@ export async function getOverrides(): Promise<Overrides> {
     if (parsed.success) {
       return parsed.data;
     }
-    return { version: 1, tracks: {} };
+    return { version: 1, tracks: {}, artistAliases: {} };
   } catch {
-    return { version: 1, tracks: {} };
+    return { version: 1, tracks: {}, artistAliases: {} };
   }
 }
 
@@ -93,35 +93,71 @@ export function applyOverridesToScanned(
       continue;
     }
 
+    const updatedTrack = { ...item.track };
+    let metadataChanged = false;
+
     if (ov) {
-      const updatedTrack = { ...item.track };
       if (ov.title) updatedTrack.title = ov.title;
-      if (ov.artist) updatedTrack.artist = ov.artist;
-      if (ov.album !== undefined) updatedTrack.album = ov.album;
+      if (ov.artist) {
+        updatedTrack.artist = ov.artist;
+        metadataChanged = true;
+      }
+      if (ov.album !== undefined) {
+        updatedTrack.album = ov.album;
+        metadataChanged = true;
+      }
       if (ov.year !== undefined) updatedTrack.year = ov.year;
       if (ov.trackNumber !== undefined) updatedTrack.trackNumber = ov.trackNumber;
-
-      // Cập nhật lại albumId nếu có thay đổi ca sĩ hoặc album
-      if (ov.artist || ov.album) {
-        const albumArtist = updatedTrack.artist || 'Unknown Artist';
-        const albumTitle = updatedTrack.album || 'Single';
-        const albumKey = `${normalizeText(albumArtist)}|${normalizeText(albumTitle)}`;
-        updatedTrack.albumId = crypto.createHash('sha1').update(albumKey).digest('hex').slice(0, 12);
-        if (updatedTrack.cover) {
-          updatedTrack.cover = `covers/${updatedTrack.albumId}.jpg`;
-        }
-      }
-
-      result.push({
-        ...item,
-        track: updatedTrack,
-      });
-    } else {
-      result.push(item);
+      if (ov.loudnessLufs !== undefined) updatedTrack.loudnessLufs = ov.loudnessLufs;
+      if (ov.replayGain !== undefined) updatedTrack.replayGain = ov.replayGain;
     }
+
+    // Áp dụng gộp nghệ sĩ từ artistAliases nếu có
+    if (overrides.artistAliases) {
+      const normalizedCurrent = normalizeText(updatedTrack.artist);
+      const aliasTarget = overrides.artistAliases[normalizedCurrent];
+      if (aliasTarget && aliasTarget !== updatedTrack.artist) {
+        updatedTrack.artist = aliasTarget;
+        metadataChanged = true;
+      }
+    }
+
+    // Cập nhật lại albumId nếu có thay đổi ca sĩ hoặc album
+    if (metadataChanged) {
+      const albumArtist = updatedTrack.artist || 'Unknown Artist';
+      const albumTitle = updatedTrack.album || 'Single';
+      const albumKey = `${normalizeText(albumArtist)}|${normalizeText(albumTitle)}`;
+      updatedTrack.albumId = crypto.createHash('sha1').update(albumKey).digest('hex').slice(0, 12);
+      if (updatedTrack.cover) {
+        updatedTrack.cover = `covers/${updatedTrack.albumId}.jpg`;
+      }
+    }
+
+    result.push({
+      ...item,
+      track: updatedTrack,
+    });
   }
 
   return result;
+}
+
+export async function setArtistAliases(
+  targetArtist: string,
+  sourceArtists: string[]
+): Promise<Overrides> {
+  const current = await getOverrides();
+  current.artistAliases = current.artistAliases || {};
+
+  for (const src of sourceArtists) {
+    const norm = normalizeText(src);
+    if (norm && src.trim() !== targetArtist.trim()) {
+      current.artistAliases[norm] = targetArtist.trim();
+    }
+  }
+
+  await saveOverrides(current);
+  return current;
 }
 
 export async function mergeRemoteOverrides(remote: Overrides): Promise<Overrides> {
@@ -131,6 +167,10 @@ export async function mergeRemoteOverrides(remote: Overrides): Promise<Overrides
     tracks: {
       ...local.tracks,
       ...remote.tracks,
+    },
+    artistAliases: {
+      ...(local.artistAliases || {}),
+      ...(remote.artistAliases || {}),
     },
   };
   await saveOverrides(merged);

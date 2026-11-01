@@ -10,7 +10,7 @@
     "build-index": "tsx src/cli.ts build-index",
     "upload": "tsx src/cli.ts upload",
     "sync": "tsx src/cli.ts sync",
-    "ui": "tsx src/server/index.ts",
+    "ui": "tsx watch src/server/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

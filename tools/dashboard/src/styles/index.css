@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* ============================================================
+   TOKEN SYSTEM — Dark theme (default for Beatify Studio)
+   ============================================================ */
+:root,
+[data-theme="dark"] {
+  --bg-page:        #0a0a0a;
+  --bg-surface:     #121212;
+  --bg-subtle:      #181818;
+  --bg-hover:       #222222;
+  --border:         #242424;
+  --border-strong:  #333333;
+  --text-primary:   #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted:     #9ca3af;
+  --primary:        #1DB954;
+  --primary-fg:     #000000;
+  --primary-hover:  #1ed760;
+  --danger:         #ef4444;
+  --danger-light:   #2a1417;
+  --danger-border:  #5c1d24;
+  --success:        #1DB954;
+  --success-light:  rgba(29, 185, 84, 0.15);
+  --success-border: #1DB954;
+  --warning:        #eab308;
+  --warning-light:  rgba(234, 179, 8, 0.12);
+  --warning-border: rgba(234, 179, 8, 0.3);
+  --radius:         10px;
+  --radius-sm:      6px;
+  --shadow:         0 4px 20px -2px rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================================
+   Light theme
+   ============================================================ */
+[data-theme="light"] {
+  --bg-page:        #f4f4f5;
+  --bg-surface:     #ffffff;
+  --bg-subtle:      #f0f0f2;
+  --bg-hover:       #e4e4e7;
+  --border:         #e4e4e7;
+  --border-strong:  #d4d4d8;
+  --text-primary:   #09090b;
+  --text-secondary: #52525b;
+  --text-muted:     #71717a;
+  --primary:        #1DB954;
+  --primary-fg:     #000000;
+  --primary-hover:  #169c46;
+  --danger:         #dc2626;
+  --danger-light:   #fef2f2;
+  --danger-border:  #fecaca;
+  --success:        #1DB954;
+  --success-light:  #ecfdf5;
+  --success-border: #a7f3d0;
+  --warning:        #d97706;
+  --warning-light:  #fffbeb;
+  --warning-border: #fde68a;
+  --shadow:         0 4px 20px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================
+   Base reset & typography
+   ============================================================ */
+@layer base {
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  html {
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+/* ============================================================
+   Content Compact Scale (Tăng bự lên 10% theo yêu cầu: zoom 0.9)
+   ============================================================ */
+.content-compact-scale {
+  zoom: 0.9;
+  min-height: 100%;
+}
