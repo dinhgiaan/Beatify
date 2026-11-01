@@ -151,29 +151,46 @@ export function resolveDestinationPaths(
     album.trim().toLowerCase() === 'single' ||
     album.trim().toLowerCase() === title.trim().toLowerCase();
 
-  // Đặt thư mục con theo Tên bài nhạc nếu là bài lẻ, hoặc theo Tên Album nếu bài thuộc Album cụ thể
-  const safeSubfolder = isSingle ? safeTitle : PathSanitizer.sanitizeSegment(album);
-
+  const safeAlbum = PathSanitizer.sanitizeSegment(album || 'Singles');
   const baseName = path.basename(normBase);
-  const parentBase = path.basename(path.dirname(normBase));
 
   let artistDir: string;
   let finalTrackDir: string;
 
-  // Trường hợp 1: baseTargetDir đã là thư mục bài hát/album của chính artist đó
-  if (baseName.toLowerCase() === safeSubfolder.toLowerCase() && parentBase.toLowerCase() === safeArtist.toLowerCase()) {
-    artistDir = path.dirname(normBase);
+  // Trường hợp 1: baseTargetDir đã là chính thư mục của bài hát này
+  // (ví dụ: .../morray/Singles/quicksand)
+  if (baseName.toLowerCase() === safeTitle.toLowerCase()) {
+    artistDir = resolveArtistDirectory(normBase, artist);
     finalTrackDir = normBase;
   }
-  // Trường hợp 2: baseTargetDir đã là thư mục của chính nghệ sĩ đó
+  // Trường hợp 2: baseTargetDir kết thúc bằng "Singles" hoặc "Single"
+  // (ví dụ: .../morray/Singles -> .../morray/Singles/<safeTitle>)
+  else if (/^(singles|single)$/i.test(baseName)) {
+    artistDir = resolveArtistDirectory(normBase, artist);
+    finalTrackDir = path.join(normBase, safeTitle);
+  }
+  // Trường hợp 3: baseTargetDir là thư mục Album cụ thể (ví dụ: .../morray/Street Sermons)
+  else if (!isSingle && baseName.toLowerCase() === safeAlbum.toLowerCase()) {
+    artistDir = resolveArtistDirectory(normBase, artist);
+    finalTrackDir = normBase;
+  }
+  // Trường hợp 4: baseTargetDir là thư mục của chính nghệ sĩ (ví dụ: .../morray)
   else if (baseName.toLowerCase() === safeArtist.toLowerCase()) {
     artistDir = normBase;
-    finalTrackDir = path.join(artistDir, safeSubfolder);
+    if (isSingle) {
+      finalTrackDir = path.join(artistDir, 'Singles', safeTitle);
+    } else {
+      finalTrackDir = path.join(artistDir, safeAlbum);
+    }
   }
-  // Trường hợp 3: baseTargetDir là thư mục chung do người dùng chỉ định (ví dụ: D:\music for app\(chill))
+  // Trường hợp 5: baseTargetDir là thư mục gốc chung (ví dụ: D:\music_source\_imported hoặc D:\Music\(Rap))
   else {
     artistDir = path.join(normBase, safeArtist);
-    finalTrackDir = path.join(artistDir, safeSubfolder);
+    if (isSingle) {
+      finalTrackDir = path.join(artistDir, 'Singles', safeTitle);
+    } else {
+      finalTrackDir = path.join(artistDir, safeAlbum);
+    }
   }
 
   return { artistDir, finalTrackDir, isSingle };
