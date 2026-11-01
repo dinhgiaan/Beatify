@@ -5,8 +5,11 @@ import {
   Copy,
   Check,
   Download,
-  Sparkles,
   RefreshCw,
+  Camera,
+  ScanLine,
+  ExternalLink,
+  ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog } from '../../ui/organisms/Dialog';
@@ -40,7 +43,7 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
     if (!isOpen) return;
 
     QRCode.toDataURL(deepLink, {
-      width: 280,
+      width: 260,
       margin: 1.5,
       color: {
         dark: '#000000',
@@ -88,137 +91,191 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       title="Kết nối App iPhone với Beatify"
-      maxWidth="max-w-2xl"
+      description="Quét mã bằng Camera mặc định trên iPhone 16 để nhận diện và cấu hình ứng dụng tức thì."
+      maxWidth="max-w-4xl"
     >
-      <div className="space-y-5 text-left py-1">
-        {/* Banner giới thiệu */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-            <Smartphone size={20} />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch py-1 text-left">
+        {/* Cột Trái (5/12): Khung mã QR Stage */}
+        <div className="md:col-span-5 flex flex-col items-center justify-between p-6 rounded-2xl bg-[#141418] border border-white/10 shadow-xl text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Sẵn sàng kết nối qua Camera iOS</span>
           </div>
-          <div className="space-y-0.5 text-xs">
-            <h4 className="font-bold text-white text-sm tracking-tight flex items-center gap-1.5">
-              <span>Quét mã QR bằng Camera iPhone để kết nối tức thì</span>
-              <Sparkles size={14} className="text-emerald-400" />
-            </h4>
-            <p className="text-zinc-300 leading-relaxed text-[11.5px]">
-              Bạn không cần phải nhìn màn hình máy tính để gõ từng ký tự token trên điện thoại.
-              Chỉ cần mở camera mặc định trên iPhone 16 quét mã QR này là app sẽ tự nhận diện và kết nối!
+
+          <div className="my-4 p-3 bg-white rounded-2xl shadow-2xl border border-white/20 transition-transform duration-200 hover:scale-[1.02]">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="Mã QR kết nối Beatify"
+                className="w-48 h-48 rounded-xl object-contain"
+              />
+            ) : (
+              <div className="w-48 h-48 flex items-center justify-center text-zinc-400">
+                <RefreshCw size={24} className="animate-spin text-zinc-400" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1 w-full">
+            <div className="text-xs text-zinc-300 font-medium flex items-center justify-center gap-1.5">
+              <span>Giao thức:</span>
+              <span className="text-emerald-400 font-semibold">beatify://connect</span>
+            </div>
+            <p className="text-[11px] text-zinc-400">
+              Tự động truyền URL máy chủ và mã xác thực an toàn
             </p>
           </div>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleDownloadQR}
+            className="mt-4 gap-2 text-xs border-white/10 hover:border-white/20 w-full"
+          >
+            <Download size={13} />
+            <span>Tải ảnh QR về máy</span>
+          </Button>
         </div>
 
-        {/* Nội dung 2 cột: Cột trái QR Code, Cột phải Cấu hình & Hướng dẫn */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
-          {/* Cột Trái: Khung mã QR */}
-          <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-[#16161a] border border-white/10 space-y-3 text-center shadow-xl">
-            <div className="relative p-2.5 bg-white rounded-2xl shadow-lg border-2 border-emerald-500/30">
-              {qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt="Mã QR kết nối Beatify"
-                  className="w-52 h-52 rounded-xl object-contain"
-                />
-              ) : (
-                <div className="w-52 h-52 flex items-center justify-center text-zinc-400">
-                  <RefreshCw size={24} className="animate-spin text-emerald-400" />
+        {/* Cột Phải (7/12): Hướng dẫn 3 bước & Cấu hình thủ công */}
+        <div className="md:col-span-7 flex flex-col justify-between space-y-5">
+          {/* 3 Bước thực hiện */}
+          <div className="space-y-2.5">
+            <h5 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Smartphone size={14} className="text-zinc-400" />
+              <span>3 bước thao tác nhanh trên iPhone</span>
+            </h5>
+
+            <div className="space-y-2">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  1
                 </div>
-              )}
-            </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="text-white font-medium flex items-center gap-1.5">
+                    <Camera size={13} className="text-zinc-400" />
+                    <span>Mở ứng dụng Camera mặc định</span>
+                  </div>
+                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
+                    Không cần cài đặt ứng dụng quét mã ngoài, chỉ cần dùng ứng dụng Camera có sẵn trên iPhone.
+                  </p>
+                </div>
+              </div>
 
-            <div className="space-y-0.5">
-              <span className="text-xs font-semibold text-white tracking-tight">
-                Mã kết nối chuẩn: Deep Link <code className="text-emerald-400 font-mono text-[11px]">beatify://</code>
-              </span>
-              <p className="text-[11px] text-zinc-400">
-                Chứa đầy đủ Server URL và Token bảo mật
-              </p>
-            </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  2
+                </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="text-white font-medium flex items-center gap-1.5">
+                    <ScanLine size={13} className="text-zinc-400" />
+                    <span>Hướng ống kính vào mã QR</span>
+                  </div>
+                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
+                    Giữ camera cách màn hình khoảng 20 - 40cm cho đến khi hiện liên kết màu vàng trên khung ngắm.
+                  </p>
+                </div>
+              </div>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleDownloadQR}
-              className="gap-1.5 text-xs"
-            >
-              <Download size={13} />
-              <span>Tải ảnh QR về máy</span>
-            </Button>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white font-medium text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  3
+                </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="text-white font-medium flex items-center gap-1.5">
+                    <ExternalLink size={13} className="text-zinc-400" />
+                    <span>Chạm vào banner &quot;Mở trong Beatify&quot;</span>
+                  </div>
+                  <p className="text-zinc-400 leading-relaxed text-[11.5px]">
+                    Ứng dụng Beatify trên iPhone sẽ tự khởi động và lưu thông tin kết nối thành công.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Cột Phải: Các bước thao tác & Cấu hình Server */}
-          <div className="space-y-3.5">
-            <div className="space-y-1.5">
-              <h5 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                3 bước thực hiện trên iPhone:
-              </h5>
-              <ol className="space-y-1.5 text-[11.5px] text-zinc-300 list-decimal list-inside leading-relaxed bg-white/[0.03] p-2.5 rounded-xl border border-white/5">
-                <li>
-                  Mở ứng dụng <strong>Camera mặc định</strong> trên iPhone 16.
-                </li>
-                <li>
-                  Hướng camera vào mã QR ở khung bên cạnh.
-                </li>
-                <li>
-                  Nhấn vào thông báo vàng <strong>"Mở trong Beatify"</strong> xuất hiện trên màn hình để kết nối tự động.
-                </li>
-              </ol>
-            </div>
+          {/* Form cấu hình Server & Token thủ công */}
+          <div className="space-y-3 pt-4 border-t border-white/10">
+            <h5 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-zinc-400" />
+              <span>Thông tin máy chủ &amp; Xác thực</span>
+            </h5>
 
-            {/* Cấu hình URL & Token (nếu muốn chỉnh sửa hoặc copy thủ công) */}
-            <div className="space-y-2.5 pt-2 border-t border-white/10">
+            <div className="space-y-2.5">
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-zinc-300 flex items-center justify-between">
-                  <span>URL Server (Cloudflare Worker hoặc LAN IP)</span>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="text-zinc-300 font-medium">
+                    URL Server (Cloudflare Worker hoặc LAN IP)
+                  </label>
                   <button
                     type="button"
                     onClick={handleCopyUrl}
-                    className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer text-[10.5px]"
+                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
                   >
-                    {copiedType === 'url' ? <Check size={11} /> : <Copy size={11} />}
-                    <span>{copiedType === 'url' ? 'Đã copy' : 'Copy'}</span>
+                    {copiedType === 'url' ? (
+                      <>
+                        <Check size={12} className="text-emerald-400" />
+                        <span className="text-emerald-400">Đã copy</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Sao chép</span>
+                      </>
+                    )}
                   </button>
-                </label>
+                </div>
                 <input
                   type="text"
                   value={apiUrl}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiUrl(e.target.value)}
-                  placeholder="https://api.yourdomain.workers.dev"
-                  className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#16161a] text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  placeholder="Ví dụ: http://192.168.1.100:8787 hoặc domain Worker"
+                  className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-zinc-300 flex items-center justify-between">
-                  <span>Token xác thực (Bearer Token)</span>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="text-zinc-300 font-medium">
+                    Token xác thực (Bearer Token)
+                  </label>
                   <button
                     type="button"
                     onClick={handleCopyToken}
-                    className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer text-[10.5px]"
+                    className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
                   >
-                    {copiedType === 'token' ? <Check size={11} /> : <Copy size={11} />}
-                    <span>{copiedType === 'token' ? 'Đã copy' : 'Copy'}</span>
+                    {copiedType === 'token' ? (
+                      <>
+                        <Check size={12} className="text-emerald-400" />
+                        <span className="text-emerald-400">Đã copy</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Sao chép</span>
+                      </>
+                    )}
                   </button>
-                </label>
+                </div>
                 <input
                   type="password"
                   value={apiToken}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiToken(e.target.value)}
-                  placeholder="Nhập token bảo mật nếu có"
-                  className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#16161a] text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  placeholder="Để trống nếu máy chủ không cài đặt token bảo mật"
+                  className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#16161a] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                 />
               </div>
+            </div>
 
-              <div className="flex justify-end pt-1">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSaveConfig}
-                  className="text-xs"
-                >
-                  Lưu cấu hình
-                </Button>
-              </div>
+            <div className="flex justify-end pt-1">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSaveConfig}
+                className="text-xs px-4"
+              >
+                Lưu cấu hình
+              </Button>
             </div>
           </div>
         </div>
@@ -226,3 +283,4 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
     </Dialog>
   );
 };
+
