@@ -1,5 +1,5 @@
-import type { Library, Health, Overrides } from '@music-app/shared';
-import { LibrarySchema, OverridesSchema } from '@music-app/shared';
+import type { Library, Health, Overrides, UserState } from '@music-app/shared';
+import { LibrarySchema, OverridesSchema, UserStateSchema } from '@music-app/shared';
 import type { IStorageRepository, RangeOption, StorageObject } from '../types';
 
 export class R2StorageRepository implements IStorageRepository {
@@ -116,5 +116,54 @@ export class R2StorageRepository implements IStorageRepository {
       httpMetadata: { contentType: 'text/plain; charset=utf-8' },
     });
   }
+
+  async getLyrics(
+    id: string
+  ): Promise<{ content: string; source: 'manual' | 'auto'; format: 'lrc' | 'txt' } | null> {
+    // 1. Ưu tiên bản sửa thủ công: lyrics-manual/{id}.lrc hoặc .txt
+    const manualLrc = await this.bucket.get(`lyrics-manual/${id}.lrc`);
+    if (manualLrc) {
+      const content = await manualLrc.text();
+      return { content, source: 'manual', format: 'lrc' };
+    }
+    const manualTxt = await this.bucket.get(`lyrics-manual/${id}.txt`);
+    if (manualTxt) {
+      const content = await manualTxt.text();
+      return { content, source: 'manual', format: 'txt' };
+    }
+
+    // 2. Dự phòng bản tự động: lyrics/{id}.lrc hoặc .txt
+    const autoLrc = await this.bucket.get(`lyrics/${id}.lrc`);
+    if (autoLrc) {
+      const content = await autoLrc.text();
+      return { content, source: 'auto', format: 'lrc' };
+    }
+    const autoTxt = await this.bucket.get(`lyrics/${id}.txt`);
+    if (autoTxt) {
+      const content = await autoTxt.text();
+      return { content, source: 'auto', format: 'txt' };
+    }
+
+    return null;
+  }
+
+  async getUserState(): Promise<UserState | null> {
+    const object = await this.bucket.get('_meta/state.json');
+    if (!object) return null;
+    try {
+      const data = await object.json();
+      const parsed = UserStateSchema.safeParse(data);
+      return parsed.success ? parsed.data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async saveUserState(state: UserState): Promise<void> {
+    await this.bucket.put('_meta/state.json', JSON.stringify(state, null, 2), {
+      httpMetadata: { contentType: 'application/json' },
+    });
+  }
 }
+
 

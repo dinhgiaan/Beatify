@@ -13,12 +13,14 @@ import {
   Linking,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { type Track, type UpdateTrack, smartShuffle } from '@music-app/shared';
+import { type Track, type UpdateTrack, type UserState, smartShuffle } from '@music-app/shared';
 import { playerService } from '../src/services/player/rntpPlayerService';
 import type { PlayerState, RepeatMode } from '../src/services/player/types';
 import { parseMobileprovisionExpiration } from '../src/utils/mobileprovision';
 import { EditTrackModal } from '../src/components/EditTrackModal';
 import { ProfileModal } from '../src/components/ProfileModal';
+import { LyricsModal } from '../src/components/LyricsModal';
+import { PlaylistModal } from '../src/components/PlaylistModal';
 import { statsStorage } from '../src/services/stats/statsStorage';
 import { MusicApiClient } from '../src/services/api/musicApiClient';
 import {
@@ -36,6 +38,9 @@ import {
   MysteryIcon,
   QuestionIcon,
   DiscIcon,
+  LyricsIcon,
+  PlaylistIcon,
+  HeartIcon,
 } from '../src/components/icons/SvgIcons';
 
 function formatTime(seconds: number): string {
@@ -78,6 +83,15 @@ export default function SpikePlayerScreen() {
   // State cho Edit / Delete Modal & Đồng bộ Cloudflare
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const [userState, setUserState] = useState<UserState>({
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    playlists: [],
+    favoriteIds: [],
+  });
+
   const [serverUrl, setServerUrl] = useState<string>(
     process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787'
   );
@@ -88,6 +102,7 @@ export default function SpikePlayerScreen() {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   const CONFIG_FILE = `${FileSystem.documentDirectory || ''}beatify_server_config.json`;
+  const USER_STATE_FILE = `${FileSystem.documentDirectory || ''}beatify_user_state.json`;
 
   // Tự động nạp cấu hình máy chủ & token đã lưu từ các lần quét trước
   useEffect(() => {
@@ -106,6 +121,91 @@ export default function SpikePlayerScreen() {
     }
     loadSavedConfig();
   }, [CONFIG_FILE]);
+
+  // Tự động nạp UserState (Playlists & Favorites) từ local cache và đồng bộ từ server
+  useEffect(() => {
+    async function loadUserState() {
+      try {
+        const info = await FileSystem.getInfoAsync(USER_STATE_FILE);
+        if (info.exists) {
+          const raw = await FileSystem.readAsStringAsync(USER_STATE_FILE);
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.playlists) && Array.isArray(parsed.favoriteIds)) {
+            setUserState(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi đọc user state từ máy:', err);
+      }
+
+      const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+      const cleanToken = serverToken.trim();
+      if (cleanUrl) {
+        try {
+          const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+          const remoteState = await client.fetchUserState();
+          if (remoteState) {
+            setUserState(remoteState);
+            await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(remoteState, null, 2));
+          }
+        } catch (err) {
+          console.warn('Không thể đồng bộ UserState từ server:', err);
+        }
+      }
+    }
+    loadUserState();
+  }, [USER_STATE_FILE, serverUrl, serverToken]);
+
+  // Hàm cập nhật UserState (lưu cache local + đồng bộ Cloudflare R2)
+  const handleUpdateUserState = async (updater: (prev: UserState) => UserState) => {
+    const nextState = updater(userState);
+    nextState.updatedAt = new Date().toISOString();
+    setUserState(nextState);
+
+    try {
+      await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(nextState, null, 2));
+    } catch (err) {
+      console.warn('Lỗi ghi UserState local:', err);
+    }
+
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+    const cleanToken = serverToken.trim();
+    if (cleanUrl) {
+      try {
+        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+        await client.saveUserState(nextState);
+        setSyncStatus('Đã đồng bộ danh sách phát & yêu thích lên Cloudflare R2!');
+      } catch (err) {
+        console.warn('Lỗi đồng bộ UserState lên Cloudflare:', err);
+      }
+    }
+  };
+
+  // Toggle Favorite bài hát
+  const handleToggleFavorite = async (trackId: string) => {
+    Vibration.vibrate(10);
+    const isFav = userState.favoriteIds.includes(trackId);
+    await handleUpdateUserState((prev) => ({
+      ...prev,
+      favoriteIds: isFav
+        ? prev.favoriteIds.filter((id) => id !== trackId)
+        : [...prev.favoriteIds, trackId],
+    }));
+  };
+
+  // Hàm tải lời bài hát từ Cloudflare R2
+  const handleFetchLyrics = async (trackId: string): Promise<string | null> => {
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+    const cleanToken = serverToken.trim();
+    if (!cleanUrl) return null;
+    try {
+      const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
+      return await client.fetchLyrics(trackId);
+    } catch (err) {
+      console.warn('Lỗi tải lyrics từ máy chủ:', err);
+      return null;
+    }
+  };
 
 
   useEffect(() => {
@@ -542,14 +642,29 @@ export default function SpikePlayerScreen() {
               <Text style={styles.profileHeaderBtnText}>Hồ sơ</Text>
             </TouchableOpacity>
             {currentTrack ? (
-              <TouchableOpacity
-                style={styles.subtleEditBtn}
-                onPress={() => handleOpenEdit(currentTrack)}
-                activeOpacity={0.6}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <EditIcon size={13} color="#888888" />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={[styles.subtleEditBtn, { marginRight: 6 }]}
+                  onPress={() => handleToggleFavorite(currentTrack.id)}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <HeartIcon
+                    size={14}
+                    color={userState.favoriteIds.includes(currentTrack.id) ? '#f43f5e' : '#888888'}
+                    fill={userState.favoriteIds.includes(currentTrack.id) ? '#f43f5e' : 'none'}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.subtleEditBtn}
+                  onPress={() => handleOpenEdit(currentTrack)}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <EditIcon size={13} color="#888888" />
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={{ width: 24 }} />
             )}
@@ -683,6 +798,32 @@ export default function SpikePlayerScreen() {
             <ShuffleIcon size={16} color={isSmartShuffle ? '#1DB954' : '#71717a'} />
             <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
               {isSmartShuffle ? 'Trộn: BẬT' : 'Trộn: Tắt'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Hàng nút tính năng: Lời bài hát & Tuyển tập Playlist */}
+        <View style={[styles.modeButtonsRow, { marginTop: 8 }]}>
+          <TouchableOpacity
+            style={[styles.modeBottomBtn, lyricsModalVisible && styles.modeBottomBtnActive]}
+            disabled={!currentTrack}
+            onPress={() => setLyricsModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <LyricsIcon size={16} color={currentTrack ? '#1DB954' : '#71717a'} />
+            <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
+              Lời bài hát
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.modeBottomBtn, playlistModalVisible && styles.modeBottomBtnActive]}
+            onPress={() => setPlaylistModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <PlaylistIcon size={16} color="#1DB954" />
+            <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
+              Tuyển tập ({userState.playlists.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -856,12 +997,27 @@ export default function SpikePlayerScreen() {
                       <Text style={styles.mysteryBadgePillText}>Sắp đến</Text>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={styles.queueEditBtn}
-                      onPress={() => handleOpenEdit(track)}
-                    >
-                      <EditIcon size={13} color="#a1a1aa" />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity
+                        style={[styles.queueEditBtn, { marginRight: 4 }]}
+                        onPress={() => handleToggleFavorite(track.id)}
+                        activeOpacity={0.6}
+                      >
+                        <HeartIcon
+                          size={13}
+                          color={userState.favoriteIds.includes(track.id) ? '#f43f5e' : '#71717a'}
+                          fill={userState.favoriteIds.includes(track.id) ? '#f43f5e' : 'none'}
+                        />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.queueEditBtn}
+                        onPress={() => handleOpenEdit(track)}
+                        activeOpacity={0.6}
+                      >
+                        <EditIcon size={13} color="#a1a1aa" />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
               </View>
@@ -921,6 +1077,40 @@ export default function SpikePlayerScreen() {
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveTrack}
         onDelete={handleDeleteTrack}
+        onFetchLyrics={handleFetchLyrics}
+      />
+
+      {/* Modal Lời bài hát đồng bộ LRC */}
+      <LyricsModal
+        visible={lyricsModalVisible}
+        track={currentTrack}
+        currentTimeSec={playerState.positionSec}
+        onClose={() => setLyricsModalVisible(false)}
+        onSeek={(seconds) => {
+          playerService.seekTo(seconds);
+        }}
+        onOpenEditLyrics={(track) => {
+          setLyricsModalVisible(false);
+          handleOpenEdit(track);
+        }}
+        onFetchLyrics={handleFetchLyrics}
+      />
+
+      {/* Modal Danh sách phát & Yêu thích */}
+      <PlaylistModal
+        visible={playlistModalVisible}
+        onClose={() => setPlaylistModalVisible(false)}
+        userState={userState}
+        onUpdateUserState={handleUpdateUserState}
+        libraryTracks={tracks}
+        onPlayTrack={(track) => {
+          const idx = tracks.findIndex((t) => t.id === track.id);
+          if (idx >= 0) {
+            handleSkipToTrack(idx);
+          }
+        }}
+        currentTrackId={currentTrack?.id}
+        isPlaying={playerState.isPlaying}
       />
 
       {/* Modal Hồ sơ cá nhân & Thống kê Beatify Replay */}

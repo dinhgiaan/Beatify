@@ -17,7 +17,7 @@ import { updateFoldersConfig } from '../services/configManager';
 import { pickFolderNative } from '../services/folderPicker';
 import crypto from 'crypto';
 import { execFile, execFileSync } from 'child_process';
-import { TrackOverrideSchema, normalizeText, RelocateDownloadsRequestSchema } from '@music-app/shared';
+import { TrackOverrideSchema, normalizeText, RelocateDownloadsRequestSchema, UserStateSchema, type UserState } from '@music-app/shared';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { DependencyChecker } from '../services/dependencyChecker';
 import { LyricsService } from '../services/lyricsService';
@@ -40,6 +40,10 @@ const TEMP_IMPORT_DIR = path.join(
 const LYRICS_DIR = path.join(
   process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
   'lyrics'
+);
+const LOCAL_STATE_FILE = path.join(
+  process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
+  'user_state.json'
 );
 
 // Bộ nhớ cache tạm thời cho phiên làm việc local
@@ -2642,6 +2646,105 @@ const DASHBOARD_DIST = path.resolve(
     ? path.join(process.cwd(), '../dashboard/dist')
     : path.join(process.cwd(), 'tools/dashboard/dist')
 );
+
+// 21. API: Đồng bộ Danh sách phát (Playlists) & Yêu thích (Favorites) 2 chiều
+app.get('/local-api/state', async (c) => {
+  const localConfig = loadLocalConfig();
+  let state: UserState | null = null;
+
+  // 1. Thử lấy từ Cloudflare R2 nếu đã cấu hình
+  if (localConfig.isR2Configured && localConfig.R2_ACCOUNT_ID && localConfig.R2_ACCESS_KEY_ID && localConfig.R2_SECRET_ACCESS_KEY && localConfig.R2_BUCKET) {
+    try {
+      const uploader = new R2Uploader({
+        MUSIC_SOURCE_DIR: localConfig.MUSIC_SOURCE_DIR,
+        R2_ACCOUNT_ID: localConfig.R2_ACCOUNT_ID,
+        R2_ACCESS_KEY_ID: localConfig.R2_ACCESS_KEY_ID,
+        R2_SECRET_ACCESS_KEY: localConfig.R2_SECRET_ACCESS_KEY,
+        R2_BUCKET: localConfig.R2_BUCKET,
+      });
+      state = await uploader.getUserState();
+      if (state) {
+        await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8').catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[state] Lỗi đọc state từ R2:', err);
+    }
+  }
+
+  // 2. Thử đọc từ cache local
+  if (!state && existsSync(LOCAL_STATE_FILE)) {
+    try {
+      const content = await fs.readFile(LOCAL_STATE_FILE, 'utf-8');
+      const parsed = UserStateSchema.safeParse(JSON.parse(content));
+      if (parsed.success) state = parsed.data;
+    } catch {}
+  }
+
+  // 3. Fallback mặc định
+  if (!state) {
+    state = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      playlists: [],
+      favoriteIds: [],
+    };
+  }
+
+  return c.json({
+    status: 200,
+    message: 'OK',
+    data: state,
+    error: null,
+  });
+});
+
+app.put('/local-api/state', async (c) => {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ status: 400, message: 'Invalid JSON body', error: 'VALIDATION_ERROR' }, 400);
+  }
+
+  const parsed = UserStateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        status: 400,
+        message: 'Validation error: ' + parsed.error.issues.map((i) => i.message).join(', '),
+        error: 'VALIDATION_ERROR',
+      },
+      400
+    );
+  }
+
+  // 1. Lưu local cache
+  await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(parsed.data, null, 2), 'utf-8').catch(() => {});
+
+  // 2. Lưu lên R2 nếu đã cấu hình
+  const localConfig = loadLocalConfig();
+  if (localConfig.isR2Configured && localConfig.R2_ACCOUNT_ID && localConfig.R2_ACCESS_KEY_ID && localConfig.R2_SECRET_ACCESS_KEY && localConfig.R2_BUCKET) {
+    try {
+      const uploader = new R2Uploader({
+        MUSIC_SOURCE_DIR: localConfig.MUSIC_SOURCE_DIR,
+        R2_ACCOUNT_ID: localConfig.R2_ACCOUNT_ID,
+        R2_ACCESS_KEY_ID: localConfig.R2_ACCESS_KEY_ID,
+        R2_SECRET_ACCESS_KEY: localConfig.R2_SECRET_ACCESS_KEY,
+        R2_BUCKET: localConfig.R2_BUCKET,
+      });
+      await uploader.saveUserState(parsed.data);
+    } catch (err) {
+      console.warn('[state] Lỗi lưu state lên R2:', err);
+    }
+  }
+
+  return c.json({
+    status: 200,
+    message: 'Đã lưu danh sách phát và yêu thích thành công',
+    data: parsed.data,
+    error: null,
+  });
+});
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

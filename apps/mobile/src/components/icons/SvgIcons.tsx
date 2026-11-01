@@ -305,13 +305,17 @@ export function TrophyIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 20. Heart Icon (Trái tim yêu thích)
-export function HeartIcon({ size = 24, color = '#ffffff' }: IconProps) {
+// 20. Heart Icon (Trái tim yêu thích - hỗ trợ fill hoặc outline)
+export function HeartIcon({ size = 24, color = '#ffffff', fill = 'none' }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill}>
       <Path
         d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-        fill={color}
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={fill}
       />
     </Svg>
   );
@@ -416,3 +420,56 @@ export function QuestionIcon({ size = 20, color = '#b3b3b3' }: IconProps) {
     </Svg>
   );
 }
+
+// 28. Lyrics Icon (Biểu tượng lời bài hát / micro / lời thoại chuẩn Apple Music)
+export function LyricsIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 9h8M8 13h5"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+// 30. Plus Icon (Dấu cộng tạo mới)
+export function PlusIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 5v14M5 12h14"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// 31. Playlist Icon (Danh sách phát)
+export function PlaylistIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 6h16M4 12h10M4 18h7M16 15l5 3-5 3v-6z"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+

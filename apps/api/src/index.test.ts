@@ -285,5 +285,88 @@ describe('Track Edit, Delete & Sync API', () => {
     const json = (await getRes.json()) as { data: { tracks: Record<string, { title: string }> } };
     expect(json.data.tracks['1234567890ab']?.title).toBe('Tên Từ PC');
   });
+
+  it('GET /lyrics/:id - lấy lời từ lyrics-manual hoặc lyrics/', async () => {
+    initData();
+    // Chưa có lời -> 404
+    const resNotFound = await app.request('/lyrics/1234567890ab?t=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(resNotFound.status).toBe(404);
+
+    // Có lời trong lyrics/
+    mockStorage.set('lyrics/1234567890ab.lrc', '[00:01.00]Lời tự động');
+    const resAuto = await app.request('/lyrics/1234567890ab?t=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(resAuto.status).toBe(200);
+    expect(await resAuto.text()).toBe('[00:01.00]Lời tự động');
+
+    // Có lời trong lyrics-manual/ (ưu tiên cao hơn)
+    mockStorage.set('lyrics-manual/1234567890ab.lrc', '[00:01.00]Lời thủ công chỉnh sửa');
+    const resManual = await app.request('/lyrics/1234567890ab?t=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(resManual.status).toBe(200);
+    expect(await resManual.text()).toBe('[00:01.00]Lời thủ công chỉnh sửa');
+  });
+
+  it('GET /api/state & PUT /api/state - đồng bộ danh sách phát và yêu thích', async () => {
+    initData();
+    // Mặc định state rỗng nếu chưa có
+    const getInit = await app.request('/api/state', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer secret123' },
+    }, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(getInit.status).toBe(200);
+    const initJson = (await getInit.json()) as { data: { playlists: unknown[]; favoriteIds: string[] } };
+    expect(initJson.data.playlists).toEqual([]);
+    expect(initJson.data.favoriteIds).toEqual([]);
+
+    // Lưu state mới
+    const now = new Date().toISOString();
+    const putRes = await app.request('/api/state', {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer secret123', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        updatedAt: now,
+        playlists: [
+          {
+            id: 'playlist-1',
+            name: 'Nhạc Chill Đêm',
+            trackIds: ['1234567890ab'],
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        favoriteIds: ['1234567890ab'],
+      }),
+    }, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(putRes.status).toBe(200);
+
+    // Lấy lại state đã lưu
+    const getSaved = await app.request('/api/state', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer secret123' },
+    }, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(getSaved.status).toBe(200);
+    const savedJson = (await getSaved.json()) as { data: { playlists: { id: string; name: string; trackIds: string[] }[]; favoriteIds: string[] } };
+    expect(savedJson.data.playlists.length).toBe(1);
+    expect(savedJson.data.playlists[0]?.name).toBe('Nhạc Chill Đêm');
+    expect(savedJson.data.favoriteIds).toEqual(['1234567890ab']);
+  });
 });
 

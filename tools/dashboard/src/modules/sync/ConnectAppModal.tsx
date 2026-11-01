@@ -91,7 +91,7 @@ export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClos
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       title="Kết nối App iPhone với Beatify"
-      description="Quét mã bằng Camera mặc định trên iPhone 16 để nhận diện và cấu hình ứng dụng tức thì."
+      description="Quét mã bằng Camera mặc định trên iPhone để nhận diện và cấu hình ứng dụng tức thì."
       maxWidth="max-w-3xl"
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch text-left">

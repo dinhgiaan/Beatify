@@ -153,6 +153,17 @@
       - **8. Trạng thái Loading**: Bổ sung spinner animation khi đang tải dữ liệu danh sách bài hát trên trang Library và Download Manager.
       - **9. Quản lý Tệp mất trên Đĩa & Nút "Kiểm tra tệp đĩa"**: Hiển thị badge "Mất tệp" / "Có tệp", chặn phát và toast cảnh báo khi file bị xóa ngoài máy tính; thêm nút "Kiểm tra tệp đĩa" trực tiếp trên Thư viện.
       - **10. Widget Đồng hồ & Ngày tháng Việt Nam trên Sidebar**: Đặt dưới logo Beatify với đồng hồ Live `HH:mm:ss` (chấm xanh pulse) và ngày tháng chuẩn `Thứ X, DD/MM/YYYY`.
+      - **11. Hệ thống Lời bài hát đồng bộ trên iPhone (`LyricsModal` + `EditTrackModal`)**:
+        - Trình xem lời đồng bộ thời gian thực (LRC Synced) với hiệu ứng cuộn mượt 60fps bám theo nhạc, highlight câu hát hiện tại, bấm vào từng câu để tua nhạc (seek) chính xác.
+        - Tự động nạp lời bài hát hiện có từ Cloudflare R2 vào ô sửa lời khi mở modal chỉnh sửa bài hát trên iPhone, hỗ trợ sửa lời và đồng bộ lên R2.
+      - **12. Hệ thống Danh sách phát & Yêu thích đồng bộ 2 chiều (`/api/state` + `PlaylistsPage` + `PlaylistModal`)**:
+        - Backend API Worker + Local Indexer: Hỗ trợ `GET /api/state` và `PUT /api/state` lưu trữ `UserState` (`playlists`, `favoriteIds`) vào `_meta/state.json` trên R2 theo cơ chế last-write-wins (`updatedAt`).
+        - Web Dashboard: Trang Danh sách phát & Yêu thích (`/playlists`) cho phép tạo playlist, thêm/bớt bài hát từ thư viện, xóa playlist, thả tim bài hát yêu thích, phát trực tiếp từ playlist.
+        - iPhone Mobile: `PlaylistModal` hỗ trợ xem tuyển tập, tạo playlist mới, thêm bài từ thư viện, xóa bài, xóa playlist, thả tim yêu thích ngay trên Player và danh sách bài hát, tự động đồng bộ 2 chiều với Cloudflare R2 và Web Dashboard.
+      - **13. Tối ưu kết nối iPhone & lưu trữ session**:
+        - Thiết kế lại modal Mã QR kết nối iPhone (chuẩn hoá flex footer dock, z-index 10001, hướng dẫn quét camera native).
+        - Lưu cấu hình server vĩnh viễn trên iPhone (`beatify_server_config.json`), quét 1 lần dùng mãi mãi.
+        - Tích hợp `sessionStorage` tự động lưu trữ danh sách link bài hát chưa tải trên trang YouTube Music, chuyển qua lại các trang không bị mất bài.
       - **11. Tính năng Player nâng cao**: Tích hợp Shuffle (Ngẫu nhiên), Loop (Lặp lại: Tắt / Lặp N lần / Lặp vô tận), và nút Mic mở Popup xem lời bài hát trực tiếp trên Audio Dock.
       - **12. Kế thừa chuẩn dự án**: Rà soát và áp dụng trọn vẹn các logic tải, sidecar `.lrc`, cover folder ẩn và log `info.txt`.
       - **13. Định dạng Ngày Việt Nam & Icon Mic**: Format ngày phát hành yt-dlp chuẩn `DD/MM/YYYY`; đổi icon thẻ Metadata & Lời thành icon Mic (`Mic2`).

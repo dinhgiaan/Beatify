@@ -21,6 +21,7 @@ export interface EditTrackModalProps {
   onClose: () => void;
   onSave: (trackId: string, updates: UpdateTrack) => Promise<void>;
   onDelete?: (trackId: string) => Promise<void>;
+  onFetchLyrics?: (trackId: string) => Promise<string | null>;
 }
 
 export function EditTrackModal({
@@ -29,27 +30,45 @@ export function EditTrackModal({
   onClose,
   onSave,
   onDelete,
+  onFetchLyrics,
 }: EditTrackModalProps) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [album, setAlbum] = useState('');
   const [year, setYear] = useState('');
   const [lyrics, setLyrics] = useState('');
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Khi mở modal hoặc đổi track, nạp dữ liệu vào form
   useEffect(() => {
-    if (track) {
+    if (track && visible) {
       setTitle(track.title || '');
       setArtist(track.artist || '');
       setAlbum(track.album || '');
       setYear(track.year ? track.year.toString() : '');
       setLyrics('');
       setErrorMessage(null);
+
+      if (onFetchLyrics) {
+        setIsLoadingLyrics(true);
+        onFetchLyrics(track.id)
+          .then((content) => {
+            if (content) {
+              setLyrics(content);
+            }
+          })
+          .catch((err) => {
+            console.warn('Lỗi lấy lyrics cho bài hát:', err);
+          })
+          .finally(() => {
+            setIsLoadingLyrics(false);
+          });
+      }
     }
-  }, [track, visible]);
+  }, [track, visible, onFetchLyrics]);
 
   if (!track) return null;
 
@@ -84,7 +103,7 @@ export function EditTrackModal({
         artist: trimmedArtist,
         album: album.trim() || undefined,
         year: parsedYear,
-        ...(lyrics.trim() ? { lyrics: lyrics.trim() } : {}),
+        lyrics: lyrics.trim(),
       };
       await onSave(track.id, updates);
       onClose();
@@ -218,7 +237,15 @@ export function EditTrackModal({
 
             {/* Lời bài hát (.LRC) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>LỜI BÀI HÁT (.LRC HOẶC TEXT)</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={styles.label}>LỜI BÀI HÁT (.LRC HOẶC TEXT)</Text>
+                {isLoadingLyrics && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color="#1DB954" style={{ marginRight: 4 }} />
+                    <Text style={{ fontSize: 11, color: '#1DB954' }}>Đang nạp lời...</Text>
+                  </View>
+                )}
+              </View>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={lyrics}
@@ -226,9 +253,9 @@ export function EditTrackModal({
                 placeholder="Dán nội dung lời bài hát hoặc cú pháp .lrc [00:12.34]..."
                 placeholderTextColor="#666"
                 multiline
-                numberOfLines={4}
+                numberOfLines={5}
                 textAlignVertical="top"
-                editable={!isSaving && !isDeleting}
+                editable={!isSaving && !isDeleting && !isLoadingLyrics}
               />
             </View>
           </ScrollView>

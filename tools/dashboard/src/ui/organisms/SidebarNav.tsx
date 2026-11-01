@@ -10,6 +10,7 @@ import {
   Library,
   Users,
   Trash2,
+  ListMusic,
   Sun,
   Moon,
   HardDrive,
@@ -124,6 +125,11 @@ export const SidebarNav: React.FC<{
           label: 'Thư viện',
           path: '/library',
           icon: <Library size={16} />,
+        },
+        {
+          label: 'Danh sách phát',
+          path: '/playlists',
+          icon: <ListMusic size={16} />,
         },
         {
           label: 'Nghệ sĩ',

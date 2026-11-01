@@ -72,6 +72,20 @@ function DownloadedManagerRoute() {
   );
 }
 
+import { PlaylistsPage } from '../modules/playlists/PlaylistsPage';
+
+function PlaylistsRoute() {
+  const ctx = useOutletContext<OutletContextType>() || {};
+  return (
+    <PlaylistsPage
+      onPlayTrack={ctx.onPlayTrack}
+      playingTrackId={ctx.playingTrackId}
+      isAudioPlaying={ctx.isAudioPlaying}
+      onTogglePlayPause={ctx.onTogglePlayPause}
+    />
+  );
+}
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -83,6 +97,7 @@ export const App: React.FC = () => {
           <Route path="youtube-music/manager" element={<DownloadedManagerRoute />} />
           <Route path="youtube-music/history" element={<HistoryRoute />} />
           <Route path="library" element={<LibraryRoute />} />
+          <Route path="playlists" element={<PlaylistsRoute />} />
           <Route path="artists" element={<ArtistsRoute />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="trash" element={<TrashPage />} />

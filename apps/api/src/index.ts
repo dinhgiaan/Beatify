@@ -6,6 +6,8 @@ import {
   isValidAlbumId,
   UpdateTrackSchema,
   OverridesSchema,
+  UserStateSchema,
+  type UserState,
   applyTrackUpdate,
   applyTrackDeletion,
 } from '@music-app/shared';
@@ -466,5 +468,134 @@ app.put('/api/overrides', async (c) => {
   });
 });
 
+// Endpoint: GET, HEAD /lyrics/:id - Phục vụ lời bài hát (.lrc hoặc .txt)
+const handleLyrics = async (c: Context<{ Bindings: Env }>) => {
+  const id = c.req.param('id');
+  if (!id || !isValidTrackId(id)) {
+    return c.json(
+      {
+        status: 400,
+        message: 'Invalid track id',
+        data: null,
+        error: ERROR_CODES.INVALID_ID,
+      },
+      400
+    );
+  }
+
+  const repo = new R2StorageRepository(c.env.MUSIC_BUCKET);
+  const lyrics = await repo.getLyrics(id);
+
+  if (!lyrics) {
+    return c.json(
+      {
+        status: 404,
+        message: 'Lyrics not found',
+        data: null,
+        error: ERROR_CODES.NOT_FOUND,
+      },
+      404
+    );
+  }
+
+  return new Response(c.req.method === 'HEAD' ? null : lyrics.content, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Lyrics-Source': lyrics.source,
+      'X-Lyrics-Format': lyrics.format,
+      'Cache-Control': 'private, max-age=86400',
+    },
+  });
+};
+
+app.get('/lyrics/:id', handleLyrics);
+app.on('HEAD', '/lyrics/:id', handleLyrics);
+
+// Endpoint: GET /api/state - Lấy trạng thái người dùng (Playlists, Favorites)
+app.get('/api/state', async (c) => {
+  const repo = new R2StorageRepository(c.env.MUSIC_BUCKET);
+  const state = await repo.getUserState();
+
+  if (!state) {
+    const defaultState: UserState = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      playlists: [],
+      favoriteIds: [],
+    };
+    return c.json({
+      status: 200,
+      message: 'OK (default state)',
+      data: defaultState,
+      error: null,
+    });
+  }
+
+  return c.json({
+    status: 200,
+    message: 'OK',
+    data: state,
+    error: null,
+  });
+});
+
+// Endpoint: PUT /api/state - Lưu trạng thái người dùng (Playlists, Favorites)
+app.put('/api/state', async (c) => {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json(
+      {
+        status: 400,
+        message: 'Invalid JSON body',
+        data: null,
+        error: ERROR_CODES.VALIDATION_ERROR,
+      },
+      400
+    );
+  }
+
+  const parsed = UserStateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        status: 400,
+        message: 'Validation error: ' + parsed.error.issues.map((i) => i.message).join(', '),
+        data: null,
+        error: ERROR_CODES.VALIDATION_ERROR,
+      },
+      400
+    );
+  }
+
+  const repo = new R2StorageRepository(c.env.MUSIC_BUCKET);
+  const current = await repo.getUserState();
+
+  // Last-write-wins: Kiểm tra xung đột thời gian cập nhật
+  if (current && new Date(parsed.data.updatedAt) < new Date(current.updatedAt)) {
+    return c.json(
+      {
+        status: 409,
+        message: 'Conflict: remote state is newer',
+        data: current,
+        error: ERROR_CODES.CONFLICT,
+      },
+      409
+    );
+  }
+
+  await repo.saveUserState(parsed.data);
+
+  return c.json({
+    status: 200,
+    message: 'User state saved successfully',
+    data: parsed.data,
+    error: null,
+  });
+});
+
 export default app;
+
 

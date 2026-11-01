@@ -1,4 +1,4 @@
-import type { Library, Track, UpdateTrack, ApiResponse } from '@music-app/shared';
+import type { Library, Track, UpdateTrack, ApiResponse, UserState } from '@music-app/shared';
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -79,4 +79,55 @@ export class MusicApiClient {
     const json = (await res.json()) as ApiResponse<{ id: string }>;
     return json.data?.id || id;
   }
+
+  async fetchLyrics(id: string): Promise<string | null> {
+    const url = this.token
+      ? `${this.baseUrl}/lyrics/${id}?t=${encodeURIComponent(this.token)}`
+      : `${this.baseUrl}/lyrics/${id}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+    });
+
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      throw new Error(`Lỗi tải lời bài hát (${res.status})`);
+    }
+
+    return await res.text();
+  }
+
+  async fetchUserState(): Promise<UserState> {
+    const res = await fetch(`${this.baseUrl}/api/state`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
+      throw new Error(errBody?.message || `Lỗi tải trạng thái (${res.status})`);
+    }
+
+    const json = (await res.json()) as ApiResponse<UserState>;
+    if (!json.data) throw new Error('Không nhận được dữ liệu trạng thái');
+    return json.data;
+  }
+
+  async saveUserState(state: UserState): Promise<UserState> {
+    const res = await fetch(`${this.baseUrl}/api/state`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(state),
+    });
+
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
+      throw new Error(errBody?.message || `Lỗi lưu trạng thái (${res.status})`);
+    }
+
+    const json = (await res.json()) as ApiResponse<UserState>;
+    if (!json.data) throw new Error('Không nhận được dữ liệu trạng thái sau khi lưu');
+    return json.data;
+  }
 }
+

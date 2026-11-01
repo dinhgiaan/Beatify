@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import type { Library } from '@music-app/shared';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import type { Library, UserState } from '@music-app/shared';
+import { UserStateSchema } from '@music-app/shared';
 import type { IndexerConfig } from '../config';
 
 export class R2Uploader {
@@ -77,6 +78,34 @@ export class R2Uploader {
           generatedAt: library.generatedAt,
           dataVersion: library.version.toString(),
         },
+      })
+    );
+  }
+
+  async getUserState(): Promise<UserState | null> {
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: '_meta/state.json',
+        })
+      );
+      if (!res.Body) return null;
+      const str = await res.Body.transformToString();
+      const parsed = UserStateSchema.safeParse(JSON.parse(str));
+      return parsed.success ? parsed.data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async saveUserState(state: UserState): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: '_meta/state.json',
+        Body: Buffer.from(JSON.stringify(state, null, 2), 'utf-8'),
+        ContentType: 'application/json',
       })
     );
   }

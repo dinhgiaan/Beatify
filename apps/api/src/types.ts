@@ -1,4 +1,4 @@
-import type { Library, Health, Overrides } from '@music-app/shared';
+import type { Library, Health, Overrides, UserState } from '@music-app/shared';
 
 export interface Env {
   MUSIC_BUCKET: R2Bucket;
@@ -35,5 +35,8 @@ export interface IStorageRepository {
   getOverrides(): Promise<Overrides>;
   saveOverrides(overrides: Overrides): Promise<void>;
   saveLyrics(id: string, content: string): Promise<void>;
+  getLyrics(id: string): Promise<{ content: string; source: 'manual' | 'auto'; format: 'lrc' | 'txt' } | null>;
+  getUserState(): Promise<UserState | null>;
+  saveUserState(state: UserState): Promise<void>;
 }
 
