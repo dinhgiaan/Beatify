@@ -84,10 +84,9 @@ export const SidebarNav: React.FC<{
   });
 
   const usedPct = status ? Math.min(100, parseFloat(status.usedPercent) || 0) : 0;
-  const storageColor =
-    usedPct > 80 ? 'text-rose-400' : usedPct > 50 ? 'text-amber-400' : 'text-emerald-400';
 
   const navSections: NavSection[] = [
+
     {
       title: 'TỔNG QUAN',
       items: [
@@ -295,52 +294,83 @@ export const SidebarNav: React.FC<{
         <button
           type="button"
           onClick={() => setIsConnectModalOpen(true)}
-          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer group"
+          className="w-full flex items-center justify-between p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-emerald-500/30 transition-all cursor-pointer group text-left shadow-sm"
           title="Quét mã QR bằng Camera iPhone để tự động cấu hình kết nối Beatify"
         >
-          <span className="flex items-center gap-2">
-            <Smartphone size={14} className="text-[#1DB954] group-hover:scale-110 transition-transform" />
-            <span className="font-medium text-[11.5px]">Kết nối iPhone</span>
-          </span>
-          <span className="text-[10px] text-zinc-400 group-hover:text-emerald-400 font-medium flex items-center gap-1 transition-colors">
-            <QrCode size={11} />
-            <span>Mã QR</span>
-          </span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[#1DB954] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Smartphone size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11.5px] font-semibold text-white tracking-tight">Kết nối iPhone</div>
+              <div className="text-[10px] text-zinc-400 truncate">Quét mã QR đồng bộ</div>
+            </div>
+          </div>
+          <div className="w-6 h-6 rounded-md bg-white/[0.05] flex items-center justify-center text-zinc-400 group-hover:text-emerald-400 shrink-0 transition-colors">
+            <QrCode size={12} />
+          </div>
         </button>
 
-        {/* Thông tin dung lượng trực tiếp, phẳng, không bọc card lồng nhau */}
-        <div className="space-y-1.5 pt-0.5">
-          <div className="flex items-center justify-between text-xs font-medium text-zinc-300">
-            <span className="flex items-center gap-1.5">
+        {/* Khung dung lượng R2 thiết kế card cao cấp, phân cấp rõ rệt */}
+        <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+          {/* Tiêu đề chính & Tỷ lệ % */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
               <HardDrive size={13} className="text-[#1DB954]" />
-              <span>Dung lượng R2</span>
+              <span className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider">
+                Dung lượng R2
+              </span>
+            </div>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                usedPct > 80
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  : usedPct > 50
+                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+              }`}
+            >
+              {usedPct.toFixed(1)}%
             </span>
-            <span className={`tabular-nums font-bold ${storageColor}`}>{usedPct.toFixed(1)}%</span>
           </div>
 
-          {/* Progress bar phẳng, animation chỉ transition-[width] không transition layout property */}
-          <div className="w-full h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+          {/* Progress bar có chiều sâu */}
+          <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
             <div
-              className="h-full bg-[#1DB954] rounded-full transition-[width] duration-300 ease-out"
-              style={{ width: `${Math.min(100, usedPct)}%` }}
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-[width] duration-300 ease-out"
+              style={{ width: `${Math.min(100, Math.max(usedPct > 0 ? 3 : 0, usedPct))}%` }}
             />
           </div>
 
-          {/* Hiển thị chi tiết Đã upload vs Chưa upload */}
-          <div className="space-y-0.5 text-[11px] text-[var(--text-muted)] pt-0.5">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-[var(--text-secondary)]">
-                (Đã dùng: {status?.syncedMB ?? '0'} MB - {status?.syncedCount ?? 0} bài)
+          {/* Tiêu đề phụ: Số liệu chi tiết phân cấp */}
+          <div className="space-y-1.5 pt-0.5">
+            <div className="flex items-center justify-between text-[10.5px]">
+              <span className="text-zinc-300 font-medium">
+                Đã dùng:{' '}
+                <strong className="text-white font-semibold">
+                  {status?.syncedMB ?? '0'} MB
+                </strong>{' '}
+                <span className="text-zinc-500">({status?.syncedCount ?? 0} bài)</span>
               </span>
-              <span>10 GB Free</span>
+              <span className="text-zinc-500 font-medium">/ 10 GB</span>
             </div>
+
+            {/* Thông báo nếu có bài hát chưa upload */}
             {Number(status?.unsyncedCount || 0) > 0 && (
-              <div className="text-[10px] text-amber-400/90 font-medium truncate">
-                Chưa upload: {status?.unsyncedMB ?? '0'} MB - {status?.unsyncedCount ?? 0} bài
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <span className="truncate">
+                  Chờ đồng bộ:{' '}
+                  <strong className="text-amber-200 font-semibold">
+                    {status?.unsyncedMB ?? '0'} MB
+                  </strong>{' '}
+                  ({status?.unsyncedCount ?? 0} bài)
+                </span>
               </div>
             )}
           </div>
         </div>
+
       </div>
 
       {/* Modal Kết nối iPhone bằng mã QR */}
