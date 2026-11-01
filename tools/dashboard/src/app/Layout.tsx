@@ -189,7 +189,20 @@ export const Layout: React.FC = () => {
     };
   }, [isLoopPopoverOpen]);
 
+  // Lắng nghe sự kiện phát bài hát từ các popup hoặc hover card toàn app
+  useEffect(() => {
+    const handleExternalPlay = (e: Event) => {
+      const track = (e as CustomEvent<PlayingTrack>).detail;
+      if (track) {
+        handlePlayTrack(track);
+      }
+    };
+    window.addEventListener('beatify-play-track', handleExternalPlay);
+    return () => window.removeEventListener('beatify-play-track', handleExternalPlay);
+  }, []);
+
   const handlePlayTrack = async (track: PlayingTrack) => {
+
     // Tự động suy luận coverUrl từ albumId hoặc trackId nếu chưa có
     const resolvedCoverUrl =
       track.coverUrl ||

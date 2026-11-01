@@ -12,10 +12,11 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Sparkles,
+  Play,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetchArtistsApi, openArtistFolderApi, type ArtistDetail } from '../api';
+import { fetchArtistsApi, openArtistFolderApi, type ArtistDetail, type ArtistTrack } from '../api';
+import type { PlayingTrack } from '../../../app/Layout';
 
 interface ArtistHoverCardProps {
   artistName?: string | null;
@@ -38,6 +39,13 @@ function formatDuration(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
+}
+
+function formatTrackDuration(seconds: number): string {
+  if (!seconds || seconds <= 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
@@ -73,7 +81,7 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const gap = 10;
-    const cardWidth = 280;
+    const cardWidth = 296;
 
     let left = rect.left + rect.width / 2 - cardWidth / 2;
     // Đảm bảo không tràn màn hình trái / phải
@@ -168,6 +176,22 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  // Phát bài hát trực tiếp ngay khi bấm nút Play trong popup
+  const handlePlayTrack = (track: ArtistTrack, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const payload: PlayingTrack = {
+      id: track.id,
+      albumId: track.albumId,
+      title: track.title,
+      artist: artistName || 'Unknown Artist',
+      fileUrl: `/local-api/stream/${track.id}`,
+      coverUrl: track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined,
+    };
+
+    window.dispatchEvent(new CustomEvent('beatify-play-track', { detail: payload }));
+    toast.success(`Đang phát: ${track.title}`);
+  };
+
   return (
     <div
       ref={triggerRef}
@@ -189,12 +213,12 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: position === 'top' ? 6 : -6, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="fixed z-[10001] w-[280px] p-3.5 rounded-2xl border border-white/10 shadow-2xl text-left select-none pointer-events-auto backdrop-blur-2xl space-y-3"
+                className="fixed z-[10001] w-[296px] p-3.5 rounded-2xl border border-white/10 shadow-2xl text-left select-none pointer-events-auto backdrop-blur-2xl space-y-3"
                 style={{
                   top: `${coords.top}px`,
                   left: `${coords.left}px`,
                   transform: position === 'top' ? 'translateY(-100%)' : 'translateY(0)',
-                  backgroundColor: 'rgba(20, 20, 24, 0.96)',
+                  backgroundColor: 'rgba(18, 18, 22, 0.96)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08)',
                 }}
               >
@@ -234,7 +258,7 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
 
                 {/* Thống kê nhanh (nếu tìm thấy trong thư viện) */}
                 {artistInfo ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-[10.5px] text-zinc-200 font-medium">
                         <Music size={11} className="text-emerald-400" />
@@ -250,12 +274,44 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                       </span>
                     </div>
 
-                    {/* 1 bài hát tiêu biểu */}
+                    {/* Danh sách bài hát nổi bật (1 đến 3 bài tiêu biểu có nút Play trực tiếp) */}
                     {artistInfo.tracks?.length > 0 && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-300 px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.04] truncate">
-                        <Sparkles size={11} className="text-emerald-400 shrink-0" />
-                        <span className="text-zinc-500 text-[10px] shrink-0">Nổi bật:</span>
-                        <span className="truncate font-medium">{artistInfo.tracks[0].title}</span>
+                      <div className="space-y-1.5 pt-0.5">
+                        <div className="flex items-center justify-between text-[10.5px] font-semibold text-zinc-400 uppercase tracking-wider px-0.5">
+                          <span>Bài hát nổi bật</span>
+                          <span className="text-[10px] text-zinc-500 font-normal">
+                            Top {Math.min(3, artistInfo.tracks.length)}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          {artistInfo.tracks.slice(0, 3).map((track, idx) => (
+                            <div
+                              key={track.id}
+                              onClick={(e) => handlePlayTrack(track, e)}
+                              className="group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.04] hover:border-white/10 transition-all cursor-pointer"
+                              title={`Bấm để phát: ${track.title}`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => handlePlayTrack(track, e)}
+                                  className="w-5 h-5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 cursor-pointer"
+                                  title="Phát bài này"
+                                >
+                                  <Play size={10} fill="currentColor" className="ml-0.5" />
+                                </button>
+                                <span className="text-[11.5px] font-medium text-zinc-200 group-hover:text-white truncate">
+                                  {track.title}
+                                </span>
+                              </div>
+
+                              <span className="text-[10px] text-zinc-500 tabular-nums shrink-0">
+                                {formatTrackDuration(track.duration)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -265,7 +321,7 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                   </p>
                 )}
 
-                {/* Hàng nút CTA nhỏ nhỏ thao tác nhanh */}
+                {/* Hàng nút CTA nhỏ thao tác nhanh */}
                 <div className="pt-2 border-t border-white/[0.08] flex items-center gap-1.5">
                   {/* Nút 1: Hồ sơ nghệ sĩ */}
                   <button
