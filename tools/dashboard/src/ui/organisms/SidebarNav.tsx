@@ -13,11 +13,12 @@ import {
   Sun,
   Moon,
   HardDrive,
+  Smartphone,
+  QrCode,
 } from 'lucide-react';
 import { requestApi } from '../../core/api-client';
 import { useTheme } from '../../core/theme';
 import { ConnectAppModal } from '../../modules/sync/ConnectAppModal';
-import { SideloadExpiryWidget } from '../../modules/sync/SideloadExpiryWidget';
 
 interface SystemStatus {
   configured: boolean;
@@ -282,10 +283,24 @@ export const SidebarNav: React.FC<{
         ))}
       </div>
 
-      {/* Storage Dock & Sideload Expiry Widget */}
+      {/* Storage Dock & iPhone Connect */}
       <div className="p-3 border-t border-[var(--border)] space-y-2.5 shrink-0 bg-[var(--bg-surface)]">
-        {/* Widget Đếm ngược Sideload 7 ngày iPhone */}
-        <SideloadExpiryWidget onOpenConnectModal={() => setIsConnectModalOpen(true)} />
+        {/* Nút Kết nối iPhone (Mã QR) */}
+        <button
+          type="button"
+          onClick={() => setIsConnectModalOpen(true)}
+          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer group"
+          title="Quét mã QR bằng Camera iPhone để tự động cấu hình kết nối Beatify"
+        >
+          <span className="flex items-center gap-2">
+            <Smartphone size={14} className="text-[#1DB954] group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-[11.5px]">Kết nối iPhone</span>
+          </span>
+          <span className="text-[10px] text-zinc-400 group-hover:text-emerald-400 font-medium flex items-center gap-1 transition-colors">
+            <QrCode size={11} />
+            <span>Mã QR</span>
+          </span>
+        </button>
 
         {/* Thông tin dung lượng trực tiếp, phẳng, không bọc card lồng nhau */}
         <div className="space-y-1.5 pt-0.5">
