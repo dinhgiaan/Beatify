@@ -100,9 +100,32 @@ function parseFfmpegInfo(versionStr?: string | null): { tag: string | null; date
 export const YoutubeMusicPage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const [urlInput, setUrlInput] = useState('');
-  const [previewData, setPreviewData] = useState<YoutubeMusicPreviewResponse | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [urlInput, setUrlInput] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('yt_url_input') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [previewData, setPreviewData] = useState<YoutubeMusicPreviewResponse | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('yt_preview_data');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = sessionStorage.getItem('yt_selected_ids');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -129,8 +152,57 @@ export const YoutubeMusicPage: React.FC = () => {
         channelUrl?: string;
       }
     >
-  >({});
+  >(() => {
+    try {
+      const saved = sessionStorage.getItem('yt_item_overrides');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const [customFolderMap, setCustomFolderMap] = useState<Record<string, string>>({});
+
+  // Lưu state vào sessionStorage để khi chuyển trang khác rồi quay lại không bị mất
+  useEffect(() => {
+    try {
+      if (urlInput) {
+        sessionStorage.setItem('yt_url_input', urlInput);
+      } else {
+        sessionStorage.removeItem('yt_url_input');
+      }
+    } catch {
+      // ignore
+    }
+  }, [urlInput]);
+
+  useEffect(() => {
+    try {
+      if (previewData) {
+        sessionStorage.setItem('yt_preview_data', JSON.stringify(previewData));
+      } else {
+        sessionStorage.removeItem('yt_preview_data');
+      }
+    } catch {
+      // ignore
+    }
+  }, [previewData]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('yt_selected_ids', JSON.stringify(Array.from(selectedIds)));
+    } catch {
+      // ignore
+    }
+  }, [selectedIds]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('yt_item_overrides', JSON.stringify(itemOverrides));
+    } catch {
+      // ignore
+    }
+  }, [itemOverrides]);
 
   // Active Job State
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -1023,6 +1095,26 @@ export const YoutubeMusicPage: React.FC = () => {
                       ? 'Đang kích hoạt...'
                       : `Tải về (${selectedIds.size})`}
                   </span>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setPreviewData(null);
+                    setSelectedIds(new Set());
+                    setUrlInput('');
+                    sessionStorage.removeItem('yt_preview_data');
+                    sessionStorage.removeItem('yt_selected_ids');
+                    sessionStorage.removeItem('yt_url_input');
+                    sessionStorage.removeItem('yt_item_overrides');
+                    toast.info('Đã xóa danh sách xem trước');
+                  }}
+                  className="h-7 px-2.5 text-[10.5px] font-medium text-rose-400 hover:text-rose-300 border-rose-500/20 hover:bg-rose-500/10 cursor-pointer"
+                  title="Xoá danh sách xem trước để nhập link mới"
+                >
+                  <X size={11} />
+                  <span>Xoá danh sách</span>
                 </Button>
               </div>
             </div>
