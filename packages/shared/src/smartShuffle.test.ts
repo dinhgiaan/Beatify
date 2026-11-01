@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { smartShuffle } from './smartShuffle';
+import { smartShuffle, interleaveTracksByArtist, sortTracksByMode } from './smartShuffle';
 import type { Track } from './schemas';
 
 function makeMockTrack(id: string, artist: string, title = `Song ${id}`): Track {
@@ -124,3 +124,66 @@ describe('smartShuffle', () => {
     expect(ids.size).toBe(100);
   });
 });
+
+describe('interleaveTracksByArtist', () => {
+  it('phân tán đều bài hát của các ca sĩ, xóa bỏ tình trạng dồn cục ở đầu danh sách', () => {
+    // Giả sử có 4 bài của MCK ở đầu, sau đó 4 bài của Đen Vâu, 2 bài của Vũ
+    const list: Track[] = [
+      makeMockTrack('1', 'MCK'),
+      makeMockTrack('2', 'MCK'),
+      makeMockTrack('3', 'MCK'),
+      makeMockTrack('4', 'MCK'),
+      makeMockTrack('5', 'Đen Vâu'),
+      makeMockTrack('6', 'Đen Vâu'),
+      makeMockTrack('7', 'Đen Vâu'),
+      makeMockTrack('8', 'Đen Vâu'),
+      makeMockTrack('9', 'Vũ'),
+      makeMockTrack('10', 'Vũ'),
+    ];
+
+    const interleaved = interleaveTracksByArtist(list);
+    expect(interleaved).toHaveLength(10);
+
+    // Không thể có 2 bài của MCK hay Đen Vâu nằm sát nhau liên tiếp
+    for (let i = 0; i < interleaved.length - 1; i++) {
+      const current = interleaved[i]?.artist.toLowerCase();
+      const next = interleaved[i + 1]?.artist.toLowerCase();
+      expect(current).not.toBe(next);
+    }
+  });
+
+  it('bảo toàn 100% số lượng bài hát', () => {
+    const list = [
+      makeMockTrack('1', 'A'),
+      makeMockTrack('2', 'A'),
+      makeMockTrack('3', 'B'),
+    ];
+    const res = interleaveTracksByArtist(list);
+    expect(res).toHaveLength(3);
+    expect(res.map((t) => t.id).sort()).toEqual(['1', '2', '3']);
+  });
+});
+
+describe('sortTracksByMode', () => {
+  const list: Track[] = [
+    makeMockTrack('1', 'Sơn Tùng', 'Cơn Mưa Ngang Qua'),
+    makeMockTrack('2', 'Đen Vâu', 'Trốn Tìm'),
+    makeMockTrack('3', 'Vũ', 'Lạ Lùng'),
+  ];
+
+  it('sắp xếp theo nghệ sĩ (A-Z)', () => {
+    const sorted = sortTracksByMode(list, 'artist');
+    expect(sorted.map((t) => t.artist)).toEqual(['Đen Vâu', 'Sơn Tùng', 'Vũ']);
+  });
+
+  it('sắp xếp theo tên bài hát (A-Z)', () => {
+    const sorted = sortTracksByMode(list, 'title');
+    expect(sorted.map((t) => t.title)).toEqual(['Cơn Mưa Ngang Qua', 'Lạ Lùng', 'Trốn Tìm']);
+  });
+
+  it('sắp xếp theo smart (đan xen)', () => {
+    const sorted = sortTracksByMode(list, 'smart');
+    expect(sorted).toHaveLength(3);
+  });
+});
+

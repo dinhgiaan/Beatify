@@ -13,7 +13,16 @@ import {
   Linking,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { type Track, type UpdateTrack, type UserState, smartShuffle, mergeUserStates } from '@music-app/shared';
+import {
+  type Track,
+  type UpdateTrack,
+  type UserState,
+  smartShuffle,
+  mergeUserStates,
+  sortTracksByMode,
+  type TrackSortMode,
+  interleaveTracksByArtist,
+} from '@music-app/shared';
 import { playerService } from '../src/services/player/rntpPlayerService';
 import type { PlayerState, RepeatMode } from '../src/services/player/types';
 import { parseMobileprovisionExpiration } from '../src/utils/mobileprovision';
@@ -93,8 +102,10 @@ export default function SpikePlayerScreen() {
     playlists: [],
     favoriteIds: [],
   });
+  const [sortMode, setSortMode] = useState<TrackSortMode>('smart');
 
   const [serverUrl, setServerUrl] = useState<string>(
+
     process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787'
   );
   const [serverToken, setServerToken] = useState<string>(
@@ -613,6 +624,17 @@ export default function SpikePlayerScreen() {
     }
   };
 
+  const handleApplySortMode = (mode: TrackSortMode) => {
+    Vibration.vibrate(10);
+    setSortMode(mode);
+    const sorted = sortTracksByMode(tracks, mode);
+    setTracks(sorted);
+    if (playerState.activeTrackId) {
+      const newIdx = sorted.findIndex((t) => t.id === playerState.activeTrackId);
+      if (newIdx >= 0) setCurrentTrackIndex(newIdx);
+    }
+  };
+
   const handleSyncLibrary = async () => {
     const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
     const cleanToken = serverToken.trim();
@@ -631,11 +653,14 @@ export default function SpikePlayerScreen() {
     try {
       const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
       const lib = await client.fetchLibrary();
-      setTracks(lib.tracks);
-      setOriginalTracks(lib.tracks);
+      // Tự động đan xen các ca sĩ ngay khi tải về (Smart Interleaving)
+      const balanced = interleaveTracksByArtist(lib.tracks);
+      setTracks(balanced);
+      setOriginalTracks(balanced);
+      setSortMode('smart');
       setIsSmartShuffle(false);
       setSyncStatus(`Đã đồng bộ thành công ${lib.tracks.length} bài hát từ Cloudflare!`);
-      if (lib.tracks.length > 0 && !playerState.isPlaying) {
+      if (balanced.length > 0 && !playerState.isPlaying) {
         setCurrentTrackIndex(0);
       }
     } catch (err) {
@@ -646,6 +671,7 @@ export default function SpikePlayerScreen() {
       setIsSyncing(false);
     }
   };
+
 
 
   const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
@@ -958,6 +984,40 @@ export default function SpikePlayerScreen() {
               </View>
             )}
           </View>
+
+          {/* Thanh lựa chọn chế độ sắp xếp danh sách thông minh */}
+          <View style={styles.sortFilterRow}>
+            <TouchableOpacity
+              style={[styles.sortFilterBtn, sortMode === 'smart' && styles.sortFilterBtnActive]}
+              onPress={() => handleApplySortMode('smart')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sortFilterText, sortMode === 'smart' && styles.sortFilterTextActive]}>
+                ✨ Đan xen ca sĩ
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortFilterBtn, sortMode === 'artist' && styles.sortFilterBtnActive]}
+              onPress={() => handleApplySortMode('artist')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sortFilterText, sortMode === 'artist' && styles.sortFilterTextActive]}>
+                🎤 Theo ca sĩ
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortFilterBtn, sortMode === 'title' && styles.sortFilterBtnActive]}
+              onPress={() => handleApplySortMode('title')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sortFilterText, sortMode === 'title' && styles.sortFilterTextActive]}>
+                🔤 Tên A-Z
+              </Text>
+            </TouchableOpacity>
+          </View>
+
 
           {/* Banner giải thích tính năng bất ngờ của Smart Shuffle */}
           {isSmartShuffle && (
@@ -1430,6 +1490,38 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
   },
+  sortFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: '#1b1b1b',
+    borderRadius: 8,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
+  sortFilterBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortFilterBtnActive: {
+    backgroundColor: '#262626',
+    borderWidth: 1,
+    borderColor: 'rgba(29, 185, 84, 0.4)',
+  },
+  sortFilterText: {
+    color: '#888888',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  sortFilterTextActive: {
+    color: '#1DB954',
+    fontWeight: '700',
+  },
+
   queueItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',

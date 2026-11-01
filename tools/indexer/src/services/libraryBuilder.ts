@@ -1,5 +1,5 @@
 import type { Library, Album, Track } from '@music-app/shared';
-import { LibrarySchema } from '@music-app/shared';
+import { LibrarySchema, interleaveTracksByArtist } from '@music-app/shared';
 import type { ScannedTrack } from './scanner';
 
 /**
@@ -45,14 +45,18 @@ export function buildLibrary(scannedTracks: ScannedTrack[]): {
     });
   }
 
+  // Tự động phân bổ đan xen các nghệ sĩ (Smart Interleaving) để thư viện không bị dồn cục 1 ca sĩ
+  const balancedTracks = interleaveTracksByArtist(tracks);
+
   const rawLibrary = {
     version: 1 as const,
     generatedAt: new Date().toISOString(),
-    tracks,
+    tracks: balancedTracks,
     albums,
   };
 
   const library = LibrarySchema.parse(rawLibrary);
+
 
   return {
     library,
