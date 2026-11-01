@@ -755,14 +755,11 @@ export const YoutubeService = {
               // Bỏ qua lỗi metadata nếu có
             }
 
-            // Thiết lập thuộc tính ẩn (+h +s) cho các file folder.* sau khi đã ghi metadata
+            // Thiết lập thuộc tính ẩn (+h +s) cho file folder.png sau khi đã ghi metadata
             if (process.platform === 'win32') {
               try {
                 if (fs.existsSync(artistFolderPngPath)) {
                   execFileSync('attrib', ['+h', '+s', artistFolderPngPath]);
-                }
-                if (fs.existsSync(artistFolderJpgPath)) {
-                  execFileSync('attrib', ['+h', '+s', artistFolderJpgPath]);
                 }
               } catch {
                 /* bỏ qua */
