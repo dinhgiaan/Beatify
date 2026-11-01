@@ -23,6 +23,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Play,
+  Pause,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { YoutubeMusicDownloadRecord } from '@music-app/shared';
@@ -32,6 +34,7 @@ import { Button } from '../../../ui/atoms/Button';
 import { ConfirmDialog } from '../../../ui/molecules/ConfirmDialog';
 import { CoverViewerDialog } from '../components/CoverViewerDialog';
 import { LyricsEditorDialog } from '../components/LyricsEditorDialog';
+import { ModuleNavTabs } from '../../../ui/molecules/ModuleNavTabs';
 import {
   fetchDownloadsHistoryApi,
   deleteDownloadHistoryApi,
@@ -43,22 +46,23 @@ import {
   fetchDownloadLyricsApi,
   updateDownloadLyricsApi,
 } from '../api';
+import { formatDownloadDate } from '../../../core/formatters';
+import { DownloadTimeDisplay, AudioFormatBadge } from '../../../ui/molecules/TrackBadges';
+import type { PlayingTrack } from '../../../app/Layout';
 
-const formatDownloadDate = (dateStr?: string | null) => {
-  if (!dateStr) return { date: '---', time: '--:--' };
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return { date: '---', time: '--:--' };
-    return {
-      date: d.toLocaleDateString('vi-VN'),
-      time: d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-    };
-  } catch {
-    return { date: '---', time: '--:--' };
-  }
-};
+export interface HistoryPageProps {
+  onPlayTrack?: (track: PlayingTrack, newQueue?: PlayingTrack[]) => void;
+  playingTrackId?: string;
+  isAudioPlaying?: boolean;
+  onTogglePlayPause?: () => void;
+}
 
-export const HistoryPage: React.FC = () => {
+export const HistoryPage: React.FC<HistoryPageProps> = ({
+  onPlayTrack,
+  playingTrackId,
+  isAudioPlaying,
+  onTogglePlayPause,
+}) => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [formatFilter, setFormatFilter] = useState<'all' | 'opus' | 'm4a' | 'mp3' | 'flac'>('all');
@@ -111,6 +115,40 @@ export const HistoryPage: React.FC = () => {
       setEditingRecordLyricsSource('none');
       setLyricsEditingRecord(record);
     }
+  };
+
+  const handlePlayItem = (item: YoutubeMusicDownloadRecord) => {
+    if (!onPlayTrack) return;
+    if (item.fileExists === false) {
+      toast.error('Tệp không còn tồn tại trên ổ cứng');
+      return;
+    }
+
+    if (playingTrackId === item.id) {
+      onTogglePlayPause?.();
+      return;
+    }
+
+    const coverUrl = getCoverUrl(item);
+    const track: PlayingTrack = {
+      id: item.id,
+      title: item.title || 'Unknown Title',
+      artist: item.artist || 'Unknown Artist',
+      fileUrl: `/api/youtube-music/downloads/${item.id}/stream`,
+      coverUrl: coverUrl || undefined,
+    };
+
+    const queueTracks: PlayingTrack[] = paginatedHistory
+      .filter((h) => h.fileExists !== false)
+      .map((h) => ({
+        id: h.id,
+        title: h.title || 'Unknown Title',
+        artist: h.artist || 'Unknown Artist',
+        fileUrl: `/api/youtube-music/downloads/${h.id}/stream`,
+        coverUrl: getCoverUrl(h) || undefined,
+      }));
+
+    onPlayTrack(track, queueTracks);
   };
 
   const handleSaveRecordLyrics = async (newLyrics: string) => {
@@ -413,6 +451,14 @@ export const HistoryPage: React.FC = () => {
         }
       />
 
+      {/* Sub-tabs điều hướng thống nhất giữa Quản lý tệp/R2 và Lịch sử chi tiết */}
+      <ModuleNavTabs
+        tabs={[
+          { label: 'Quản lý tệp & R2', path: '/youtube-music/manager' },
+          { label: 'Lịch sử tải & Chi tiết', path: '/youtube-music/history' },
+        ]}
+      />
+
       {/* 2. Interactive Stats Bar with motion hover */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         <motion.div
@@ -460,11 +506,10 @@ export const HistoryPage: React.FC = () => {
             setLyricsFilter('synced');
             setQuickFilter('all');
           }}
-          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${
-            lyricsFilter === 'synced'
+          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${lyricsFilter === 'synced'
               ? 'border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/25'
               : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border-[var(--border)]'
-          }`}
+            }`}
         >
           <div className="text-[11px] text-emerald-400 uppercase tracking-wider font-semibold">Có lời .lrc</div>
           <div className="text-[20px] font-bold text-emerald-400 mt-1 tabular-nums">
@@ -480,11 +525,10 @@ export const HistoryPage: React.FC = () => {
             setLyricsFilter('all');
             setCoverFilter('all');
           }}
-          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${
-            quickFilter === 'missing_lyrics'
+          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${quickFilter === 'missing_lyrics'
               ? 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/25'
               : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border-[var(--border)]'
-          }`}
+            }`}
         >
           <div className="text-[11px] text-amber-400 uppercase tracking-wider font-semibold">Chưa có lời</div>
           <div className="text-[20px] font-bold text-amber-400 mt-1 tabular-nums">
@@ -499,11 +543,10 @@ export const HistoryPage: React.FC = () => {
             setCoverFilter('has_cover');
             setQuickFilter('all');
           }}
-          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${
-            coverFilter === 'has_cover'
+          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${coverFilter === 'has_cover'
               ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-500/25'
               : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border-[var(--border)]'
-          }`}
+            }`}
         >
           <div className="text-[11px] text-sky-400 uppercase tracking-wider font-semibold">Có ảnh bìa</div>
           <div className="text-[20px] font-bold text-sky-400 mt-1 tabular-nums">
@@ -519,11 +562,10 @@ export const HistoryPage: React.FC = () => {
             setLyricsFilter('all');
             setCoverFilter('all');
           }}
-          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${
-            quickFilter === 'missing_cover'
+          className={`p-3.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${quickFilter === 'missing_cover'
               ? 'border-rose-500/50 bg-rose-500/10 ring-1 ring-rose-500/25'
               : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border-[var(--border)]'
-          }`}
+            }`}
         >
           <div className="text-[11px] text-rose-400 uppercase tracking-wider font-semibold">Thiếu ảnh bìa</div>
           <div className="text-[20px] font-bold text-rose-400 mt-1 tabular-nums">
@@ -581,11 +623,10 @@ export const HistoryPage: React.FC = () => {
                   key={fmt}
                   type="button"
                   onClick={() => setFormatFilter(fmt)}
-                  className={`relative px-2.5 py-1 rounded-md text-xs border transition-colors cursor-pointer font-medium ${
-                    isActive
+                  className={`relative px-2.5 py-1 rounded-md text-xs border transition-colors cursor-pointer font-medium ${isActive
                       ? 'text-black font-bold border-transparent'
                       : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)]'
-                  }`}
+                    }`}
                 >
                   {isActive && (
                     <motion.span
@@ -640,11 +681,10 @@ export const HistoryPage: React.FC = () => {
                       setQuickFilter('all');
                     }
                   }}
-                  className={`relative px-2.5 py-1 rounded-md text-xs border transition-colors cursor-pointer font-medium ${
-                    isActive
+                  className={`relative px-2.5 py-1 rounded-md text-xs border transition-colors cursor-pointer font-medium ${isActive
                       ? 'text-black font-bold border-transparent'
                       : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)]'
-                  }`}
+                    }`}
                 >
                   {isActive && (
                     <motion.span
@@ -801,7 +841,7 @@ export const HistoryPage: React.FC = () => {
             <div className="w-20 shrink-0 text-center hidden md:block whitespace-nowrap">Ảnh bìa</div>
             <div className="w-24 shrink-0 text-center hidden lg:block whitespace-nowrap">Thời gian tải</div>
             <div className="w-[200px] 2xl:w-[280px] shrink-0 hidden xl:block whitespace-nowrap">Đường dẫn tệp tin</div>
-            <div className="w-20 shrink-0 text-center whitespace-nowrap">Thao tác</div>
+            <div className="w-24 shrink-0 text-center whitespace-nowrap">Thao tác</div>
           </div>
 
           {/* Table Rows (Compact Height, Aligned Columns) */}
@@ -810,14 +850,18 @@ export const HistoryPage: React.FC = () => {
               const rowIndex = (validPage - 1) * pageSize + index + 1;
               const isSelected = selectedIds.has(item.id);
 
+              const isCurrent = playingTrackId === item.id;
+              const isPlayingNow = isCurrent && isAudioPlaying;
+
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-3 px-4 py-2 transition-colors text-xs min-h-[42px] ${
-                    isSelected
-                      ? 'bg-[#1DB954]/10 hover:bg-[#1DB954]/15'
-                      : 'hover:bg-[var(--bg-hover)]'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-2 transition-colors text-xs min-h-[42px] group select-none ${isCurrent
+                      ? 'bg-emerald-500/15 border-l-2 border-l-[#1DB954]'
+                      : isSelected
+                        ? 'bg-[#1DB954]/10 hover:bg-[#1DB954]/15'
+                        : 'hover:bg-[var(--bg-hover)]'
+                    }`}
                 >
                   {/* Checkbox */}
                   <div className="w-5 shrink-0 flex items-center justify-center">
@@ -828,9 +872,32 @@ export const HistoryPage: React.FC = () => {
                     />
                   </div>
 
-                  {/* Index Number (#) */}
-                  <div className="w-8 shrink-0 text-center text-xs tabular-nums text-[var(--text-muted)] font-medium">
-                    {rowIndex}
+                  {/* Index Number (#) / Play-Pause on Hover / Equalizer */}
+                  <div className="w-8 shrink-0 flex items-center justify-center text-xs tabular-nums text-[var(--text-muted)] font-medium">
+                    {isPlayingNow ? (
+                      <span
+                        className="flex items-end gap-0.5 h-3.5 cursor-pointer"
+                        onClick={() => handlePlayItem(item)}
+                        title="Bấm để tạm dừng"
+                      >
+                        <span className="w-0.5 h-3.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.6s' }} />
+                        <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.8s', animationDelay: '0.15s' }} />
+                        <span className="w-0.5 h-2.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.7s', animationDelay: '0.3s' }} />
+                      </span>
+                    ) : (
+                      <>
+                        <span className="group-hover:hidden">{rowIndex}</span>
+                        <button
+                          type="button"
+                          onClick={() => handlePlayItem(item)}
+                          disabled={item.fileExists === false}
+                          className="hidden group-hover:flex w-5 h-5 rounded-full bg-[#1DB954] text-black items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                          title={item.fileExists === false ? 'Tệp không tồn tại' : 'Phát bài hát'}
+                        >
+                          <Play size={10} fill="black" className="ml-0.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Title & Artist/Album/Format info with Thumbnail */}
@@ -848,11 +915,10 @@ export const HistoryPage: React.FC = () => {
                           });
                         }
                       }}
-                      className={`w-9 h-9 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-muted)] ${
-                        getCoverUrl(item)
+                      className={`w-9 h-9 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-muted)] ${getCoverUrl(item)
                           ? 'cursor-pointer hover:opacity-85 hover:ring-1 hover:ring-[#1DB954]'
                           : ''
-                      }`}
+                        }`}
                       style={{
                         backgroundColor: 'var(--bg-subtle)',
                         borderColor: 'var(--border)',
@@ -897,17 +963,7 @@ export const HistoryPage: React.FC = () => {
                           {item.album || 'Singles'}
                         </span>
                         <span>•</span>
-                        <span className={`text-[9.5px] uppercase px-1.5 py-0.5 rounded border font-bold shrink-0 ${
-                          item.format === 'opus'
-                            ? 'bg-purple-500/10 border-purple-500/25 text-purple-400'
-                            : item.format === 'm4a'
-                            ? 'bg-blue-500/10 border-blue-500/25 text-blue-400'
-                            : item.format === 'flac'
-                            ? 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-                            : 'bg-[var(--bg-subtle)] border-[var(--border)] text-[var(--text-secondary)]'
-                        }`}>
-                          {item.format}
-                        </span>
+                        <AudioFormatBadge format={item.format} />
                         <span className="lg:hidden text-[10px] text-[var(--text-muted)] shrink-0">
                           • {formatDownloadDate(item.createdAt).date}
                         </span>
@@ -1008,27 +1064,18 @@ export const HistoryPage: React.FC = () => {
                   </div>
 
                   {/* Slot 4: Thời gian tải (Download Date & Time) */}
-                  <div
-                    className="w-24 shrink-0 hidden lg:flex flex-col items-center justify-center text-center tabular-nums leading-tight cursor-default"
-                    title={`Thời gian tải: ${formatDownloadDate(item.createdAt).time} ngày ${formatDownloadDate(item.createdAt).date}`}
-                  >
-                    <span className="text-xs font-semibold text-[var(--text-secondary)]">
-                      {formatDownloadDate(item.createdAt).time}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-muted)]">
-                      {formatDownloadDate(item.createdAt).date}
-                    </span>
+                  <div className="w-24 shrink-0 hidden lg:flex items-center justify-center">
+                    <DownloadTimeDisplay dateStr={item.createdAt} />
                   </div>
 
                   {/* File Path Pill with Copy */}
                   <div className="w-[200px] 2xl:w-[280px] shrink-0 hidden xl:flex items-center">
                     {item.relativeFilePath ? (
                       <div
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] w-full truncate ${
-                          item.fileExists === false
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] w-full truncate ${item.fileExists === false
                             ? 'bg-amber-500/10 border-amber-500/25 text-amber-400/90'
                             : 'text-[var(--text-muted)] bg-[var(--bg-subtle)] border-[var(--border)]'
-                        }`}
+                          }`}
                         title={
                           item.fileExists === false
                             ? `Tệp tin không còn tồn tại trên ổ đĩa!\nThư mục: ${item.libraryRootPath}\nFile: ${item.relativeFilePath}`
@@ -1040,7 +1087,7 @@ export const HistoryPage: React.FC = () => {
                         ) : (
                           <Folder size={12} className="shrink-0" />
                         )}
-                        <span className={`truncate flex-1 font-mono ${item.fileExists === false ? 'line-through opacity-75' : ''}`}>
+                        <span className={`truncate flex-1  ${item.fileExists === false ? 'line-through opacity-75' : ''}`}>
                           {item.relativeFilePath}
                         </span>
                         <button
@@ -1057,8 +1104,31 @@ export const HistoryPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Action buttons (Folder / Relink, Re-download, & Delete with ConfirmDialog) */}
-                  <div className="w-20 shrink-0 flex items-center justify-center gap-1">
+                  {/* Action buttons (Play, Folder / Relink, Re-download, & Delete) */}
+                  <div className="w-24 shrink-0 flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      disabled={item.fileExists === false}
+                      onClick={() => handlePlayItem(item)}
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                        isCurrent && isAudioPlaying
+                          ? 'bg-[#1DB954] text-black border-[#1DB954]'
+                          : 'border-[var(--border)] hover:bg-[#1DB954] hover:text-black hover:border-[#1DB954] text-[var(--text-muted)]'
+                      }`}
+                      title={
+                        item.fileExists === false
+                          ? 'Tệp đã bị xóa khỏi đĩa cứng'
+                          : isCurrent && isAudioPlaying
+                          ? 'Tạm dừng'
+                          : 'Phát nghe thử'
+                      }
+                    >
+                      {isCurrent && isAudioPlaying ? (
+                        <Pause size={12} fill="currentColor" />
+                      ) : (
+                        <Play size={12} fill="currentColor" />
+                      )}
+                    </button>
                     {item.fileExists === false ? (
                       <button
                         type="button"
@@ -1093,11 +1163,10 @@ export const HistoryPage: React.FC = () => {
                     {item.sourceUrl && (
                       <a
                         href={`/youtube-music?url=${encodeURIComponent(item.sourceUrl)}`}
-                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                          item.fileExists === false
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${item.fileExists === false
                             ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25'
                             : 'border-[var(--border)] hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
+                          }`}
                         title={
                           item.fileExists === false
                             ? 'Tải lại bài hát: File nhạc đã bị xóa trên ổ đĩa. Bấm để tự động điền link YouTube và tải lại ngay!'

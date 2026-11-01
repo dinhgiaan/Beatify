@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -19,6 +19,12 @@ import {
   X,
   Disc,
   Mic2,
+  Image as ImageIcon,
+  Volume2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -47,19 +53,30 @@ interface TrackItem {
 }
 
 type SortField = 'default' | 'title' | 'artist' | 'album' | 'duration';
+export type QuickFilter = 'all' | 'missing_lyrics' | 'missing_cover' | 'missing_any' | 'unsynced' | 'missing_file';
 
 export const LibraryPage: React.FC<{
-  onPlayTrack?: (track: PlayingTrack) => void;
+  onPlayTrack?: (track: PlayingTrack, newQueue?: PlayingTrack[]) => void;
   playingTrackId?: string;
   isAudioPlaying?: boolean;
   onTogglePlayPause?: () => void;
 }> = ({ onPlayTrack, playingTrackId, isAudioPlaying, onTogglePlayPause }) => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
   const [syncFilter, setSyncFilter] = useState<'all' | 'unsynced' | 'synced'>('all');
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortField>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, quickFilter, syncFilter, formatFilter]);
 
   // Selection state for batch operations
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
@@ -152,8 +169,60 @@ export const LibraryPage: React.FC<{
     },
   });
 
+  // Tự động quét và nạp lời hàng loạt từ LRCLIB
+  const batchFetchLyricsMutation = useMutation({
+    mutationFn: async (ids?: string[]) => {
+      return requestApi<{
+        message: string;
+        total: number;
+        successCount: number;
+        notFoundCount: number;
+      }>('/local-api/lyrics/batch-fetch', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      });
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || 'Đã hoàn tất tìm kiếm lời bài hát');
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      setSelectedTrackIds(new Set());
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải lời bài hát: ${msg}`);
+    },
+  });
+
+  // Quét & Chuẩn hóa âm lượng hàng loạt theo EBU R128 (ReplayGain)
+  const batchReplayGainMutation = useMutation({
+    mutationFn: async (ids?: string[]) => {
+      return requestApi<{
+        message: string;
+        total: number;
+        successCount: number;
+      }>('/local-api/tracks/batch-replaygain', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      });
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || 'Đã đo và chuẩn hóa ReplayGain thành công');
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      setSelectedTrackIds(new Set());
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi đo ReplayGain: ${msg}`);
+    },
+  });
+
   const unsyncedCount = useMemo(() => tracks.filter((t) => !t.isSynced).length, [tracks]);
   const syncedCount = useMemo(() => tracks.filter((t) => t.isSynced).length, [tracks]);
+  const missingLyricsCount = useMemo(() => tracks.filter((t) => !t.hasLyrics).length, [tracks]);
+  const missingCoverCount = useMemo(() => tracks.filter((t) => !t.hasCover).length, [tracks]);
+  const missingAnyCount = useMemo(() => tracks.filter((t) => !t.hasLyrics || !t.hasCover).length, [tracks]);
+  const missingFilesCount = useMemo(() => tracks.filter((t) => t.fileExists === false).length, [tracks]);
 
   // Tổng thời lượng thư viện
   const totalLibraryDuration = useMemo(() => {
@@ -185,10 +254,22 @@ export const LibraryPage: React.FC<{
   // Lọc và sắp xếp bài hát
   const filteredTracks = useMemo(() => {
     let list = tracks.filter((t) => {
+      // 1. Lọc theo Smart Filter
+      if (quickFilter === 'missing_lyrics' && t.hasLyrics) return false;
+      if (quickFilter === 'missing_cover' && t.hasCover) return false;
+      if (quickFilter === 'missing_any' && t.hasLyrics && t.hasCover) return false;
+      if (quickFilter === 'unsynced' && t.isSynced) return false;
+      if (quickFilter === 'missing_file' && t.fileExists !== false) return false;
+
+      // 2. Lọc theo Sync filter cũ (nếu có bấm)
       if (syncFilter === 'unsynced' && t.isSynced) return false;
       if (syncFilter === 'synced' && !t.isSynced) return false;
+
+      // 3. Lọc theo Format
       const fmt = getTrackFormat(t);
       if (formatFilter !== 'all' && fmt !== formatFilter) return false;
+
+      // 4. Tìm kiếm từ khóa
       if (!searchTerm) return true;
       const s = searchTerm.toLowerCase();
       return (
@@ -211,6 +292,49 @@ export const LibraryPage: React.FC<{
 
     return list;
   }, [tracks, searchTerm, syncFilter, formatFilter, sortBy, sortOrder]);
+
+  // Phân trang danh sách bài hát
+  const totalPages = Math.ceil(filteredTracks.length / pageSize) || 1;
+  const validPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedTracks = useMemo(() => {
+    if (pageSize >= 99999) return filteredTracks;
+    const start = (validPage - 1) * pageSize;
+    return filteredTracks.slice(start, start + pageSize);
+  }, [filteredTracks, validPage, pageSize]);
+
+  // Hàm phát nhạc kèm Queue ngữ cảnh của trang hiện tại
+  const handlePlayTrackItem = (t: TrackItem) => {
+    if (t.fileExists === false) {
+      toast.error('Tệp âm thanh này không còn tồn tại trên ổ cứng!');
+      return;
+    }
+    if (playingTrackId === t.id) {
+      onTogglePlayPause?.();
+      return;
+    }
+    const currentQueue: PlayingTrack[] = paginatedTracks
+      .filter((track) => track.fileExists !== false)
+      .map((track) => ({
+        id: track.id,
+        albumId: track.albumId,
+        title: track.title,
+        artist: track.artist,
+        fileUrl: `/local-api/tracks/${track.id}/stream`,
+        coverUrl: track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined,
+      }));
+
+    onPlayTrack?.(
+      {
+        id: t.id,
+        albumId: t.albumId,
+        title: t.title,
+        artist: t.artist,
+        fileUrl: `/local-api/tracks/${t.id}/stream`,
+        coverUrl: t.albumId ? `/local-api/covers/${t.albumId}.jpg` : undefined,
+      },
+      currentQueue
+    );
+  };
 
   // Selected tracks objects and summary
   const selectedTracksList = useMemo(() => {
@@ -334,11 +458,10 @@ export const LibraryPage: React.FC<{
 
         <div
           onClick={() => setSyncFilter(syncFilter === 'synced' ? 'all' : 'synced')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${
-            syncFilter === 'synced'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${syncFilter === 'synced'
               ? 'border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
               : 'border-white/[0.08] bg-[var(--bg-surface)] hover:border-emerald-500/30'
-          }`}
+            }`}
           title="Bấm để lọc bài đã upload lên R2"
         >
           <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -360,11 +483,10 @@ export const LibraryPage: React.FC<{
 
         <div
           onClick={() => setSyncFilter(syncFilter === 'unsynced' ? 'all' : 'unsynced')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${
-            syncFilter === 'unsynced'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${syncFilter === 'unsynced'
               ? 'border-amber-500/40 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.12)]'
               : 'border-white/[0.08] bg-[var(--bg-surface)] hover:border-amber-500/30'
-          }`}
+            }`}
           title="Bấm để lọc bài chưa upload lên R2"
         >
           <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -399,7 +521,7 @@ export const LibraryPage: React.FC<{
       </div>
 
       {/* Toolbar lọc, tìm kiếm và phân loại thông minh */}
-      <div className="p-3.5 rounded-2xl border border-white/[0.08] bg-[var(--bg-surface)] shadow-sm space-y-3">
+      <div className="p-4 rounded-2xl border border-white/[0.08] bg-[var(--bg-surface)] shadow-sm space-y-3.5">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Ô tìm kiếm hiện đại */}
           <div className="flex-1 min-w-[280px] h-10 px-3.5 rounded-xl border border-white/[0.08] bg-black/25 flex items-center gap-2.5 focus-within:border-[#1DB954] focus-within:ring-2 focus-within:ring-[#1DB954]/20 transition-all">
@@ -425,45 +547,35 @@ export const LibraryPage: React.FC<{
             )}
           </div>
 
-          {/* Bộ lọc trạng thái R2 */}
-          <div className="flex items-center p-1 rounded-xl bg-black/30 border border-white/[0.06] shrink-0">
-            <button
-              type="button"
-              onClick={() => setSyncFilter('all')}
-              className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                syncFilter === 'all'
-                  ? 'bg-white/15 text-white shadow-xs font-bold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>Tất cả ({tracks.length})</span>
-            </button>
+          {/* Nút hành động nhanh: Quét lời & ReplayGain */}
+          <div className="flex items-center gap-2 shrink-0">
+            {missingLyricsCount > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => batchFetchLyricsMutation.mutate(undefined)}
+                disabled={batchFetchLyricsMutation.isPending}
+                className="gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                title="Tự động tra cứu và lưu file lời bài hát .lrc từ LRCLIB cho toàn bộ bài còn thiếu"
+              >
+                <Mic2 size={13} className={batchFetchLyricsMutation.isPending ? 'animate-pulse' : ''} />
+                <span>
+                  {batchFetchLyricsMutation.isPending ? 'Đang tìm kiếm...' : `Tự động tải lời (${missingLyricsCount})`}
+                </span>
+              </Button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setSyncFilter('unsynced')}
-              className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                syncFilter === 'unsynced'
-                  ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs font-bold'
-                  : 'text-zinc-400 hover:text-amber-400'
-              }`}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => batchReplayGainMutation.mutate(undefined)}
+              disabled={batchReplayGainMutation.isPending}
+              className="gap-1.5"
+              title="Đo độ ồn LUFS chuẩn EBU R128 bằng ffmpeg và tính ReplayGain cân bằng âm lượng"
             >
-              <CloudOff size={12} />
-              <span>Chưa upload ({unsyncedCount})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSyncFilter('synced')}
-              className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                syncFilter === 'synced'
-                  ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-xs font-bold'
-                  : 'text-zinc-400 hover:text-emerald-400'
-              }`}
-            >
-              <Check size={12} className="stroke-[2.5]" />
-              <span>Đã upload ({syncedCount})</span>
-            </button>
+              <Volume2 size={13} className={batchReplayGainMutation.isPending ? 'animate-pulse' : ''} />
+              <span>{batchReplayGainMutation.isPending ? 'Đang đo âm lượng...' : 'Đo ReplayGain'}</span>
+            </Button>
           </div>
 
           {/* Bộ lọc định dạng âm thanh (nếu có nhiều định dạng) */}
@@ -486,8 +598,99 @@ export const LibraryPage: React.FC<{
           )}
         </div>
 
+        {/* Hàng Quick Filter Pills (Bộ lọc thông minh 1-click) */}
+        <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-white/[0.06]">
+          <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mr-1">
+            Lọc nhanh:
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'all'
+                ? 'bg-white/15 text-white border border-white/20 shadow-xs'
+                : 'text-zinc-400 hover:text-white bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <span>Tất cả</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({tracks.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter('missing_lyrics')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'missing_lyrics'
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-rose-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <Mic2 size={12} className="text-rose-400" />
+            <span>Chưa có lời</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({missingLyricsCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter('missing_cover')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'missing_cover'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-amber-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <ImageIcon size={12} className="text-amber-400" />
+            <span>Chưa có ảnh bìa</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({missingCoverCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter('missing_any')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'missing_any'
+                ? 'bg-orange-500/20 text-orange-300 border border-orange-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-orange-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <AlertTriangle size={12} className="text-orange-400" />
+            <span>Thiếu lời / bìa</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({missingAnyCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter('unsynced')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'unsynced'
+                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-sky-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <CloudOff size={12} className="text-sky-400" />
+            <span>Chưa upload R2</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({unsyncedCount})</span>
+          </button>
+
+          {missingFilesCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuickFilter('missing_file')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                quickFilter === 'missing_file'
+                  ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50 shadow-xs'
+                  : 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25'
+              }`}
+            >
+              <AlertTriangle size={12} />
+              <span>Mất tệp đĩa ({missingFilesCount})</span>
+            </button>
+          )}
+        </div>
+
         {/* Thanh kết quả tìm kiếm / bộ lọc đang kích hoạt */}
-        {(searchTerm || syncFilter !== 'all' || formatFilter !== 'all') && (
+        {(searchTerm || quickFilter !== 'all' || syncFilter !== 'all' || formatFilter !== 'all') && (
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
             <span className="text-[var(--text-secondary)]">
               Tìm thấy <strong className="text-[var(--text-primary)] font-bold">{filteredTracks.length}</strong> bài hát phù hợp
@@ -496,6 +699,7 @@ export const LibraryPage: React.FC<{
               type="button"
               onClick={() => {
                 setSearchTerm('');
+                setQuickFilter('all');
                 setSyncFilter('all');
                 setFormatFilter('all');
               }}
@@ -519,7 +723,7 @@ export const LibraryPage: React.FC<{
               className="rounded cursor-pointer"
               title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
             />
-            <span className="font-mono text-zinc-500">#</span>
+            <span className=" text-zinc-500">#</span>
           </div>
 
           {/* Cột 2: Tiêu đề bài hát & Nghệ sĩ */}
@@ -581,7 +785,8 @@ export const LibraryPage: React.FC<{
           </div>
         ) : (
           <div className="divide-y divide-white/[0.04]">
-            {filteredTracks.map((t, idx) => {
+            {paginatedTracks.map((t, idx) => {
+              const rowIndex = (validPage - 1) * pageSize + idx + 1;
               const isSelected = selectedTrackIds.has(t.id);
               const isCurrent = playingTrackId === t.id;
               const isPlayingNow = isCurrent && isAudioPlaying;
@@ -592,13 +797,12 @@ export const LibraryPage: React.FC<{
               return (
                 <div
                   key={t.id}
-                  className={`px-5 py-3 flex items-center gap-4 transition-all group select-none ${
-                    isCurrent
+                  className={`px-5 py-3 flex items-center gap-4 transition-all group select-none ${isCurrent
                       ? 'bg-emerald-500/10 border-l-2 border-l-emerald-400'
                       : isSelected
-                      ? 'bg-[#1DB954]/5 border-l-2 border-l-[#1DB954]'
-                      : 'hover:bg-white/[0.04]'
-                  }`}
+                        ? 'bg-[#1DB954]/5 border-l-2 border-l-[#1DB954]'
+                        : 'hover:bg-white/[0.04]'
+                    }`}
                 >
                   {/* Cột 1: Checkbox & Số thứ tự / Nút Play */}
                   <div className="w-12 shrink-0 flex items-center gap-2">
@@ -612,37 +816,25 @@ export const LibraryPage: React.FC<{
                     <div className="w-5 flex items-center justify-center">
                       {isPlayingNow ? (
                         /* Sóng nhạc Equalizer nhảy múa sinh động */
-                        <span className="flex items-end gap-0.5 h-3.5">
+                        <span
+                          className="flex items-end gap-0.5 h-3.5 cursor-pointer"
+                          onClick={() => handlePlayTrackItem(t)}
+                          title="Tạm dừng"
+                        >
                           <span className="w-0.5 h-3.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.6s' }} />
                           <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.8s', animationDelay: '0.15s' }} />
                           <span className="w-0.5 h-2.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.7s', animationDelay: '0.3s' }} />
                         </span>
                       ) : (
                         <>
-                          <span className="font-mono text-xs text-zinc-500 group-hover:hidden">
-                            {idx + 1}
+                          <span className=" text-xs text-zinc-500 group-hover:hidden">
+                            {rowIndex}
                           </span>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (t.fileExists === false) {
-                                toast.error('Tệp âm thanh này không còn tồn tại trên ổ cứng!');
-                                return;
-                              }
-                              if (isCurrent) {
-                                onTogglePlayPause?.();
-                                return;
-                              }
-                              onPlayTrack?.({
-                                id: t.id,
-                                albumId: t.albumId,
-                                title: t.title,
-                                artist: t.artist,
-                                fileUrl: `/local-api/stream/${t.id}`,
-                                coverUrl: `/local-api/covers/${t.albumId || t.id}.jpg`,
-                              });
-                            }}
-                            className="hidden group-hover:flex w-5 h-5 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black items-center justify-center shadow-sm cursor-pointer transition-transform active:scale-90"
+                            onClick={() => handlePlayTrackItem(t)}
+                            disabled={t.fileExists === false}
+                            className="hidden group-hover:flex w-5 h-5 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black items-center justify-center shadow-sm cursor-pointer transition-transform active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                             title={`Phát: ${t.title}`}
                           >
                             <Play size={10} fill="currentColor" className="ml-0.5" />
@@ -691,9 +883,8 @@ export const LibraryPage: React.FC<{
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[13px] font-bold truncate ${
-                            isCurrent ? 'text-emerald-400 font-extrabold' : 'text-white'
-                          }`}
+                          className={`text-[13px] font-bold truncate ${isCurrent ? 'text-emerald-400 font-extrabold' : 'text-white'
+                            }`}
                           title={t.title}
                         >
                           {t.title}
@@ -763,11 +954,10 @@ export const LibraryPage: React.FC<{
                   <div className="w-20 shrink-0 text-center hidden sm:block">
                     {trackFormat ? (
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                          isLossless
+                        className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${isLossless
                             ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
                             : 'bg-white/[0.05] text-zinc-300 border border-white/[0.08]'
-                        }`}
+                          }`}
                         title={`Định dạng tệp âm thanh: ${trackFormat.toUpperCase()}`}
                       >
                         {trackFormat}
@@ -778,7 +968,7 @@ export const LibraryPage: React.FC<{
                   </div>
 
                   {/* Cột 6: Thời lượng */}
-                  <div className="w-16 shrink-0 text-right text-xs text-zinc-400 font-mono tabular-nums">
+                  <div className="w-16 shrink-0 text-right text-xs text-zinc-400  tabular-nums">
                     {formatDuration(t.duration)}
                   </div>
 
@@ -807,6 +997,114 @@ export const LibraryPage: React.FC<{
             })}
           </div>
         )}
+
+        {/* Thanh điều khiển phân trang (Pagination Footer) */}
+        {filteredTracks.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-white/[0.08] bg-black/25 text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-zinc-400">
+                Hiển thị{' '}
+                <strong className="text-white font-medium">
+                  {Math.min(filteredTracks.length, (validPage - 1) * pageSize + 1)} - {Math.min(filteredTracks.length, validPage * pageSize)}
+                </strong>{' '}
+                trên tổng số <strong className="text-[#1DB954]">{filteredTracks.length}</strong> bài hát
+              </span>
+
+              {/* Selector số bài mỗi trang */}
+              <div className="flex items-center gap-1.5 pl-3 border-l border-white/10 text-zinc-400">
+                <span>Mỗi trang:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white/[0.05] border border-white/10 rounded px-2 py-0.5 text-xs text-white focus:outline-none focus:border-[#1DB954] cursor-pointer"
+                >
+                  <option value={25} className="bg-zinc-900 text-white">25 bài</option>
+                  <option value={50} className="bg-zinc-900 text-white">50 bài</option>
+                  <option value={100} className="bg-zinc-900 text-white">100 bài</option>
+                  <option value={200} className="bg-zinc-900 text-white">200 bài</option>
+                  <option value={99999} className="bg-zinc-900 text-white">Tất cả</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Điều hướng chuyển trang */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={validPage <= 1}
+                  className="h-7 w-7 p-0 flex items-center justify-center border-white/10"
+                  title="Về trang đầu"
+                >
+                  <ChevronsLeft size={13} />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={validPage <= 1}
+                  className="h-7 px-2 flex items-center gap-1 border-white/10 text-xs"
+                  title="Trang trước"
+                >
+                  <ChevronLeft size={13} />
+                  <span className="hidden sm:inline">Trước</span>
+                </Button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - validPage) <= 1)
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const hasGap = prev && p - prev > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {hasGap && <span className="px-1 text-zinc-600">...</span>}
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(p)}
+                            className={`h-7 min-w-7 px-2 rounded text-xs font-semibold cursor-pointer transition-colors ${
+                              validPage === p
+                                ? 'bg-[#1DB954] text-black font-bold shadow-xs'
+                                : 'bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={validPage >= totalPages}
+                  className="h-7 px-2 flex items-center gap-1 border-white/10 text-xs"
+                  title="Trang sau"
+                >
+                  <span className="hidden sm:inline">Sau</span>
+                  <ChevronRight size={13} />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={validPage >= totalPages}
+                  className="h-7 w-7 p-0 flex items-center justify-center border-white/10"
+                  title="Đến trang cuối"
+                >
+                  <ChevronsRight size={13} />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Thanh thao tác hàng loạt nổi (Floating Batch Action Bar) */}
@@ -819,7 +1117,7 @@ export const LibraryPage: React.FC<{
             <span className="font-medium text-white">
               Đã chọn <strong className="text-[#1DB954]">{selectedTrackIds.size}</strong> bài hát
             </span>
-            <span className="text-zinc-400 font-mono text-[11px] border-l border-white/10 pl-2.5 ml-0.5 tabular-nums">
+            <span className="text-zinc-400  text-[11px] border-l border-white/10 pl-2.5 ml-0.5 tabular-nums">
               {formatDuration(totalSelectedDuration)}
             </span>
           </div>
@@ -827,6 +1125,30 @@ export const LibraryPage: React.FC<{
           <div className="h-4 w-[1px] bg-white/10" />
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => batchFetchLyricsMutation.mutate(Array.from(selectedTrackIds))}
+              disabled={batchFetchLyricsMutation.isPending}
+              className="h-8 text-xs px-3 gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              title="Tìm kiếm và lưu file .lrc từ LRCLIB cho các bài đã chọn"
+            >
+              <Mic2 size={12} className={batchFetchLyricsMutation.isPending ? 'animate-pulse' : ''} />
+              <span>Tải lời LRCLIB</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => batchReplayGainMutation.mutate(Array.from(selectedTrackIds))}
+              disabled={batchReplayGainMutation.isPending}
+              className="h-8 text-xs px-3 gap-1.5"
+              title="Đo độ ồn LUFS và tính ReplayGain chuẩn hóa âm lượng cho các bài đã chọn"
+            >
+              <Volume2 size={12} className={batchReplayGainMutation.isPending ? 'animate-pulse' : ''} />
+              <span>Đo ReplayGain</span>
+            </Button>
+
             <Button
               variant="secondary"
               size="sm"
@@ -940,7 +1262,7 @@ export const LibraryPage: React.FC<{
                     {trashTrack.artist}
                   </p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 text-[11px] text-zinc-300 font-mono bg-white/[0.05] px-2 py-0.5 rounded-md border border-white/10">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-zinc-300  bg-white/[0.05] px-2 py-0.5 rounded-md border border-white/10">
                       <Clock size={11} className="text-zinc-400" />
                       {formatDuration(trashTrack.duration)}
                     </span>
@@ -987,7 +1309,7 @@ export const LibraryPage: React.FC<{
               <span className="text-zinc-300">
                 Số lượng: <strong className="text-white font-bold">{selectedTrackIds.size} bài hát</strong>
               </span>
-              <span className="text-zinc-300 font-mono flex items-center gap-1.5">
+              <span className="text-zinc-300  flex items-center gap-1.5">
                 <Clock size={12} className="text-zinc-500" />
                 Tổng: <strong className="text-white">{formatDuration(totalSelectedDuration)}</strong>
               </span>
@@ -1015,7 +1337,7 @@ export const LibraryPage: React.FC<{
                       <p className="text-[10.5px] text-zinc-400 truncate">{t.artist}</p>
                     </div>
                   </div>
-                  <span className="text-[10.5px] text-zinc-500 font-mono tabular-nums shrink-0">
+                  <span className="text-[10.5px] text-zinc-500  tabular-nums shrink-0">
                     {formatDuration(t.duration)}
                   </span>
                 </div>

@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import type { YoutubeMusicDownloadRecord } from '@music-app/shared';
 import { PageHeader } from '../../../ui/organisms/PageHeader';
+import { ModuleNavTabs } from '../../../ui/molecules/ModuleNavTabs';
 import { Select, Checkbox } from '../../../ui/atoms/Controls';
 import { Button } from '../../../ui/atoms/Button';
 import { ConfirmDialog } from '../../../ui/molecules/ConfirmDialog';
@@ -40,33 +41,8 @@ import {
   getDownloadLyricsApi,
   updateDownloadLyricsApi,
 } from '../api';
-
-const formatBytes = (bytes?: number) => {
-  if (!bytes || bytes <= 0) return '';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(1)} MB`;
-};
-
-const formatSeconds = (sec?: number | null) => {
-  if (!sec || isNaN(sec)) return '--:--';
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
-const formatDownloadDate = (dateStr?: string | null) => {
-  if (!dateStr) return { date: '---', time: '--:--' };
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return { date: '---', time: '--:--' };
-    return {
-      date: d.toLocaleDateString('vi-VN'),
-      time: d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-    };
-  } catch {
-    return { date: '---', time: '--:--' };
-  }
-};
+import { formatBytes, formatSeconds } from '../../../core/formatters';
+import { DownloadTimeDisplay } from '../../../ui/molecules/TrackBadges';
 
 export const DownloadedVideosManagerPage: React.FC<{
   onPlayTrack?: (track: { id: string; title: string; artist: string; fileUrl: string; coverUrl?: string }) => void;
@@ -365,6 +341,14 @@ export const DownloadedVideosManagerPage: React.FC<{
         }
       />
 
+      {/* Sub-tabs điều hướng thống nhất giữa Quản lý tệp/R2 và Lịch sử chi tiết */}
+      <ModuleNavTabs
+        tabs={[
+          { label: 'Quản lý tệp & R2', path: '/youtube-music/manager' },
+          { label: 'Lịch sử tải & Chi tiết', path: '/youtube-music/history' },
+        ]}
+      />
+
       {/* Batch Action Bar: Thanh hành động khi có bài được tick chọn */}
       <AnimatePresence>
         {selectedTrackIds.size > 0 && (
@@ -571,7 +555,6 @@ export const DownloadedVideosManagerPage: React.FC<{
       ) : (
         <div className="border border-[var(--border)] rounded-xl bg-[var(--bg-surface)] overflow-hidden divide-y divide-[var(--border)] shadow-sm">
           {filteredDownloads.map((item, index) => {
-            const dateObj = formatDownloadDate(item.createdAt);
             const isFileMissing = item.fileExists === false;
 
             return (
@@ -793,9 +776,8 @@ export const DownloadedVideosManagerPage: React.FC<{
                   )}
 
                   {/* Ngày tải */}
-                  <div className="text-right text-[11px] text-zinc-500 hidden md:block">
-                    <div>{dateObj.date}</div>
-                    <div className="">{dateObj.time}</div>
+                  <div className="hidden md:flex items-center px-2 shrink-0">
+                    <DownloadTimeDisplay dateStr={item.createdAt} />
                   </div>
 
                   {/* Nút hành động */}

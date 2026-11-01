@@ -11,7 +11,6 @@ import {
   Library,
   FileText,
   Image as ImageIcon,
-  CheckCircle2,
   ArrowUpRight,
   Play,
   Pause,
@@ -22,6 +21,8 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../../ui/organisms/PageHeader';
 import { Button } from '../../../ui/atoms/Button';
+import { AudioFormatBadge, StorageStatusBadge, DownloadTimeDisplay } from '../../../ui/molecules/TrackBadges';
+import { formatDownloadDate } from '../../../core/formatters';
 import { requestApi } from '../../../core/api-client';
 import {
   fetchDependenciesApi,
@@ -72,18 +73,52 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   });
 
   // 2. Fetch Dependencies Status
-  const { data: deps, refetch: refetchDeps, isFetching: isFetchingDeps } = useQuery({
+  const {
+    data: deps,
+    refetch: refetchDeps,
+    isFetching: isFetchingDeps,
+    isLoading: isLoadingDeps,
+  } = useQuery({
     queryKey: ['yt-deps'],
     queryFn: fetchDependenciesApi,
     staleTime: 60000,
   });
 
+  const isDepsLoading = isLoadingDeps || (!deps && isFetchingDeps);
+
   // 3. Fetch Download History
-  const { data: history = [], refetch: refetchHistory, isFetching: isFetchingHistory } = useQuery<YoutubeMusicDownloadRecord[]>({
+  const {
+    data: history = [],
+    refetch: refetchHistory,
+    isFetching: isFetchingHistory,
+    isLoading: isLoadingHistory,
+  } = useQuery<YoutubeMusicDownloadRecord[]>({
     queryKey: ['yt-downloads'],
     queryFn: () => fetchDownloadsHistoryApi(),
     staleTime: 15000,
   });
+
+  const isHistoryLoading = isLoadingHistory || (history.length === 0 && isFetchingHistory);
+
+  // 4. Fetch Toàn bộ kho nhạc Thư viện (để đồng nhất số liệu với ổ cứng máy tính)
+  const {
+    data: libraryTracks = [],
+    refetch: refetchTracks,
+    isFetching: isFetchingTracks,
+    isLoading: isLoadingTracks,
+  } = useQuery<Array<{ id: string; hasLyrics: boolean; hasCover: boolean; isSynced?: boolean }>>({
+    queryKey: ['local-tracks'],
+    queryFn: async () => {
+      const res = await requestApi<{ tracks: Array<{ id: string; hasLyrics: boolean; hasCover: boolean; isSynced?: boolean }> }>('/local-api/tracks');
+      return res.tracks || [];
+    },
+    staleTime: 15000,
+  });
+
+  const isTracksLoading = isLoadingTracks || (libraryTracks.length === 0 && isFetchingTracks);
+  const isStatusLoading = !status && isFetchingStatus;
+  const [metricsScope, setMetricsScope] = React.useState<'library' | 'youtube'>('library');
+  const isMetricsLoading = metricsScope === 'library' ? isTracksLoading : isHistoryLoading;
 
   const isRefreshing = isFetchingStatus || isFetchingDeps || isFetchingHistory;
 
@@ -91,11 +126,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     refetchStatus();
     refetchDeps();
     refetchHistory();
+    refetchTracks();
     toast.success('Đã làm mới dữ liệu Bảng điều khiển');
   };
 
-  // Metrics calculation
+  // Metrics calculation linh hoạt theo Scope (Kho nhạc thư viện vs Nhạc tải YouTube)
   const metrics = useMemo(() => {
+    if (metricsScope === 'library' && libraryTracks.length > 0) {
+      const total = libraryTracks.length;
+      const uploaded = libraryTracks.filter((t) => t.isSynced).length;
+      const withLyrics = libraryTracks.filter((t) => t.hasLyrics).length;
+      const withCover = libraryTracks.filter((t) => t.hasCover).length;
+
+      const r2Pct = total > 0 ? ((uploaded / total) * 100).toFixed(0) : '0';
+      const lyricsPct = total > 0 ? ((withLyrics / total) * 100).toFixed(0) : '0';
+      const coverPct = total > 0 ? ((withCover / total) * 100).toFixed(0) : '0';
+
+      return {
+        total,
+        uploaded,
+        withLyrics,
+        withCover,
+        r2Pct,
+        lyricsPct,
+        coverPct,
+        ytCount: history.length,
+        importedCount: Math.max(0, total - history.length),
+      };
+    }
+
+    // Mặc định hoặc khi chọn scope youtube
     const total = history.length;
     let uploaded = 0;
     let withLyrics = 0;
@@ -111,8 +171,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const lyricsPct = total > 0 ? ((withLyrics / total) * 100).toFixed(0) : '0';
     const coverPct = total > 0 ? ((withCover / total) * 100).toFixed(0) : '0';
 
-    return { total, uploaded, withLyrics, withCover, r2Pct, lyricsPct, coverPct };
-  }, [history]);
+    return {
+      total,
+      uploaded,
+      withLyrics,
+      withCover,
+      r2Pct,
+      lyricsPct,
+      coverPct,
+      ytCount: history.length,
+      importedCount: Math.max(0, (libraryTracks.length || total) - history.length),
+    };
+  }, [metricsScope, libraryTracks, history]);
 
   const recentDownloads = useMemo(() => {
     return [...history].slice(0, 6);
@@ -190,123 +260,231 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
       />
 
-      {/* 2. Hero KPI Metric Cards (Grid 4 cột) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Tổng số bài hát */}
-        <motion.div
-          whileHover={{ y: -2, transition: { duration: 0.15 } }}
-          className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Kho nhạc cá nhân
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-[#1DB954]/15 text-[#1DB954] flex items-center justify-center">
-              <Music2 size={16} />
-            </div>
+      {/* 2. Hero KPI Metric Cards (Grid 4 cột) kèm Toggle Scope thống kê */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <span className="font-semibold text-white">Thống kê dữ liệu:</span>
+            <span>{metricsScope === 'library' ? 'Toàn bộ kho nhạc thực tế trên ổ cứng' : 'Các bài hát tải qua YouTube'}</span>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-white tabular-nums tracking-tight">
-              {metrics.total} <span className="text-xs font-normal text-[var(--text-muted)]">bài đã tải</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-              <span>{status?.fileCount ?? metrics.total} tệp âm thanh khả dụng</span>
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Card 2: Đồng bộ Cloudflare R2 */}
-        <motion.div
-          whileHover={{ y: -2, transition: { duration: 0.15 } }}
-          className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Cloudflare R2
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center">
-              <Cloud size={16} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-sky-400 tabular-nums tracking-tight">
-              {metrics.uploaded} <span className="text-xs font-normal text-[var(--text-muted)]">/ {metrics.total} bài ({metrics.r2Pct}%)</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-              <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
-              <span>Bucket: <strong className="text-white font-medium">{status?.bucket || 'beatify-music'}</strong></span>
-            </div>
-          </div>
-        </motion.div>
+          {/* Toggle Scope: Toàn bộ thư viện máy vs Chỉ nhạc YouTube */}
+          <div className="relative flex items-center p-0.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] text-[11px] font-semibold">
+            {/* Tab 1: Toàn bộ thư viện */}
+            <button
+              type="button"
+              onClick={() => setMetricsScope('library')}
+              className={`relative px-2.5 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
+                metricsScope === 'library'
+                  ? 'text-emerald-300 font-bold'
+                  : 'text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              {metricsScope === 'library' && (
+                <motion.span
+                  layoutId="dashboard-scope-active-bg"
+                  className="absolute inset-0 bg-emerald-500/20 rounded-md border border-emerald-500/30 shadow-xs"
+                  transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">Toàn bộ thư viện</span>
+              <span className="relative z-10">
+                {isTracksLoading ? (
+                  <span className="w-4 h-3 bg-white/10 rounded animate-pulse inline-block align-middle" />
+                ) : (
+                  <span>({libraryTracks.length || status?.fileCount || 0})</span>
+                )}
+              </span>
+            </button>
 
-        {/* Card 3: Dung lượng lưu trữ */}
-        <motion.div
-          whileHover={{ y: -2, transition: { duration: 0.15 } }}
-          className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Dung lượng đã dùng
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
-              <HardDrive size={16} />
-            </div>
+            {/* Tab 2: Nhạc tải YouTube */}
+            <button
+              type="button"
+              onClick={() => setMetricsScope('youtube')}
+              className={`relative px-2.5 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
+                metricsScope === 'youtube'
+                  ? 'text-rose-300 font-bold'
+                  : 'text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              {metricsScope === 'youtube' && (
+                <motion.span
+                  layoutId="dashboard-scope-active-bg"
+                  className="absolute inset-0 bg-rose-500/20 rounded-md border border-rose-500/35 shadow-xs"
+                  transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">Nhạc tải YouTube</span>
+              <span className="relative z-10">
+                {isHistoryLoading ? (
+                  <span className="w-4 h-3 bg-white/10 rounded animate-pulse inline-block align-middle" />
+                ) : (
+                  <span>({history.length})</span>
+                )}
+              </span>
+            </button>
           </div>
-          <div className="mt-3">
-            <div className={`text-2xl font-black tabular-nums tracking-tight ${storageColor}`}>
-              {status?.syncedMB ?? '0'} <span className="text-xs font-normal text-[var(--text-muted)]">MB ({usedPct.toFixed(1)}%)</span>
-            </div>
-            {/* Progress bar */}
-            <div className="w-full h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden mt-2">
-              <div
-                className="h-full bg-[#1DB954] rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(100, usedPct)}%` }}
-              />
-            </div>
-            <div className="mt-2 space-y-0.5 text-[11px]">
-              <div className="flex items-center justify-between text-[var(--text-secondary)]">
-                <span>(Đã dùng: {status?.syncedMB ?? '0'}MB - {status?.syncedCount ?? 0} bài)</span>
-                <span className="text-[var(--text-muted)]">10 GB Free</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Tổng số bài hát */}
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {metricsScope === 'library' ? 'Kho nhạc toàn diện' : 'Bài tải YouTube'}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-[#1DB954]/15 text-[#1DB954] flex items-center justify-center">
+                <Music2 size={16} />
               </div>
-              {Number(status?.unsyncedCount || 0) > 0 && (
-                <div className="text-[10.5px] text-amber-400/90 font-medium">
-                  Chưa upload: {status?.unsyncedMB ?? '0'}MB - {status?.unsyncedCount ?? 0} bài
+            </div>
+            <div className="mt-3">
+              {isMetricsLoading ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="w-20 h-6 bg-white/10 rounded animate-pulse" />
+                  <div className="w-36 h-3 bg-white/5 rounded animate-pulse" />
                 </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-black text-white tabular-nums tracking-tight">
+                    {metrics.total} <span className="text-xs font-normal text-[var(--text-muted)]">bài hát</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                    <span>{metrics.ytCount} từ YouTube • {metrics.importedCount} tệp nhập máy</span>
+                  </div>
+                </>
               )}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Card 4: Độ phủ Lời bài hát & Ảnh bìa */}
-        <motion.div
-          whileHover={{ y: -2, transition: { duration: 0.15 } }}
-          className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Metadata & Lời .lrc
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center">
-              <Mic2 size={16} />
-            </div>
-          </div>
-          <div className="mt-3 space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
-                <FileText size={12} className="text-purple-400" />
-                <span>Lời .lrc (Karaoke):</span>
+          {/* Card 2: Đồng bộ Cloudflare R2 */}
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Cloudflare R2
               </span>
-              <span className="font-bold text-white tabular-nums">{metrics.withLyrics} ({metrics.lyricsPct}%)</span>
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center">
+                <Cloud size={16} />
+              </div>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
-                <ImageIcon size={12} className="text-emerald-400" />
-                <span>Ảnh bìa 1:1:</span>
+            <div className="mt-3">
+              {isMetricsLoading ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="w-28 h-6 bg-white/10 rounded animate-pulse" />
+                  <div className="w-32 h-3 bg-white/5 rounded animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-black text-sky-400 tabular-nums tracking-tight">
+                    {metrics.uploaded} <span className="text-xs font-normal text-[var(--text-muted)]">/ {metrics.total} bài ({metrics.r2Pct}%)</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                    <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                    <span>Bucket: <strong className="text-white font-medium">{status?.bucket || 'beatify-music'}</strong></span>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Card 3: Dung lượng lưu trữ */}
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Dung lượng R2 Cloud
               </span>
-              <span className="font-bold text-white tabular-nums">{metrics.withCover} ({metrics.coverPct}%)</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                <HardDrive size={16} />
+              </div>
             </div>
-          </div>
-        </motion.div>
+            <div className="mt-3">
+              {isStatusLoading ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="w-24 h-6 bg-white/10 rounded animate-pulse" />
+                  <div className="w-full h-1.5 bg-white/5 rounded animate-pulse mt-2" />
+                </div>
+              ) : (
+                <>
+                  <div className={`text-2xl font-black tabular-nums tracking-tight ${storageColor}`}>
+                    {status?.syncedMB ?? '0'} <span className="text-xs font-normal text-[var(--text-muted)]">MB ({usedPct.toFixed(1)}%)</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden mt-2">
+                    <div
+                       className="h-full bg-[#1DB954] rounded-full transition-all duration-300"
+                       style={{ width: `${Math.min(100, usedPct)}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 space-y-0.5 text-[11px]">
+                    <div className="flex items-center justify-between text-[var(--text-secondary)]">
+                      <span>(Đã upload: {status?.syncedMB ?? '0'}MB - {status?.syncedCount ?? 0} bài)</span>
+                      <span className="text-[var(--text-muted)]">10 GB Free</span>
+                    </div>
+                    {Number(status?.unsyncedCount || 0) > 0 && (
+                      <div className="text-[10.5px] text-amber-400/90 font-medium">
+                        Chưa upload: {status?.unsyncedMB ?? '0'}MB - {status?.unsyncedCount ?? 0} bài
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Card 4: Độ phủ Lời bài hát & Ảnh bìa */}
+          <motion.div
+            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="p-4 rounded-xl border bg-[var(--bg-surface)] border-[var(--border)] shadow-xs flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Metadata & Lời .lrc
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center">
+                <Mic2 size={16} />
+              </div>
+            </div>
+            <div className="mt-3 space-y-1">
+              {isMetricsLoading ? (
+                <div className="space-y-2 py-1">
+                  <div className="flex items-center justify-between">
+                    <div className="w-24 h-3 bg-white/10 rounded animate-pulse" />
+                    <div className="w-12 h-3 bg-white/10 rounded animate-pulse" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="w-20 h-3 bg-white/10 rounded animate-pulse" />
+                    <div className="w-12 h-3 bg-white/10 rounded animate-pulse" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <FileText size={12} className="text-purple-400" />
+                      <span>Lời .lrc (Karaoke):</span>
+                    </span>
+                    <span className="font-bold text-white tabular-nums">{metrics.withLyrics} ({metrics.lyricsPct}%)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <ImageIcon size={12} className="text-emerald-400" />
+                      <span>Ảnh bìa 1:1:</span>
+                    </span>
+                    <span className="font-bold text-white tabular-nums">{metrics.withCover} ({metrics.coverPct}%)</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* 3. Công cụ & Trạng thái Engine Hệ thống */}
@@ -328,44 +506,69 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] space-y-1">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-xs text-[var(--text-primary)]">yt-dlp Engine</span>
-              <span className={`text-[11px] font-medium ${deps?.ytdlp.installed ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {deps?.ytdlp.installed ? '● Sẵn sàng' : '○ Chưa cài đặt'}
-              </span>
+              {isDepsLoading ? (
+                <span className="text-[11px] font-medium text-amber-400 flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  <span>Đang kiểm tra...</span>
+                </span>
+              ) : (
+                <span className={`text-[11px] font-medium ${deps?.ytdlp?.installed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {deps?.ytdlp?.installed ? '● Sẵn sàng' : '○ Chưa cài đặt'}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-[var(--text-muted)] truncate">
-              Bản phát hành: <strong className="text-white">{(() => {
-                const v = deps?.ytdlp.version;
-                if (!v) return 'Khả dụng';
-                const parts = v.split('.');
-                if (parts.length === 3 && parts[0]?.length === 4) {
-                  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                }
-                return v;
-              })()}</strong>
+              Bản phát hành:{' '}
+              {isDepsLoading ? (
+                <span className="text-zinc-500 italic">Đang phát hiện...</span>
+              ) : (
+                <strong className="text-white">
+                  {(() => {
+                    const v = deps?.ytdlp?.version;
+                    if (!v) return deps?.ytdlp?.installed ? 'Khả dụng' : 'Không có';
+                    const parts = v.split('.');
+                    if (parts.length === 3 && parts[0]?.length === 4) {
+                      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                    return v;
+                  })()}
+                </strong>
+              )}
             </p>
-            {deps?.ytdlp.path && (
+            {isDepsLoading ? (
+              <p className="text-[10px] text-zinc-500 italic truncate">Đang quét PATH hệ thống...</p>
+            ) : deps?.ytdlp?.path ? (
               <p className="text-[10px] text-[var(--text-muted)] truncate select-all" title={deps.ytdlp.path}>
                 Đường dẫn: {deps.ytdlp.path}
               </p>
-            )}
+            ) : null}
           </div>
 
           {/* FFmpeg */}
           <div className="p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] space-y-1">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-xs text-[var(--text-primary)]">FFmpeg Engine</span>
-              <span className={`text-[11px] font-medium ${deps?.ffmpeg.installed ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {deps?.ffmpeg.installed ? '● Hoạt động' : '○ Chưa cài đặt'}
-              </span>
+              {isDepsLoading ? (
+                <span className="text-[11px] font-medium text-amber-400 flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  <span>Đang kiểm tra...</span>
+                </span>
+              ) : (
+                <span className={`text-[11px] font-medium ${deps?.ffmpeg?.installed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {deps?.ffmpeg?.installed ? '● Hoạt động' : '○ Chưa cài đặt'}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-[var(--text-muted)] truncate">
               Chức năng: <strong className="text-white">Remux bitstream & Nhúng bìa</strong>
             </p>
-            {deps?.ffmpeg.path && (
+            {isDepsLoading ? (
+              <p className="text-[10px] text-zinc-500 italic truncate">Đang quét PATH hệ thống...</p>
+            ) : deps?.ffmpeg?.path ? (
               <p className="text-[10px] text-[var(--text-muted)] truncate select-all" title={deps.ffmpeg.path}>
                 Đường dẫn: {deps.ffmpeg.path}
               </p>
-            )}
+            ) : null}
           </div>
 
           {/* Node.js */}
@@ -377,7 +580,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-[var(--text-muted)] truncate">
-              Phiên bản: <strong className="text-white">{deps?.runtime.version || 'v24.x'}</strong>
+              Phiên bản:{' '}
+              {isDepsLoading ? (
+                <span className="text-zinc-500 italic">Đang kiểm tra...</span>
+              ) : (
+                <strong className="text-white">{deps?.runtime?.version || 'v24.x'}</strong>
+              )}
             </p>
             <p className="text-[10px] text-[var(--text-muted)] truncate">
               Cổng API: <strong className="text-white">127.0.0.1:4000</strong>
@@ -399,26 +607,57 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
             <Link
               to="/youtube-music/history"
-              className="text-xs font-medium text-[#1DB954] hover:underline flex items-center gap-1"
+              className="text-xs font-medium text-[#1DB954] hover:underline flex items-center gap-1.5"
             >
-              <span>Xem tất cả ({metrics.total})</span>
+              <span>Xem tất cả</span>
+              {isHistoryLoading ? (
+                <span className="w-5 h-3 bg-white/10 rounded animate-pulse inline-block align-middle" />
+              ) : (
+                <span>({history.length})</span>
+              )}
               <ArrowUpRight size={13} />
             </Link>
           </div>
 
-          {recentDownloads.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[var(--text-muted)]">
-              Chưa có bài hát nào được tải về. Hãy nhập link YouTube để bắt đầu tải!
+          {isHistoryLoading ? (
+            <div className="space-y-2 py-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-subtle)]/60 border border-[var(--border)]/60 animate-pulse"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-5 h-3 bg-white/10 rounded shrink-0" />
+                    <div className="w-9 h-9 rounded-md bg-white/10 shrink-0" />
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="w-36 sm:w-52 h-3.5 bg-white/10 rounded" />
+                      <div className="w-24 sm:w-32 h-2.5 bg-white/5 rounded" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-14 h-4 bg-white/5 rounded hidden sm:block" />
+                    <div className="w-9 h-5 bg-white/10 rounded" />
+                    <div className="w-12 h-5 bg-white/10 rounded" />
+                    <div className="w-6 h-6 bg-white/10 rounded-full" />
+                    <div className="w-6 h-6 bg-white/10 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentDownloads.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
+              <Music2 size={24} className="opacity-30" />
+              <span>Chưa có bài hát nào được tải về. Hãy nhập link YouTube để bắt đầu tải!</span>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 animate-in fade-in duration-200">
               {recentDownloads.map((item, idx) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors border border-transparent hover:border-[var(--border)] group text-xs"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-5 text-center text-[var(--text-muted)] font-mono text-[11px] shrink-0">
+                    <span className="w-5 text-center text-[var(--text-muted)]  text-[11px] shrink-0">
                       {idx + 1}
                     </span>
 
@@ -441,36 +680,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </div>
 
                     {/* Tiêu đề & Nghệ sĩ */}
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white truncate max-w-[280px] sm:max-w-md">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-white truncate max-w-[200px] sm:max-w-xs md:max-w-sm">
                         {item.title}
                       </div>
-                      <div className="text-[11px] text-[var(--text-muted)] truncate max-w-[280px]">
-                        {item.artist} {item.album ? `• ${item.album}` : ''}
+                      <div className="text-[11px] text-[var(--text-muted)] truncate max-w-[240px] flex items-center gap-1.5">
+                        <span className="truncate">{item.artist}</span>
+                        {item.album && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{item.album}</span>
+                          </>
+                        )}
+                        <span className="sm:hidden text-[10px] text-[var(--text-muted)] opacity-80">
+                          • {formatDownloadDate(item.createdAt).relative}
+                        </span>
                       </div>
                     </div>
                   </div>
 
+                  {/* Thời gian tải (Download Date & Time) - Hiển thị chuẩn như bên Lịch sử */}
+                  <div className="hidden sm:flex items-center px-3 shrink-0">
+                    <DownloadTimeDisplay dateStr={item.createdAt} />
+                  </div>
+
                   {/* Actions & Format */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-secondary)] uppercase">
-                      {item.format}
-                    </span>
-
-                    {item.fileExists === false ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/25 font-bold">
-                        Mất tệp
-                      </span>
-                    ) : item.uploadedToR2 ? (
-                      <span className="text-[10.5px] text-sky-400 flex items-center gap-1 font-medium">
-                        <CheckCircle2 size={11} />
-                        <span className="hidden sm:inline">R2 Cloud</span>
-                      </span>
-                    ) : (
-                      <span className="text-[10.5px] text-amber-400 font-medium">
-                        Cục bộ
-                      </span>
-                    )}
+                    <AudioFormatBadge format={item.format} />
+                    <StorageStatusBadge fileExists={item.fileExists} uploadedToR2={item.uploadedToR2} />
 
                     <button
                       type="button"
@@ -486,17 +723,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           handlePlayAudio(item);
                         }
                       }}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-                        playingTrackId === item.id && isAudioPlaying
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${playingTrackId === item.id && isAudioPlaying
                           ? 'bg-[#1DB954] text-black shadow-md'
                           : 'bg-[var(--bg-subtle)] hover:bg-[#1DB954] hover:text-black text-white'
-                      }`}
+                        }`}
                       title={
                         item.fileExists === false
                           ? 'Tệp đã bị xóa khỏi đĩa cứng'
                           : playingTrackId === item.id && isAudioPlaying
-                          ? 'Tạm dừng'
-                          : 'Phát nghe thử'
+                            ? 'Tạm dừng'
+                            : 'Phát nghe thử'
                       }
                     >
                       {playingTrackId === item.id && isAudioPlaying ? (

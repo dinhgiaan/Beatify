@@ -48,6 +48,8 @@
 - [x] Web Dashboard: Chuẩn hoá 100% SVG Vector Icons với `lucide-react`, loại bỏ hoàn toàn emoji (`🎵`, `💿`, `📁`), nâng cấp Tooltip thành Premium Glassmorphism Card (header badge trạng thái, metrics chips, box bài hát nổi bật, đường dẫn thư mục sắc nét).
 - [x] Web Dashboard: Tái thiết kế Popover Vòng lặp dạng Horizontal Capsule siêu mỏng gọn (1 hàng ngang `h-8/h-9`, Stepper lặp X lần + Vô tận); Portal Audio Player Dock trực tiếp ra `document.body` ở tầng `z-[70]` (nổi trên mọi Dialog `z-50`, bấm phát nhạc trong dialog là thanh player hiện và điều khiển được ngay).
 - [x] Web Dashboard & Backend: Chuẩn hoá phân loại Singles & Albums chuẩn Spotify (phân tách Album phòng thu vs Singles & EPs, đếm `albumCount` chuẩn xác chỉ tính album thật, hiển thị `X album • Y đĩa đơn` trên toàn bộ Card Grid, Table View, Dialog và Full Page View).
+- [x] Web Dashboard: Hoàn thiện trải nghiệm tải trang không giật nảy (Zero Content-Flash): Skeleton Loading Rows chuẩn Spotify cho Bài hát đã tải gần đây, trạng thái `● Đang kiểm tra...` cho Engine hệ thống (yt-dlp, FFmpeg), Skeleton cho "Xem tất cả ()" & 4 thẻ Metrics; Tái sử dụng component `DownloadTimeDisplay` hiển thị thời gian tải đồng nhất trên toàn bộ Dashboard và Lịch sử.
+- [x] Web Dashboard: Hợp nhất hoàn toàn trải nghiệm giữa "Quản lý bài tải" và "Lịch sử tải" thành một mục thống nhất **"Quản lý & Lịch sử"** (`/youtube-music/manager`) trên Sidebar, tích hợp thanh Sub-tabs `ModuleNavTabs` (`[ 📂 Quản lý tệp & R2 ]` vs `[ 📜 Lịch sử tải & Chi tiết ]`) giúp chuyển đổi không gian quản lý tức thì mà không phân mảnh giao diện hay chia rẽ tính năng.
 - [x] Backend & Image Service: Nâng cấp định dạng tải ảnh đại diện nghệ sĩ sang `.png` chất lượng cao Lossless (`artist.png`), đồng thời giữ nguyên cơ chế tương thích Windows Explorer (`folder.png` + `desktop.ini` trỏ tới `artist.png`) bảo đảm thư mục hiển thị ảnh bìa 100%.
 - [x] Web Dashboard UI/UX: Nâng cấp Popup Dialog chi tiết nghệ sĩ to bự hơn (`w-[94vw] max-w-5xl max-h-[88vh]`, avatar to 160px, bố cục Album & Singles 5 cột rộng rãi), xóa bỏ trang riêng toàn màn hình và hộp thoại Choice Modal rườm rà, click vào bất kỳ thẻ hay hàng nghệ sĩ là mở trực tiếp popup dialog ngay lập tức.
 - [x] Web Dashboard & YouTube Music Suite (`tools/dashboard` + `tools/indexer`):
@@ -103,6 +105,38 @@
       - Tăng độ to UI/UX thêm 10% (đặt `zoom: 0.9`, chỉ giảm 10% so với bản gốc) giúp chữ, icon và các khối hiển thị rõ ràng, dễ nhìn hơn; độc lập giữ nguyên kích thước Sidebar.
       - Tích hợp chuẩn giao diện **Dependency Pills & Rich Tooltips** kế thừa từ Toolkit: hover vào `yt-dlp`, `ffmpeg`, `Node.js` sẽ hiện tooltip đầy đủ thông tin (tên engine, phiên bản ngày CalVer/build, trạng thái hoạt động, mô tả, và ô chứa **đường dẫn tệp thực thi đầy đủ Full Path** hỗ trợ select/copy).
       - Sửa dứt điểm lỗi hiển thị thiếu yt-dlp & ffmpeg: nạp PATH động từ Windows Registry (User + Machine) và thư mục WinGet Packages vào tiến trình in-memory, server đã nhận diện chính xác 100% cả `yt-dlp` và `ffmpeg`.
+      - **Hiển thị Thời gian tải trên Bảng điều khiển (Dashboard) & Gom cụm Tái sử dụng Component (DRY Refactor)**:
+        - Xây dựng module dùng chung `formatters.ts` (`formatDownloadDate`, `formatBytes`, `formatSeconds`) chuẩn hóa format thời gian tiếng Việt và relative time ("Vừa xong", "X phút trước", "Hôm qua...").
+        - Tạo bộ component phân tử tái sử dụng `TrackBadges.tsx` (`DownloadTimeDisplay`, `AudioFormatBadge`, `StorageStatusBadge`, `LyricsBadge`).
+        - Bổ sung cột hiển thị **Thời gian tải** (giờ & ngày tải, font mono `tabular-nums` sắc nét, kèm tooltip) vào mục "Bài hát đã tải gần đây" trên Bảng điều khiển (`DashboardPage`), đồng bộ hiển thị chuẩn mực như bên trang Lịch sử (`HistoryPage`).
+        - Loại bỏ mã nguồn duplicate trên `DownloadedVideosManagerPage` và `HistoryPage`, tối ưu hóa hiệu năng render.
+      - **Khắc phục triệt để 5 lỗi Bug & Đồng bộ hệ thống Web Quản lý & Backend Indexer**:
+        - **Sửa lỗi đối chiếu R2 Key trong `verifyDownloads` (`youtubeJobRunner.ts`)**: Bổ sung `trackId` vào `YoutubeMusicDownloadRecordSchema`, tính mã băm SHA-1 (12 ký tự hex) khi quét và đối chiếu chính xác với key trên Cloudflare R2 (`music/${trackId}.${ext}`). Đã có 3 unit test tự động xác thực thành công.
+        - **Tối ưu Đồng bộ vi sai (Incremental Sync) trong `/local-api/sync` (`index.ts`)**: Lấy danh sách key đã có trên R2, tự động bỏ qua các file âm thanh và ảnh bìa đã tồn tại sẵn trên Cloud, chỉ tải lên các bài mới/sửa đổi. Tốc độ đồng bộ tăng từ hàng chục phút xuống chỉ còn vài giây, tiết kiệm tối đa hạn ngạch Class A PutObject của Cloudflare R2.
+        - **Triệt tiêu nghẽn Disk I/O & CPU do Polling 10 giây/lần (`/local-api/status`)**: Triển khai cơ chế cache in-memory với TTL 25 giây, tính toán dung lượng qua `statSync` siêu nhanh từ danh sách bài quét thay vì đọc toàn bộ byte và băm SHA-1 liên tục; chủ động xóa cache (`invalidateStatusCache`) ngay khi có thao tác sửa tag, xóa bài hoặc upload mới. Tăng chu kỳ polling ở `SidebarNav` lên 25 giây.
+        - **Khắc phục lỗi xóa bài khỏi RAM Cache (`DELETE /api/youtube-music/downloads/:id`)**: Sửa điều kiện lọc của `cachedScannedTracks` đối chiếu chuẩn hóa theo cả `trackId` và `filePath`, đảm bảo bài hát bị xóa biến mất ngay lập tức khỏi bộ nhớ server mà không cần khởi động lại.
+        - **Bảo toàn cấu trúc thư mục phân cấp khi Upload R2 (`uploadDownloadToR2`)**: Sửa lỗi ném file phẳng ra thư mục gốc `sourceDir`; tự động bảo toàn phân cấp thư mục sạch đẹp theo định dạng chuẩn Windows Explorer `Nghệ sĩ / Album / Tên bài` qua `PathSanitizer.sanitizeSegment`.
+      - **Triển khai toàn diện 5 Tính năng Tiềm năng Nâng cấp Hệ thống (Mục II)**:
+        - **1. Thùng rác (Trash Page) — Khôi phục hàng loạt & Dọn sạch thùng rác (Empty Trash)**:
+          - Bổ sung `batchRestoreFromTrash` và `batchPurgeFromTrash` trong `overridesManager.ts`.
+          - Xây dựng 2 API mới: `POST /local-api/trash/restore` (khôi phục danh sách đã chọn hoặc toàn bộ) và `POST /local-api/trash/empty` (xóa vĩnh viễn hàng loạt, tự động dọn dẹp file lời `.lrc`, ảnh bìa album mồ côi và hỗ trợ tùy chọn xóa đồng thời trên Cloudflare R2).
+          - Giao diện `TrashPage.tsx`: Checkbox chọn từng bài + chọn tất cả, thanh Floating Action Bar thao tác hàng loạt, và nút "Dọn sạch thùng rác" trên Header với hộp thoại xác nhận cảnh báo an toàn. Có bộ 3 unit test tự động xác thực `trashBatch.test.ts`.
+        - **2. Bộ lọc thông minh trên Thư viện (Library Page Smart Filters)**:
+          - Giao diện `LibraryPage.tsx`: Bổ sung hàng Quick Filter Pills 1-click kèm badge số lượng thời gian thực: *Tất cả*, *Chưa có lời*, *Chưa có ảnh bìa*, *Thiếu lời / bìa*, *Chưa upload R2*, *Mất tệp đĩa*.
+          - Kết hợp đồng bộ với ô tìm kiếm từ khóa và bộ lọc định dạng âm thanh.
+        - **3. Đồng nhất số liệu Bảng điều khiển (Dashboard Overview Scope) & Trải nghiệm Nạp dữ liệu (Skeleton Loading)**:
+          - Truy vấn toàn diện danh sách bài hát thực tế từ `/local-api/tracks` trên ổ cứng kết hợp với bài tải YouTube.
+          - Bổ sung thanh chuyển đổi Scope thống kê: *Toàn bộ thư viện máy* (tổng kho nhạc) vs *Nhạc tải YouTube*, giúp các thẻ KPI (% Upload R2, % Độ phủ Lời bài hát, % Độ phủ Ảnh bìa) phản ánh chính xác 100% tình trạng thư viện mà không bị lệch số liệu.
+          - **Khắc phục triệt để hiện tượng giật nảy / flash nội dung khi vào trang**:
+            - Bổ sung trạng thái Loading êm dịu (`isDepsLoading`, `isHistoryLoading`).
+            - Khối Engine Hệ thống: hiển thị `● Đang kiểm tra...` (chấm vàng pulse) thay vì nhảy báo đỏ `○ Chưa cài đặt` rồi mới đổi sang xanh.
+            - Bảng bài hát đã tải gần đây: tích hợp bộ khung xương **Skeleton Loading Rows** chuẩn Spotify (`animate-pulse`) với hiệu ứng fade-in mượt mà, loại bỏ hoàn toàn tình trạng hiện text rỗng rồi nhảy bài hát đột ngột.
+        - **4. Tự động quét & nạp lời hàng loạt từ LRCLIB (Batch Auto-Fetch Lyrics)**:
+          - Xây dựng endpoint `POST /local-api/lyrics/batch-fetch`: Tự động tra cứu LRCLIB theo `Title - Artist` (kèm fallback hoán đổi thứ tự) cho các bài còn thiếu lời, lưu file `.lrc` đồng bộ trực tiếp vào thư mục `lyrics/`.
+          - Tích hợp nút thao tác nhanh "Tự động tải lời" trên Toolbar và Floating Batch Bar của `LibraryPage.tsx`.
+        - **5. Quét & Đo độ ồn chuẩn hóa âm lượng hàng loạt (Batch ReplayGain / LUFS Scanner)**:
+          - Xây dựng endpoint `POST /local-api/tracks/batch-replaygain`: Sử dụng `ffmpeg -af loudnorm` đo độ ồn tích hợp LUFS chuẩn EBU R128 và tính ReplayGain (`-18.0 - input_i`), tự động lưu vào `overrides.json` và làm mới cache.
+          - Tích hợp nút "Đo ReplayGain" trên Toolbar và Floating Batch Bar của `LibraryPage.tsx`. Có bộ unit tests xác thực `batchEndpoints.test.ts`.
     - **Nâng cấp Animation với Framer Motion & Mang toàn bộ chi tiết Lịch sử Tải nhạc từ Toolkit**:
       - Cài đặt `framer-motion` cho `tools/dashboard`.
       - Chuyển trọn vẹn 100% trang `HistoryPage.tsx` từ `Toolkit`:

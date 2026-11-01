@@ -736,14 +736,20 @@ export const YoutubeService = {
               await fsPromises.writeFile(artistFolderPngPath, avatarBuf);
             }
 
-            // Dọn dẹp file artist.jpg / folder.jpg cũ nếu có để tránh trùng lặp 2 file
+            // Dọn dẹp triệt để file artist.jpg / folder.jpg cũ nếu có (gỡ cờ hệ thống Windows trước khi unlink)
             const oldArtistJpg = path.join(artistDir, 'artist.jpg');
             if (fs.existsSync(oldArtistJpg)) {
-              try { await fsPromises.unlink(oldArtistJpg); } catch { /* bỏ qua */ }
+              try {
+                if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldArtistJpg]);
+                await fsPromises.unlink(oldArtistJpg);
+              } catch { /* bỏ qua */ }
             }
             const oldFolderJpg = path.join(artistDir, 'folder.jpg');
             if (fs.existsSync(oldFolderJpg)) {
-              try { await fsPromises.unlink(oldFolderJpg); } catch { /* bỏ qua */ }
+              try {
+                if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldFolderJpg]);
+                await fsPromises.unlink(oldFolderJpg);
+              } catch { /* bỏ qua */ }
             }
 
             // Ghi metadata tab Details (Curator: Kato) chuyên nghiệp cho các file ảnh PNG
@@ -770,27 +776,28 @@ export const YoutubeService = {
             if (process.platform === 'win32') {
               try {
                 const artistIniPath = path.join(artistDir, 'desktop.ini');
-                if (!fs.existsSync(artistIniPath)) {
-                  const artistIniContent = [
-                    '[.ShellClassInfo]',
-                    'FolderType=Generic',
-                    '[ViewState]',
-                    'Mode=1',
-                    'Vid=',
-                    'FolderType=Generic',
-                    'Logo=artist.png',
-                    '',
-                  ].join('\r\n');
-                  await fsPromises.writeFile(artistIniPath, artistIniContent, 'utf-8');
-                  execFileSync('attrib', ['+r', artistDir]);
-                  execFileSync('attrib', ['+h', '+s', artistIniPath]);
+                if (fs.existsSync(artistIniPath)) {
+                  try { execFileSync('attrib', ['-r', '-h', '-s', artistIniPath]); } catch { /* bỏ qua */ }
                 }
+                const artistIniContent = [
+                  '[.ShellClassInfo]',
+                  'FolderType=Generic',
+                  '[ViewState]',
+                  'Mode=1',
+                  'Vid=',
+                  'FolderType=Generic',
+                  'Logo=artist.png',
+                  '',
+                ].join('\r\n');
+                await fsPromises.writeFile(artistIniPath, artistIniContent, 'utf-8');
+                execFileSync('attrib', ['+r', artistDir]);
+                execFileSync('attrib', ['+h', '+s', artistIniPath]);
               } catch {
                 /* bỏ qua */
               }
             }
 
-            artistAvatarStatus = 'Đã tải thành công avatar channel YouTube (artist.jpg)';
+            artistAvatarStatus = 'Đã tải thành công avatar channel YouTube (artist.png)';
           } else {
             artistAvatarStatus = 'Không tìm thấy avatar channel của video này';
           }
@@ -1038,3 +1045,5 @@ export const YoutubeService = {
     }
   },
 };
+
+export const youtubeService = YoutubeService;

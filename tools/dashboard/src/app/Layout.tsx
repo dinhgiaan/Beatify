@@ -15,6 +15,8 @@ import {
   Repeat,
   Repeat1,
   Shuffle,
+  SkipBack,
+  SkipForward,
   Mic2,
   Minus,
   Plus,
@@ -39,8 +41,10 @@ export interface PlayingTrack {
 export const Layout: React.FC = () => {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
-  // Audio player dock state
+  // Audio player dock state & Queue
   const [currentTrack, setCurrentTrack] = useState<PlayingTrack | null>(null);
+  const [queue, setQueue] = useState<PlayingTrack[]>([]);
+  const [queueIndex, setQueueIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -208,7 +212,54 @@ export const Layout: React.FC = () => {
     };
   }, [currentTrack, isPlaying]);
 
-  const handlePlayTrack = async (track: PlayingTrack) => {
+  // Phím tắt Space toàn cục (Tạm dừng / Tiếp tục phát nhạc nhanh)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      togglePlayPause();
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isPlaying, currentTrack]);
+
+  const handlePlayTrack = async (
+    track: PlayingTrack,
+    newQueue?: PlayingTrack[],
+    forcedIdx?: number
+  ) => {
+    // Nếu có danh sách phát (Queue) mới được truyền vào: cập nhật Queue
+    if (newQueue && newQueue.length > 0) {
+      setQueue(newQueue);
+      const idx =
+        forcedIdx !== undefined
+          ? forcedIdx
+          : newQueue.findIndex((t) => (t.id && track.id ? t.id === track.id : t.fileUrl === track.fileUrl));
+      setQueueIndex(idx >= 0 ? idx : 0);
+    } else if (queue.length === 0) {
+      setQueue([track]);
+      setQueueIndex(0);
+    } else {
+      const idx = queue.findIndex((t) => (t.id && track.id ? t.id === track.id : t.fileUrl === track.fileUrl));
+      if (idx >= 0) {
+        setQueueIndex(idx);
+      } else {
+        setQueue((prev) => [...prev, track]);
+        setQueueIndex(queue.length);
+      }
+    }
+
     // Nếu bấm lại chính bài hát đang có trong player: toggle phát / tạm dừng
     if (currentTrack?.id && track.id && currentTrack.id === track.id) {
       if (audioRef.current) {
@@ -259,6 +310,41 @@ export const Layout: React.FC = () => {
       audioRef.current.src = track.fileUrl;
       audioRef.current.volume = isMuted ? 0 : volume;
       audioRef.current.play().catch(() => {});
+    }
+  };
+
+  const playNextTrack = () => {
+    if (queue.length === 0) return;
+    let nextIdx: number;
+    if (isShuffle && queue.length > 1) {
+      let rand = Math.floor(Math.random() * queue.length);
+      while (rand === queueIndex) {
+        rand = Math.floor(Math.random() * queue.length);
+      }
+      nextIdx = rand;
+    } else {
+      nextIdx = (queueIndex + 1) % queue.length;
+    }
+    const nextTrack = queue[nextIdx];
+    if (nextTrack) {
+      setQueueIndex(nextIdx);
+      handlePlayTrack(nextTrack, queue, nextIdx);
+    }
+  };
+
+  const playPreviousTrack = () => {
+    if (!audioRef.current || queue.length === 0) return;
+    // Nếu bài đã phát hơn 3 giây: tua về đầu bài
+    if (audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      return;
+    }
+    const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
+    const prevTrack = queue[prevIdx];
+    if (prevTrack) {
+      setQueueIndex(prevIdx);
+      handlePlayTrack(prevTrack, queue, prevIdx);
     }
   };
 
@@ -367,6 +453,9 @@ export const Layout: React.FC = () => {
         setLoopMode('none');
         setIsPlaying(false);
       }
+    } else if (queue.length > 1) {
+      // Tự động chuyển sang bài tiếp theo trong hàng đợi (hoặc bài ngẫu nhiên nếu bật Shuffle)
+      playNextTrack();
     } else {
       setIsPlaying(false);
     }
@@ -430,6 +519,8 @@ export const Layout: React.FC = () => {
                     playingTrackId: currentTrack?.id,
                     isAudioPlaying: isPlaying,
                     onTogglePlayPause: togglePlayPause,
+                    onPlayNext: playNextTrack,
+                    onPlayPrevious: playPreviousTrack,
                   }}
                 />
               </ErrorBoundary>
@@ -485,7 +576,7 @@ export const Layout: React.FC = () => {
               {/* Center: Controls & Timeline */}
               <div className="flex flex-col items-center gap-1.5 flex-1 max-w-[620px]">
                 {/* Buttons row */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   {/* Shuffle Button */}
                   <button
                     type="button"
@@ -498,14 +589,25 @@ export const Layout: React.FC = () => {
                     <Shuffle size={14} />
                   </button>
 
+                  {/* Previous Track */}
+                  <button
+                    type="button"
+                    onClick={playPreviousTrack}
+                    disabled={queue.length <= 1 && (!audioRef.current || audioRef.current.currentTime <= 3)}
+                    className="p-1.5 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Bài trước đó (hoặc tua về đầu bài)"
+                  >
+                    <SkipBack size={15} fill="currentColor" />
+                  </button>
+
                   {/* Seek Backward 5s */}
                   <button
                     type="button"
                     onClick={seekBackward5s}
-                    className="p-1.5 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                    className="p-1 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
                     title="Tua lùi 5 giây"
                   >
-                    <RotateCcw size={14} />
+                    <RotateCcw size={13} />
                   </button>
 
                   {/* Play / Pause Main Button */}
@@ -523,10 +625,21 @@ export const Layout: React.FC = () => {
                   <button
                     type="button"
                     onClick={seekForward5s}
-                    className="p-1.5 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                    className="p-1 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
                     title="Tua tới 5 giây"
                   >
-                    <RotateCw size={14} />
+                    <RotateCw size={13} />
+                  </button>
+
+                  {/* Next Track */}
+                  <button
+                    type="button"
+                    onClick={playNextTrack}
+                    disabled={queue.length <= 1}
+                    className="p-1.5 rounded text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Bài kế tiếp trong hàng đợi"
+                  >
+                    <SkipForward size={15} fill="currentColor" />
                   </button>
 
                   {/* Loop Button with custom popover */}

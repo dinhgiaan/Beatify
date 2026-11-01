@@ -12,7 +12,7 @@ import { findAudioFiles, scanAudioFile, calculateTrackId } from '../services/sca
 import type { ScannedTrack } from '../services/scanner';
 import { buildLibrary } from '../services/libraryBuilder';
 import { R2Uploader } from '../services/r2Uploader';
-import { getOverrides, setTrackOverride, applyOverridesToScanned, moveToTrash, restoreFromTrash, purgeFromTrash, setArtistAliases } from '../services/overridesManager';
+import { getOverrides, setTrackOverride, applyOverridesToScanned, moveToTrash, restoreFromTrash, batchRestoreFromTrash, purgeFromTrash, batchPurgeFromTrash, setArtistAliases } from '../services/overridesManager';
 import { updateFoldersConfig } from '../services/configManager';
 import { pickFolderNative } from '../services/folderPicker';
 import crypto from 'crypto';
@@ -22,7 +22,7 @@ import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/cl
 import { DependencyChecker } from '../services/dependencyChecker';
 import { LyricsService } from '../services/lyricsService';
 import { youtubeJobRunner } from '../services/youtubeJobRunner';
-import { resolveArtistDirectory, hasArtistImage, getArtistImagePath, fetchChannelAvatarBuffer } from '../services/youtubeService';
+import { resolveArtistDirectory, hasArtistImage, getArtistImagePath, fetchChannelAvatarBuffer, youtubeService } from '../services/youtubeService';
 import { applyArtistImageMetadata } from '../services/imageMetadataService';
 import { PathSanitizer } from '../services/pathSanitizer';
 import type { JobEvent } from '@music-app/shared';
@@ -52,6 +52,56 @@ const cachedCovers = new Map<string, Buffer>();
 
 let cachedR2TrackKeys = new Set<string>();
 let lastR2KeysFetchTime = 0;
+
+let cachedR2CoverKeys = new Set<string>();
+let lastR2CoverKeysFetchTime = 0;
+
+async function getR2CoverKeys(forceRefresh = false): Promise<Set<string>> {
+  const now = Date.now();
+  if (!forceRefresh && cachedR2CoverKeys.size > 0 && now - lastR2CoverKeysFetchTime < 60000) {
+    return cachedR2CoverKeys;
+  }
+  const localConfig = loadLocalConfig();
+  if (
+    localConfig.isR2Configured &&
+    localConfig.R2_ACCOUNT_ID &&
+    localConfig.R2_ACCESS_KEY_ID &&
+    localConfig.R2_SECRET_ACCESS_KEY &&
+    localConfig.R2_BUCKET
+  ) {
+    try {
+      const s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${localConfig.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: localConfig.R2_ACCESS_KEY_ID,
+          secretAccessKey: localConfig.R2_SECRET_ACCESS_KEY,
+        },
+      });
+      const r2Res = await s3.send(
+        new ListObjectsV2Command({ Bucket: localConfig.R2_BUCKET, Prefix: 'covers/' })
+      );
+      if (r2Res.Contents) {
+        cachedR2CoverKeys = new Set(r2Res.Contents.map((o) => o.Key || '').filter(Boolean));
+        lastR2CoverKeysFetchTime = now;
+      }
+    } catch {
+      // bỏ qua
+    }
+  }
+  return cachedR2CoverKeys;
+}
+
+let cachedStatusResponse: Record<string, unknown> | null = null;
+let lastStatusFetchTime = 0;
+const STATUS_CACHE_TTL_MS = 25000;
+
+function invalidateStatusCache() {
+  cachedStatusResponse = null;
+  lastStatusFetchTime = 0;
+  cachedR2TrackKeys.clear();
+  cachedR2CoverKeys.clear();
+}
 
 async function getR2TrackKeys(forceRefresh = false): Promise<Set<string>> {
   const now = Date.now();
@@ -102,6 +152,11 @@ app.use('*', cors());
 
 // 1. API: Trạng thái & Thống kê hệ thống (Chỉ tính bài hát còn hoạt động, loại trừ bài ẩn/đã xóa)
 app.get('/local-api/status', async (c) => {
+  const now = Date.now();
+  if (cachedStatusResponse && now - lastStatusFetchTime < STATUS_CACHE_TTL_MS) {
+    return c.json(cachedStatusResponse);
+  }
+
   const localConfig = loadLocalConfig();
   let totalBytes = 0;
   let fileCount = 0;
@@ -111,24 +166,21 @@ app.get('/local-api/status', async (c) => {
   let unsyncedCount = 0;
 
   try {
-    const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
     const overrides = await getOverrides();
-
-    // Lấy danh sách keys đã có trên R2
     const r2Keys = await getR2TrackKeys();
 
-    for (const f of files) {
-      const item = await scanAudioFile(f);
-      if (item) {
+    if (cachedScannedTracks.length > 0) {
+      // Dùng dữ liệu cache đã có để tính toán siêu tốc (không băm lại SHA-1, không nghẽn Disk I/O)
+      for (const item of cachedScannedTracks) {
         const ov = overrides.tracks[item.track.id];
         if (!ov?.hidden && !ov?.purged) {
           fileCount++;
           let size = 0;
           try {
-            size = statSync(f).size;
+            size = statSync(item.filePath).size;
             totalBytes += size;
           } catch {
-            // bỏ qua
+            // bỏ qua lỗi stat
           }
 
           if (r2Keys.has(item.track.file)) {
@@ -140,6 +192,23 @@ app.get('/local-api/status', async (c) => {
           }
         }
       }
+    } else {
+      // Nếu cache RAM chưa nạp, duyệt file và stat kích thước nhanh chóng
+      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      fileCount = files.length;
+      for (const f of files) {
+        try {
+          const sz = statSync(f).size;
+          totalBytes += sz;
+        } catch {
+          // bỏ qua
+        }
+      }
+      // Ước tính tạm thời cho đến khi library được nạp
+      syncedBytes = 0;
+      syncedCount = 0;
+      unsyncedBytes = totalBytes;
+      unsyncedCount = fileCount;
     }
   } catch {
     // bỏ qua lỗi đọc thư mục
@@ -149,7 +218,7 @@ app.get('/local-api/status', async (c) => {
   const unsyncedMB = (unsyncedBytes / (1024 * 1024)).toFixed(1);
   const usedPercent = ((syncedBytes / (10 * 1024 * 1024 * 1024)) * 100).toFixed(2);
 
-  return c.json({
+  const resData = {
     status: 200,
     configured: localConfig.isR2Configured,
     bucket: localConfig.R2_BUCKET || 'beatify-music',
@@ -167,7 +236,12 @@ app.get('/local-api/status', async (c) => {
     unsyncedCount,
     freeLimitGB: 10,
     usedPercent,
-  });
+  };
+
+  cachedStatusResponse = resData;
+  lastStatusFetchTime = now;
+
+  return c.json(resData);
 });
 
 // 2. API: Lấy dữ liệu chi tiết (bài hát, albums, nghệ sĩ, thống kê định dạng)
@@ -635,6 +709,173 @@ app.post('/local-api/tracks/:id/lyrics', async (c) => {
   return c.json({ status: 200, message: 'Đã lưu lời bài hát thành công' });
 });
 
+// 4.4. API: Tự động quét & tải lời bài hát hàng loạt từ LRCLIB (Batch Auto-Fetch Lyrics)
+app.post('/local-api/lyrics/batch-fetch', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[]; forceOverwrite?: boolean };
+  const requestedIds = Array.isArray(body?.ids) && body.ids.length > 0 ? new Set(body.ids) : null;
+  const forceOverwrite = Boolean(body?.forceOverwrite);
+
+  const localConfig = loadLocalConfig();
+  if (cachedScannedTracks.length === 0) {
+    try {
+      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      const scanned: ScannedTrack[] = [];
+      for (const f of files) {
+        const tr = await scanAudioFile(f);
+        if (tr) scanned.push(tr);
+      }
+      const overrides = await getOverrides();
+      cachedScannedTracks = applyOverridesToScanned(scanned, overrides);
+    } catch (e) {
+      return c.json({ status: 500, error: 'Không thể quét danh sách bài hát: ' + String(e) }, 500);
+    }
+  }
+
+  await fs.mkdir(LYRICS_DIR, { recursive: true });
+
+  const targetTracks = cachedScannedTracks.filter((t) => {
+    if (requestedIds) return requestedIds.has(t.track.id);
+    if (forceOverwrite) return true;
+    const lrcPath = path.join(LYRICS_DIR, `${t.track.id}.lrc`);
+    return !existsSync(lrcPath);
+  });
+
+  if (targetTracks.length === 0) {
+    return c.json({
+      status: 200,
+      message: 'Tất cả bài hát đã có lời hoặc không có bài phù hợp',
+      total: 0,
+      successCount: 0,
+      notFoundCount: 0,
+    });
+  }
+
+  let successCount = 0;
+  let notFoundCount = 0;
+  const results: Array<{ id: string; title: string; artist: string; success: boolean; source?: string }> = [];
+
+  for (const item of targetTracks) {
+    const track = item.track;
+    try {
+      let lrc = await LyricsService.fetchLyrics(track.title, track.artist, track.duration);
+      if (!lrc?.syncedLyrics && !lrc?.plainLyrics && track.artist && track.title) {
+        const flipped = await LyricsService.fetchLyrics(track.artist, track.title, track.duration);
+        if (flipped?.syncedLyrics || flipped?.plainLyrics) {
+          lrc = flipped;
+        }
+      }
+
+      const lyricsContent = lrc?.syncedLyrics || lrc?.plainLyrics;
+      if (lyricsContent) {
+        const destPath = path.join(LYRICS_DIR, `${track.id}.lrc`);
+        await fs.writeFile(destPath, lyricsContent, 'utf-8');
+        successCount++;
+        results.push({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          success: true,
+          source: lrc?.syncedLyrics ? 'lrclib-synced' : 'lrclib-plain',
+        });
+      } else {
+        notFoundCount++;
+        results.push({ id: track.id, title: track.title, artist: track.artist, success: false });
+      }
+    } catch {
+      notFoundCount++;
+      results.push({ id: track.id, title: track.title, artist: track.artist, success: false });
+    }
+  }
+
+  // Làm mới trạng thái cache
+  cachedScannedTracks = [];
+  invalidateStatusCache();
+
+  return c.json({
+    status: 200,
+    message: `Đã hoàn tất tìm kiếm lời: ${successCount} bài thành công, ${notFoundCount} bài chưa tìm thấy`,
+    total: targetTracks.length,
+    successCount,
+    notFoundCount,
+    results,
+  });
+});
+
+// 4.5. API: Quét và đo độ ồn chuẩn hóa âm lượng hàng loạt (Batch ReplayGain / LUFS Scanner)
+app.post('/local-api/tracks/batch-replaygain', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[] };
+  const requestedIds = Array.isArray(body?.ids) && body.ids.length > 0 ? new Set(body.ids) : null;
+
+  const localConfig = loadLocalConfig();
+  if (cachedScannedTracks.length === 0) {
+    try {
+      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      const scanned: ScannedTrack[] = [];
+      for (const f of files) {
+        const tr = await scanAudioFile(f);
+        if (tr) scanned.push(tr);
+      }
+      const overrides = await getOverrides();
+      cachedScannedTracks = applyOverridesToScanned(scanned, overrides);
+    } catch (e) {
+      return c.json({ status: 500, error: 'Không thể quét danh sách bài hát: ' + String(e) }, 500);
+    }
+  }
+
+  const targetTracks = cachedScannedTracks.filter((t) => {
+    if (requestedIds) return requestedIds.has(t.track.id);
+    // Mặc định quét những bài chưa có ReplayGain hoặc giá trị 0.0
+    return t.track.replayGain === undefined || t.track.replayGain === 0;
+  });
+
+  if (targetTracks.length === 0) {
+    return c.json({ status: 200, message: 'Tất cả bài hát đều đã được đo ReplayGain', total: 0, successCount: 0 });
+  }
+
+  let successCount = 0;
+  let failedCount = 0;
+  const results: Array<{ id: string; title: string; loudnessLufs: number; replayGain: number }> = [];
+
+  for (const item of targetTracks) {
+    try {
+      const audioPath = item.filePath;
+      if (!existsSync(audioPath)) {
+        failedCount++;
+        continue;
+      }
+
+      const res = await youtubeService.measureLoudness(audioPath);
+      await setTrackOverride(item.track.id, {
+        loudnessLufs: res.loudnessLufs,
+        replayGain: res.replayGain,
+      });
+
+      successCount++;
+      results.push({
+        id: item.track.id,
+        title: item.track.title,
+        loudnessLufs: res.loudnessLufs,
+        replayGain: res.replayGain,
+      });
+    } catch {
+      failedCount++;
+    }
+  }
+
+  // Làm mới trạng thái cache
+  cachedScannedTracks = [];
+  invalidateStatusCache();
+
+  return c.json({
+    status: 200,
+    message: `Đã đo độ ồn chuẩn ReplayGain cho ${successCount} bài hát thành công`,
+    total: targetTracks.length,
+    successCount,
+    failedCount,
+    results,
+  });
+});
+
 // 5. API: Quét xem trước các file nhập mới (Import Preview / Inspect)
 app.post('/local-api/import/inspect', async (c) => {
   const body = await c.req.parseBody({ all: true });
@@ -952,21 +1193,42 @@ app.post('/local-api/sync', async (c) => {
     const { library, coversByAlbumId } = buildLibrary(scannedTracks);
     const uploader = new R2Uploader(config);
 
+    // Lấy danh sách keys đã có sẵn trên R2 để đồng bộ vi sai (Incremental Sync)
+    const existingR2Keys = await getR2TrackKeys(true);
+    const existingCoverKeys = await getR2CoverKeys(true);
+
     const totalSteps = scannedTracks.length + coversByAlbumId.size + 1;
     let completedSteps = 0;
+    let newAudioUploaded = 0;
+    let newCoversUploaded = 0;
 
     for (const [i, item] of scannedTracks.entries()) {
       completedSteps++;
       const pct = 15 + Math.round((completedSteps / totalSteps) * 70);
-      currentSyncProgress = {
-        active: true,
-        step: `Đang tải âm thanh (${i + 1}/${scannedTracks.length}): "${item.track.title}"`,
-        current: i + 1,
-        total: scannedTracks.length,
-        percent: pct,
-        error: null,
-      };
-      await uploader.uploadAudio(item.track.file, item.filePath);
+      const isAlreadyOnCloud = existingR2Keys.has(item.track.file);
+
+      if (isAlreadyOnCloud) {
+        currentSyncProgress = {
+          active: true,
+          step: `Đã có sẵn trên Cloud (${i + 1}/${scannedTracks.length}): "${item.track.title}"`,
+          current: i + 1,
+          total: scannedTracks.length,
+          percent: pct,
+          error: null,
+        };
+      } else {
+        currentSyncProgress = {
+          active: true,
+          step: `Đang tải âm thanh mới (${i + 1}/${scannedTracks.length}): "${item.track.title}"`,
+          current: i + 1,
+          total: scannedTracks.length,
+          percent: pct,
+          error: null,
+        };
+        await uploader.uploadAudio(item.track.file, item.filePath);
+        newAudioUploaded++;
+        existingR2Keys.add(item.track.file);
+      }
     }
 
     let coverIdx = 0;
@@ -974,15 +1236,31 @@ app.post('/local-api/sync', async (c) => {
       coverIdx++;
       completedSteps++;
       const pct = 15 + Math.round((completedSteps / totalSteps) * 70);
-      currentSyncProgress = {
-        active: true,
-        step: `Đang tải ảnh bìa album (${coverIdx}/${coversByAlbumId.size})...`,
-        current: coverIdx,
-        total: coversByAlbumId.size,
-        percent: pct,
-        error: null,
-      };
-      await uploader.uploadCover(albumId, buffer);
+      const coverKey = `covers/${albumId}.jpg`;
+      const isCoverOnCloud = existingCoverKeys.has(coverKey);
+
+      if (isCoverOnCloud) {
+        currentSyncProgress = {
+          active: true,
+          step: `Ảnh bìa đã có sẵn trên Cloud (${coverIdx}/${coversByAlbumId.size})...`,
+          current: coverIdx,
+          total: coversByAlbumId.size,
+          percent: pct,
+          error: null,
+        };
+      } else {
+        currentSyncProgress = {
+          active: true,
+          step: `Đang tải ảnh bìa album mới (${coverIdx}/${coversByAlbumId.size})...`,
+          current: coverIdx,
+          total: coversByAlbumId.size,
+          percent: pct,
+          error: null,
+        };
+        await uploader.uploadCover(albumId, buffer);
+        newCoversUploaded++;
+        existingCoverKeys.add(coverKey);
+      }
     }
 
     for (const item of scannedTracks) {
@@ -1014,14 +1292,14 @@ app.post('/local-api/sync', async (c) => {
 
     currentSyncProgress = {
       active: false,
-      step: `Đồng bộ hoàn tất: ${library.tracks.length} bài hát, ${library.albums.length} albums!`,
+      step: `Đồng bộ hoàn tất: ${library.tracks.length} bài hát (mới tải: ${newAudioUploaded} bài, ${newCoversUploaded} bìa)!`,
       current: totalSteps,
       total: totalSteps,
       percent: 100,
       error: null,
     };
 
-    cachedR2TrackKeys.clear();
+    invalidateStatusCache();
 
     return c.json({
       status: 200,
@@ -1207,6 +1485,7 @@ app.post('/local-api/tracks/:id/override', async (c) => {
     }, 400);
   }
   await setTrackOverride(id, parsed.data);
+  invalidateStatusCache();
   return c.json({
     status: 200,
     message: 'Đã lưu thông tin bài hát (override) thành công',
@@ -1257,6 +1536,7 @@ app.post('/local-api/tracks/batch-override', async (c) => {
     }
   }
 
+  invalidateStatusCache();
   return c.json({ status: 200, count: trackIds.length, message: `Đã áp dụng thay đổi cho ${trackIds.length} bài hát!` });
 });
 
@@ -1278,6 +1558,7 @@ app.post('/local-api/tracks/batch-trash', async (c) => {
     await moveToTrash(id);
   }
 
+  invalidateStatusCache();
   return c.json({ status: 200, count: trackIds.length, message: `Đã chuyển ${trackIds.length} bài hát vào thùng rác!` });
 });
 
@@ -1589,6 +1870,7 @@ app.get('/local-api/trash', async (c) => {
 app.post('/local-api/tracks/:id/trash', async (c) => {
   const id = c.req.param('id');
   await moveToTrash(id);
+  invalidateStatusCache();
   return c.json({ status: 200, message: 'Đã chuyển vào thùng rác (lưu trữ 14 ngày)' });
 });
 
@@ -1599,25 +1881,20 @@ app.post('/local-api/tracks/batch/trash', async (c) => {
   for (const id of ids) {
     await moveToTrash(id);
   }
+  invalidateStatusCache();
   return c.json({
     status: 200,
     message: `Đã chuyển ${ids.length} bài hát vào thùng rác (lưu trữ 14 ngày)`,
   });
 });
 
-// 11. API: Khôi phục bài hát từ Thùng rác
-app.post('/local-api/tracks/:id/restore', async (c) => {
-  const id = c.req.param('id');
-  await restoreFromTrash(id);
-  return c.json({ status: 200, message: 'Đã khôi phục bài hát thành công' });
-});
-
-// 12. API: Xóa vĩnh viễn khỏi Thùng rác (hỗ trợ tùy chọn xóa đồng thời trên R2)
-app.delete('/local-api/tracks/:id/trash', async (c) => {
-  const id = c.req.param('id');
-  const deleteFromR2 = c.req.query('deleteFromR2') === 'true';
-  await purgeFromTrash(id);
-
+// Helper dọn dẹp tài nguyên (lời, ảnh bìa, file Cloudflare R2) khi xóa vĩnh viễn bài hát
+async function cleanPurgeTrackResources(
+  id: string,
+  deleteFromR2: boolean,
+  s3?: S3Client,
+  bucket?: string
+): Promise<{ r2Deleted: boolean }> {
   // 1. Dọn dẹp file lời bài hát cục bộ nếu có
   const localLrc = path.join(LYRICS_DIR, `${id}.lrc`);
   if (existsSync(localLrc)) {
@@ -1640,6 +1917,64 @@ app.delete('/local-api/tracks/:id/trash', async (c) => {
   }
 
   let r2Deleted = false;
+  if (deleteFromR2 && s3 && bucket) {
+    try {
+      const res = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: 'music/' }));
+      if (res.Contents) {
+        for (const item of res.Contents) {
+          if (item.Key && item.Key.includes(id)) {
+            await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: item.Key }));
+            r2Deleted = true;
+          }
+        }
+      }
+
+      // Xóa lời trên R2 nếu có
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `lyrics/${id}.lrc` })).catch(() => {});
+
+      // Xóa ảnh bìa trên R2 nếu album không còn bài nào khác
+      if (targetAlbumId && !albumStillInUse) {
+        await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `covers/${targetAlbumId}.jpg` })).catch(() => {});
+      }
+    } catch (e) {
+      console.warn(`Lỗi xóa file trên R2 khi purge (${id}):`, e);
+    }
+  }
+
+  return { r2Deleted };
+}
+
+// 11. API: Khôi phục bài hát từ Thùng rác (đơn lẻ)
+app.post('/local-api/tracks/:id/restore', async (c) => {
+  const id = c.req.param('id');
+  await restoreFromTrash(id);
+  invalidateStatusCache();
+  return c.json({ status: 200, message: 'Đã khôi phục bài hát thành công' });
+});
+
+// 11.2. API: Khôi phục nhiều bài hát hoặc toàn bộ bài từ Thùng rác (hàng loạt)
+app.post('/local-api/trash/restore', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[] };
+  const ids = Array.isArray(body?.ids) ? body.ids : undefined;
+  await batchRestoreFromTrash(ids);
+  invalidateStatusCache();
+  return c.json({
+    status: 200,
+    message: ids && ids.length > 0
+      ? `Đã khôi phục ${ids.length} bài hát thành công`
+      : 'Đã khôi phục toàn bộ bài hát trong thùng rác',
+  });
+});
+
+// 12. API: Xóa vĩnh viễn khỏi Thùng rác (đơn lẻ, hỗ trợ tùy chọn xóa đồng thời trên R2)
+app.delete('/local-api/tracks/:id/trash', async (c) => {
+  const id = c.req.param('id');
+  const deleteFromR2 = c.req.query('deleteFromR2') === 'true';
+  await purgeFromTrash(id);
+  invalidateStatusCache();
+
+  let s3: S3Client | undefined;
+  let bucket: string | undefined;
   if (deleteFromR2) {
     const localConfig = loadLocalConfig();
     if (
@@ -1649,37 +1984,19 @@ app.delete('/local-api/tracks/:id/trash', async (c) => {
       localConfig.R2_SECRET_ACCESS_KEY &&
       localConfig.R2_BUCKET
     ) {
-      try {
-        const s3 = new S3Client({
-          region: 'auto',
-          endpoint: `https://${localConfig.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-          credentials: {
-            accessKeyId: localConfig.R2_ACCESS_KEY_ID,
-            secretAccessKey: localConfig.R2_SECRET_ACCESS_KEY,
-          },
-        });
-        const res = await s3.send(new ListObjectsV2Command({ Bucket: localConfig.R2_BUCKET, Prefix: 'music/' }));
-        if (res.Contents) {
-          for (const item of res.Contents) {
-            if (item.Key && item.Key.includes(id)) {
-              await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: item.Key }));
-              r2Deleted = true;
-            }
-          }
-        }
-
-        // Xóa lời trên R2 nếu có
-        await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: `lyrics/${id}.lrc` })).catch(() => {});
-
-        // Xóa ảnh bìa trên R2 nếu album không còn bài nào khác
-        if (targetAlbumId && !albumStillInUse) {
-          await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: `covers/${targetAlbumId}.jpg` })).catch(() => {});
-        }
-      } catch (e) {
-        console.warn('Lỗi xóa file trên R2 khi purge:', e);
-      }
+      s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${localConfig.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: localConfig.R2_ACCESS_KEY_ID,
+          secretAccessKey: localConfig.R2_SECRET_ACCESS_KEY,
+        },
+      });
+      bucket = localConfig.R2_BUCKET;
     }
   }
+
+  const { r2Deleted } = await cleanPurgeTrackResources(id, deleteFromR2, s3, bucket);
 
   return c.json({
     status: 200,
@@ -1687,6 +2004,58 @@ app.delete('/local-api/tracks/:id/trash', async (c) => {
       ? 'Đã xóa vĩnh viễn khỏi thùng rác và đã xóa file tương ứng trên Cloudflare R2'
       : 'Đã xóa vĩnh viễn khỏi thùng rác',
     r2Deleted,
+  });
+});
+
+// 12.2. API: Dọn sạch hoặc xóa vĩnh viễn nhiều bài hát trong Thùng rác (Empty Trash / Batch Purge)
+app.post('/local-api/trash/empty', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[]; deleteFromR2?: boolean };
+  const deleteFromR2 = Boolean(body?.deleteFromR2);
+  const overrides = await getOverrides();
+
+  const targetIds = Array.isArray(body?.ids) && body.ids.length > 0
+    ? body.ids
+    : Object.keys(overrides.tracks).filter((id) => overrides.tracks[id]?.hidden && !overrides.tracks[id]?.purged);
+
+  if (targetIds.length === 0) {
+    return c.json({ status: 200, message: 'Thùng rác hiện đang trống', purgedCount: 0 });
+  }
+
+  let s3: S3Client | undefined;
+  let bucket: string | undefined;
+  if (deleteFromR2) {
+    const localConfig = loadLocalConfig();
+    if (
+      localConfig.isR2Configured &&
+      localConfig.R2_ACCOUNT_ID &&
+      localConfig.R2_ACCESS_KEY_ID &&
+      localConfig.R2_SECRET_ACCESS_KEY &&
+      localConfig.R2_BUCKET
+    ) {
+      s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${localConfig.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: localConfig.R2_ACCESS_KEY_ID,
+          secretAccessKey: localConfig.R2_SECRET_ACCESS_KEY,
+        },
+      });
+      bucket = localConfig.R2_BUCKET;
+    }
+  }
+
+  for (const id of targetIds) {
+    await cleanPurgeTrackResources(id, deleteFromR2, s3, bucket);
+  }
+
+  await batchPurgeFromTrash(targetIds);
+  invalidateStatusCache();
+
+  return c.json({
+    status: 200,
+    message: `Đã xóa vĩnh viễn ${targetIds.length} bài hát khỏi thùng rác`,
+    purgedCount: targetIds.length,
+    deleteFromR2,
   });
 });
 
@@ -1967,14 +2336,20 @@ app.post('/local-api/artists/:name/avatar', async (c) => {
   const folderPng = path.join(artistDir, 'folder.png');
   await fs.writeFile(folderPng, imgBuf);
 
-  // 3. Dọn dẹp file artist.jpg / folder.jpg cũ nếu có để chỉ giữ lại duy nhất .png
+  // 3. Dọn dẹp triệt để file artist.jpg / folder.jpg cũ nếu có để chỉ giữ lại duy nhất .png
   const oldArtistJpg = path.join(artistDir, 'artist.jpg');
   if (existsSync(oldArtistJpg)) {
-    try { await fs.unlink(oldArtistJpg); } catch { /* bỏ qua */ }
+    try {
+      if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldArtistJpg]);
+      await fs.unlink(oldArtistJpg);
+    } catch { /* bỏ qua */ }
   }
   const oldFolderJpg = path.join(artistDir, 'folder.jpg');
   if (existsSync(oldFolderJpg)) {
-    try { await fs.unlink(oldFolderJpg); } catch { /* bỏ qua */ }
+    try {
+      if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldFolderJpg]);
+      await fs.unlink(oldFolderJpg);
+    } catch { /* bỏ qua */ }
   }
 
   // 4. Áp dụng thông tin metadata tab "Details" (Curator: Kato) chuyên nghiệp cho các file ảnh PNG
@@ -1998,6 +2373,9 @@ app.post('/local-api/artists/:name/avatar', async (c) => {
   if (process.platform === 'win32') {
     try {
       const iniPath = path.join(artistDir, 'desktop.ini');
+      if (existsSync(iniPath)) {
+        try { execFileSync('attrib', ['-r', '-h', '-s', iniPath]); } catch { /* bỏ qua */ }
+      }
       const iniContent = [
         '[.ShellClassInfo]',
         'FolderType=Generic',
@@ -2522,9 +2900,19 @@ app.delete('/api/youtube-music/downloads/:id', async (c) => {
   const deleteR2 = c.req.query('deleteR2') === 'true';
 
   try {
+    const audioPath = await youtubeJobRunner.getDownloadAudioPath(id);
+    const normalizedAudioPath = audioPath ? path.resolve(audioPath).toLowerCase() : null;
+
     const deleted = await youtubeJobRunner.deleteDownloadSync(id, { deleteFiles, deleteR2 });
-    // Đồng bộ dọn dẹp khỏi RAM
-    cachedScannedTracks = cachedScannedTracks.filter((t) => t.track.id !== id);
+    
+    // Đồng bộ dọn dẹp triệt để khỏi RAM cache theo cả id và đường dẫn tệp
+    cachedScannedTracks = cachedScannedTracks.filter((t) => {
+      if (t.track.id === id) return false;
+      if (normalizedAudioPath && path.resolve(t.filePath).toLowerCase() === normalizedAudioPath) return false;
+      return true;
+    });
+
+    invalidateStatusCache();
     return c.json({ status: 'success', data: { deleted } });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

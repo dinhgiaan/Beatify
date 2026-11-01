@@ -11,6 +11,7 @@ import type { ScannedTrack } from './scanner';
 import { buildLibrary } from './libraryBuilder';
 import { R2Uploader } from './r2Uploader';
 import { getOverrides, applyOverridesToScanned, purgeFromTrash } from './overridesManager';
+import { PathSanitizer } from './pathSanitizer';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type {
   YoutubeMusicJobPayload,
@@ -581,17 +582,41 @@ class YoutubeJobRunner extends EventEmitter {
             ? 'lrclib-synced'
             : 'none';
 
-        // Kiểm tra xem bài này đã upload lên R2 chưa
+        // Tính toán hoặc lấy trackId (SHA-1 12 ký tự của file âm thanh)
+        let trackId = record.trackId;
+        if (!trackId && fileExists && record.relativeFilePath) {
+          const fullAudioPath = path.resolve(record.libraryRootPath, record.relativeFilePath);
+          try {
+            trackId = await calculateTrackId(fullAudioPath);
+          } catch {
+            // bỏ qua
+          }
+        }
+
+        // Kiểm tra xem bài này đã upload lên R2 chưa (đối chiếu key music/<trackId>.<ext>)
         let uploadedToR2 = record.uploadedToR2 ?? false;
         if (r2UploadedKeys && record.relativeFilePath) {
+          const ext = path.extname(record.relativeFilePath).toLowerCase();
+          const r2Key = trackId ? `music/${trackId}${ext}` : null;
           const baseName = path.basename(record.relativeFilePath).toLowerCase();
-          uploadedToR2 =
+
+          if (r2Key && r2UploadedKeys.has(r2Key)) {
+            uploadedToR2 = true;
+          } else if (
             r2UploadedKeys.has(record.relativeFilePath) ||
-            Array.from(r2UploadedKeys).some((k) => k.toLowerCase().endsWith(baseName));
+            Array.from(r2UploadedKeys).some((k) => k.toLowerCase().endsWith(baseName))
+          ) {
+            uploadedToR2 = true;
+          } else if (record.uploadedToR2 && !r2Key) {
+            uploadedToR2 = true;
+          } else {
+            uploadedToR2 = false;
+          }
         }
 
         return {
           ...record,
+          trackId,
           fileExists,
           fileSizeBytes,
           fileModifiedAt,
@@ -780,23 +805,34 @@ class YoutubeJobRunner extends EventEmitter {
       throw new Error('Chưa cấu hình Cloudflare R2 trong file .env');
     }
 
-    // Nếu tệp nằm ngoài MUSIC_SOURCE_DIR, copy vào kho nguồn chính để quản lý tập trung
+    // Nếu tệp nằm ngoài MUSIC_SOURCE_DIR, bảo toàn cấu trúc phân cấp Nghệ sĩ / Album khi đưa vào nguồn chính
     const sourceDir = path.resolve(config.MUSIC_SOURCE_DIR);
     await fs.mkdir(sourceDir, { recursive: true });
     if (!path.resolve(audioPath).startsWith(sourceDir)) {
       const targetFileName = path.basename(audioPath);
-      const destPath = path.join(sourceDir, targetFileName);
+      const artistFolder = PathSanitizer.sanitizeSegment(item.artist || 'Unknown Artist');
+      const albumFolder = PathSanitizer.sanitizeSegment(item.album || 'Singles');
+      const targetSubDir = path.join(sourceDir, artistFolder, albumFolder);
+      await fs.mkdir(targetSubDir, { recursive: true });
+      const destPath = path.join(targetSubDir, targetFileName);
       await fs.copyFile(audioPath, destPath);
 
       // Copy luôn file lyrics .lrc nếu có
       const srcLrc = audioPath.replace(path.extname(audioPath), '.lrc');
       if (existsSync(srcLrc)) {
-        await fs.copyFile(srcLrc, path.join(sourceDir, targetFileName.replace(path.extname(targetFileName), '.lrc'))).catch(() => {});
+        await fs.copyFile(srcLrc, path.join(targetSubDir, targetFileName.replace(path.extname(targetFileName), '.lrc'))).catch(() => {});
+      }
+
+      // Copy luôn file cover .jpg nếu có
+      const srcCover = audioPath.replace(path.extname(audioPath), '.jpg');
+      if (existsSync(srcCover)) {
+        await fs.copyFile(srcCover, path.join(targetSubDir, targetFileName.replace(path.extname(targetFileName), '.jpg'))).catch(() => {});
       }
 
       audioPath = destPath;
       item.libraryRootPath = sourceDir;
-      item.relativeFilePath = targetFileName;
+      item.relativeFilePath = path.relative(sourceDir, destPath);
+      item.relativeLyricsPath = path.relative(sourceDir, destPath.replace(path.extname(destPath), '.lrc'));
     }
 
     const scanned = await scanAudioFile(audioPath);
@@ -839,6 +875,7 @@ class YoutubeJobRunner extends EventEmitter {
     }
 
     item.uploadedToR2 = true;
+    item.trackId = scanned.track.id;
     item.fileExists = true;
     item.updatedAt = new Date().toISOString();
     await this.saveDownloads(list);

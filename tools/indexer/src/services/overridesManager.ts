@@ -68,6 +68,24 @@ export async function restoreFromTrash(trackId: string): Promise<Overrides> {
   return current;
 }
 
+export async function batchRestoreFromTrash(trackIds?: string[]): Promise<Overrides> {
+  const current = await getOverrides();
+  const idsToRestore = trackIds && trackIds.length > 0
+    ? trackIds
+    : Object.keys(current.tracks).filter((id) => current.tracks[id]?.hidden && !current.tracks[id]?.purged);
+
+  for (const id of idsToRestore) {
+    if (current.tracks[id]) {
+      current.tracks[id].hidden = false;
+      current.tracks[id].purged = false;
+      delete current.tracks[id].deletedAt;
+      delete current.tracks[id].purgedAt;
+    }
+  }
+  await saveOverrides(current);
+  return current;
+}
+
 export async function purgeFromTrash(trackId: string): Promise<Overrides> {
   const current = await getOverrides();
   current.tracks[trackId] = {
@@ -76,6 +94,25 @@ export async function purgeFromTrash(trackId: string): Promise<Overrides> {
     purged: true,
     purgedAt: new Date().toISOString(),
   };
+  await saveOverrides(current);
+  return current;
+}
+
+export async function batchPurgeFromTrash(trackIds?: string[]): Promise<Overrides> {
+  const current = await getOverrides();
+  const idsToPurge = trackIds && trackIds.length > 0
+    ? trackIds
+    : Object.keys(current.tracks).filter((id) => current.tracks[id]?.hidden && !current.tracks[id]?.purged);
+
+  const now = new Date().toISOString();
+  for (const id of idsToPurge) {
+    current.tracks[id] = {
+      ...current.tracks[id],
+      hidden: true,
+      purged: true,
+      purgedAt: now,
+    };
+  }
   await saveOverrides(current);
   return current;
 }

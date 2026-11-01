@@ -52,6 +52,7 @@ export const ImportPage: React.FC = () => {
       setItems([]);
       queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
       queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      queryClient.invalidateQueries({ queryKey: ['artists-list'] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);

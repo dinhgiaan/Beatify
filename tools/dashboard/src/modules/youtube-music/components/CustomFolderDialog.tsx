@@ -325,7 +325,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
           {/* 2. Navigation & Action Bar */}
           <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 gap-2 flex-wrap text-xs">
             {/* Breadcrumb Path Bar */}
-            <div className="flex-1 flex items-center gap-1 overflow-x-auto py-1 scrollbar-none text-[11px] font-mono">
+            <div className="flex-1 flex items-center gap-1 overflow-x-auto py-1 scrollbar-none text-[11px] ">
               <Button
                 variant="secondary"
                 size="sm"
@@ -344,9 +344,8 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => loadDirectory(crumb.path)}
-                      className={`hover:text-[#1DB954] hover:underline cursor-pointer truncate max-w-[170px] ${
-                        crumb.path.toLowerCase() === currentPath.toLowerCase() ? 'text-[#1DB954] font-bold' : 'text-[var(--text-secondary)]'
-                      }`}
+                      className={`hover:text-[#1DB954] hover:underline cursor-pointer truncate max-w-[170px] ${crumb.path.toLowerCase() === currentPath.toLowerCase() ? 'text-[#1DB954] font-bold' : 'text-[var(--text-secondary)]'
+                        }`}
                       title={crumb.path}
                     >
                       {crumb.name}
@@ -430,14 +429,14 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <FolderOpen size={14} className="text-emerald-400 shrink-0" />
-                      <span className="truncate flex-1 font-semibold text-emerald-300 font-mono">
+                      <span className="truncate flex-1 font-semibold text-emerald-300 ">
                         {suggestedFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0]}
                       </span>
                       <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
                         Đến
                       </span>
                     </div>
-                    <div className="text-[9.5px] text-emerald-400/70 truncate mt-1 font-mono">
+                    <div className="text-[9.5px] text-emerald-400/70 truncate mt-1 ">
                       {suggestedFolder}
                     </div>
                   </button>
@@ -454,11 +453,10 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                     key={qr.path}
                     type="button"
                     onClick={() => loadDirectory(qr.path)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-2 transition-colors cursor-pointer ${
-                      currentPath.toLowerCase() === qr.path.toLowerCase()
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-2 transition-colors cursor-pointer ${currentPath.toLowerCase() === qr.path.toLowerCase()
                         ? 'border-[#1DB954]/40 bg-[#1DB954]/10 text-[#1DB954] font-semibold'
                         : 'border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                      }`}
                     title={qr.path}
                   >
                     <Folder size={13} className="text-[#1DB954] shrink-0" />
@@ -479,14 +477,13 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                         key={drive}
                         type="button"
                         onClick={() => loadDirectory(drive)}
-                        className={`text-left px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-2 transition-colors cursor-pointer ${
-                          currentPath.toLowerCase().startsWith(drive.toLowerCase())
+                        className={`text-left px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-2 transition-colors cursor-pointer ${currentPath.toLowerCase().startsWith(drive.toLowerCase())
                             ? 'border-[#1DB954]/40 bg-[#1DB954]/10 text-[#1DB954] font-semibold'
                             : 'border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                        }`}
+                          }`}
                       >
                         <HardDrive size={13} className="shrink-0 opacity-70" />
-                        <span className="font-mono font-bold">{drive}</span>
+                        <span className=" font-bold">{drive}</span>
                       </button>
                     ))}
                   </div>
@@ -510,7 +507,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                         title={h}
                       >
                         <Folder size={11} className="shrink-0 text-amber-400" />
-                        <span className="truncate flex-1 font-mono">
+                        <span className="truncate flex-1 ">
                           {h.split(/[\\/]/).filter(Boolean).slice(-1)[0]}
                         </span>
                       </button>
@@ -530,7 +527,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-[var(--text-muted)]">Đang ở:</span>
-                  <span className="font-mono text-[11px] font-bold text-[#1DB954] truncate max-w-[260px]" title={currentPath}>
+                  <span className=" text-[11px] font-bold text-[#1DB954] truncate max-w-[260px]" title={currentPath}>
                     {currentPath.split(/[\\/]/).filter(Boolean).slice(-1)[0] || currentPath}
                   </span>
                 </div>
@@ -660,7 +657,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                         <div className="flex items-center justify-between text-xs text-amber-400 font-semibold">
                           <span className="flex items-center gap-1.5">
                             <Edit2 size={13} />
-                            <span>Đổi tên thư mục: <strong className="text-[var(--text-primary)] font-mono">{editingItem.name}</strong></span>
+                            <span>Đổi tên thư mục: <strong className="text-[var(--text-primary)] ">{editingItem.name}</strong></span>
                           </span>
                           <span className="text-[10.5px] text-[var(--text-muted)] font-normal">Nhấn Enter để lưu • Esc để hủy</span>
                         </div>
@@ -717,7 +714,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                           </div>
                           <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">
                             Bạn có thể bấm nút màu xanh bên dưới để chọn trực tiếp thư mục{' '}
-                            <span className="font-mono text-emerald-400 font-semibold px-1 py-0.5 rounded bg-emerald-500/10">
+                            <span className=" text-emerald-400 font-semibold px-1 py-0.5 rounded bg-emerald-500/10">
                               {currentPath.split(/[\\/]/).filter(Boolean).slice(-1)[0] || currentPath}
                             </span>{' '}
                             làm nơi lưu bài nhạc, hoặc tạo thêm thư mục con mới.
@@ -759,18 +756,16 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                               key={dir.path}
                               onClick={() => setSelectedPath(dir.path)}
                               onDoubleClick={() => loadDirectory(dir.path)}
-                              className={`group p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
-                                isSelected
+                              className={`group p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${isSelected
                                   ? 'border-[#1DB954] bg-[#1DB954]/10 text-[var(--text-primary)] ring-2 ring-[#1DB954]/25 shadow-md'
                                   : 'border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-muted)] text-[var(--text-secondary)]'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <Folder
                                   size={20}
-                                  className={`shrink-0 transition-colors ${
-                                    isSelected ? 'text-[#1DB954]' : 'text-amber-400 group-hover:text-amber-300'
-                                  }`}
+                                  className={`shrink-0 transition-colors ${isSelected ? 'text-[#1DB954]' : 'text-amber-400 group-hover:text-amber-300'
+                                    }`}
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate" title={dir.name}>
@@ -784,9 +779,8 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
 
                               {/* Action Buttons: Đổi tên, Xóa, Mở */}
                               <div
-                                className={`flex items-center gap-1 shrink-0 transition-opacity ${
-                                  isSelected ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
-                                }`}
+                                className={`flex items-center gap-1 shrink-0 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
+                                  }`}
                               >
                                 <button
                                   type="button"
@@ -841,7 +835,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
             <div className="flex items-center gap-2 min-w-0 flex-1 text-xs">
               <span className="text-[var(--text-muted)] shrink-0 font-medium">Thư mục sẽ áp dụng:</span>
               <div
-                className="font-mono text-[11px] text-[#1DB954] truncate bg-[var(--bg-surface)] px-2.5 py-1 rounded-lg border border-[var(--border)] flex-1 max-w-xl select-all font-semibold"
+                className=" text-[11px] text-[#1DB954] truncate bg-[var(--bg-surface)] px-2.5 py-1 rounded-lg border border-[var(--border)] flex-1 max-w-xl select-all font-semibold"
                 title={selectedPath || currentPath}
               >
                 {selectedPath || currentPath}
@@ -894,7 +888,7 @@ export const CustomFolderDialog: React.FC<CustomFolderDialogProps> = ({
                 </div>
 
                 <p className="text-xs text-[var(--text-secondary)] leading-relaxed m-0">
-                  Bạn có chắc chắn muốn xóa thư mục <strong className="text-rose-400 font-mono">"{deletingItem.name}"</strong> và toàn bộ nội dung bên trong?
+                  Bạn có chắc chắn muốn xóa thư mục <strong className="text-rose-400 ">"{deletingItem.name}"</strong> và toàn bộ nội dung bên trong?
                 </p>
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">

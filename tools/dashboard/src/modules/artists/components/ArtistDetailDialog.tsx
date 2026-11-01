@@ -321,11 +321,10 @@ export const ArtistDetailDialog: React.FC<ArtistDetailDialogProps> = ({
                       return (
                         <tr
                           key={track.id}
-                          className={`border-b border-[var(--border)]/40 last:border-b-0 transition-all group cursor-pointer ${
-                            isCurrent
+                          className={`border-b border-[var(--border)]/40 last:border-b-0 transition-all group cursor-pointer ${isCurrent
                               ? 'bg-emerald-500/10 border-l-2 border-l-emerald-500 hover:bg-emerald-500/15'
                               : 'hover:bg-[var(--bg-hover)]'
-                          }`}
+                            }`}
                           onClick={() => {
                             if (isCurrent) {
                               onTogglePlayPause?.();
@@ -360,11 +359,10 @@ export const ArtistDetailDialog: React.FC<ArtistDetailDialogProps> = ({
                           </td>
                           <td className="py-2 px-3">
                             <div
-                              className={`font-semibold text-xs transition-colors truncate flex items-center gap-2 ${
-                                isCurrent
+                              className={`font-semibold text-xs transition-colors truncate flex items-center gap-2 ${isCurrent
                                   ? 'text-emerald-400 font-bold'
                                   : 'text-[var(--text-primary)] group-hover:text-emerald-400'
-                              }`}
+                                }`}
                             >
                               <span>{track.title}</span>
                               {isPlayingNow && (
@@ -379,7 +377,7 @@ export const ArtistDetailDialog: React.FC<ArtistDetailDialogProps> = ({
                             {track.album}
                           </td>
                           <td className="py-2 px-3 text-center">
-                            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-muted)] font-mono">
+                            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-muted)] ">
                               {track.format}
                             </span>
                           </td>

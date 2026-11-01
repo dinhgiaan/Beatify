@@ -93,6 +93,7 @@ export const YoutubeMusicDownloadRecordSchema = z.object({
   lyricsExists: z.boolean().optional(),
   coverExists: z.boolean().optional(),
   uploadedToR2: z.boolean().optional(),
+  trackId: z.string().optional(),
   fileSizeBytes: z.number().optional(),
   fileModifiedAt: z.string().optional(),
   createdAt: z.string(),

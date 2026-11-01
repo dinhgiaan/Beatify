@@ -56,7 +56,15 @@ function ArtistsRoute() {
 }
 
 function HistoryRoute() {
-  return <HistoryPage />;
+  const ctx = useOutletContext<OutletContextType>() || {};
+  return (
+    <HistoryPage
+      onPlayTrack={ctx.onPlayTrack}
+      playingTrackId={ctx.playingTrackId}
+      isAudioPlaying={ctx.isAudioPlaying}
+      onTogglePlayPause={ctx.onTogglePlayPause}
+    />
+  );
 }
 
 function DownloadedManagerRoute() {

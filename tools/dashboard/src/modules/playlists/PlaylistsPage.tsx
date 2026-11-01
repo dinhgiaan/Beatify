@@ -89,9 +89,9 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
     favoriteIds: [],
   };
 
-  // 2. Lấy danh sách tất cả bài hát trong thư viện
+  // 2. Lấy danh sách tất cả bài hát trong thư viện (dùng chung queryKey 'local-tracks')
   const { data: tracksRes } = useQuery<{ tracks: TrackItem[] }>({
-    queryKey: ['library-tracks'],
+    queryKey: ['local-tracks'],
     queryFn: () => requestApi<{ tracks: TrackItem[] }>('/local-api/tracks'),
   });
 
