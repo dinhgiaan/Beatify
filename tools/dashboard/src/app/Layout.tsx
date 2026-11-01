@@ -189,6 +189,17 @@ export const Layout: React.FC = () => {
     };
   }, [isLoopPopoverOpen]);
 
+  // Phát trạng thái player cho toàn bộ ứng dụng (ArtistHoverCard, modals, các trang khác)
+  useEffect(() => {
+    const detail = {
+      trackId: currentTrack?.id,
+      isPlaying,
+      currentTrack,
+    };
+    (window as unknown as { __BEATIFY_PLAYER_STATE__?: unknown }).__BEATIFY_PLAYER_STATE__ = detail;
+    window.dispatchEvent(new CustomEvent('beatify-player-status', { detail }));
+  }, [currentTrack, isPlaying]);
+
   // Lắng nghe sự kiện phát bài hát từ các popup hoặc hover card toàn app
   useEffect(() => {
     const handleExternalPlay = (e: Event) => {
@@ -197,11 +208,36 @@ export const Layout: React.FC = () => {
         handlePlayTrack(track);
       }
     };
+    const handleExternalTogglePlay = (e: Event) => {
+      const detail = (e as CustomEvent<{ trackId?: string }>).detail;
+      if (detail?.trackId && currentTrack?.id && detail.trackId !== currentTrack.id) {
+        return;
+      }
+      togglePlayPause();
+    };
+
     window.addEventListener('beatify-play-track', handleExternalPlay);
-    return () => window.removeEventListener('beatify-play-track', handleExternalPlay);
-  }, []);
+    window.addEventListener('beatify-toggle-play', handleExternalTogglePlay);
+    return () => {
+      window.removeEventListener('beatify-play-track', handleExternalPlay);
+      window.removeEventListener('beatify-toggle-play', handleExternalTogglePlay);
+    };
+  }, [currentTrack, isPlaying]);
 
   const handlePlayTrack = async (track: PlayingTrack) => {
+    // Nếu bấm lại chính bài hát đang có trong player: toggle phát / tạm dừng
+    if (currentTrack?.id && track.id && currentTrack.id === track.id) {
+      if (audioRef.current) {
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          audioRef.current.play().catch(() => {});
+          setIsPlaying(true);
+        }
+      }
+      return;
+    }
 
     // Tự động suy luận coverUrl từ albumId hoặc trackId nếu chưa có
     const resolvedCoverUrl =

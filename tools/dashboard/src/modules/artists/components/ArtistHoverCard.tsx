@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   Play,
+  Pause,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchArtistsApi, openArtistFolderApi, type ArtistDetail, type ArtistTrack } from '../api';
@@ -56,13 +57,25 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; actualPosition: 'top' | 'bottom' } | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+
+  // Đồng bộ trạng thái Media Player toàn cầu realtime
+  const [playerState, setPlayerState] = useState<{ trackId?: string; isPlaying: boolean }>(() => {
+    if (typeof window !== 'undefined') {
+      const globalState = (window as unknown as { __BEATIFY_PLAYER_STATE__?: { trackId?: string; isPlaying?: boolean } }).__BEATIFY_PLAYER_STATE__;
+      if (globalState) {
+        return { trackId: globalState.trackId, isPlaying: !!globalState.isPlaying };
+      }
+    }
+    return { trackId: undefined, isPlaying: false };
+  });
 
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialScrollYRef = useRef<number>(0);
 
   // Tận dụng cache nghệ sĩ đã tải trong app
   const { data } = useQuery({
@@ -77,24 +90,44 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
     return data.artists.find((a) => normalize(a.name) === q);
   }, [artistName, data?.artists]);
 
+  // Lắng nghe thay đổi trạng thái phát nhạc từ player dock hoặc các nguồn khác
+  useEffect(() => {
+    const handlePlayerStatus = (e: Event) => {
+      const detail = (e as CustomEvent<{ trackId?: string; isPlaying: boolean }>).detail;
+      if (detail) {
+        setPlayerState({ trackId: detail.trackId, isPlaying: !!detail.isPlaying });
+      }
+    };
+    window.addEventListener('beatify-player-status', handlePlayerStatus);
+    return () => window.removeEventListener('beatify-player-status', handlePlayerStatus);
+  }, []);
+
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const gap = 10;
-    const cardWidth = 296;
+    const gap = 8;
+    const cardWidth = 300;
 
     let left = rect.left + rect.width / 2 - cardWidth / 2;
     // Đảm bảo không tràn màn hình trái / phải
     left = Math.max(12, Math.min(left, window.innerWidth - cardWidth - 12));
 
+    // Tự động đảo chiều nếu khoảng trống không đủ
+    let actualPosition: 'top' | 'bottom' = position;
+    if (position === 'top' && rect.top < 250) {
+      actualPosition = 'bottom';
+    } else if (position === 'bottom' && window.innerHeight - rect.bottom < 250) {
+      actualPosition = 'top';
+    }
+
     let top: number;
-    if (position === 'top') {
+    if (actualPosition === 'top') {
       top = rect.top - gap;
     } else {
       top = rect.bottom + gap;
     }
 
-    setCoords({ top, left });
+    setCoords({ top, left, actualPosition });
   }, [position]);
 
   const handleMouseEnter = () => {
@@ -104,9 +137,10 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
       closeTimeoutRef.current = null;
     }
     openTimeoutRef.current = setTimeout(() => {
+      initialScrollYRef.current = window.scrollY;
       updatePosition();
       setIsOpen(true);
-    }, 200);
+    }, 150);
   };
 
   const handleMouseLeave = () => {
@@ -114,9 +148,10 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
       clearTimeout(openTimeoutRef.current);
       openTimeoutRef.current = null;
     }
+    // Tăng thời gian chờ an toàn lên 350ms để người dùng di chuột qua cầu nối không bị đóng
     closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 200);
+    }, 350);
   };
 
   const handlePopoverMouseEnter = () => {
@@ -129,13 +164,20 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
   const handlePopoverMouseLeave = () => {
     closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 200);
+    }, 350);
   };
 
-  // Đóng khi người dùng cuộn trang
+  // Đóng khi cuộn trang thực sự, nhưng bỏ qua nếu cuộn bên trong popover hoặc chỉ là vi rung động (<30px)
   useEffect(() => {
     if (!isOpen) return;
-    const handleScroll = () => setIsOpen(false);
+    const handleScroll = (e: Event) => {
+      if (popoverRef.current && popoverRef.current.contains(e.target as Node)) {
+        return;
+      }
+      if (Math.abs(window.scrollY - initialScrollYRef.current) > 30) {
+        setIsOpen(false);
+      }
+    };
     window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     return () => window.removeEventListener('scroll', handleScroll, { capture: true });
   }, [isOpen]);
@@ -176,9 +218,24 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  // Phát bài hát trực tiếp ngay khi bấm nút Play trong popup
+  // Đồng bộ Play/Pause với Media Player chân trang
   const handlePlayTrack = (track: ArtistTrack, e: React.MouseEvent) => {
     e.stopPropagation();
+    const isThisTrackCurrent = playerState.trackId === track.id;
+    const isThisTrackPlaying = isThisTrackCurrent && playerState.isPlaying;
+
+    if (isThisTrackCurrent) {
+      // Toggle bài đang phát trong player
+      window.dispatchEvent(new CustomEvent('beatify-toggle-play', { detail: { trackId: track.id } }));
+      if (isThisTrackPlaying) {
+        toast.info(`Đã tạm dừng: ${track.title}`);
+      } else {
+        toast.success(`Đang phát: ${track.title}`);
+      }
+      return;
+    }
+
+    // Chuyển sang bài mới
     const payload: PlayingTrack = {
       id: track.id,
       albumId: track.albumId,
@@ -191,6 +248,8 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
     window.dispatchEvent(new CustomEvent('beatify-play-track', { detail: payload }));
     toast.success(`Đang phát: ${track.title}`);
   };
+
+  const actualPosition = coords?.actualPosition || position;
 
   return (
     <div
@@ -209,19 +268,27 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                 ref={popoverRef}
                 onMouseEnter={handlePopoverMouseEnter}
                 onMouseLeave={handlePopoverMouseLeave}
-                initial={{ opacity: 0, y: position === 'top' ? 8 : -8, scale: 0.96 }}
+                initial={{ opacity: 0, y: actualPosition === 'top' ? 8 : -8, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: position === 'top' ? 6 : -6, scale: 0.96 }}
+                exit={{ opacity: 0, y: actualPosition === 'top' ? 6 : -6, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="fixed z-[10001] w-[296px] p-3.5 rounded-2xl border border-white/10 shadow-2xl text-left select-none pointer-events-auto backdrop-blur-2xl space-y-3"
+                className="fixed z-[10001] w-[300px] p-3.5 rounded-2xl border border-white/10 shadow-2xl text-left select-none pointer-events-auto backdrop-blur-2xl space-y-3"
                 style={{
                   top: `${coords.top}px`,
                   left: `${coords.left}px`,
-                  transform: position === 'top' ? 'translateY(-100%)' : 'translateY(0)',
+                  transform: actualPosition === 'top' ? 'translateY(-100%)' : 'translateY(0)',
                   backgroundColor: 'rgba(18, 18, 22, 0.96)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08)',
                 }}
               >
+                {/* Lớp đệm vô hình (Hover Bridge) nối liền giữa trigger và popover để chuột không bị lọt ra ngoài gây tự tắt */}
+                <div
+                  className={`absolute left-0 right-0 h-3.5 bg-transparent pointer-events-auto ${
+                    actualPosition === 'top' ? '-bottom-3.5' : '-top-3.5'
+                  }`}
+                  aria-hidden="true"
+                />
+
                 {/* Header: Avatar, Tên nghệ sĩ & Badge */}
                 <div className="flex items-center gap-3 pb-2.5 border-b border-white/[0.08]">
                   <div className="relative w-11 h-11 rounded-full overflow-hidden border border-white/15 bg-black/40 shrink-0 flex items-center justify-center shadow-md">
@@ -274,7 +341,7 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                       </span>
                     </div>
 
-                    {/* Danh sách bài hát nổi bật (1 đến 3 bài tiêu biểu có nút Play trực tiếp) */}
+                    {/* Danh sách bài hát nổi bật (1 đến 3 bài tiêu biểu có nút Play/Pause đồng bộ realtime) */}
                     {artistInfo.tracks?.length > 0 && (
                       <div className="space-y-1.5 pt-0.5">
                         <div className="flex items-center justify-between text-[10.5px] font-semibold text-zinc-400 uppercase tracking-wider px-0.5">
@@ -285,32 +352,69 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
                         </div>
 
                         <div className="space-y-1">
-                          {artistInfo.tracks.slice(0, 3).map((track, idx) => (
-                            <div
-                              key={track.id}
-                              onClick={(e) => handlePlayTrack(track, e)}
-                              className="group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.04] hover:border-white/10 transition-all cursor-pointer"
-                              title={`Bấm để phát: ${track.title}`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <button
-                                  type="button"
-                                  onClick={(e) => handlePlayTrack(track, e)}
-                                  className="w-5 h-5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 cursor-pointer"
-                                  title="Phát bài này"
-                                >
-                                  <Play size={10} fill="currentColor" className="ml-0.5" />
-                                </button>
-                                <span className="text-[11.5px] font-medium text-zinc-200 group-hover:text-white truncate">
-                                  {track.title}
-                                </span>
-                              </div>
+                          {artistInfo.tracks.slice(0, 3).map((track) => {
+                            const isThisTrackCurrent = playerState.trackId === track.id;
+                            const isThisTrackPlaying = isThisTrackCurrent && playerState.isPlaying;
 
-                              <span className="text-[10px] text-zinc-500 tabular-nums shrink-0">
-                                {formatTrackDuration(track.duration)}
-                              </span>
-                            </div>
-                          ))}
+                            return (
+                              <div
+                                key={track.id}
+                                onClick={(e) => handlePlayTrack(track, e)}
+                                className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                                  isThisTrackCurrent
+                                    ? 'bg-emerald-500/15 border-emerald-500/35 shadow-[0_0_12px_rgba(16,185,129,0.12)]'
+                                    : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/[0.04] hover:border-white/10'
+                                }`}
+                                title={isThisTrackPlaying ? `Tạm dừng: ${track.title}` : `Phát bài này: ${track.title}`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handlePlayTrack(track, e)}
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-all active:scale-90 cursor-pointer ${
+                                      isThisTrackPlaying
+                                        ? 'bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.5)]'
+                                        : isThisTrackCurrent
+                                        ? 'bg-emerald-500 text-black'
+                                        : 'bg-emerald-500 hover:bg-emerald-400 text-black'
+                                    }`}
+                                    title={isThisTrackPlaying ? 'Tạm dừng bài này' : 'Phát bài này'}
+                                  >
+                                    {isThisTrackPlaying ? (
+                                      <Pause size={10} fill="currentColor" />
+                                    ) : (
+                                      <Play size={10} fill="currentColor" className="ml-0.5" />
+                                    )}
+                                  </button>
+
+                                  <span
+                                    className={`text-[11.5px] truncate transition-colors ${
+                                      isThisTrackCurrent
+                                        ? 'font-semibold text-emerald-400'
+                                        : 'font-medium text-zinc-200 group-hover:text-white'
+                                    }`}
+                                  >
+                                    {track.title}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {/* Sóng nhạc nhảy sống động khi bài đang phát */}
+                                  {isThisTrackPlaying && (
+                                    <span className="flex items-end gap-0.5 h-3">
+                                      <span className="w-0.5 h-3 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.6s' }} />
+                                      <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.8s', animationDelay: '0.15s' }} />
+                                      <span className="w-0.5 h-2.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.7s', animationDelay: '0.3s' }} />
+                                    </span>
+                                  )}
+
+                                  <span className="text-[10px] text-zinc-500 tabular-nums">
+                                    {formatTrackDuration(track.duration)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
