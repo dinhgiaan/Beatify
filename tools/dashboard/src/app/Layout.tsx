@@ -56,6 +56,7 @@ export const Layout: React.FC = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const [currentLyrics, setCurrentLyrics] = useState<string | null>(null);
   const [isAutoScrollLyrics, setIsAutoScrollLyrics] = useState(true);
+  const [lyricsFontSize, setLyricsFontSize] = useState<'normal' | 'large'>('large');
 
   // Đóng màn hình lời bài hát khi nhấn phím Escape
   useEffect(() => {
@@ -758,84 +759,109 @@ export const Layout: React.FC = () => {
           )}
         </AnimatePresence>
 
-      {/* Full Lyrics Stage Screen - Chuẩn Spotify & Apple Music (z-[9995]) */}
+      {/* Full Lyrics Stage Screen - Chuẩn Apple Music & Spotify Immersive Stage (z-[9995]) */}
       {typeof document !== 'undefined' &&
         createPortal(
           <AnimatePresence>
             {isLyricsOpen && currentTrack && (
               <motion.div
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 14 }}
-                transition={{ duration: 0.16, ease: 'easeOut' }}
-                className="fixed inset-x-0 top-0 bottom-[74px] z-[9995] bg-[#0c0c0e] flex flex-col pointer-events-auto select-none overflow-hidden"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="fixed inset-x-0 top-0 bottom-[74px] z-[9995] bg-[#070709] flex flex-col pointer-events-auto select-none overflow-hidden"
               >
-                {/* Top Header Bar */}
-                <div className="h-16 px-6 sm:px-12 border-b border-white/[0.06] flex items-center justify-between shrink-0 bg-[#0c0c0e]/95 backdrop-blur-md">
-                  {/* Left: Track Thumbnail, Title & Artist */}
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0 shadow-md">
-                      {currentTrack.coverUrl ? (
-                        <img
-                          src={currentTrack.coverUrl}
-                          alt={currentTrack.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                          <Music size={18} />
-                        </div>
-                      )}
-                    </div>
+                {/* Lớp nền Ambient Art & Multi-layer Glow phản chiếu màu sắc từ ảnh bìa album */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+                  {currentTrack.coverUrl ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center scale-150 blur-[120px] opacity-35 transition-all duration-1000"
+                      style={{ backgroundImage: `url(${currentTrack.coverUrl})` }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-emerald-950/40 via-zinc-900 to-black/90" />
+                  )}
+                  {/* Quầng sáng đa sắc nhịp nhàng tạo chiều sâu không gian */}
+                  <div
+                    className="absolute top-1/4 left-1/4 w-[520px] h-[520px] bg-[#1DB954]/15 rounded-full blur-[140px] animate-pulse"
+                    style={{ animationDuration: '6s' }}
+                  />
+                  <div
+                    className="absolute bottom-1/4 right-1/3 w-[460px] h-[460px] bg-indigo-500/12 rounded-full blur-[150px] animate-pulse"
+                    style={{ animationDuration: '8s', animationDelay: '2s' }}
+                  />
+                  {/* Lớp vignette phủ mờ gradient đảm bảo độ tương phản hoàn hảo cho lời bài hát */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/75 to-[#070709]/95" />
+                </div>
 
-                    <div className="min-w-0">
-                      <h3
-                        className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-xs sm:max-w-md"
-                        title={currentTrack.title}
-                      >
-                        {currentTrack.title}
-                      </h3>
-                      <div className="mt-0.5">
-                        <ArtistHoverCard artistName={currentTrack.artist} position="bottom">
-                          <button
-                            type="button"
-                            className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer truncate hover:underline"
-                            title={`Xem thông tin nghệ sĩ "${currentTrack.artist}"`}
-                          >
-                            {currentTrack.artist}
-                          </button>
-                        </ArtistHoverCard>
-                      </div>
-                    </div>
+                {/* Top Header Bar */}
+                <div className="relative z-10 h-16 px-6 lg:px-12 border-b border-white/[0.08] flex items-center justify-between shrink-0 bg-black/30 backdrop-blur-xl">
+                  {/* Left: Badge sân khấu & Tiêu đề nhỏ */}
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-white border border-white/15 shadow-sm">
+                      <Sparkles size={12} className="text-[#1DB954]" />
+                      <span>Sân khấu lời bài hát</span>
+                    </span>
+                    <span className="text-xs text-zinc-400 hidden sm:inline">
+                      • Bấm vào bất kỳ câu nào để tua nhạc đến mốc đó
+                    </span>
                   </div>
 
-                  {/* Right: Controls & Close */}
-                  <div className="flex items-center gap-3 shrink-0">
+                  {/* Right: Điều khiển (Cỡ chữ, Tự cuộn, Nút Đóng) */}
+                  <div className="flex items-center gap-2.5">
+                    {/* Nút chỉnh cỡ chữ */}
+                    <div className="flex items-center p-0.5 rounded-xl bg-white/[0.08] border border-white/10 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setLyricsFontSize('normal')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          lyricsFontSize === 'normal'
+                            ? 'bg-white/20 text-white shadow-xs'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                        title="Cỡ chữ vừa"
+                      >
+                        A-
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLyricsFontSize('large')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          lyricsFontSize === 'large'
+                            ? 'bg-white/20 text-white shadow-xs'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                        title="Cỡ chữ lớn"
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    {/* Nút Tự cuộn */}
                     {hasSyncedLyrics && (
                       <button
                         type="button"
                         onClick={() => {
                           setIsAutoScrollLyrics((prev) => {
                             const next = !prev;
-                            if (next) {
-                              toast.success('Đã BẬT tự động cuộn lời');
-                            } else {
-                              toast.info('Đã TẮT tự động cuộn lời');
-                            }
+                            if (next) toast.success('Đã BẬT tự động cuộn lời');
+                            else toast.info('Đã TẮT tự động cuộn lời');
                             return next;
                           });
                         }}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
                           isAutoScrollLyrics
-                            ? 'bg-[#1DB954]/15 border-[#1DB954]/30 text-[#1DB954]'
+                            ? 'bg-[#1DB954]/20 border-[#1DB954]/40 text-[#1DB954] shadow-xs'
                             : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
                         }`}
                         title={isAutoScrollLyrics ? 'Tự cuộn đang bật' : 'Bấm để bật tự cuộn'}
                       >
-                        {isAutoScrollLyrics ? 'Tự cuộn: Bật' : 'Tự cuộn: Tắt'}
+                        <RotateCcw
+                          size={11}
+                          className={isAutoScrollLyrics ? 'animate-spin' : ''}
+                          style={{ animationDuration: '10s' }}
+                        />
+                        <span>{isAutoScrollLyrics ? 'Tự cuộn: Bật' : 'Tự cuộn: Tắt'}</span>
                       </button>
                     )}
 
@@ -843,76 +869,213 @@ export const Layout: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsLyricsOpen(false)}
-                      className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                      title="Đóng lời bài hát (Esc)"
+                      className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0 ml-1"
+                      title="Đóng lời bài hát (Phím Escape)"
                     >
-                      <X size={19} />
+                      <X size={17} />
                     </button>
                   </div>
                 </div>
 
-                {/* Main Content: Center Stage Lyrics (Tập trung toàn diện vào lời bài hát) */}
-                <div
-                  ref={lyricsContainerRef}
-                  onWheel={handleUserScrollInteraction}
-                  onTouchMove={handleUserScrollInteraction}
-                  className="flex-1 h-full min-h-0 overflow-y-auto px-6 sm:px-12 py-16 select-text scroll-smooth"
-                  style={{
-                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)',
-                  }}
-                >
-                  <div className="max-w-3xl mx-auto w-full">
-                    {hasSyncedLyrics ? (
-                      <div className="space-y-3 py-12">
-                        {parsedLyrics.map((line, idx) => {
-                          const isActive = idx === activeLyricIndex;
-                          const isPast = activeLyricIndex >= 0 && idx < activeLyricIndex;
+                {/* Main Content: Split Screen - Left Hero Art & Right Fluid Lyrics Stage */}
+                <div className="relative z-10 flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden px-6 lg:px-14 py-8 gap-8 lg:gap-14">
+                  {/* Cột trái: Album Art & Mini Player Stage (Now Playing Hero) */}
+                  <div className="hidden md:flex flex-col justify-center items-center w-[300px] lg:w-[360px] shrink-0 space-y-6 select-none">
+                    {/* Bìa Album lớn với hiệu ứng Glow hào quang */}
+                    <div className="relative group/cover">
+                      {currentTrack.coverUrl && (
+                        <div
+                          className="absolute -inset-3 rounded-3xl bg-cover bg-center blur-2xl opacity-45 group-hover/cover:opacity-65 transition-opacity duration-500"
+                          style={{ backgroundImage: `url(${currentTrack.coverUrl})` }}
+                        />
+                      )}
+                      <div className="relative w-64 h-64 lg:w-72 lg:h-72 rounded-3xl overflow-hidden border border-white/15 bg-black/60 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.9)] flex items-center justify-center">
+                        {currentTrack.coverUrl ? (
+                          <img
+                            src={currentTrack.coverUrl}
+                            alt={currentTrack.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/cover:scale-105"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Music size={64} className="text-zinc-600" />
+                        )}
+                      </div>
+                    </div>
 
-                          return (
-                            <div
-                              key={idx}
-                              ref={(el) => {
-                                lyricsLinesRef.current[idx] = el;
-                              }}
-                              onClick={() => handleSeekToLyricTime(line.time)}
-                              className={`rounded-2xl cursor-pointer transition-opacity duration-200 select-text py-2.5 px-3 ${
-                                isActive
-                                  ? 'text-white opacity-100 font-extrabold'
-                                  : isPast
-                                  ? 'text-zinc-500 hover:text-zinc-300 opacity-30 hover:opacity-75 font-semibold'
-                                  : 'text-zinc-400 hover:text-zinc-200 opacity-40 hover:opacity-85 font-semibold'
-                              }`}
-                              title={`Bấm để phát từ mốc ${Math.floor(line.time / 60)}:${String(Math.floor(line.time % 60)).padStart(2, '0')}`}
-                            >
-                              <span className="text-[22px] sm:text-[25px] leading-[1.8] tracking-tight block">
-                                {line.text || '♪'}
-                              </span>
-                            </div>
-                          );
-                        })}
+                    {/* Tên bài hát & Nghệ sĩ */}
+                    <div className="text-center w-full max-w-[320px] space-y-1.5">
+                      <h2
+                        className="text-xl lg:text-2xl font-black text-white tracking-tight truncate drop-shadow-md"
+                        title={currentTrack.title}
+                      >
+                        {currentTrack.title}
+                      </h2>
+                      <div className="flex items-center justify-center">
+                        <ArtistHoverCard artistName={currentTrack.artist} position="top">
+                          <button
+                            type="button"
+                            className="text-sm text-zinc-300 hover:text-emerald-400 font-medium transition-colors cursor-pointer truncate hover:underline"
+                            title={`Xem thông tin nghệ sĩ ${currentTrack.artist}`}
+                          >
+                            {currentTrack.artist}
+                          </button>
+                        </ArtistHoverCard>
                       </div>
-                    ) : currentLyrics ? (
-                      <div className="space-y-4 py-12">
-                        {currentLyrics.split('\n').map((rawLine, idx) => {
-                          const cleanLine = rawLine.replace(/\[\d{2}:\d{2}(?:\.\d{2,3})?\]/g, '').trim();
-                          if (!cleanLine) return <div key={idx} className="h-4" />;
-                          return (
-                            <p
-                              key={idx}
-                              className="text-[20px] sm:text-[22px] font-medium text-white/80 hover:text-white transition-colors cursor-default leading-[1.8]"
-                            >
-                              {cleanLine}
+                    </div>
+
+                    {/* Sóng âm Equalizer nhảy múa sinh động khi bài đang phát */}
+                    <div className="flex items-center gap-1 h-6">
+                      {isPlaying ? (
+                        <>
+                          <span className="w-1 h-6 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.6s' }} />
+                          <span className="w-1 h-4 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.8s', animationDelay: '0.15s' }} />
+                          <span className="w-1 h-5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.7s', animationDelay: '0.3s' }} />
+                          <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.9s', animationDelay: '0.2s' }} />
+                          <span className="w-1 h-5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDuration: '0.75s', animationDelay: '0.1s' }} />
+                        </>
+                      ) : (
+                        <span className="text-xs text-zinc-500 font-medium">Đang tạm dừng</span>
+                      )}
+                    </div>
+
+                    {/* Mini Quick Controls ngay trên Stage */}
+                    <div className="flex items-center gap-4 pt-1">
+                      <button
+                        type="button"
+                        onClick={seekBackward5s}
+                        className="p-2.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="Tua lùi 5 giây"
+                      >
+                        <RotateCcw size={18} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={togglePlayPause}
+                        className="w-12 h-12 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black flex items-center justify-center shadow-lg transition-transform active:scale-90 cursor-pointer"
+                        title={isPlaying ? 'Tạm dừng (Phím Space)' : 'Phát tiếp (Phím Space)'}
+                      >
+                        {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={seekForward5s}
+                        className="p-2.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="Tua tới 5 giây"
+                      >
+                        <RotateCw size={18} />
+                      </button>
+                    </div>
+
+                    {/* Timeline trực quan mini */}
+                    <div className="w-full max-w-[280px] flex items-center gap-2 text-xs text-zinc-400 tabular-nums">
+                      <span className="w-8 text-right font-mono">{formatTime(currentTime)}</span>
+                      <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-400 rounded-full transition-all duration-100"
+                          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="w-8 font-mono">{formatTime(duration)}</span>
+                    </div>
+                  </div>
+
+                  {/* Cột phải: Sân khấu cuộn lời bài hát đắm chìm (Fluid Lyrics Stage) */}
+                  <div
+                    ref={lyricsContainerRef}
+                    onWheel={handleUserScrollInteraction}
+                    onTouchMove={handleUserScrollInteraction}
+                    className="flex-1 h-full min-h-0 overflow-y-auto px-2 lg:px-8 py-8 select-text scroll-smooth"
+                    style={{
+                      maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)',
+                    }}
+                  >
+                    <div className="max-w-2xl w-full">
+                      {hasSyncedLyrics ? (
+                        <div className="space-y-4 py-8">
+                          {parsedLyrics.map((line, idx) => {
+                            const isActive = idx === activeLyricIndex;
+                            const isPast = activeLyricIndex >= 0 && idx < activeLyricIndex;
+
+                            return (
+                              <div
+                                key={idx}
+                                ref={(el) => {
+                                  lyricsLinesRef.current[idx] = el;
+                                }}
+                                onClick={() => handleSeekToLyricTime(line.time)}
+                                className={`group/line rounded-2xl cursor-pointer transition-all duration-300 select-text py-2.5 px-4 relative ${
+                                  isActive
+                                    ? 'bg-white/[0.06] text-white opacity-100 font-black scale-[1.02] origin-left shadow-xs'
+                                    : isPast
+                                    ? 'text-zinc-400 opacity-25 hover:opacity-75 font-bold hover:text-zinc-200'
+                                    : 'text-zinc-300 opacity-40 hover:opacity-90 font-bold hover:text-white'
+                                }`}
+                                title={`Bấm để tua đến: ${Math.floor(line.time / 60)}:${String(Math.floor(line.time % 60)).padStart(2, '0')}`}
+                              >
+                                {isActive && (
+                                  <span className="absolute left-1 top-1/2 -translate-y-1/2 w-1.5 h-7 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+                                )}
+
+                                <span
+                                  className={`tracking-tight block leading-[1.65] transition-all duration-200 ${
+                                    lyricsFontSize === 'large'
+                                      ? isActive
+                                        ? 'text-[28px] sm:text-[34px]'
+                                        : 'text-[24px] sm:text-[28px]'
+                                      : isActive
+                                      ? 'text-[22px] sm:text-[26px]'
+                                      : 'text-[18px] sm:text-[22px]'
+                                  } ${
+                                    isActive
+                                      ? 'text-white drop-shadow-[0_4px_24px_rgba(255,255,255,0.4)]'
+                                      : ''
+                                  }`}
+                                >
+                                  {line.text || '♪'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : currentLyrics ? (
+                        <div className="space-y-4 py-8">
+                          {currentLyrics.split('\n').map((rawLine, idx) => {
+                            const cleanLine = rawLine.replace(/\[\d{2}:\d{2}(?:\.\d{2,3})?\]/g, '').trim();
+                            if (!cleanLine) return <div key={idx} className="h-4" />;
+                            return (
+                              <p
+                                key={idx}
+                                className={`font-semibold text-white/80 hover:text-white transition-colors cursor-default leading-[1.7] ${
+                                  lyricsFontSize === 'large'
+                                    ? 'text-[24px] sm:text-[28px]'
+                                    : 'text-[19px] sm:text-[22px]'
+                                }`}
+                              >
+                                {cleanLine}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-28 text-zinc-500 gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 shadow-lg">
+                            <Mic2 size={32} className="text-emerald-400 animate-pulse" />
+                          </div>
+                          <div>
+                            <p className="text-base font-bold text-zinc-200">Chưa có lời đồng bộ cho bài hát này</p>
+                            <p className="text-xs text-zinc-500 max-w-sm mt-1">
+                              Bạn có thể dùng tính năng &quot;Chỉnh sửa lời bài hát&quot; trong mục Tải nhạc hoặc thêm tệp .lrc vào cùng thư mục bài hát.
                             </p>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-center py-24 text-zinc-500 gap-3.5">
-                        <Mic2 size={36} className="text-zinc-600 animate-pulse" />
-                        <p className="text-base font-medium text-zinc-400">Đang tìm kiếm lời bài hát hoặc bài này chưa có lời...</p>
-                      </div>
-                    )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
