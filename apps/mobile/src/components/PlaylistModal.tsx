@@ -257,7 +257,7 @@ export function PlaylistModal({
                 activeTab === 'playlists' ? styles.tabTextActive : styles.tabTextInactive,
               ]}
             >
-              Danh sách phát ({userState.playlists.length})
+              Playlist ({userState.playlists.length})
             </Text>
           </TouchableOpacity>
 
@@ -280,7 +280,7 @@ export function PlaylistModal({
                 activeTab === 'favorites' ? styles.tabTextActiveFavorites : styles.tabTextInactive,
               ]}
             >
-              Yêu thích ({userState.favoriteIds.length})
+              Favorites ({userState.favoriteIds.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -294,19 +294,20 @@ export function PlaylistModal({
                 <View style={styles.emptyIconCircle}>
                   <PlaylistIcon size={36} color="#71717a" />
                 </View>
-                <Text style={styles.emptyTitle}>Chưa có danh sách phát nào</Text>
+                <Text style={styles.emptyTitle}>Chưa có Playlist nào</Text>
                 <Text style={styles.emptyDesc}>
-                  Bấm "Tạo mới" ở góc phải trên để tạo danh sách phát đầu tiên. Dữ liệu sẽ đồng bộ tự động với máy tính.
+                  Bấm "Tạo mới" ở góc phải trên để tạo Playlist đầu tiên. Dữ liệu sẽ đồng bộ tự động với máy tính.
                 </Text>
                 <TouchableOpacity
                   style={styles.actionBtnPrimary}
                   onPress={() => setIsCreating(true)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.actionBtnPrimaryText}>+ Tạo danh sách phát</Text>
+                  <Text style={styles.actionBtnPrimaryText}>+ Tạo Playlist</Text>
                 </TouchableOpacity>
               </View>
             ) : (
+
               <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
                 {userState.playlists.map((pl) => (
                   <TouchableOpacity
@@ -387,9 +388,10 @@ export function PlaylistModal({
 
                 {activePlaylistTracks.length === 0 ? (
                   <View style={styles.centerBox}>
-                    <Text style={styles.emptyTitle}>Danh sách phát này còn trống</Text>
+                    <Text style={styles.emptyTitle}>Playlist này còn trống</Text>
                     <Text style={styles.emptyDesc}>Bấm "Thêm bài" bên trên để chọn bài hát từ thư viện vào đây.</Text>
                   </View>
+
                 ) : (
                   <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
                     {activePlaylistTracks.map((track) => {
@@ -495,16 +497,17 @@ export function PlaylistModal({
         <Modal visible={isCreating} transparent animationType="fade">
           <View style={styles.dialogOverlay}>
             <View style={styles.dialogCard}>
-              <Text style={styles.dialogTitle}>Tạo Danh sách phát mới</Text>
+              <Text style={styles.dialogTitle}>Tạo Playlist mới</Text>
 
               <TextInput
                 style={styles.dialogInput}
-                placeholder="Tên danh sách phát (ví dụ: Acoustic, Chill...)"
+                placeholder="Tên Playlist (ví dụ: Acoustic, Chill...)"
                 placeholderTextColor="#71717a"
                 value={newPlaylistName}
                 onChangeText={setNewPlaylistName}
                 autoFocus
               />
+
 
               <TextInput
                 style={[styles.dialogInput, { height: 64 }]}

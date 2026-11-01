@@ -129,7 +129,7 @@ export function LyricsModal({
               {track.title}
             </Text>
             <Text style={styles.trackArtist} numberOfLines={1}>
-              {track.artist} {isSynced ? '• Lời đồng bộ' : ''}
+              {track.artist} {isSynced ? '• Synced Lyrics' : ''}
             </Text>
           </View>
 
@@ -139,7 +139,7 @@ export function LyricsModal({
             activeOpacity={0.7}
           >
             <EditIcon size={16} color="#1DB954" />
-            <Text style={styles.editText}>Sửa</Text>
+            <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
         </View>
 
@@ -154,7 +154,7 @@ export function LyricsModal({
             <View style={styles.emptyIconBg}>
               <LyricsIcon size={40} color="#71717a" />
             </View>
-            <Text style={styles.emptyTitle}>Chưa có lời bài hát</Text>
+            <Text style={styles.emptyTitle}>Chưa có Lyrics</Text>
             <Text style={styles.emptyDesc}>
               Bài hát này hiện chưa có lời trên hệ thống. Bạn có thể thêm lời bài hát ngay bây giờ.
             </Text>
@@ -163,9 +163,10 @@ export function LyricsModal({
               onPress={() => onOpenEditLyrics(track)}
               activeOpacity={0.8}
             >
-              <Text style={styles.addLyricsBtnText}>+ Thêm lời bài hát</Text>
+              <Text style={styles.addLyricsBtnText}>+ Thêm Lyrics</Text>
             </TouchableOpacity>
           </View>
+
         ) : isSynced ? (
           /* Danh sách lời đồng bộ thời gian (LRC) */
           <ScrollView

@@ -828,7 +828,7 @@ export default function SpikePlayerScreen() {
               <RepeatIcon size={16} color={repeatMode !== 'off' ? '#1DB954' : '#71717a'} />
             )}
             <Text style={[styles.repeatBottomText, repeatMode !== 'off' && styles.repeatActiveColor]}>
-              {repeatMode === 'off' ? 'Không lặp' : repeatMode === 'track' ? 'Lặp 1 bài' : 'Lặp danh sách'}
+              {repeatMode === 'off' ? 'Repeat: Tắt' : repeatMode === 'track' ? 'Repeat: 1 bài' : 'Repeat: Tất cả'}
             </Text>
           </TouchableOpacity>
 
@@ -839,12 +839,12 @@ export default function SpikePlayerScreen() {
           >
             <ShuffleIcon size={16} color={isSmartShuffle ? '#1DB954' : '#71717a'} />
             <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
-              {isSmartShuffle ? 'Trộn: BẬT' : 'Trộn: Tắt'}
+              {isSmartShuffle ? 'Shuffle: BẬT' : 'Shuffle: Tắt'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Hàng nút tính năng: Lời bài hát & Tuyển tập Playlist */}
+        {/* Hàng nút tính năng: Lyrics & Playlist */}
         <View style={[styles.modeButtonsRow, { marginTop: 8 }]}>
           <TouchableOpacity
             style={[styles.modeBottomBtn, lyricsModalVisible && styles.modeBottomBtnActive]}
@@ -854,7 +854,7 @@ export default function SpikePlayerScreen() {
           >
             <LyricsIcon size={16} color={currentTrack ? '#1DB954' : '#71717a'} />
             <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
-              Lời bài hát
+              Lyrics
             </Text>
           </TouchableOpacity>
 
@@ -865,11 +865,12 @@ export default function SpikePlayerScreen() {
           >
             <PlaylistIcon size={16} color="#1DB954" />
             <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
-              Tuyển tập ({userState.playlists.length})
+              Playlist ({userState.playlists.length})
             </Text>
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Khung kết nối & Đồng bộ Cloudflare R2 */}
       <View style={styles.syncCard}>
