@@ -380,6 +380,7 @@ app.get('/local-api/tracks', async (c) => {
 
   const tracks = cachedScannedTracks.map((item) => {
     const fileExists = existsSync(item.filePath);
+    const ext = path.extname(item.filePath).replace('.', '').toLowerCase();
     return {
       id: item.track.id,
       title: item.track.title,
@@ -387,6 +388,9 @@ app.get('/local-api/tracks', async (c) => {
       album: item.track.album,
       albumId: item.track.albumId,
       duration: item.track.duration,
+      format: ext,
+      hasCover: !!(item.coverBuffer || item.track.cover),
+      hasLyrics: !!item.track.lyrics,
       filePath: item.filePath,
       fileExists,
       isSynced: r2TrackKeys.has(item.track.file),

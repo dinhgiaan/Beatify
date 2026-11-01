@@ -160,12 +160,23 @@ export const LibraryPage: React.FC<{
     return tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
   }, [tracks]);
 
+  // Hàm suy luận định dạng tệp chuẩn xác từ t.format hoặc đuôi filePath
+  const getTrackFormat = (t: TrackItem): string => {
+    if (t.format && t.format.trim()) return t.format.toLowerCase().trim();
+    if (t.filePath) {
+      const ext = t.filePath.split('.').pop();
+      if (ext && ext.length <= 5) return ext.toLowerCase().trim();
+    }
+    return '';
+  };
+
   // Danh sách định dạng có trong thư viện
   const availableFormats = useMemo(() => {
     const set = new Set<string>();
     tracks.forEach((t) => {
-      if (t.format && t.format.trim()) {
-        set.add(t.format.toLowerCase().trim());
+      const fmt = getTrackFormat(t);
+      if (fmt) {
+        set.add(fmt);
       }
     });
     return Array.from(set).sort();
@@ -176,7 +187,8 @@ export const LibraryPage: React.FC<{
     let list = tracks.filter((t) => {
       if (syncFilter === 'unsynced' && t.isSynced) return false;
       if (syncFilter === 'synced' && !t.isSynced) return false;
-      if (formatFilter !== 'all' && t.format?.toLowerCase() !== formatFilter) return false;
+      const fmt = getTrackFormat(t);
+      if (formatFilter !== 'all' && fmt !== formatFilter) return false;
       if (!searchTerm) return true;
       const s = searchTerm.toLowerCase();
       return (
@@ -574,7 +586,8 @@ export const LibraryPage: React.FC<{
               const isCurrent = playingTrackId === t.id;
               const isPlayingNow = isCurrent && isAudioPlaying;
 
-              const isLossless = ['flac', 'wav', 'alac'].includes(t.format?.toLowerCase() || '');
+              const trackFormat = getTrackFormat(t);
+              const isLossless = ['flac', 'wav', 'alac'].includes(trackFormat);
 
               return (
                 <div
@@ -746,18 +759,18 @@ export const LibraryPage: React.FC<{
                     )}
                   </div>
 
-                  {/* Cột 5: Định dạng âm thanh (Chỉ hiển thị khi có định dạng hợp lệ) */}
+                  {/* Cột 5: Định dạng âm thanh */}
                   <div className="w-20 shrink-0 text-center hidden sm:block">
-                    {t.format && t.format.trim() ? (
+                    {trackFormat ? (
                       <span
                         className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                           isLossless
                             ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
                             : 'bg-white/[0.05] text-zinc-300 border border-white/[0.08]'
                         }`}
-                        title={`Định dạng tệp âm thanh: ${t.format.toUpperCase()}`}
+                        title={`Định dạng tệp âm thanh: ${trackFormat.toUpperCase()}`}
                       >
-                        {t.format}
+                        {trackFormat}
                       </span>
                     ) : (
                       <span className="text-zinc-600 text-xs">—</span>
