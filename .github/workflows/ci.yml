@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cài đặt ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
