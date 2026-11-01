@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { type Track, type UpdateTrack, type UserState, smartShuffle } from '@music-app/shared';
+import { type Track, type UpdateTrack, type UserState, smartShuffle, mergeUserStates } from '@music-app/shared';
 import { playerService } from '../src/services/player/rntpPlayerService';
 import type { PlayerState, RepeatMode } from '../src/services/player/types';
 import { parseMobileprovisionExpiration } from '../src/utils/mobileprovision';
@@ -79,6 +79,8 @@ export default function SpikePlayerScreen() {
   const [recoveryStatus, setRecoveryStatus] = useState<string>('Không có khôi phục');
   const [writeQueueStatus, setWriteQueueStatus] = useState<string>('Đã ghi xong (hàng đợi rỗng)');
   const lastRecordedTrackRef = useRef<string | null>(null);
+  const currentTrackingTrackIdRef = useRef<string | null>(null);
+  const maxListenedSecRef = useRef<number>(0);
 
   // State cho Edit / Delete Modal & Đồng bộ Cloudflare
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -125,12 +127,20 @@ export default function SpikePlayerScreen() {
   // Tự động nạp UserState (Playlists & Favorites) từ local cache và đồng bộ từ server
   useEffect(() => {
     async function loadUserState() {
+      let localState: UserState = {
+        version: 1,
+        updatedAt: new Date(0).toISOString(),
+        playlists: [],
+        favoriteIds: [],
+      };
+
       try {
         const info = await FileSystem.getInfoAsync(USER_STATE_FILE);
         if (info.exists) {
           const raw = await FileSystem.readAsStringAsync(USER_STATE_FILE);
           const parsed = JSON.parse(raw);
           if (parsed && Array.isArray(parsed.playlists) && Array.isArray(parsed.favoriteIds)) {
+            localState = parsed;
             setUserState(parsed);
           }
         }
@@ -145,8 +155,17 @@ export default function SpikePlayerScreen() {
           const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
           const remoteState = await client.fetchUserState();
           if (remoteState) {
-            setUserState(remoteState);
-            await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(remoteState, null, 2));
+            // HỢP NHẤT THÔNG MINH 2 CHIỀU: Bảo toàn playlist và favorites của cả iPhone và Web
+            const merged = mergeUserStates(localState, remoteState);
+            setUserState(merged);
+            await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(merged, null, 2));
+
+            // Nếu máy có playlist hoặc favorites mới hơn chưa có trên remote -> tự động đồng bộ lên server
+            if (JSON.stringify(merged) !== JSON.stringify(remoteState)) {
+              await client.saveUserState(merged).catch((e) => {
+                console.warn('Lỗi tự động đẩy merged state lên server:', e);
+              });
+            }
           }
         } catch (err) {
           console.warn('Không thể đồng bộ UserState từ server:', err);
@@ -155,6 +174,7 @@ export default function SpikePlayerScreen() {
     }
     loadUserState();
   }, [USER_STATE_FILE, serverUrl, serverToken]);
+
 
   // Hàm cập nhật UserState (lưu cache local + đồng bộ Cloudflare R2)
   const handleUpdateUserState = async (updater: (prev: UserState) => UserState) => {
@@ -322,8 +342,29 @@ export default function SpikePlayerScreen() {
     };
   }, []);
 
-  // Tự động ghi nhận lượt nghe cho Profile & Replay khi nghe >= 15 giây
+  // Tự động ghi nhận lượt nghe và đo chính xác thời lượng nghe thực tế cho Profile & Replay
   useEffect(() => {
+    // 1. Khi bài hát đổi sang bài khác: Chốt thời lượng thực tế của bài hát trước đó
+    if (playerState.activeTrackId !== currentTrackingTrackIdRef.current) {
+      const prevTrackId = currentTrackingTrackIdRef.current;
+      const prevListened = maxListenedSecRef.current;
+
+      if (prevTrackId && prevListened >= 15) {
+        statsStorage.updateLastTrackListenedSec(prevTrackId, prevListened).catch((err) => {
+          console.warn('Lỗi cập nhật thời lượng nghe thực tế cho bài trước:', err);
+        });
+      }
+
+      currentTrackingTrackIdRef.current = playerState.activeTrackId;
+      maxListenedSecRef.current = Math.max(0, playerState.positionSec || 0);
+    } else {
+      // 2. Bài hát đang tiếp tục phát: Cập nhật vị trí nghe cao nhất đạt được
+      if (playerState.positionSec > maxListenedSecRef.current) {
+        maxListenedSecRef.current = playerState.positionSec;
+      }
+    }
+
+    // 3. Ghi nhận lượt nghe ban đầu khi bài hát vượt qua mốc 15 giây
     if (
       playerState.isPlaying &&
       playerState.activeTrackId &&
@@ -355,6 +396,7 @@ export default function SpikePlayerScreen() {
       }
     }
   }, [playerState.isPlaying, playerState.activeTrackId, playerState.positionSec, tracks]);
+
 
   const handlePlayQueue = async (trackList = tracks, startIndex = currentTrackIndex) => {
     if (trackList.length === 0) return;

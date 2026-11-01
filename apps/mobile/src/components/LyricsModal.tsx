@@ -40,12 +40,14 @@ export function LyricsModal({
   const scrollRef = useRef<ScrollView>(null);
   const userScrolledRef = useRef(false);
   const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lineYOffsets = useRef<{ [index: number]: number }>({});
 
   // Nạp lời bài hát khi mở modal hoặc đổi bài
   useEffect(() => {
     if (visible && track) {
       setIsLoading(true);
       userScrolledRef.current = false;
+      lineYOffsets.current = {};
       onFetchLyrics(track.id)
         .then((content) => {
           setRawLyrics(content);
@@ -59,6 +61,7 @@ export function LyricsModal({
         });
     } else {
       setRawLyrics(null);
+      lineYOffsets.current = {};
     }
   }, [visible, track, onFetchLyrics]);
 
@@ -76,14 +79,17 @@ export function LyricsModal({
     return findActiveLrcIndex(lrcLines, currentTimeSec);
   }, [isSynced, lrcLines, currentTimeSec]);
 
-  // Tự động cuộn theo dòng phát (nếu người dùng không đang tự vuốt)
+  // Tự động cuộn theo dòng phát bám sát vị trí pixel thực tế của câu hát
   useEffect(() => {
     if (visible && isSynced && activeIndex >= 0 && !userScrolledRef.current) {
-      // Giữ dòng đang hát ở vị trí khoảng 1/3 từ trên xuống
-      const targetY = Math.max(0, activeIndex * LINE_HEIGHT - 120);
+      const realY = lineYOffsets.current[activeIndex];
+      const targetY = typeof realY === 'number'
+        ? Math.max(0, realY - 140)
+        : Math.max(0, activeIndex * LINE_HEIGHT - 120);
       scrollRef.current?.scrollTo({ y: targetY, animated: true });
     }
   }, [visible, isSynced, activeIndex]);
+
 
   const handleScrollBegin = () => {
     userScrolledRef.current = true;
@@ -179,6 +185,9 @@ export function LyricsModal({
                   key={`line-${idx}-${line.time}`}
                   style={[styles.lyricLineWrap, isActive && styles.lyricLineWrapActive]}
                   activeOpacity={0.6}
+                  onLayout={(e) => {
+                    lineYOffsets.current[idx] = e.nativeEvent.layout.y;
+                  }}
                   onPress={() => {
                     if (onSeek) onSeek(line.time);
                     userScrolledRef.current = false;
@@ -188,6 +197,7 @@ export function LyricsModal({
                     {line.text || '♪'}
                   </Text>
                 </TouchableOpacity>
+
               );
             })}
             <View style={{ height: 260 }} />

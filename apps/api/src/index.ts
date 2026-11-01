@@ -10,6 +10,7 @@ import {
   type UserState,
   applyTrackUpdate,
   applyTrackDeletion,
+  mergeUserStates,
 } from '@music-app/shared';
 import type { Env } from './types';
 import { verifyToken } from './utils/auth';
@@ -573,29 +574,20 @@ app.put('/api/state', async (c) => {
   const repo = new R2StorageRepository(c.env.MUSIC_BUCKET);
   const current = await repo.getUserState();
 
-  // Last-write-wins: Kiểm tra xung đột thời gian cập nhật
-  if (current && new Date(parsed.data.updatedAt) < new Date(current.updatedAt)) {
-    return c.json(
-      {
-        status: 409,
-        message: 'Conflict: remote state is newer',
-        data: current,
-        error: ERROR_CODES.CONFLICT,
-      },
-      409
-    );
-  }
+  // Hợp nhất thông minh 2 chiều: Bảo toàn playlist & favorites của cả client và server
+  const finalState = current ? mergeUserStates(parsed.data, current) : parsed.data;
 
-  await repo.saveUserState(parsed.data);
+  await repo.saveUserState(finalState);
 
   return c.json({
     status: 200,
-    message: 'User state saved successfully',
-    data: parsed.data,
+    message: 'User state merged and saved successfully',
+    data: finalState,
     error: null,
   });
 });
 
 export default app;
+
 
 

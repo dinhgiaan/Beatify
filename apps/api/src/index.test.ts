@@ -367,6 +367,34 @@ describe('Track Edit, Delete & Sync API', () => {
     expect(savedJson.data.playlists.length).toBe(1);
     expect(savedJson.data.playlists[0]?.name).toBe('Nhạc Chill Đêm');
     expect(savedJson.data.favoriteIds).toEqual(['1234567890ab']);
+
+    // Gửi thêm playlist từ thiết bị thứ 2 -> Tự động hợp nhất mà không ghi đè mất playlist-1
+    const putMergeRes = await app.request('/api/state', {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer secret123', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        playlists: [
+          {
+            id: 'playlist-2',
+            name: 'Nhạc Chạy Bộ',
+            trackIds: ['abcdef123456'],
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        favoriteIds: ['abcdef123456'],
+      }),
+    }, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: fakeBucket,
+    });
+    expect(putMergeRes.status).toBe(200);
+    const mergedData = ((await putMergeRes.json()) as { data: { playlists: unknown[]; favoriteIds: string[] } }).data;
+    expect(mergedData.playlists.length).toBe(2); // Cả playlist-1 và playlist-2 đều được giữ lại!
+    expect(mergedData.favoriteIds).toContain('1234567890ab');
+    expect(mergedData.favoriteIds).toContain('abcdef123456');
   });
 });
 

@@ -27,6 +27,28 @@ describe('parseLrc', () => {
     expect(result[0]).toEqual({ time: 5, text: 'Chorus line' });
     expect(result[1]).toEqual({ time: 15, text: 'Chorus line' });
   });
+
+  it('xử lý thẻ [offset: 500] và bỏ qua các thẻ metadata [ar:], [ti:]', () => {
+    const lrc = `[ar: Sơn Tùng M-TP]
+[ti: Cơn Mưa Ngang Qua]
+[offset: 500]
+[01:02.00] Cơn mưa ngang qua mang em đi xa`;
+
+    const result = parseLrc(lrc);
+    expect(result).toHaveLength(1);
+    // 1 phút 2 giây + 500ms offset = 62.5 giây
+    expect(result[0]).toEqual({ time: 62.5, text: 'Cơn mưa ngang qua mang em đi xa' });
+  });
+
+  it('xử lý dấu hai chấm phân cách millisecond [01:10:50] và phút 1 chữ số [1:05.20]', () => {
+    const lrc = `[1:05.20] Câu hát ngắn
+[02:10:50] Câu hát dấu hai chấm`;
+
+    const result = parseLrc(lrc);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ time: 65.2, text: 'Câu hát ngắn' });
+    expect(result[1]).toEqual({ time: 130.5, text: 'Câu hát dấu hai chấm' });
+  });
 });
 
 describe('findActiveLrcIndex', () => {

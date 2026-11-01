@@ -474,5 +474,32 @@ describe('Kiểm thử StatsStorageService — B17 Phòng vệ Dữ liệu & X�
     expect(service.getLastWriteBranch()).toBe('fallback (delete + move)');
     expect(service.getLastMoveError()).toContain('Destination already exists and overwrite not supported');
   });
+
+  it('Nhánh 14: updateLastTrackListenedSec cập nhật chính xác thời lượng nghe thực tế của bài hát', async () => {
+    vi.mocked(FileSystem.getInfoAsync).mockResolvedValue(mockFileExists);
+    vi.mocked(FileSystem.readAsStringAsync).mockResolvedValue(JSON.stringify([]));
+    vi.mocked(FileSystem.writeAsStringAsync).mockResolvedValue();
+    vi.mocked(FileSystem.moveAsync).mockResolvedValue();
+
+    // 1. Ghi nhận lúc 15 giây
+    await service.recordTrackListen({
+      trackId: 'track_real_duration',
+      title: 'Bài Hát Đo Thời Gian Thật',
+      artist: 'Ca Sĩ',
+      durationSec: 240,
+      listenedSec: 15,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // 2. Khi nghe đến 210 giây và chuyển bài: cập nhật thời lượng thực tế
+    await service.updateLastTrackListenedSec('track_real_duration', 210);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const records = await service.loadListeningRecords();
+    const updated = records.find((r) => r.trackId === 'track_real_duration');
+    expect(updated).toBeDefined();
+    expect(updated?.listenedSec).toBe(210); // Đã được cập nhật từ 15s lên 210s chuẩn xác!
+  });
 });
+
 

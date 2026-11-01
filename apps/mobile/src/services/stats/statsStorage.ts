@@ -402,6 +402,35 @@ export class StatsStorageService {
     }
   }
 
+  /**
+   * Cập nhật thời lượng nghe thực tế cho bài hát vừa nghe xong (khi chuyển bài hoặc nghe hết bài)
+   * Giúp thống kê tổng thời gian nghe (totalMinutes) trong Replay/Profile chính xác 100%.
+   */
+  async updateLastTrackListenedSec(trackId: string, actualListenedSec: number): Promise<void> {
+    try {
+      if (!this.cachedRecords || this.cachedRecords.length === 0) return;
+      const roundedSec = Math.round(actualListenedSec);
+      if (roundedSec <= 0) return;
+
+      const lastRecord = this.cachedRecords[this.cachedRecords.length - 1];
+      if (lastRecord && lastRecord.trackId === trackId && roundedSec > lastRecord.listenedSec) {
+        lastRecord.listenedSec = roundedSec;
+
+        if (this.writeBlocked) return;
+
+        const snapshot = [...this.cachedRecords];
+        this.pendingWriteCount++;
+        this.writeChain = this.writeChain
+          .then(() => this._doWrite(snapshot))
+          .finally(() => {
+            this.pendingWriteCount = Math.max(0, this.pendingWriteCount - 1);
+          });
+      }
+    } catch (err) {
+      console.warn('Lỗi cập nhật thời lượng nghe thực tế:', err);
+    }
+  }
+
   private async _doWrite(records: ListeningRecord[]): Promise<void> {
     if (this.writeBlocked) return;
     const tmpPath = `${STATS_FILE}.tmp`;

@@ -6,3 +6,4 @@ export * from './utils';
 export * from './smartShuffle';
 export * from './stats';
 export * from './youtube';
+export * from './sync';
