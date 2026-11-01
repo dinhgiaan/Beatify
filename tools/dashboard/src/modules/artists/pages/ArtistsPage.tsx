@@ -228,7 +228,7 @@ export const ArtistsPage: React.FC<ArtistsPageProps> = ({
           </div>
           <div className="min-w-0">
             <div className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
-              CÓ AVATAR (ARTIST.JPG)
+              CÓ AVATAR (ARTIST.PNG)
             </div>
             <div className="text-xl font-extrabold text-[var(--text-primary)] tabular-nums mt-0.5">
               {stats.withAvatar} <span className="text-xs font-normal text-[var(--text-muted)]">({stats.avatarPercent}%)</span>

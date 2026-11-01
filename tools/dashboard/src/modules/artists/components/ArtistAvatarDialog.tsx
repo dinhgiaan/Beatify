@@ -108,7 +108,7 @@ export const ArtistAvatarDialog: React.FC<ArtistAvatarDialogProps> = ({
               </div>
             </div>
             <span className="text-[11px] text-[var(--text-muted)]">
-              {artist.hasAvatar ? 'Đã có ảnh đại diện (artist.jpg)' : 'Chưa có ảnh riêng (Dùng bìa album)'}
+              {artist.hasAvatar ? 'Đã có ảnh đại diện (artist.png)' : 'Chưa có ảnh riêng (Dùng bìa album)'}
             </span>
           </div>
 
@@ -128,7 +128,7 @@ export const ArtistAvatarDialog: React.FC<ArtistAvatarDialogProps> = ({
                 autoFocus
               />
               <p className="text-[10.5px] text-[var(--text-muted)] leading-relaxed">
-                Hệ thống sẽ tự động trích xuất avatar vuông độ phân giải cao 900x900 pixel, lưu tệp <code className="text-emerald-400">artist.jpg</code> và cấu hình icon thư mục Windows Explorer.
+                Hệ thống sẽ tự động trích xuất avatar vuông độ phân giải cao 900x900 pixel, lưu tệp <code className="text-emerald-400">artist.png</code> và cấu hình icon thư mục Windows Explorer.
               </p>
             </div>
 

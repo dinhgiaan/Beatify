@@ -228,10 +228,11 @@ export function getArtistImagePath(artistDir: string): string | null {
   if (!fs.existsSync(artistDir)) return null;
 
   const candidateNames = [
-    'artist.jpg',
     'artist.png',
-    'artist.jpeg',
     'artist.webp',
+    'artist.jpg',
+    'artist.jpeg',
+    'folder.png',
     'folder.jpg',
     'cover.jpg',
   ];
@@ -708,7 +709,7 @@ export const YoutubeService = {
           onProgress?.(94, 'Đang tìm kiếm avatar channel nghệ sĩ...');
           const avatarBuf = await fetchChannelAvatarBuffer(url, options.channelUrl);
           if (avatarBuf && avatarBuf.length > 0) {
-            // 8.1. Lưu artist.png tại thư mục nghệ sĩ (định dạng PNG chất lượng cao)
+            // 8.1. Lưu duy nhất artist.png tại thư mục nghệ sĩ (định dạng PNG chất lượng cao không vỡ hạt)
             const artistPngPath = path.join(artistDir, 'artist.png');
             await fsPromises.writeFile(artistPngPath, avatarBuf);
 
@@ -718,21 +719,21 @@ export const YoutubeService = {
               await fsPromises.writeFile(artistFolderPngPath, avatarBuf);
             }
 
-            // Giữ thêm bản artist.jpg / folder.jpg để tương thích với mọi phần mềm đọc ảnh
-            const artistJpgPath = path.join(artistDir, 'artist.jpg');
-            await fsPromises.writeFile(artistJpgPath, avatarBuf).catch(() => {});
-            const artistFolderJpgPath = path.join(artistDir, 'folder.jpg');
-            if (!fs.existsSync(artistFolderJpgPath)) {
-              await fsPromises.writeFile(artistFolderJpgPath, avatarBuf).catch(() => {});
+            // Dọn dẹp file artist.jpg / folder.jpg cũ nếu có để tránh trùng lặp 2 file
+            const oldArtistJpg = path.join(artistDir, 'artist.jpg');
+            if (fs.existsSync(oldArtistJpg)) {
+              try { await fsPromises.unlink(oldArtistJpg); } catch { /* bỏ qua */ }
+            }
+            const oldFolderJpg = path.join(artistDir, 'folder.jpg');
+            if (fs.existsSync(oldFolderJpg)) {
+              try { await fsPromises.unlink(oldFolderJpg); } catch { /* bỏ qua */ }
             }
 
-            // Ghi metadata tab Details (Curator: Kato) chuyên nghiệp cho các file ảnh
+            // Ghi metadata tab Details (Curator: Kato) chuyên nghiệp cho các file ảnh PNG
             try {
               const targetArtistName = options.artist || 'Unknown Artist';
               applyArtistImageMetadata(artistPngPath, { artistName: targetArtistName, curator: 'Kato' });
               applyArtistImageMetadata(artistFolderPngPath, { artistName: targetArtistName, curator: 'Kato' });
-              applyArtistImageMetadata(artistJpgPath, { artistName: targetArtistName, curator: 'Kato' });
-              applyArtistImageMetadata(artistFolderJpgPath, { artistName: targetArtistName, curator: 'Kato' });
             } catch {
               // Bỏ qua lỗi metadata nếu có
             }

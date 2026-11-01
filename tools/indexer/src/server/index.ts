@@ -1959,7 +1959,7 @@ app.post('/local-api/artists/:name/avatar', async (c) => {
     return c.json({ status: 400, error: 'Không thể tải ảnh từ đường dẫn đã cung cấp' }, 400);
   }
 
-  // 1. Lưu artist.png (chất lượng cao .PNG không vỡ hạt)
+  // 1. Lưu duy nhất artist.png (chất lượng cao .PNG không vỡ hạt)
   const artistPng = path.join(artistDir, 'artist.png');
   await fs.writeFile(artistPng, imgBuf);
 
@@ -1967,27 +1967,28 @@ app.post('/local-api/artists/:name/avatar', async (c) => {
   const folderPng = path.join(artistDir, 'folder.png');
   await fs.writeFile(folderPng, imgBuf);
 
-  // 3. Giữ thêm bản artist.jpg / folder.jpg để tương thích ngược 100% với các công cụ chỉ đọc JPG
-  const artistJpg = path.join(artistDir, 'artist.jpg');
-  await fs.writeFile(artistJpg, imgBuf).catch(() => {});
-  const folderJpg = path.join(artistDir, 'folder.jpg');
-  await fs.writeFile(folderJpg, imgBuf).catch(() => {});
+  // 3. Dọn dẹp file artist.jpg / folder.jpg cũ nếu có để chỉ giữ lại duy nhất .png
+  const oldArtistJpg = path.join(artistDir, 'artist.jpg');
+  if (existsSync(oldArtistJpg)) {
+    try { await fs.unlink(oldArtistJpg); } catch { /* bỏ qua */ }
+  }
+  const oldFolderJpg = path.join(artistDir, 'folder.jpg');
+  if (existsSync(oldFolderJpg)) {
+    try { await fs.unlink(oldFolderJpg); } catch { /* bỏ qua */ }
+  }
 
-  // 4. Áp dụng thông tin metadata tab "Details" (Curator: Kato) chuyên nghiệp cho các file ảnh
+  // 4. Áp dụng thông tin metadata tab "Details" (Curator: Kato) chuyên nghiệp cho các file ảnh PNG
   try {
     applyArtistImageMetadata(artistPng, { artistName, curator: 'Kato' });
     applyArtistImageMetadata(folderPng, { artistName, curator: 'Kato' });
-    applyArtistImageMetadata(artistJpg, { artistName, curator: 'Kato' });
-    applyArtistImageMetadata(folderJpg, { artistName, curator: 'Kato' });
   } catch {
     // Không gián đoạn luồng chính nếu có lỗi metadata
   }
 
-  // 5. Thiết lập thuộc tính ẩn (+h +s) cho các file folder.* sau khi đã ghi metadata
+  // 5. Thiết lập thuộc tính ẩn (+h +s) cho file folder.png sau khi đã ghi metadata
   if (process.platform === 'win32') {
     try {
       execFileSync('attrib', ['+h', '+s', folderPng]);
-      execFileSync('attrib', ['+h', '+s', folderJpg]);
     } catch {
       // bỏ qua
     }
