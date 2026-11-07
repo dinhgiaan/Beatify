@@ -705,6 +705,8 @@ export default function SpikePlayerScreen() {
                 setProfileModalVisible(true);
               }}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Mở hồ sơ cá nhân và thành tích nghe nhạc"
             >
               <ProfileIcon size={14} color="#1DB954" />
               <Text style={styles.profileHeaderBtnText}>Hồ sơ</Text>
@@ -716,6 +718,8 @@ export default function SpikePlayerScreen() {
                   onPress={() => handleToggleFavorite(currentTrack.id)}
                   activeOpacity={0.6}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={userState.favoriteIds.includes(currentTrack.id) ? "Bỏ thích bài hát này" : "Yêu thích bài hát này"}
                 >
                   <HeartIcon
                     size={14}
@@ -729,6 +733,8 @@ export default function SpikePlayerScreen() {
                   onPress={() => handleOpenEdit(currentTrack)}
                   activeOpacity={0.6}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Chỉnh sửa thông tin bài hát"
                 >
                   <EditIcon size={13} color="#888888" />
                 </TouchableOpacity>
@@ -792,6 +798,8 @@ export default function SpikePlayerScreen() {
             disabled={tracks.length === 0}
             onPress={() => handleSeekOffset(-5)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Tua lùi 5 giây"
           >
             <SeekBackwardIcon size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -802,6 +810,8 @@ export default function SpikePlayerScreen() {
             disabled={tracks.length === 0}
             onPress={handlePrevious}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Phát bài trước đó"
           >
             <PrevIcon size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -812,6 +822,8 @@ export default function SpikePlayerScreen() {
             disabled={tracks.length === 0 && !playerState.isPlaying}
             onPress={handleTogglePlay}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={playerState.isPlaying ? "Tạm dừng phát nhạc" : "Bắt đầu phát nhạc"}
           >
             {playerState.isPlaying ? (
               <PauseIcon size={26} color="#000000" />
@@ -826,6 +838,8 @@ export default function SpikePlayerScreen() {
             disabled={tracks.length === 0}
             onPress={handleNext}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Phát bài tiếp theo"
           >
             <NextIcon size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -836,6 +850,8 @@ export default function SpikePlayerScreen() {
             disabled={tracks.length === 0}
             onPress={() => handleSeekOffset(5)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Tua tới 5 giây"
           >
             <SeekForwardIcon size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -847,6 +863,8 @@ export default function SpikePlayerScreen() {
             style={[styles.modeBottomBtn, repeatMode !== 'off' && styles.modeBottomBtnActive]}
             onPress={handleCycleRepeat}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={repeatMode === 'off' ? 'Chế độ lặp lại: Tắt' : repeatMode === 'track' ? 'Chế độ lặp lại: 1 bài' : 'Chế độ lặp lại: Toàn bộ danh sách'}
           >
             {repeatMode === 'track' ? (
               <RepeatOneIcon size={16} color="#1DB954" />
@@ -862,6 +880,8 @@ export default function SpikePlayerScreen() {
             style={[styles.modeBottomBtn, isSmartShuffle && styles.modeBottomBtnActive]}
             onPress={handleToggleSmartShuffle}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={isSmartShuffle ? "Tắt trộn bài thông minh" : "Bật trộn bài thông minh"}
           >
             <ShuffleIcon size={16} color={isSmartShuffle ? '#1DB954' : '#71717a'} />
             <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
@@ -877,6 +897,8 @@ export default function SpikePlayerScreen() {
             disabled={!currentTrack}
             onPress={() => setLyricsModalVisible(true)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Mở màn hình lời bài hát"
           >
             <LyricsIcon size={16} color={currentTrack ? '#1DB954' : '#71717a'} />
             <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
@@ -888,6 +910,8 @@ export default function SpikePlayerScreen() {
             style={[styles.modeBottomBtn, playlistModalVisible && styles.modeBottomBtnActive]}
             onPress={() => setPlaylistModalVisible(true)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Quản lý danh sách phát"
           >
             <PlaylistIcon size={16} color="#1DB954" />
             <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
@@ -1063,6 +1087,8 @@ export default function SpikePlayerScreen() {
                 <TouchableOpacity
                   style={styles.queueItemInfo}
                   onPress={() => handleSkipToTrack(idx)}
+                  accessibilityRole="button"
+                  accessibilityLabel={isMysterious ? `Bài hát bí ẩn số ${idx + 1}` : `Chuyển sang bài ${track.title} của ${track.artist}`}
                 >
                   <Text
                     style={[
@@ -1105,6 +1131,8 @@ export default function SpikePlayerScreen() {
                         style={[styles.queueEditBtn, { marginRight: 4 }]}
                         onPress={() => handleToggleFavorite(track.id)}
                         activeOpacity={0.6}
+                        accessibilityRole="button"
+                        accessibilityLabel={userState.favoriteIds.includes(track.id) ? `Bỏ thích ${track.title}` : `Thích ${track.title}`}
                       >
                         <HeartIcon
                           size={13}
@@ -1117,6 +1145,8 @@ export default function SpikePlayerScreen() {
                         style={styles.queueEditBtn}
                         onPress={() => handleOpenEdit(track)}
                         activeOpacity={0.6}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Sửa thông tin ${track.title}`}
                       >
                         <EditIcon size={13} color="#a1a1aa" />
                       </TouchableOpacity>

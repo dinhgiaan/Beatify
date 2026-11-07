@@ -2,6 +2,9 @@ import type { Library, Health, Overrides, UserState } from '@music-app/shared';
 import { LibrarySchema, OverridesSchema, UserStateSchema } from '@music-app/shared';
 import type { IStorageRepository, RangeOption, StorageObject } from '../types';
 
+// In-memory key cache để giảm thiểu tối đa các yêu cầu Class A bucket.list khi tua (seek) và phát nhạc
+export const audioKeyCache = new Map<string, { key: string; totalSize: number }>();
+
 export class R2StorageRepository implements IStorageRepository {
   constructor(private readonly bucket: R2Bucket) {}
 
@@ -47,13 +50,23 @@ export class R2StorageRepository implements IStorageRepository {
     id: string,
     range?: RangeOption
   ): Promise<{ object: StorageObject; totalSize: number } | null> {
-    // Tìm key âm thanh tương ứng trong thư mục music/
-    const listResult = await this.bucket.list({ prefix: `music/${id}`, limit: 1 });
-    const target = listResult.objects[0];
-    if (!target) return null;
+    let key: string;
+    let totalSize: number;
 
-    const key = target.key;
-    const totalSize = target.size;
+    const cached = audioKeyCache.get(id);
+    if (cached) {
+      key = cached.key;
+      totalSize = cached.totalSize;
+    } else {
+      // Tìm key âm thanh tương ứng trong thư mục music/
+      const listResult = await this.bucket.list({ prefix: `music/${id}`, limit: 1 });
+      const target = listResult.objects[0];
+      if (!target) return null;
+
+      key = target.key;
+      totalSize = target.size;
+      audioKeyCache.set(id, { key, totalSize });
+    }
 
     // Lấy object từ R2 với range (nếu có)
     const r2Range = range
@@ -64,7 +77,20 @@ export class R2StorageRepository implements IStorageRepository {
           : undefined
       : undefined;
 
-    const object = await this.bucket.get(key, r2Range ? { range: r2Range } : undefined);
+    let object = await this.bucket.get(key, r2Range ? { range: r2Range } : undefined);
+
+    // Fallback nếu cache cũ không còn khớp trên R2
+    if (!object && cached) {
+      audioKeyCache.delete(id);
+      const listResult = await this.bucket.list({ prefix: `music/${id}`, limit: 1 });
+      const target = listResult.objects[0];
+      if (!target) return null;
+      key = target.key;
+      totalSize = target.size;
+      audioKeyCache.set(id, { key, totalSize });
+      object = await this.bucket.get(key, r2Range ? { range: r2Range } : undefined);
+    }
+
     if (!object) return null;
 
     return {

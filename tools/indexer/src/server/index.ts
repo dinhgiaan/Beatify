@@ -26,8 +26,17 @@ import { resolveArtistDirectory, hasArtistImage, getArtistImagePath, fetchChanne
 import { applyArtistImageMetadata } from '../services/imageMetadataService';
 import { PathSanitizer } from '../services/pathSanitizer';
 import type { JobEvent } from '@music-app/shared';
+import {
+  hostHeaderGuard,
+  csrfGuard,
+  isAllowedOrigin,
+  isSystemDirectory,
+  isSafeDeletePath,
+} from './securityMiddleware';
+import { LruBufferCache } from '../services/lruBufferCache';
+import { globalScanCache } from '../services/scanCache';
 
-const app = new Hono();
+export const app = new Hono();
 
 const CUSTOM_COVERS_DIR = path.join(
   process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
@@ -46,9 +55,52 @@ const LOCAL_STATE_FILE = path.join(
   'user_state.json'
 );
 
-// Bộ nhớ cache tạm thời cho phiên làm việc local
+// Bộ nhớ cache tạm thời cho phiên làm việc local (giới hạn LRU 150 mục hoặc 64MB RAM)
 let cachedScannedTracks: ScannedTrack[] = [];
-const cachedCovers = new Map<string, Buffer>();
+const cachedCovers = new LruBufferCache({ maxEntries: 150, maxBytes: 64 * 1024 * 1024 });
+
+/**
+ * Quét danh sách file âm thanh với cơ chế bộ đệm RAM (ScanCache).
+ * Tái sử dụng metadata và trackId nếu file không bị thay đổi mtime & size,
+ * loại bỏ hoàn toàn việc băm lại SHA-1 gây nghẽn Disk I/O.
+ */
+async function scanFilesWithCache(files: string[]): Promise<ScannedTrack[]> {
+  const rawScanned: ScannedTrack[] = [];
+  const fileSet = new Set(files);
+  globalScanCache.prune(fileSet);
+
+  for (const f of files) {
+    let stat: { mtimeMs: number; size: number } | null = null;
+    try {
+      const st = statSync(f);
+      stat = { mtimeMs: st.mtimeMs, size: st.size };
+    } catch {
+      // file không truy cập được
+    }
+
+    let item: ScannedTrack | null = null;
+    if (stat) {
+      item = globalScanCache.get(f, stat);
+    }
+
+    if (!item) {
+      item = await scanAudioFile(f);
+      if (item && stat) {
+        globalScanCache.set(f, stat, item);
+      }
+    }
+
+    if (item) {
+      rawScanned.push(item);
+      if (item.coverBuffer) {
+        if (item.track.albumId) cachedCovers.set(item.track.albumId, item.coverBuffer);
+        if (item.track.id) cachedCovers.set(item.track.id, item.coverBuffer);
+      }
+    }
+  }
+
+  return rawScanned;
+}
 
 let cachedR2TrackKeys = new Set<string>();
 let lastR2KeysFetchTime = 0;
@@ -148,7 +200,17 @@ let currentSyncProgress = {
   error: null as string | null,
 };
 
-app.use('*', cors());
+// Phòng vệ bảo mật: Chặn DNS Rebinding, whitelist CORS máy cục bộ và chặn CSRF
+app.use('*', hostHeaderGuard);
+app.use(
+  '*',
+  cors({
+    origin: (origin) => (isAllowedOrigin(origin) ? origin : null),
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  })
+);
+app.use('*', csrfGuard);
 
 // 1. API: Trạng thái & Thống kê hệ thống (Chỉ tính bài hát còn hoạt động, loại trừ bài ẩn/đã xóa)
 app.get('/local-api/status', async (c) => {
@@ -254,18 +316,7 @@ app.get('/local-api/library', async (c) => {
     // bỏ qua
   }
 
-  const rawScanned: ScannedTrack[] = [];
-  cachedCovers.clear();
-
-  for (const f of files) {
-    const item = await scanAudioFile(f);
-    if (item) {
-      rawScanned.push(item);
-      if (item.coverBuffer && item.track.albumId) {
-        cachedCovers.set(item.track.albumId, item.coverBuffer);
-      }
-    }
-  }
+  const rawScanned = await scanFilesWithCache(files);
 
   const overrides = await getOverrides();
   cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
@@ -418,17 +469,7 @@ app.get('/local-api/tracks', async (c) => {
     // bỏ qua
   }
 
-  const rawScanned: ScannedTrack[] = [];
-  for (const f of files) {
-    const item = await scanAudioFile(f);
-    if (item) {
-      rawScanned.push(item);
-      if (item.coverBuffer) {
-        if (item.track.albumId) cachedCovers.set(item.track.albumId, item.coverBuffer);
-        if (item.track.id) cachedCovers.set(item.track.id, item.coverBuffer);
-      }
-    }
-  }
+  const rawScanned = await scanFilesWithCache(files);
 
   const overrides = await getOverrides();
   cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
@@ -877,7 +918,7 @@ app.post('/local-api/tracks/batch-replaygain', async (c) => {
 });
 
 // 5. API: Quét xem trước các file nhập mới (Import Preview / Inspect)
-app.post('/local-api/import/inspect', async (c) => {
+const handleImportInspect = async (c: Context) => {
   const body = await c.req.parseBody({ all: true });
   let rawFiles = body['files'];
   if (!rawFiles) rawFiles = body['file'];
@@ -959,7 +1000,10 @@ app.post('/local-api/import/inspect', async (c) => {
   }
 
   return c.json({ status: 200, items, sharedCoverId: sharedTempCoverId });
-});
+};
+
+app.post('/local-api/import/inspect', handleImportInspect);
+app.post('/local-api/import/preview', handleImportInspect);
 
 // 5.0a. API: Xem ảnh bìa xem trước khi nhập
 app.get('/local-api/import/cover/:coverId', async (c) => {
@@ -989,7 +1033,7 @@ app.post('/local-api/import/upload-cover', async (c) => {
 });
 
 // 5.1. API: Xác nhận chuyển các file đã chọn vào kho (Commit Import)
-app.post('/local-api/import/confirm', async (c) => {
+const handleImportConfirm = async (c: Context) => {
   const localConfig = loadLocalConfig();
   const body = await c.req.json();
   const items = body.items as Array<{
@@ -1108,8 +1152,15 @@ app.post('/local-api/import/confirm', async (c) => {
     // bỏ qua
   }
 
-  return c.json({ status: 200, importedCount });
-});
+  return c.json({
+    status: 200,
+    importedCount,
+    message: `Đã nhập thành công ${importedCount} bài hát vào kho nhạc!`,
+  });
+};
+
+app.post('/local-api/import/confirm', handleImportConfirm);
+app.post('/local-api/import/commit', handleImportConfirm);
 
 // 5.2. API: Upload trực tiếp (fallback)
 app.post('/local-api/upload', async (c) => {
@@ -1620,6 +1671,11 @@ app.get('/local-api/fs/explore', async (c) => {
     }
     targetPath = path.resolve(targetPath);
 
+    // Chặn duyệt vào thư mục hệ thống Windows nhạy cảm
+    if (isSystemDirectory(targetPath)) {
+      targetPath = path.resolve(localConfig.MUSIC_SOURCE_DIR || process.cwd());
+    }
+
     // Danh sách ổ đĩa khả dụng trên Windows
     const availableDrives: string[] = [];
     if (process.platform === 'win32') {
@@ -1665,6 +1721,7 @@ app.get('/local-api/fs/explore', async (c) => {
         entry.name !== 'System Volume Information'
       ) {
         const subPath = path.join(targetPath, entry.name);
+        if (isSystemDirectory(subPath)) continue;
         let hasSub = false;
         let subCount = 0;
         try {
@@ -1795,18 +1852,19 @@ app.post('/local-api/fs/delete', async (c) => {
       return c.json({ status: 400, error: 'Thư mục không tồn tại' }, 400);
     }
 
-    // Bảo vệ: Không xóa ổ đĩa gốc (C:\, D:\...)
-    const rootPath = path.parse(normPath).root;
-    if (normPath.toLowerCase() === rootPath.toLowerCase()) {
-      return c.json({ status: 400, error: 'Không thể xóa ổ đĩa gốc của máy tính' }, 400);
-    }
+    const allowedRoots = [
+      localConfig.MUSIC_IMPORT_DIR,
+      TEMP_IMPORT_DIR,
+    ].filter(Boolean) as string[];
 
-    // Bảo vệ: Không xóa thư mục gốc của Thư viện nhạc chính hoặc Thư mục Nhập
-    if (
-      (localConfig.MUSIC_SOURCE_DIR && normPath.toLowerCase() === path.resolve(localConfig.MUSIC_SOURCE_DIR).toLowerCase()) ||
-      (localConfig.MUSIC_IMPORT_DIR && normPath.toLowerCase() === path.resolve(localConfig.MUSIC_IMPORT_DIR).toLowerCase())
-    ) {
-      return c.json({ status: 400, error: 'Không thể xóa thư mục gốc thư viện chính của ứng dụng' }, 400);
+    const protectedRoots = [
+      localConfig.MUSIC_SOURCE_DIR,
+      process.cwd(),
+    ].filter(Boolean) as string[];
+
+    const check = isSafeDeletePath(normPath, allowedRoots, protectedRoots);
+    if (!check.safe) {
+      return c.json({ status: 403, error: check.reason || 'Thao tác xóa bị từ chối do vi phạm quy tắc an toàn' }, 403);
     }
 
     const folderName = path.basename(normPath);
@@ -3205,7 +3263,8 @@ app.get('*', async (c) => {
 });
 
 const PORT = 4000;
-console.log(`\n🚀 Beatify Studio & Downloader đang chạy tại: http://127.0.0.1:${PORT}`);
-console.log(`👉 Mở trình duyệt và truy cập: http://127.0.0.1:${PORT}\n`);
-
-serve({ fetch: app.fetch, port: PORT });
+if (process.env.NODE_ENV !== 'test') {
+  console.log(`\n🚀 Beatify Studio & Downloader đang chạy tại: http://127.0.0.1:${PORT}`);
+  console.log(`👉 Mở trình duyệt và truy cập: http://127.0.0.1:${PORT}\n`);
+  serve({ fetch: app.fetch, port: PORT, hostname: '127.0.0.1' });
+}

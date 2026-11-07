@@ -110,6 +110,22 @@
         - Tạo bộ component phân tử tái sử dụng `TrackBadges.tsx` (`DownloadTimeDisplay`, `AudioFormatBadge`, `StorageStatusBadge`, `LyricsBadge`).
         - Bổ sung cột hiển thị **Thời gian tải** (giờ & ngày tải, font mono `tabular-nums` sắc nét, kèm tooltip) vào mục "Bài hát đã tải gần đây" trên Bảng điều khiển (`DashboardPage`), đồng bộ hiển thị chuẩn mực như bên trang Lịch sử (`HistoryPage`).
         - Loại bỏ mã nguồn duplicate trên `DownloadedVideosManagerPage` và `HistoryPage`, tối ưu hóa hiệu năng render.
+      - **Khắc phục triệt để các Lỗ hổng Bảo mật & Tối ưu Hiệu năng Toàn diện (Audit Remediations)**:
+        - **Bảo mật Server Local (`tools/indexer/src/server`)**:
+          - Bind tường minh `127.0.0.1` chống lộ server ra mạng LAN khi cắm mạng công cộng.
+          - Chống DNS Rebinding: Bổ sung middleware `hostHeaderGuard` xác thực header `Host` (chỉ chấp nhận `localhost` và `127.0.0.1`).
+          - Chống CSRF & Siết chặt CORS: Bổ sung `csrfGuard` và cấu hình CORS origin whitelist chỉ cho phép request từ localhost/127.0.0.1 hoặc ứng dụng native/curl.
+          - Bảo vệ an toàn tuyệt đối cho `/local-api/fs/delete`: Ngăn chặn Path Traversal và xoá tuỳ tiện; tuyệt đối cấm xoá trong `MUSIC_SOURCE_DIR` (bảo toàn nguyên tắc chỉ đọc), cấm xoá ổ đĩa gốc; chỉ cho phép xoá thư mục con hợp lệ trong `MUSIC_IMPORT_DIR`.
+          - Lọc thư mục hệ điều hành trong `/local-api/fs/explore`: Chặn duyệt vào `Windows`, `Program Files`, `$Recycle.Bin`, `System Volume Information`.
+        - **Khắc phục Lỗi lệch Endpoint Nhập nhạc (Import Aliases)**:
+          - Bổ sung alias route song song cho cả 2 phía: `/local-api/import/inspect` & `/preview`, `/local-api/import/confirm` & `/commit`, tương thích ngược/xuôi 100% giữa Dashboard và Indexer, loại bỏ lỗi 404 khi nhập nhạc.
+        - **Tối ưu Hiệu năng Đĩa (Disk I/O) & Chống tràn RAM (OOM)**:
+          - Xây dựng `ScanCache` theo dấu vân tay `(filePath, mtimeMs, size)`: Tái sử dụng kết quả quét và `trackId` của các file không thay đổi, triệt tiêu việc đọc toàn bộ file và băm lại SHA-1 trên mỗi request `/local-api/tracks` và `/local-api/library`.
+          - Xây dựng `LruBufferCache`: Thay thế `Map<string, Buffer>` vô hạn bằng bộ nhớ đệm LRU giới hạn tối đa 150 mục / 64MB RAM, triệt tiêu nguy cơ phình to bộ nhớ heap gây sập server Node.js.
+        - **Tối ưu Chi phí & Độ trễ Cloudflare R2 (`apps/api`)**:
+          - Bổ sung `audioKeyCache` trong `R2StorageRepository`: Ghi nhớ đuôi file và kích thước bài hát sau lần truy vấn đầu tiên, loại bỏ việc gọi lặp `bucket.list` (thao tác Class A có tính phí) khi tua (seek) hoặc nghe lại bài hát.
+        - **Nâng cấp Trợ năng (Accessibility) App iOS (`apps/mobile`)**:
+          - Bổ sung đầy đủ `accessibilityRole="button"` và `accessibilityLabel` bằng tiếng Việt cho toàn bộ hệ thống nút bấm: Play, Pause, Next, Prev, Seek ±5s, Repeat, Smart Shuffle, Yêu thích, Sửa bài, Lời bài hát, Playlist và Hồ sơ cá nhân.
       - **Khắc phục triệt để 5 lỗi Bug & Đồng bộ hệ thống Web Quản lý & Backend Indexer**:
         - **Sửa lỗi đối chiếu R2 Key trong `verifyDownloads` (`youtubeJobRunner.ts`)**: Bổ sung `trackId` vào `YoutubeMusicDownloadRecordSchema`, tính mã băm SHA-1 (12 ký tự hex) khi quét và đối chiếu chính xác với key trên Cloudflare R2 (`music/${trackId}.${ext}`). Đã có 3 unit test tự động xác thực thành công.
         - **Tối ưu Đồng bộ vi sai (Incremental Sync) trong `/local-api/sync` (`index.ts`)**: Lấy danh sách key đã có trên R2, tự động bỏ qua các file âm thanh và ảnh bìa đã tồn tại sẵn trên Cloud, chỉ tải lên các bài mới/sửa đổi. Tốc độ đồng bộ tăng từ hàng chục phút xuống chỉ còn vài giây, tiết kiệm tối đa hạn ngạch Class A PutObject của Cloudflare R2.
