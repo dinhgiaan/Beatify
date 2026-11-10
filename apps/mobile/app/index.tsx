@@ -24,7 +24,7 @@ import {
 import {
   type Track,
 } from '@music-app/shared';
-import { useLibrary, usePlayer } from '../src/context';
+import { useLibrary, usePlayer, useProgress } from '../src/context';
 import { formatTime } from '../src/utils/formatTime';
 import { EditTrackModal } from '../src/components/EditTrackModal';
 import { ProfileModal } from '../src/components/ProfileModal';
@@ -113,15 +113,18 @@ export default function SpikePlayerScreen() {
     ? Math.max(140, Math.min(Math.round(height * 0.48), 240))
     : Math.max(140, Math.min(width - gutter * 2 - spacing.xl * 2, Math.round(height * 0.38), 340));
 
+  const { positionSec, durationSec, progressPercent } = useProgress();
+
   const handleOpenEdit = (track: Track) => {
     setEditingTrack(track);
     setEditModalVisible(true);
   };
 
+  const totalDuration = durationSec || (currentTrack ? currentTrack.duration : 0);
+
   const handleBarPress = async (locationX: number) => {
     if (barWidth <= 0 || tracks.length === 0) return;
     Vibration.vibrate(10);
-    const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
     if (totalDuration <= 0) return;
     const ratio = Math.max(0, Math.min(1, locationX / barWidth));
     const target = ratio * totalDuration;
@@ -138,11 +141,6 @@ export default function SpikePlayerScreen() {
   const handleDeleteTrack = async (trackId: string) => {
     await deleteTrack(trackId, handleTrackDeleted);
   };
-
-  const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
-  const progressPercent = totalDuration > 0
-    ? Math.min(100, (playerState.positionSec / totalDuration) * 100)
-    : 0;
 
   const gaplessMs = gaplessDeltaMs;
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
@@ -267,7 +265,7 @@ export default function SpikePlayerScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.timeRow}>
-                  <Text style={styles.timeText}>{formatTime(playerState.positionSec)}</Text>
+                  <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
                   {playerState.isBuffering && <ActivityIndicator size="small" color={colors.primary} />}
                   <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
                 </View>
@@ -447,7 +445,7 @@ export default function SpikePlayerScreen() {
               </TouchableOpacity>
 
               <View style={styles.timeRow}>
-                <Text style={styles.timeText}>{formatTime(playerState.positionSec)}</Text>
+                <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
                 {playerState.isBuffering && <ActivityIndicator size="small" color={colors.primary} />}
                 <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
               </View>
@@ -905,7 +903,7 @@ export default function SpikePlayerScreen() {
       <LyricsModal
         visible={lyricsModalVisible}
         track={currentTrack}
-        currentTimeSec={playerState.positionSec}
+        currentTimeSec={positionSec}
         onClose={() => setLyricsModalVisible(false)}
         onSeek={(seconds) => {
           seekTo(seconds);

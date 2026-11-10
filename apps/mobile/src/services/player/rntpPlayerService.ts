@@ -14,6 +14,7 @@ import { gainToVolume } from '../../utils/gainToVolume';
  */
 export class RntpPlayerService implements IPlayerService {
   private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
   private currentTracks: Track[] = [];
   private listeners: Set<(state: PlayerState) => void> = new Set();
   private lastTrackEndTime: number | null = null;
@@ -21,56 +22,61 @@ export class RntpPlayerService implements IPlayerService {
 
   async setup(): Promise<void> {
     if (this.isInitialized) return;
+    if (this.initPromise) return this.initPromise;
 
-    // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe
-    TrackPlayer.setupPlayer({
-      contentType: 'music',
-      handleAudioBecomingNoisy: true,
-    });
+    this.initPromise = (async () => {
+      // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe
+      await TrackPlayer.setupPlayer({
+        contentType: 'music',
+        handleAudioBecomingNoisy: true,
+      });
 
-    // Cấu hình các nút điều khiển trên lock screen và Control Center
-    TrackPlayer.setCommands({
-      capabilities: [
-        PlayerCommand.PlayPause,
-        PlayerCommand.Next,
-        PlayerCommand.Previous,
-        PlayerCommand.Seek,
-      ],
-      handling: 'native',
-    });
+      // Cấu hình các nút điều khiển trên lock screen và Control Center
+      await TrackPlayer.setCommands({
+        capabilities: [
+          PlayerCommand.PlayPause,
+          PlayerCommand.Next,
+          PlayerCommand.Previous,
+          PlayerCommand.Seek,
+        ],
+        handling: 'native',
+      });
 
-    // Đăng ký lắng nghe sự kiện từ RNTP v5
-    TrackPlayer.addEventListener(Event.MediaItemTransition, (event) => {
-      const now = Date.now();
-      if (this.lastTrackEndTime !== null) {
-        this.gaplessDeltaMs = now - this.lastTrackEndTime;
-      }
-      this.lastTrackEndTime = now;
-
-      // Áp dụng ReplayGain cho bài hát mới
-      if (event.item && event.item.mediaId) {
-        const currentTrack = this.currentTracks.find((t) => t.id === event.item?.mediaId);
-        if (currentTrack) {
-          const volume = gainToVolume(currentTrack.replayGain);
-          TrackPlayer.setVolume(volume);
+      // Đăng ký lắng nghe sự kiện từ RNTP v5 ĐÚNG MỘT LẦN DUY NHẤT
+      TrackPlayer.addEventListener(Event.MediaItemTransition, (event) => {
+        const now = Date.now();
+        if (this.lastTrackEndTime !== null) {
+          this.gaplessDeltaMs = now - this.lastTrackEndTime;
         }
-      }
-      this.notifyListeners();
-    });
+        this.lastTrackEndTime = now;
 
-    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, () => {
-      this.notifyListeners();
-    });
+        // Áp dụng ReplayGain cho bài hát mới
+        if (event.item && event.item.mediaId) {
+          const currentTrack = this.currentTracks.find((t) => t.id === event.item?.mediaId);
+          if (currentTrack) {
+            const volume = gainToVolume(currentTrack.replayGain);
+            TrackPlayer.setVolume(volume);
+          }
+        }
+        this.notifyListeners();
+      });
 
-    TrackPlayer.addEventListener(Event.IsPlayingChanged, () => {
-      this.notifyListeners();
-    });
+      TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, () => {
+        this.notifyListeners();
+      });
 
-    TrackPlayer.addEventListener(Event.PlaybackStateChanged, () => {
-      this.notifyListeners();
-    });
+      TrackPlayer.addEventListener(Event.IsPlayingChanged, () => {
+        this.notifyListeners();
+      });
 
-    this.isInitialized = true;
+      TrackPlayer.addEventListener(Event.PlaybackStateChanged, () => {
+        this.notifyListeners();
+      });
+
+      this.isInitialized = true;
+    })();
+
+    return this.initPromise;
   }
 
   async playQueue(tracks: Track[], startIndex = 0): Promise<void> {

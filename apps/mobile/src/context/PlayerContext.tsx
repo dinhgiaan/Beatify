@@ -70,17 +70,85 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const currentTrackingTrackIdRef = useRef<string | null>(null);
   const maxListenedSecRef = useRef<number>(0);
 
-  // 1. Khởi tạo player service và đăng ký listener ĐÚNG MỘT LẦN
+  // 1. Khởi tạo player service và đăng ký listener ĐÚNG MỘT LẦN (State ổn định, không re-render theo tick tiến trình)
   useEffect(() => {
     playerService.setup().catch((err) => {
       console.warn('Lỗi setup player:', err);
     });
 
     const unsubscribe = playerService.subscribe((state) => {
-      setPlayerState(state);
+      // Chỉ cập nhật state ổn định (isPlaying, isBuffering, activeTrackId), loại bỏ re-render theo từng tick tiến trình
+      setPlayerState((prev) => {
+        if (
+          prev.isPlaying === state.isPlaying &&
+          prev.activeTrackId === state.activeTrackId &&
+          prev.isBuffering === state.isBuffering
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          isPlaying: state.isPlaying,
+          isBuffering: state.isBuffering,
+          activeTrackId: state.activeTrackId,
+          durationSec: state.durationSec,
+        };
+      });
+
       if (state.activeTrackId) {
         const idx = tracks.findIndex((t) => t.id === state.activeTrackId);
         if (idx !== -1) setCurrentTrackIndex(idx);
+      }
+
+      // Theo dõi mốc 15s trực tiếp qua ref trong listener mà không gây re-render PlayerContext
+      const pos = state.positionSec || 0;
+      if (state.activeTrackId !== currentTrackingTrackIdRef.current) {
+        const prevTrackId = currentTrackingTrackIdRef.current;
+        const prevListened = maxListenedSecRef.current;
+
+        if (prevTrackId && prevListened >= 15) {
+          statsStorage.updateLastTrackListenedSec(prevTrackId, prevListened).catch((err) => {
+            console.warn('Lỗi cập nhật thời lượng nghe thực tế cho bài trước:', err);
+          });
+        }
+
+        currentTrackingTrackIdRef.current = state.activeTrackId;
+        maxListenedSecRef.current = Math.max(0, pos);
+      } else {
+        if (pos > maxListenedSecRef.current) {
+          maxListenedSecRef.current = pos;
+        }
+      }
+
+      if (
+        state.isPlaying &&
+        state.activeTrackId &&
+        pos >= 15 &&
+        lastRecordedTrackRef.current !== state.activeTrackId
+      ) {
+        lastRecordedTrackRef.current = state.activeTrackId;
+        const t = tracks.find((x) => x.id === state.activeTrackId);
+        if (t) {
+          setWriteQueueStatus('Đang ghi (1 tác vụ)...');
+          statsStorage.recordTrackListen({
+            trackId: t.id,
+            title: t.title,
+            artist: t.artist,
+            album: t.album,
+            durationSec: t.duration || Math.round(state.durationSec),
+            listenedSec: Math.round(pos),
+          })
+            .then(() => {
+              setAtomicWriteBranch(statsStorage.getLastWriteBranch());
+              setLastMoveError(statsStorage.getLastMoveError());
+              setRecoveryStatus(statsStorage.getLastRecoveryStatus());
+              setWriteQueueStatus(statsStorage.getWriteQueueStatus());
+            })
+            .catch((err) => {
+              console.warn('Lỗi ghi stats:', err);
+              setWriteQueueStatus('Lỗi ghi đĩa');
+            });
+        }
       }
     });
 
@@ -88,58 +156,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   }, [tracks]);
-
-  // 2. Tự động ghi nhận lượt nghe và đo thời lượng thực tế (mốc 15s)
-  useEffect(() => {
-    if (playerState.activeTrackId !== currentTrackingTrackIdRef.current) {
-      const prevTrackId = currentTrackingTrackIdRef.current;
-      const prevListened = maxListenedSecRef.current;
-
-      if (prevTrackId && prevListened >= 15) {
-        statsStorage.updateLastTrackListenedSec(prevTrackId, prevListened).catch((err) => {
-          console.warn('Lỗi cập nhật thời lượng nghe thực tế cho bài trước:', err);
-        });
-      }
-
-      currentTrackingTrackIdRef.current = playerState.activeTrackId;
-      maxListenedSecRef.current = Math.max(0, playerState.positionSec || 0);
-    } else {
-      if (playerState.positionSec > maxListenedSecRef.current) {
-        maxListenedSecRef.current = playerState.positionSec;
-      }
-    }
-
-    if (
-      playerState.isPlaying &&
-      playerState.activeTrackId &&
-      playerState.positionSec >= 15 &&
-      lastRecordedTrackRef.current !== playerState.activeTrackId
-    ) {
-      lastRecordedTrackRef.current = playerState.activeTrackId;
-      const t = tracks.find((x) => x.id === playerState.activeTrackId);
-      if (t) {
-        setWriteQueueStatus('Đang ghi (1 tác vụ)...');
-        statsStorage.recordTrackListen({
-          trackId: t.id,
-          title: t.title,
-          artist: t.artist,
-          album: t.album,
-          durationSec: t.duration || Math.round(playerState.durationSec),
-          listenedSec: Math.round(playerState.positionSec),
-        })
-          .then(() => {
-            setAtomicWriteBranch(statsStorage.getLastWriteBranch());
-            setLastMoveError(statsStorage.getLastMoveError());
-            setRecoveryStatus(statsStorage.getLastRecoveryStatus());
-            setWriteQueueStatus(statsStorage.getWriteQueueStatus());
-          })
-          .catch((err) => {
-            console.warn('Lỗi ghi stats:', err);
-            setWriteQueueStatus('Lỗi ghi đĩa');
-          });
-      }
-    }
-  }, [playerState.isPlaying, playerState.activeTrackId, playerState.positionSec, tracks]);
 
   // 3. Handlers điều khiển phát nhạc
   const playQueue = useCallback(async (trackList = tracks, startIndex = currentTrackIndex) => {
@@ -328,3 +344,4 @@ export function usePlayer(): PlayerContextValue {
   }
   return context;
 }
+
