@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   ScrollView,
+  Modal,
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -33,6 +34,7 @@ import {
   ChevronDownIcon,
   DiscIcon,
   TrashIcon,
+  ClockIcon,
 } from '../icons/SvgIcons';
 import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
@@ -67,6 +69,9 @@ export function NowPlayingView() {
     cycleRepeat,
     toggleSmartShuffle,
     removeFromQueue,
+    moveQueueItem,
+    sleepTimerRemainingSec,
+    setSleepTimer,
   } = usePlayer();
 
   const { userState, toggleFavorite, fetchLyrics } = useLibrary();
@@ -75,6 +80,7 @@ export function NowPlayingView() {
   const [barWidth, setBarWidth] = useState(0);
   const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
 
   // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
   const artworkSize = Math.min(
@@ -234,6 +240,36 @@ export function NowPlayingView() {
                       <Text style={styles.queueItemArtist} numberOfLines={1}>
                         {item.artist}
                       </Text>
+                    </View>
+
+                    {/* Cụm nút di chuyển bài lên / xuống */}
+                    <View style={styles.queueReorderGroup}>
+                      {index > 0 && (
+                        <TouchableOpacity
+                          style={styles.reorderBtn}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            moveQueueItem(index, index - 1);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Di chuyển bài lên"
+                        >
+                          <Text style={styles.reorderBtnText}>↑</Text>
+                        </TouchableOpacity>
+                      )}
+                      {index < tracks.length - 1 && (
+                        <TouchableOpacity
+                          style={styles.reorderBtn}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            moveQueueItem(index, index + 1);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Di chuyển bài xuống"
+                        >
+                          <Text style={styles.reorderBtnText}>↓</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
 
                     {/* Nút xóa bài khỏi hàng đợi */}
@@ -418,6 +454,33 @@ export function NowPlayingView() {
               {showQueue ? 'Ảnh bìa' : `Hàng đợi (${tracks.length})`}
             </Text>
           </TouchableOpacity>
+
+          {/* Nút Hẹn giờ tắt nhạc */}
+          <TouchableOpacity
+            style={[
+              styles.bottomButton,
+              sleepTimerRemainingSec !== null && styles.bottomButtonActive,
+            ]}
+            onPress={() => setSleepTimerDialogVisible(true)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Hẹn giờ tắt nhạc"
+          >
+            <ClockIcon
+              size={18}
+              color={sleepTimerRemainingSec !== null ? colors.primary : colors.textTertiary}
+            />
+            <Text
+              style={[
+                styles.bottomButtonText,
+                sleepTimerRemainingSec !== null && styles.bottomButtonTextActive,
+              ]}
+            >
+              {sleepTimerRemainingSec !== null
+                ? formatTime(sleepTimerRemainingSec)
+                : 'Hẹn giờ'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -435,6 +498,63 @@ export function NowPlayingView() {
         }}
         onFetchLyrics={fetchLyrics}
       />
+
+      {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */}
+      <Modal
+        visible={sleepTimerDialogVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSleepTimerDialogVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSleepTimerDialogVisible(false)}
+        >
+          <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sleepTimerTitle}>Hẹn giờ tắt nhạc</Text>
+            <Text style={styles.sleepTimerSubtitle}>
+              Tự động tạm dừng phát nhạc khi hết thời gian hẹn
+            </Text>
+
+            <View style={styles.sleepTimerOptionsCol}>
+              {[15, 30, 45, 60].map((mins) => (
+                <TouchableOpacity
+                  key={mins}
+                  style={styles.sleepTimerOptionBtn}
+                  onPress={() => {
+                    setSleepTimer(mins);
+                    setSleepTimerDialogVisible(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sleepTimerOptionText}>{mins} phút</Text>
+                </TouchableOpacity>
+              ))}
+
+              {sleepTimerRemainingSec !== null && (
+                <TouchableOpacity
+                  style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
+                  onPress={() => {
+                    setSleepTimer(null);
+                    setSleepTimerDialogVisible(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sleepTimerTurnOffText}>Tắt hẹn giờ</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.sleepTimerCancelBtn}
+              onPress={() => setSleepTimerDialogVisible(false)}
+            >
+              <Text style={styles.sleepTimerCancelText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -700,5 +820,89 @@ const styles = StyleSheet.create({
   },
   bottomButtonTextActive: {
     color: colors.textPrimary,
+  },
+  queueReorderGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginRight: spacing.xs,
+  },
+  reorderBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.xs,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderBtnText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  sleepTimerCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  sleepTimerTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.title,
+    fontWeight: fontWeights.bold,
+    textAlign: 'center',
+  },
+  sleepTimerSubtitle: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    textAlign: 'center',
+    marginTop: spacing.xxs,
+    marginBottom: spacing.md,
+  },
+  sleepTimerOptionsCol: {
+    width: '100%',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  sleepTimerOptionBtn: {
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  sleepTimerOptionText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.semibold,
+  },
+  sleepTimerTurnOffBtn: {
+    borderColor: colors.danger,
+    backgroundColor: colors.surfacePressed,
+  },
+  sleepTimerTurnOffText: {
+    color: colors.danger,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+  },
+  sleepTimerCancelBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  sleepTimerCancelText: {
+    color: colors.textTertiary,
+    fontSize: fontSizes.subhead,
   },
 });

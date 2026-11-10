@@ -30,6 +30,7 @@ import {
   EditIcon,
   TrashIcon,
   CloseIcon,
+  PlaylistIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
@@ -51,6 +52,7 @@ export default function LibraryScreen() {
     tracks,
     albums,
     userState,
+    updateUserState,
     isSyncing,
     syncLibrary,
     toggleFavorite,
@@ -73,6 +75,7 @@ export default function LibraryScreen() {
   const [activeSegment, setActiveSegment] = useState<LibrarySegment>('songs');
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [addToPlaylistModalVisible, setAddToPlaylistModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [hiddenSettingsVisible, setHiddenSettingsVisible] = useState(false);
@@ -148,6 +151,41 @@ export default function LibraryScreen() {
       setEditingTrack(trackToEdit);
       setEditModalVisible(true);
     }
+  };
+
+  const handleOpenAddToPlaylist = () => {
+    setActionSheetVisible(false);
+    setAddToPlaylistModalVisible(true);
+  };
+
+  const handleSelectPlaylistToAdd = async (playlistId: string) => {
+    if (!selectedTrackForMenu) return;
+    const trackId = selectedTrackForMenu.id;
+    const targetPlaylist = userState.playlists.find((p) => p.id === playlistId);
+    if (!targetPlaylist) return;
+
+    if (targetPlaylist.trackIds.includes(trackId)) {
+      Alert.alert('Đã có trong danh sách', `Bài hát đã có sẵn trong playlist "${targetPlaylist.name}".`);
+      return;
+    }
+
+    Vibration.vibrate(15);
+    await updateUserState((prev) => ({
+      ...prev,
+      playlists: prev.playlists.map((pl) => {
+        if (pl.id === playlistId) {
+          return {
+            ...pl,
+            trackIds: [...pl.trackIds, trackId],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return pl;
+      }),
+    }));
+
+    setAddToPlaylistModalVisible(false);
+    Alert.alert('Thành công', `Đã thêm "${selectedTrackForMenu.title}" vào playlist "${targetPlaylist.name}"!`);
   };
 
   const handleMenuDelete = () => {
@@ -510,6 +548,16 @@ export default function LibraryScreen() {
                   </Text>
                 </TouchableOpacity>
 
+                {/* Nút Thêm vào Playlist */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={handleOpenAddToPlaylist}
+                  activeOpacity={0.7}
+                >
+                  <PlaylistIcon size={20} color={colors.textPrimary} />
+                  <Text style={styles.sheetActionText}>Thêm vào danh sách phát...</Text>
+                </TouchableOpacity>
+
                 {/* Nút Chỉnh sửa */}
                 <TouchableOpacity
                   style={styles.sheetActionBtn}
@@ -573,6 +621,67 @@ export default function LibraryScreen() {
         tracks={selectedCollection.tracks}
         type={selectedCollection.type}
       />
+
+      {/* Modal Chọn danh sách phát để thêm bài */}
+      <Modal
+        visible={addToPlaylistModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAddToPlaylistModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setAddToPlaylistModalVisible(false)}
+        >
+          <View style={styles.playlistPickerCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Thêm vào playlist</Text>
+              <Text style={styles.sheetSubtitle}>
+                {selectedTrackForMenu ? selectedTrackForMenu.title : ''}
+              </Text>
+            </View>
+
+            {userState.playlists.length === 0 ? (
+              <View style={styles.emptyPlaylistPicker}>
+                <Text style={styles.emptyPlaylistText}>
+                  Bạn chưa có danh sách phát nào. Hãy chuyển qua Tab Playlist để tạo mới.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={userState.playlists}
+                keyExtractor={(item) => item.id}
+                style={styles.playlistPickerList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.playlistPickerItem}
+                    onPress={() => handleSelectPlaylistToAdd(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    <PlaylistIcon size={20} color={colors.primary} />
+                    <View style={styles.playlistPickerInfo}>
+                      <Text style={styles.playlistPickerName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.playlistPickerCount}>
+                        {item.trackIds.length} bài hát
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.sheetCancelBtn}
+              onPress={() => setAddToPlaylistModalVisible(false)}
+            >
+              <Text style={styles.sheetCancelBtnText}>Hủy</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -845,5 +954,47 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
+  },
+  playlistPickerCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    maxHeight: 400,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  playlistPickerList: {
+    maxHeight: 240,
+  },
+  playlistPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDivider,
+    gap: spacing.md,
+  },
+  playlistPickerInfo: {
+    flex: 1,
+  },
+  playlistPickerName: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+  },
+  playlistPickerCount: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    marginTop: 2,
+  },
+  emptyPlaylistPicker: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  emptyPlaylistText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.subhead,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

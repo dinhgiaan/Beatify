@@ -2,7 +2,7 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Thiết kế lại Pha 5: Hoàn thiện Tab Playlist (Bài hát yêu thích Liked Songs, Quản lý danh sách phát cá nhân, Tạo mới & Xóa bài) + Tuyển tập chi tiết Album & Nghệ sĩ (`CollectionDetailModal` với Phát tất cả & Xáo trộn) + Dọn dẹp mã nguồn theo `docs/beatify-plan.md`. Hệ thống kiểm thử toàn workspace 206 tests xanh 100%. Sẵn sàng cho Pha 6 (Các tính năng phụ & Tinh chỉnh cuối cùng).
+**Phase hiện tại:** Hoàn thành toàn diện 6 Pha Thiết kế lại trải nghiệm Beatify Mobile (`docs/beatify-plan.md` từ Pha 1 đến Pha 6): State Contexts độc lập, Bottom Tabs, MiniPlayer nổi 56pt, Now Playing Modal kèm inline Queue Panel & Lyrics LRC, Thư viện 3 phân đoạn, Tìm kiếm không dấu tiếng Việt tức thì, Tự động chuyển hướng Zero-Settings `index.tsx`, Đồng bộ ngầm ETag (Zero Loading Flash + 304), Cài đặt ẩn kỹ thuật (Hidden Settings), Tuyển tập chi tiết Album/Nghệ sĩ (`CollectionDetailModal`), Tab Playlist cá nhân (Liked Songs, Tạo mới, Xóa), Đổi thứ tự hàng đợi (Reorder Queue `↑`/`↓`), Thêm bài vào playlist từ menu `•••`, và Hẹn giờ tắt nhạc (Sleep Timer). Hệ thống 206/206 tests xanh 100%. Sẵn sàng để người dùng trải nghiệm thực tế trên iPhone 11 Pro Max.
 **Cập nhật lần cuối:** 2026-11-10
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
@@ -407,6 +407,22 @@
   - Chạm vào thẻ Album $\rightarrow$ Mở `CollectionDetailModal` của Album đó (xem bài, nghe toàn bộ, xáo trộn).
   - Chạm vào hàng Nghệ sĩ $\rightarrow$ Mở `CollectionDetailModal` của Nghệ sĩ đó (xem toàn bộ bài hát của nghệ sĩ trong thư viện).
 - [x] Dọn dẹp mã nguồn: 0 cảnh báo unused vars, loại bỏ toàn bộ code thừa, 100% theme tokens.
+- [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed, 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
+
+## Thiết kế lại Pha 6: Tính năng phụ & Tinh chỉnh trải nghiệm hoàn tất
+- [x] Đổi thứ tự bài hát trong Hàng đợi (Reorder Queue `moveQueueItem`):
+  - Tích hợp cụm nút di chuyển bài lên `↑` và xuống `↓` trong Panel Hàng đợi của Now Playing.
+  - Tính toán và cập nhật an toàn `currentTrackIndex` khi thay đổi vị trí bài hát.
+  - Phản hồi rung nhẹ haptic (10ms) mỗi lần di chuyển.
+- [x] Hẹn giờ tắt nhạc (Sleep Timer):
+  - Nút "Hẹn giờ" tích hợp ở hàng nút phụ của Now Playing kèm icon đồng hồ `ClockIcon`.
+  - Hỗ trợ các mốc hẹn giờ: 15 phút, 30 phút, 45 phút, 60 phút, và nút Tắt hẹn giờ.
+  - Hiển thị đồng hồ đếm ngược trực tiếp trên nút (`formatTime(sleepTimerRemainingSec)`).
+  - Tự động tạm dừng phát nhạc khi hết giờ và rung haptic thông báo.
+- [x] Thêm bài hát vào danh sách phát từ Menu `•••`:
+  - Bổ sung tùy chọn "Thêm vào danh sách phát..." trong menu `•••` của Thư viện.
+  - Modal danh sách playlist cá nhân hiển thị số lượng bài hát hiện có.
+  - Kiểm tra chống trùng lặp: thông báo nếu bài hát đã có trong playlist, thêm vào `trackIds` và lưu Cloudflare R2 nếu chưa có.
 - [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed, 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích

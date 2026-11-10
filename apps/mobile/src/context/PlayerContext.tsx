@@ -34,6 +34,10 @@ export interface PlayerContextValue {
   applySortMode: (mode: TrackSortMode) => void;
   addCustomTrack: (url: string) => Promise<void>;
   removeFromQueue: (index: number) => Promise<void>;
+  moveQueueItem: (fromIndex: number, toIndex: number) => Promise<void>;
+  sleepTimerMinutes: number | null;
+  sleepTimerRemainingSec: number | null;
+  setSleepTimer: (minutes: number | null) => void;
   handleTrackDeleted: (deletedTrackId: string, remaining: Track[]) => Promise<void>;
   gaplessDeltaMs: number | null;
   atomicWriteBranch: string;
@@ -66,6 +70,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [lastMoveError, setLastMoveError] = useState<string | null>(null);
   const [recoveryStatus, setRecoveryStatus] = useState<string>('Không có khôi phục');
   const [writeQueueStatus, setWriteQueueStatus] = useState<string>('Đã ghi xong (hàng đợi rỗng)');
+
+  // Sleep Timer (Hẹn giờ tắt nhạc)
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const [sleepTimerRemainingSec, setSleepTimerRemainingSec] = useState<number | null>(null);
 
   const lastRecordedTrackRef = useRef<string | null>(null);
   const currentTrackingTrackIdRef = useRef<string | null>(null);
@@ -307,6 +315,78 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [tracks, currentTrackIndex, playQueue, setTracks]);
 
+  // Di chuyển bài hát trong hàng đợi (Reorder queue)
+  const moveQueueItem = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (
+        fromIndex < 0 ||
+        fromIndex >= tracks.length ||
+        toIndex < 0 ||
+        toIndex >= tracks.length ||
+        fromIndex === toIndex
+      ) {
+        return;
+      }
+      Vibration.vibrate(10);
+      const updated = [...tracks];
+      const [moved] = updated.splice(fromIndex, 1);
+      if (!moved) return;
+      updated.splice(toIndex, 0, moved);
+
+      let nextCurrentIndex = currentTrackIndex;
+      if (currentTrackIndex === fromIndex) {
+        nextCurrentIndex = toIndex;
+      } else if (fromIndex < currentTrackIndex && toIndex >= currentTrackIndex) {
+        nextCurrentIndex = currentTrackIndex - 1;
+      } else if (fromIndex > currentTrackIndex && toIndex <= currentTrackIndex) {
+        nextCurrentIndex = currentTrackIndex + 1;
+      }
+
+      setTracks(updated);
+      setCurrentTrackIndex(nextCurrentIndex);
+    },
+    [tracks, currentTrackIndex, setTracks]
+  );
+
+  // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc)
+  const setSleepTimer = useCallback((minutes: number | null) => {
+    Vibration.vibrate(10);
+    if (minutes === null || minutes <= 0) {
+      setSleepTimerMinutes(null);
+      setSleepTimerRemainingSec(null);
+      return;
+    }
+    setSleepTimerMinutes(minutes);
+    setSleepTimerRemainingSec(minutes * 60);
+  }, []);
+
+  // Đếm ngược Sleep Timer
+  useEffect(() => {
+    if (sleepTimerRemainingSec === null) return;
+
+    if (sleepTimerRemainingSec <= 0) {
+      playerService.pause().catch(() => {});
+      setSleepTimerMinutes(null);
+      setSleepTimerRemainingSec(null);
+      Vibration.vibrate([0, 100, 50, 100]);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setSleepTimerRemainingSec((prev) => {
+        if (prev === null || prev <= 1) {
+          playerService.pause().catch(() => {});
+          setSleepTimerMinutes(null);
+          Vibration.vibrate([0, 100, 50, 100]);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sleepTimerRemainingSec]);
+
   // Xử lý khi bài hát bị xóa khỏi app
   const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {
     const targetIdx = tracks.findIndex((t) => t.id === trackId);
@@ -352,6 +432,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         applySortMode,
         addCustomTrack,
         removeFromQueue,
+        moveQueueItem,
+        sleepTimerMinutes,
+        sleepTimerRemainingSec,
+        setSleepTimer,
         handleTrackDeleted,
         gaplessDeltaMs,
         atomicWriteBranch,
