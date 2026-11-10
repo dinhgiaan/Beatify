@@ -13,8 +13,8 @@ import {
   fontSizes,
   fontWeights,
   spacing,
+  radius,
 } from '../../src/theme';
-import { TAB_BAR_BASE_HEIGHT } from '../../src/hooks/useTabBarMetrics';
 
 type TabsTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -28,16 +28,16 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.tabBarWrapper}>
+    <View style={styles.tabBarWrapper} pointerEvents="box-none">
       {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
       <MiniPlayer />
 
+      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn (Floating Pill Capsule Dock) */}
       <View
         style={[
-          styles.tabBarContainer,
+          styles.floatingDock,
           {
-            paddingBottom: insets.bottom,
-            height: TAB_BAR_BASE_HEIGHT + insets.bottom,
+            marginBottom: Math.max(insets.bottom, 10),
           },
         ]}
       >
@@ -58,19 +58,26 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             }
           };
 
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
           let label = options.title ?? route.name;
           let icon = null;
           const iconColor = isFocused ? colors.primary : colors.textTertiary;
 
           if (route.name === 'library') {
             label = 'Thư viện';
-            icon = <LibraryIcon size={22} color={iconColor} />;
+            icon = <LibraryIcon size={20} color={iconColor} />;
           } else if (route.name === 'search') {
             label = 'Tìm kiếm';
-            icon = <SearchIcon size={22} color={iconColor} />;
+            icon = <SearchIcon size={20} color={iconColor} />;
           } else if (route.name === 'playlists') {
             label = 'Playlist';
-            icon = <PlaylistIcon size={22} color={iconColor} />;
+            icon = <PlaylistIcon size={20} color={iconColor} />;
           }
 
           return (
@@ -81,14 +88,19 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
               testID={options.tabBarButtonTestID}
               onPress={onPress}
+              onLongPress={onLongPress}
+              delayLongPress={500}
               activeOpacity={0.7}
-              style={styles.tabButton}
+              style={[
+                styles.tabButton,
+                isFocused && styles.tabButtonFocused,
+              ]}
             >
               <View style={styles.iconContainer}>{icon}</View>
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: iconColor },
+                  { color: isFocused ? colors.textPrimary : colors.textTertiary },
                   isFocused && styles.tabLabelFocused,
                 ]}
               >
@@ -139,24 +151,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
-  },
-  tabBarContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.backgroundElevated,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
     alignItems: 'center',
-    justifyContent: 'space-around',
+  },
+  floatingDock: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxs,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '86%',
+    maxWidth: 320,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 12,
   },
   tabButton: {
     flex: 1,
-    height: TAB_BAR_BASE_HEIGHT,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+  },
+  tabButtonFocused: {
+    backgroundColor: colors.surfaceActive,
   },
   iconContainer: {
-    height: 24,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -166,6 +194,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   tabLabelFocused: {
-    fontWeight: fontWeights.semibold,
+    fontWeight: fontWeights.bold,
   },
 });

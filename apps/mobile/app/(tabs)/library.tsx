@@ -12,6 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from 'expo-router';
 import type { Track, UpdateTrack, UserProfile } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
@@ -82,11 +83,22 @@ function renderUserAvatar(profile: UserProfile | null, size = 18) {
  */
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // Lắng nghe sự kiện nhấn giữ tab Thư viện ở đáy màn hình
+    const unsubscribe = navigation.addListener('tabLongPress' as never, () => {
+      Vibration.vibrate([0, 50, 50, 50]);
+      statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+      setHiddenSettingsVisible(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
   const {
     tracks,
     albums,
