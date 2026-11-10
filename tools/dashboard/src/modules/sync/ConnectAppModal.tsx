@@ -21,9 +21,11 @@ interface ConnectAppModalProps {
 }
 
 export const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose }) => {
-  // Lấy cấu hình đã lưu trong localStorage hoặc giá trị mặc định
+  // Lấy cấu hình đã lưu trong localStorage hoặc giá trị mặc định Cloudflare Worker chính thức
   const [apiUrl, setApiUrl] = useState<string>(() => {
-    return localStorage.getItem('beatify_mobile_api_url') || 'http://127.0.0.1:8787';
+    const saved = localStorage.getItem('beatify_mobile_api_url');
+    if (saved && saved !== 'http://127.0.0.1:8787') return saved;
+    return 'https://beatify-api.beatify-kato.workers.dev';
   });
   const [apiToken, setApiToken] = useState<string>(() => {
     return localStorage.getItem('beatify_mobile_api_token') || '';
