@@ -279,7 +279,7 @@ export function ProfileModal({
                   activeOpacity={0.8}
                 >
                   <Text style={styles.pickImageBtnText}>
-                    {tempAvatarUri ? '📷 Đổi ảnh khác từ iPhone' : '📷 Chọn ảnh từ Thư viện iPhone'}
+                    {tempAvatarUri ? 'Đổi ảnh khác từ iPhone' : 'Chọn ảnh từ Thư viện iPhone'}
                   </Text>
                 </TouchableOpacity>
 
