@@ -1408,12 +1408,16 @@ export default function SpikePlayerScreen() {
 
         <View style={styles.debugRow}>
           <Text style={styles.debugLabel}>Build SHA:</Text>
-          <Text style={styles.debugVal}>{buildSha}</Text>
+          <Text style={styles.debugVal} numberOfLines={1} ellipsizeMode="middle">
+            {buildSha}
+          </Text>
         </View>
 
         <View style={styles.debugRow}>
           <Text style={styles.debugLabel}>Hạn chứng chỉ:</Text>
-          <Text style={styles.debugVal}>{expirationDate}</Text>
+          <Text style={styles.debugVal} numberOfLines={1} ellipsizeMode="tail">
+            {expirationDate}
+          </Text>
         </View>
 
         <View style={styles.debugRow}>
@@ -1431,7 +1435,7 @@ export default function SpikePlayerScreen() {
         {lastMoveError && (
           <View style={styles.debugRow}>
             <Text style={styles.debugLabel}>Lỗi move trực tiếp:</Text>
-            <Text style={[styles.debugVal, { color: '#ff6b6b' }]}>{lastMoveError}</Text>
+            <Text style={[styles.debugVal, styles.debugValError]}>{lastMoveError}</Text>
           </View>
         )}
 
@@ -1586,10 +1590,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surfaceDarker,
   },
-  artworkPlaceholderText: {
-    fontSize: fontSizes.huge + 16,
-    marginBottom: spacing.sm,
-  },
   artworkEmptyText: {
     color: colors.textDisabled,
     fontSize: fontSizes.captionLarge,
@@ -1719,16 +1719,16 @@ const styles = StyleSheet.create({
     borderColor: colors.borderNeutral,
   },
   repeatBottomIcon: {
-    fontSize: 13,
-    color: '#71717a',
+    fontSize: fontSizes.subhead,
+    color: colors.textTertiary,
   },
   repeatBottomText: {
-    fontSize: 11,
-    color: '#71717a',
-    fontWeight: '600',
+    fontSize: fontSizes.caption,
+    color: colors.textTertiary,
+    fontWeight: fontWeights.semibold,
   },
   repeatActiveColor: {
-    color: '#1DB954',
+    color: colors.primary,
   },
   inputCard: {
     backgroundColor: colors.surface,
@@ -1870,35 +1870,45 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   debugCard: {
-    backgroundColor: '#121212',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.backgroundElevated,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#222222',
-    marginBottom: 32,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.xxxl,
   },
   debugHeader: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   debugRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#1c1c1c',
+    borderBottomColor: colors.borderDark,
   },
   debugLabel: {
-    color: '#888888',
-    fontSize: 13,
+    flexShrink: 0,
+    color: colors.textSubtle,
+    fontSize: fontSizes.subhead,
+    lineHeight: lineHeights.subhead,
   },
   debugVal: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    lineHeight: lineHeights.subhead,
+    fontWeight: fontWeights.medium,
+  },
+  debugValError: {
+    color: colors.dangerSoft,
   },
   subtleEditBtn: {
     padding: spacing.xs,
@@ -1909,9 +1919,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   subtleEditIcon: {
-    color: '#a1a1aa',
-    fontSize: 13,
-    fontWeight: 'bold',
+    color: colors.textMuted,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
   },
   syncCard: {
     backgroundColor: colors.surface,
@@ -1980,12 +1990,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   queueEditBtn: {
-    backgroundColor: colors.surfaceHover,
+    backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radius.xs + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.borderFocus,
+    borderColor: colors.borderSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2107,9 +2117,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     gap: spacing.md,
   },
-  mysteryBannerIcon: {
-    fontSize: fontSizes.titleLarge + 2,
-  },
   mysteryBannerTitle: {
     color: colors.warning,
     fontSize: fontSizes.captionLarge,
@@ -2145,7 +2152,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mysteryBadgeBg,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.xs + 2,
+    borderRadius: radius.sm,
   },
   mysteryBadgePillText: {
     color: colors.textSubtle,
