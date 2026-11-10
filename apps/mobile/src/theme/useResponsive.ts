@@ -32,9 +32,6 @@ export function useResponsive(): ResponsiveInfo {
   } else if (width >= layout.breakpoints.compact) {
     breakpoint = 'medium';
     gutterValue = layout.gutter.medium;
-  } else {
-    breakpoint = 'compact';
-    gutterValue = layout.gutter.compact;
   }
 
   return {

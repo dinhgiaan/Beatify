@@ -11,7 +11,6 @@ import {
   Alert,
   Vibration,
   Linking,
-  Platform,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
