@@ -13,6 +13,17 @@ import {
   Linking,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  colors,
+  spacing,
+  radius,
+  fontSizes,
+  fontWeights,
+  lineHeights,
+  layout,
+  useResponsive,
+} from '../src/theme';
 import {
   type Track,
   type UpdateTrack,
@@ -80,6 +91,15 @@ export default function SpikePlayerScreen() {
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
   const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
   const [barWidth, setBarWidth] = useState<number>(0);
+
+  // Hook đo lường safe area & responsive cho toàn bộ màn hình
+  const insets = useSafeAreaInsets();
+  const { width, height, isLandscape, gutter, maxContentWidth } = useResponsive();
+
+  // Tính toán kích thước ảnh bìa thích ứng
+  const artworkSize = isLandscape
+    ? Math.max(140, Math.min(Math.round(height * 0.48), 240))
+    : Math.max(140, Math.min(width - gutter * 2 - spacing.xl * 2, Math.round(height * 0.38), 340));
 
   // State cho Profile & Thống kê
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -684,242 +704,440 @@ export default function SpikePlayerScreen() {
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Thẻ hiển thị bài hát chính */}
-      <View style={styles.card}>
-        <View style={styles.badgeRow}>
-          <View style={styles.badgeLeftGroup}>
-            <Text style={styles.badge}>BEATIFY PLAYER</Text>
-            {isSmartShuffle && (
-              <View style={styles.shuffleActivePill}>
-                <ShuffleIcon size={11} color="#1DB954" />
-                <Text style={styles.shuffleActivePillText}>TRỘN BÀI</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.badgeRightGroup}>
-            <TouchableOpacity
-              style={styles.profileHeaderBtn}
-              onPress={() => {
-                Vibration.vibrate(10);
-                setProfileModalVisible(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Mở hồ sơ cá nhân và thành tích nghe nhạc"
-            >
-              <ProfileIcon size={14} color="#1DB954" />
-              <Text style={styles.profileHeaderBtnText}>Hồ sơ</Text>
-            </TouchableOpacity>
-            {currentTrack ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TouchableOpacity
-                  style={[styles.subtleEditBtn, { marginRight: 6 }]}
-                  onPress={() => handleToggleFavorite(currentTrack.id)}
-                  activeOpacity={0.6}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={userState.favoriteIds.includes(currentTrack.id) ? "Bỏ thích bài hát này" : "Yêu thích bài hát này"}
-                >
-                  <HeartIcon
-                    size={14}
-                    color={userState.favoriteIds.includes(currentTrack.id) ? '#f43f5e' : '#888888'}
-                    fill={userState.favoriteIds.includes(currentTrack.id) ? '#f43f5e' : 'none'}
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.subtleEditBtn}
-                  onPress={() => handleOpenEdit(currentTrack)}
-                  activeOpacity={0.6}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Chỉnh sửa thông tin bài hát"
-                >
-                  <EditIcon size={13} color="#888888" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={{ width: 24 }} />
-            )}
-          </View>
-        </View>
-
-        {/* Khung ảnh bìa hoặc Icon khi thư viện trống */}
-        <View style={styles.artworkContainer}>
-          {currentTrack?.cover ? (
-            <Image
-              source={{ uri: currentTrack.cover }}
-              style={styles.artworkImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.artworkPlaceholder}>
-              <DiscIcon size={64} color="#333333" />
-              <Text style={[styles.artworkEmptyText, { marginTop: 10 }]}>
-                {tracks.length === 0 ? 'Thư viện trống' : 'Không có ảnh bìa'}
-              </Text>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingLeft: Math.max(gutter, insets.left),
+          paddingRight: Math.max(gutter, insets.right),
+          paddingBottom: insets.bottom + spacing.xxl,
+        },
+      ]}
+    >
+      <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+        {/* Thẻ hiển thị bài hát chính */}
+        <View style={styles.card}>
+          <View style={styles.badgeRow}>
+            <View style={styles.badgeLeftGroup}>
+              <Text style={styles.badge}>BEATIFY PLAYER</Text>
+              {isSmartShuffle && (
+                <View style={styles.shuffleActivePill}>
+                  <ShuffleIcon size={11} color={colors.primary} />
+                  <Text style={styles.shuffleActivePillText}>TRỘN BÀI</Text>
+                </View>
+              )}
             </View>
+            <View style={styles.badgeRightGroup}>
+              <TouchableOpacity
+                style={styles.profileHeaderBtn}
+                onPress={() => {
+                  Vibration.vibrate(10);
+                  setProfileModalVisible(true);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Mở hồ sơ cá nhân và thành tích nghe nhạc"
+              >
+                <ProfileIcon size={14} color={colors.primary} />
+                <Text style={styles.profileHeaderBtnText}>Hồ sơ</Text>
+              </TouchableOpacity>
+              {currentTrack ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity
+                    style={[styles.subtleEditBtn, { marginRight: spacing.sm }]}
+                    onPress={() => handleToggleFavorite(currentTrack.id)}
+                    activeOpacity={0.6}
+                    hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={userState.favoriteIds.includes(currentTrack.id) ? "Bỏ thích bài hát này" : "Yêu thích bài hát này"}
+                  >
+                    <HeartIcon
+                      size={14}
+                      color={userState.favoriteIds.includes(currentTrack.id) ? colors.favorite : colors.textSubtle}
+                      fill={userState.favoriteIds.includes(currentTrack.id) ? colors.favorite : 'none'}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.subtleEditBtn}
+                    onPress={() => handleOpenEdit(currentTrack)}
+                    activeOpacity={0.6}
+                    hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Chỉnh sửa thông tin bài hát"
+                  >
+                    <EditIcon size={13} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ width: 24 }} />
+              )}
+            </View>
+          </View>
+
+          {isLandscape ? (
+            <View style={styles.landscapePlayerBody}>
+              {/* Cột trái: Khung ảnh bìa thích ứng */}
+              <View style={[styles.artworkContainer, { width: artworkSize, height: artworkSize, marginBottom: 0 }]}>
+                {currentTrack?.cover ? (
+                  <Image
+                    source={{ uri: currentTrack.cover }}
+                    style={styles.artworkImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.artworkPlaceholder}>
+                    <DiscIcon size={Math.min(64, Math.round(artworkSize * 0.35))} color={colors.borderLight} />
+                    <Text style={[styles.artworkEmptyText, { marginTop: spacing.sm }]}>
+                      {tracks.length === 0 ? 'Thư viện trống' : 'Không có ảnh bìa'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Cột phải: Thông tin bài hát & Bảng điều khiển */}
+              <View style={styles.landscapeControlsCol}>
+                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                  {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
+                </Text>
+                <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+                  {currentTrack
+                    ? `${currentTrack.artist} • ${currentTrack.album ?? 'Single'}`
+                    : 'Đồng bộ từ Web quản lý hoặc nhập link bên dưới'}
+                </Text>
+
+                {/* Thanh tiến trình tua nhạc (Vùng chạm 44pt chuẩn Apple HIG) */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.progressBarTouchable}
+                  onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+                  onPress={(e) => handleBarPress(e.nativeEvent.locationX)}
+                >
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeText}>{formatTime(playerState.positionSec)}</Text>
+                  {playerState.isBuffering && <ActivityIndicator size="small" color={colors.primary} />}
+                  <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
+                </View>
+
+                {/* Cụm điều khiển phát nhạc chính */}
+                <View style={styles.controlsRow}>
+                  <TouchableOpacity
+                    style={styles.seekBtn}
+                    disabled={tracks.length === 0}
+                    onPress={() => handleSeekOffset(-5)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Tua lùi 5 giây"
+                  >
+                    <SeekBackwardIcon size={22} color={colors.textPrimary} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.skipBtn}
+                    disabled={tracks.length === 0}
+                    onPress={handlePrevious}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Phát bài trước đó"
+                  >
+                    <PrevIcon size={22} color={colors.textPrimary} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.playCircleBtn, tracks.length === 0 && styles.playCircleBtnDisabled]}
+                    disabled={tracks.length === 0 && !playerState.isPlaying}
+                    onPress={handleTogglePlay}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={playerState.isPlaying ? "Tạm dừng phát nhạc" : "Bắt đầu phát nhạc"}
+                  >
+                    {playerState.isPlaying ? (
+                      <PauseIcon size={26} color={colors.textDark} />
+                    ) : (
+                      <PlayIcon size={26} color={colors.textDark} />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.skipBtn}
+                    disabled={tracks.length === 0}
+                    onPress={handleNext}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Phát bài tiếp theo"
+                  >
+                    <NextIcon size={22} color={colors.textPrimary} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.seekBtn}
+                    disabled={tracks.length === 0}
+                    onPress={() => handleSeekOffset(5)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Tua tới 5 giây"
+                  >
+                    <SeekForwardIcon size={22} color={colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Hàng nút chế độ: Lặp lại & Trộn bài thông minh */}
+                <View style={styles.modeButtonsRow}>
+                  <TouchableOpacity
+                    style={[styles.modeBottomBtn, repeatMode !== 'off' && styles.modeBottomBtnActive]}
+                    onPress={handleCycleRepeat}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={repeatMode === 'off' ? 'Chế độ lặp lại: Tắt' : repeatMode === 'track' ? 'Chế độ lặp lại: 1 bài' : 'Chế độ lặp lại: Toàn bộ danh sách'}
+                  >
+                    {repeatMode === 'track' ? (
+                      <RepeatOneIcon size={16} color={colors.primary} />
+                    ) : (
+                      <RepeatIcon size={16} color={repeatMode !== 'off' ? colors.primary : colors.textTertiary} />
+                    )}
+                    <Text style={[styles.repeatBottomText, repeatMode !== 'off' && styles.repeatActiveColor]}>
+                      {repeatMode === 'off' ? 'Repeat: Tắt' : repeatMode === 'track' ? 'Repeat: 1 bài' : 'Repeat: Tất cả'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modeBottomBtn, isSmartShuffle && styles.modeBottomBtnActive]}
+                    onPress={handleToggleSmartShuffle}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={isSmartShuffle ? "Tắt trộn bài thông minh" : "Bật trộn bài thông minh"}
+                  >
+                    <ShuffleIcon size={16} color={isSmartShuffle ? colors.primary : colors.textTertiary} />
+                    <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
+                      {isSmartShuffle ? 'Shuffle: BẬT' : 'Shuffle: Tắt'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Hàng nút tính năng: Lyrics & Playlist */}
+                <View style={[styles.modeButtonsRow, { marginTop: spacing.sm }]}>
+                  <TouchableOpacity
+                    style={[styles.modeBottomBtn, lyricsModalVisible && styles.modeBottomBtnActive]}
+                    disabled={!currentTrack}
+                    onPress={() => setLyricsModalVisible(true)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Mở màn hình lời bài hát"
+                  >
+                    <LyricsIcon size={16} color={currentTrack ? colors.primary : colors.textTertiary} />
+                    <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
+                      Lyrics
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modeBottomBtn, playlistModalVisible && styles.modeBottomBtnActive]}
+                    onPress={() => setPlaylistModalVisible(true)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Quản lý danh sách phát"
+                  >
+                    <PlaylistIcon size={16} color={colors.primary} />
+                    <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
+                      Playlist ({userState.playlists.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ) : (
+            /* Bố cục Portrait 1 cột truyền thống */
+            <>
+              {/* Khung ảnh bìa thích ứng với màn hình */}
+              <View style={[styles.artworkContainer, { width: artworkSize, height: artworkSize }]}>
+                {currentTrack?.cover ? (
+                  <Image
+                    source={{ uri: currentTrack.cover }}
+                    style={styles.artworkImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.artworkPlaceholder}>
+                    <DiscIcon size={Math.min(64, Math.round(artworkSize * 0.35))} color={colors.borderLight} />
+                    <Text style={[styles.artworkEmptyText, { marginTop: spacing.sm }]}>
+                      {tracks.length === 0 ? 'Thư viện trống' : 'Không có ảnh bìa'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
+              </Text>
+              <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+                {currentTrack
+                  ? `${currentTrack.artist} • ${currentTrack.album ?? 'Single'}`
+                  : 'Đồng bộ từ Web quản lý hoặc nhập link bên dưới'}
+              </Text>
+
+              {/* Thanh tiến trình tua nhạc (Vùng chạm 44pt chuẩn Apple HIG) */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.progressBarTouchable}
+                onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+                onPress={(e) => handleBarPress(e.nativeEvent.locationX)}
+              >
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.timeRow}>
+                <Text style={styles.timeText}>{formatTime(playerState.positionSec)}</Text>
+                {playerState.isBuffering && <ActivityIndicator size="small" color={colors.primary} />}
+                <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
+              </View>
+
+              {/* Cụm điều khiển phát nhạc chính */}
+              <View style={styles.controlsRow}>
+                <TouchableOpacity
+                  style={styles.seekBtn}
+                  disabled={tracks.length === 0}
+                  onPress={() => handleSeekOffset(-5)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tua lùi 5 giây"
+                >
+                  <SeekBackwardIcon size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipBtn}
+                  disabled={tracks.length === 0}
+                  onPress={handlePrevious}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Phát bài trước đó"
+                >
+                  <PrevIcon size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.playCircleBtn, tracks.length === 0 && styles.playCircleBtnDisabled]}
+                  disabled={tracks.length === 0 && !playerState.isPlaying}
+                  onPress={handleTogglePlay}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={playerState.isPlaying ? "Tạm dừng phát nhạc" : "Bắt đầu phát nhạc"}
+                >
+                  {playerState.isPlaying ? (
+                    <PauseIcon size={26} color={colors.textDark} />
+                  ) : (
+                    <PlayIcon size={26} color={colors.textDark} />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipBtn}
+                  disabled={tracks.length === 0}
+                  onPress={handleNext}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Phát bài tiếp theo"
+                >
+                  <NextIcon size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.seekBtn}
+                  disabled={tracks.length === 0}
+                  onPress={() => handleSeekOffset(5)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tua tới 5 giây"
+                >
+                  <SeekForwardIcon size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Hàng nút chế độ: Lặp lại & Trộn bài thông minh */}
+              <View style={styles.modeButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.modeBottomBtn, repeatMode !== 'off' && styles.modeBottomBtnActive]}
+                  onPress={handleCycleRepeat}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={repeatMode === 'off' ? 'Chế độ lặp lại: Tắt' : repeatMode === 'track' ? 'Chế độ lặp lại: 1 bài' : 'Chế độ lặp lại: Toàn bộ danh sách'}
+                >
+                  {repeatMode === 'track' ? (
+                    <RepeatOneIcon size={16} color={colors.primary} />
+                  ) : (
+                    <RepeatIcon size={16} color={repeatMode !== 'off' ? colors.primary : colors.textTertiary} />
+                  )}
+                  <Text style={[styles.repeatBottomText, repeatMode !== 'off' && styles.repeatActiveColor]}>
+                    {repeatMode === 'off' ? 'Repeat: Tắt' : repeatMode === 'track' ? 'Repeat: 1 bài' : 'Repeat: Tất cả'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modeBottomBtn, isSmartShuffle && styles.modeBottomBtnActive]}
+                  onPress={handleToggleSmartShuffle}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={isSmartShuffle ? "Tắt trộn bài thông minh" : "Bật trộn bài thông minh"}
+                >
+                  <ShuffleIcon size={16} color={isSmartShuffle ? colors.primary : colors.textTertiary} />
+                  <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
+                    {isSmartShuffle ? 'Shuffle: BẬT' : 'Shuffle: Tắt'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Hàng nút tính năng: Lyrics & Playlist */}
+              <View style={[styles.modeButtonsRow, { marginTop: spacing.sm }]}>
+                <TouchableOpacity
+                  style={[styles.modeBottomBtn, lyricsModalVisible && styles.modeBottomBtnActive]}
+                  disabled={!currentTrack}
+                  onPress={() => setLyricsModalVisible(true)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mở màn hình lời bài hát"
+                >
+                  <LyricsIcon size={16} color={currentTrack ? colors.primary : colors.textTertiary} />
+                  <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
+                    Lyrics
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modeBottomBtn, playlistModalVisible && styles.modeBottomBtnActive]}
+                  onPress={() => setPlaylistModalVisible(true)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Quản lý danh sách phát"
+                >
+                  <PlaylistIcon size={16} color={colors.primary} />
+                  <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
+                    Playlist ({userState.playlists.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
         </View>
-
-        <Text style={styles.title} numberOfLines={1}>
-          {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
-        </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {currentTrack
-            ? `${currentTrack.artist} • ${currentTrack.album ?? 'Single'}`
-            : 'Đồng bộ từ Web quản lý hoặc nhập link bên dưới'}
-        </Text>
-
-        {/* Thanh tiến trình tua nhạc (Interactive Seek Bar) */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.progressBarTouchable}
-          onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
-          onPress={(e) => handleBarPress(e.nativeEvent.locationX)}
-        >
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.timeRow}>
-          <Text style={styles.timeText}>{formatTime(playerState.positionSec)}</Text>
-          {playerState.isBuffering && <ActivityIndicator size="small" color="#1DB954" />}
-          <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
-        </View>
-
-        {/* Cụm điều khiển phát nhạc chính (Dùng biểu tượng vector SVG) */}
-        <View style={styles.controlsRow}>
-          {/* Tua lùi 5s */}
-          <TouchableOpacity
-            style={styles.seekBtn}
-            disabled={tracks.length === 0}
-            onPress={() => handleSeekOffset(-5)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Tua lùi 5 giây"
-          >
-            <SeekBackwardIcon size={22} color="#ffffff" />
-          </TouchableOpacity>
-
-          {/* Bài trước (Prev) */}
-          <TouchableOpacity
-            style={styles.skipBtn}
-            disabled={tracks.length === 0}
-            onPress={handlePrevious}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Phát bài trước đó"
-          >
-            <PrevIcon size={22} color="#ffffff" />
-          </TouchableOpacity>
-
-          {/* Phát / Dừng (Play / Pause tròn lớn) */}
-          <TouchableOpacity
-            style={[styles.playCircleBtn, tracks.length === 0 && styles.playCircleBtnDisabled]}
-            disabled={tracks.length === 0 && !playerState.isPlaying}
-            onPress={handleTogglePlay}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={playerState.isPlaying ? "Tạm dừng phát nhạc" : "Bắt đầu phát nhạc"}
-          >
-            {playerState.isPlaying ? (
-              <PauseIcon size={26} color="#000000" />
-            ) : (
-              <PlayIcon size={26} color="#000000" />
-            )}
-          </TouchableOpacity>
-
-          {/* Bài tiếp (Next) */}
-          <TouchableOpacity
-            style={styles.skipBtn}
-            disabled={tracks.length === 0}
-            onPress={handleNext}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Phát bài tiếp theo"
-          >
-            <NextIcon size={22} color="#ffffff" />
-          </TouchableOpacity>
-
-          {/* Tua tới 5s */}
-          <TouchableOpacity
-            style={styles.seekBtn}
-            disabled={tracks.length === 0}
-            onPress={() => handleSeekOffset(5)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Tua tới 5 giây"
-          >
-            <SeekForwardIcon size={22} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Hàng nút chế độ: Lặp lại & Trộn bài thông minh */}
-        <View style={styles.modeButtonsRow}>
-          <TouchableOpacity
-            style={[styles.modeBottomBtn, repeatMode !== 'off' && styles.modeBottomBtnActive]}
-            onPress={handleCycleRepeat}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={repeatMode === 'off' ? 'Chế độ lặp lại: Tắt' : repeatMode === 'track' ? 'Chế độ lặp lại: 1 bài' : 'Chế độ lặp lại: Toàn bộ danh sách'}
-          >
-            {repeatMode === 'track' ? (
-              <RepeatOneIcon size={16} color="#1DB954" />
-            ) : (
-              <RepeatIcon size={16} color={repeatMode !== 'off' ? '#1DB954' : '#71717a'} />
-            )}
-            <Text style={[styles.repeatBottomText, repeatMode !== 'off' && styles.repeatActiveColor]}>
-              {repeatMode === 'off' ? 'Repeat: Tắt' : repeatMode === 'track' ? 'Repeat: 1 bài' : 'Repeat: Tất cả'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.modeBottomBtn, isSmartShuffle && styles.modeBottomBtnActive]}
-            onPress={handleToggleSmartShuffle}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={isSmartShuffle ? "Tắt trộn bài thông minh" : "Bật trộn bài thông minh"}
-          >
-            <ShuffleIcon size={16} color={isSmartShuffle ? '#1DB954' : '#71717a'} />
-            <Text style={[styles.repeatBottomText, isSmartShuffle && styles.repeatActiveColor]}>
-              {isSmartShuffle ? 'Shuffle: BẬT' : 'Shuffle: Tắt'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hàng nút tính năng: Lyrics & Playlist */}
-        <View style={[styles.modeButtonsRow, { marginTop: 8 }]}>
-          <TouchableOpacity
-            style={[styles.modeBottomBtn, lyricsModalVisible && styles.modeBottomBtnActive]}
-            disabled={!currentTrack}
-            onPress={() => setLyricsModalVisible(true)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Mở màn hình lời bài hát"
-          >
-            <LyricsIcon size={16} color={currentTrack ? '#1DB954' : '#71717a'} />
-            <Text style={[styles.repeatBottomText, currentTrack && styles.repeatActiveColor]}>
-              Lyrics
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.modeBottomBtn, playlistModalVisible && styles.modeBottomBtnActive]}
-            onPress={() => setPlaylistModalVisible(true)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Quản lý danh sách phát"
-          >
-            <PlaylistIcon size={16} color="#1DB954" />
-            <Text style={[styles.repeatBottomText, styles.repeatActiveColor]}>
-              Playlist ({userState.playlists.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
 
       {/* Khung kết nối & Đồng bộ Cloudflare R2 */}
@@ -1252,58 +1470,77 @@ export default function SpikePlayerScreen() {
         onClose={() => setProfileModalVisible(false)}
         totalLibraryTracksCount={tracks.length}
       />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingTop: 48,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
     flexGrow: 1,
+    paddingTop: spacing.lg,
+  },
+  contentWrapper: {
+    width: '100%',
+    alignSelf: 'center',
   },
   card: {
-    backgroundColor: '#181818',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#282828',
+    borderColor: colors.border,
+  },
+  landscapePlayerBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: spacing.xl,
+    marginTop: spacing.sm,
+  },
+  landscapeArtworkCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  landscapeControlsCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   badge: {
-    color: '#1DB954',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
     letterSpacing: 1.5,
   },
   repeatBadge: {
-    backgroundColor: '#282828',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.xs,
   },
   repeatBadgeText: {
-    color: '#b3b3b3',
-    fontSize: 11,
-    fontWeight: '600',
+    color: colors.textMedium,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
   },
   artworkContainer: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#1f1f1f',
-    marginBottom: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.surfaceMuted,
+    marginBottom: spacing.xl,
+    shadowColor: colors.textDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
@@ -1317,133 +1554,138 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#161616',
+    backgroundColor: colors.surfaceDarker,
   },
   artworkPlaceholderText: {
-    fontSize: 48,
-    marginBottom: 8,
+    fontSize: fontSizes.huge + 16,
+    marginBottom: spacing.sm,
   },
   artworkEmptyText: {
-    color: '#666666',
-    fontSize: 12,
-    fontWeight: '500',
+    color: colors.textDisabled,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.medium,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fontSizes.titleLarge,
+    fontWeight: fontWeights.bold,
+    lineHeight: lineHeights.titleLarge,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
+    width: '100%',
   },
   artist: {
-    color: '#a0a0a0',
-    fontSize: 13,
+    color: colors.textMutedAlt,
+    fontSize: fontSizes.subhead,
+    lineHeight: lineHeights.subhead,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+    width: '100%',
   },
   progressBarTouchable: {
     width: '100%',
-    paddingVertical: 8,
+    height: layout.minTouchTarget,
+    justifyContent: 'center',
   },
   progressBarBg: {
     height: 4,
-    backgroundColor: '#333333',
-    borderRadius: 2,
+    backgroundColor: colors.borderLight,
+    borderRadius: radius.xs,
     overflow: 'hidden',
     width: '100%',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#1DB954',
+    backgroundColor: colors.primary,
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     alignItems: 'center',
   },
   timeText: {
-    color: '#888888',
-    fontSize: 12,
+    color: colors.textSubtle,
+    fontSize: fontSizes.captionLarge,
     fontVariant: ['tabular-nums'],
   },
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
-    marginTop: 4,
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
   seekBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: colors.borderDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: colors.borderNeutral,
   },
   seekArrow: {
-    color: '#1DB954',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
   },
   seekNumber: {
-    color: '#d4d4d8',
-    fontSize: 10.5,
-    fontWeight: '700',
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
     marginHorizontal: 1,
   },
   skipBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1f1f1f',
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: colors.borderMuted,
   },
   skipIcon: {
-    fontSize: 16,
-    color: '#ffffff',
+    fontSize: fontSizes.subheading,
+    color: colors.textPrimary,
   },
   playCircleBtn: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#1DB954',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1DB954',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
   },
   playCircleBtnDisabled: {
-    backgroundColor: '#282828',
+    backgroundColor: colors.border,
     opacity: 0.5,
     shadowOpacity: 0,
   },
   playCircleIcon: {
-    fontSize: 20,
-    color: '#000000',
-    fontWeight: 'bold',
+    fontSize: fontSizes.titleLarge,
+    color: colors.textDark,
+    fontWeight: fontWeights.bold,
   },
   repeatBottomBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: '#1c1c1c',
-    marginTop: 18,
+    gap: spacing.xs + 2,
+    paddingVertical: spacing.xs + 1,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md + 2,
+    backgroundColor: colors.borderDark,
+    marginTop: spacing.lg + 2,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: colors.borderNeutral,
   },
   repeatBottomIcon: {
     fontSize: 13,
@@ -1621,12 +1863,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   subtleEditBtn: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#1c1c1c',
+    padding: spacing.xs + 2,
+    borderRadius: radius.xs + 2,
+    backgroundColor: colors.borderDark,
     opacity: 0.45,
     borderWidth: 1,
-    borderColor: '#282828',
+    borderColor: colors.border,
   },
   subtleEditIcon: {
     color: '#a1a1aa',
@@ -1729,67 +1971,67 @@ const styles = StyleSheet.create({
   badgeLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   badgeRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   profileHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#222222',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: spacing.xs + 2,
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 1,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: colors.borderLight,
   },
   profileHeaderBtnText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
   },
   shuffleActivePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(29, 185, 84, 0.15)',
+    gap: spacing.xs,
+    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: '#1DB954',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.md - 2,
   },
   shuffleActivePillText: {
-    color: '#1DB954',
-    fontSize: 9.5,
-    fontWeight: '800',
+    color: colors.primary,
+    fontSize: fontSizes.micro,
+    fontWeight: fontWeights.extrabold,
     letterSpacing: 0.5,
   },
   modeButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
+    gap: spacing.sm + 2,
+    marginTop: spacing.md + 2,
     width: '100%',
     justifyContent: 'center',
   },
   modeBottomBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#202020',
-    borderRadius: 20,
+    gap: spacing.xs + 2,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surfacePressed,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#2e2e2e',
+    borderColor: colors.borderDivider,
   },
   modeBottomBtnActive: {
-    backgroundColor: '#262626',
-    borderColor: '#1DB954',
+    backgroundColor: colors.surfaceHighlight,
+    borderColor: colors.primary,
   },
   queueHeaderRow: {
     flexDirection: 'row',
