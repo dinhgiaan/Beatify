@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseLrc, findActiveLrcIndex } from './lyrics';
+import { parseLrc, findActiveLrcIndex, formatLrcSpacing } from './lyrics';
 
 describe('parseLrc', () => {
   it('phân tích cú pháp LRC chuẩn [mm:ss.xx]', () => {
@@ -70,5 +70,22 @@ describe('findActiveLrcIndex', () => {
     expect(findActiveLrcIndex(lines, 7.8)).toBe(1);
     expect(findActiveLrcIndex(lines, 10)).toBe(2);
     expect(findActiveLrcIndex(lines, 999)).toBe(2);
+  });
+});
+
+describe('formatLrcSpacing', () => {
+  it('tự động thêm khoảng trắng chuẩn sau timestamp nếu bị dính liền', () => {
+    const raw = `[00:01.00]Lời dính
+[00:05.20]   Đã có khoảng trắng
+[01:10:50]Dấu hai chấm`;
+    const formatted = formatLrcSpacing(raw);
+    expect(formatted).toBe(`[00:01.00] Lời dính
+[00:05.20]   Đã có khoảng trắng
+[01:10:50] Dấu hai chấm`);
+  });
+
+  it('xử lý chuỗi rỗng hoặc null', () => {
+    expect(formatLrcSpacing('')).toBe('');
+    expect(formatLrcSpacing(null)).toBe('');
   });
 });

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
-import { parseLrc, findActiveLrcIndex, type LrcLine } from '@music-app/shared';
+import { parseLrc, findActiveLrcIndex, formatLrcSpacing, type LrcLine } from '@music-app/shared';
 import { EditIcon, LyricsIcon } from './icons/SvgIcons';
 import { ModalHeader } from './ModalHeader';
 import {
@@ -62,7 +62,7 @@ export function LyricsModal({
       lineYOffsets.current = {};
       onFetchLyrics(track.id)
         .then((content) => {
-          setRawLyrics(content);
+          setRawLyrics(formatLrcSpacing(content));
         })
         .catch((err) => {
           console.warn('Không tải được lời bài hát:', err);
@@ -115,6 +115,61 @@ export function LyricsModal({
     userScrollTimeoutRef.current = setTimeout(() => {
       userScrolledRef.current = false;
     }, 3500);
+  };
+
+  // Render nội dung dòng hát đang phát kèm hiệu ứng tô sáng karaoke từng chữ
+  const renderLineContent = (line: LrcLine, idx: number, isActive: boolean) => {
+    if (!line.text) {
+      return (
+        <Text style={[styles.lyricText, isActive && styles.lyricTextActive]}>
+          ♪
+        </Text>
+      );
+    }
+
+    if (!isActive) {
+      const isPast = activeIndex >= 0 && idx < activeIndex;
+      return (
+        <Text style={[styles.lyricText, isPast ? styles.lyricTextPast : styles.lyricTextFuture]}>
+          {line.text}
+        </Text>
+      );
+    }
+
+    // Tính toán tiến trình dòng hát hiện tại (0.0 -> 1.0)
+    const nextLine = lrcLines[idx + 1];
+    const nextTime = nextLine ? nextLine.time : line.time + 4.5;
+    const lineDuration = Math.max(0.5, nextTime - line.time);
+    const elapsed = Math.max(0, currentTimeSec - line.time);
+    const progressRatio = Math.min(1, Math.max(0, elapsed / lineDuration));
+
+    const tokens = line.text.split(/(\s+)/);
+    const nonSpaceTokens = tokens.filter((t) => t.trim().length > 0);
+    const totalWords = nonSpaceTokens.length;
+    // Điểm mốc chữ hiện tại đã được hát qua
+    const currentWordCutoff = Math.floor(progressRatio * (totalWords + 0.35));
+
+    let wordCounter = 0;
+
+    return (
+      <Text style={styles.lyricTextActive}>
+        {tokens.map((token, tIdx) => {
+          if (!token.trim()) {
+            return <Text key={`space-${tIdx}`}>{token}</Text>;
+          }
+          const isSung = wordCounter <= currentWordCutoff;
+          wordCounter++;
+          return (
+            <Text
+              key={`w-${tIdx}`}
+              style={isSung ? styles.wordSung : styles.wordUnsung}
+            >
+              {token}
+            </Text>
+          );
+        })}
+      </Text>
+    );
   };
 
   if (!track) return null;
@@ -201,7 +256,7 @@ export function LyricsModal({
               return (
                 <TouchableOpacity
                   key={`line-${idx}-${line.time}`}
-                  style={styles.lyricLineWrap}
+                  style={[styles.lyricLineWrap, isActive && styles.lyricLineWrapActive]}
                   activeOpacity={0.7}
                   onLayout={(e) => {
                     lineYOffsets.current[idx] = e.nativeEvent.layout.y;
@@ -211,9 +266,7 @@ export function LyricsModal({
                     userScrolledRef.current = false;
                   }}
                 >
-                  <Text style={[styles.lyricText, isActive && styles.lyricTextActive]}>
-                    {line.text || '♪'}
-                  </Text>
+                  {renderLineContent(line, idx, isActive)}
                 </TouchableOpacity>
               );
             })}
@@ -228,6 +281,9 @@ export function LyricsModal({
             contentContainerStyle={styles.plainLyricsContent}
             showsVerticalScrollIndicator={false}
           >
+            <View style={styles.plainLyricsBadge}>
+              <Text style={styles.plainLyricsBadgeText}>Lời bài hát (văn bản thường)</Text>
+            </View>
             <Text style={styles.plainLyricsText}>{rawLyrics}</Text>
             <View style={{ height: 120 }} />
           </ScrollView>
@@ -329,12 +385,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xs,
   },
+  lyricLineWrapActive: {
+    paddingVertical: spacing.lg,
+  },
   lyricText: {
     color: colors.textWhite28,
     fontSize: fontSizes.titleLarge,
     lineHeight: lineHeights.headline,
     fontWeight: fontWeights.semibold,
     letterSpacing: -0.3,
+  },
+  lyricTextPast: {
+    color: colors.textWhite40,
+    opacity: 0.7,
+  },
+  lyricTextFuture: {
+    color: colors.textWhite28,
+    opacity: 0.5,
   },
   lyricTextActive: {
     color: colors.textPrimary,
@@ -345,6 +412,29 @@ const styles = StyleSheet.create({
     textShadowColor: colors.white35,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 10,
+  },
+  wordSung: {
+    color: colors.textPrimary,
+    fontWeight: fontWeights.extrabold,
+  },
+  wordUnsung: {
+    color: colors.textWhite45,
+    fontWeight: fontWeights.bold,
+  },
+  plainLyricsBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    marginBottom: spacing.lg,
+  },
+  plainLyricsBadgeText: {
+    color: colors.primary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
   },
   plainLyricsContent: {
     paddingHorizontal: spacing.xxl,

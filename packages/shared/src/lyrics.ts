@@ -108,3 +108,12 @@ export function findActiveLrcIndex(lines: LrcLine[], currentTime: number): numbe
   return ans;
 }
 
+/**
+ * Đảm bảo khoảng trắng chuẩn giữa timestamp LRC và nội dung lời
+ * Ví dụ: [00:12.34]Lời hát -> [00:12.34] Lời hát
+ */
+export function formatLrcSpacing(text?: string | null): string {
+  if (!text) return '';
+  return text.replace(/(\[\d{1,3}:\d{2}(?:[.:]\d{2,3})?\])([^\s\r\n])/g, '$1 $2');
+}
+

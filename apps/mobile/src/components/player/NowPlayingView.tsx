@@ -38,6 +38,7 @@ import {
 } from '../icons/SvgIcons';
 import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
+import { EditTrackModal } from '../EditTrackModal';
 
 /**
  * Giao diện chính của màn hình Now Playing (Đang phát toàn màn hình)
@@ -74,11 +75,12 @@ export function NowPlayingView() {
     setSleepTimer,
   } = usePlayer();
 
-  const { userState, toggleFavorite, fetchLyrics } = useLibrary();
+  const { userState, toggleFavorite, fetchLyrics, saveTrack } = useLibrary();
   const { positionSec, durationSec, progressPercent } = useProgress();
 
   const [barWidth, setBarWidth] = useState(0);
   const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
 
@@ -495,7 +497,17 @@ export function NowPlayingView() {
         }}
         onOpenEditLyrics={() => {
           setLyricsModalVisible(false);
+          setEditModalVisible(true);
         }}
+        onFetchLyrics={fetchLyrics}
+      />
+
+      {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */}
+      <EditTrackModal
+        visible={editModalVisible}
+        track={currentTrack}
+        onClose={() => setEditModalVisible(false)}
+        onSave={saveTrack}
         onFetchLyrics={fetchLyrics}
       />
 
