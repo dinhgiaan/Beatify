@@ -15,9 +15,18 @@ const config: ExpoConfig = {
     bundleIdentifier: IS_DEV ? 'com.dinhgiaan.beatify.dev' : 'com.dinhgiaan.beatify',
     infoPlist: {
       UIBackgroundModes: ['audio'],
+      NSPhotoLibraryUsageDescription: 'Beatify cần quyền truy cập thư viện ảnh để bạn chọn ảnh đại diện.',
     },
   },
-  plugins: ['expo-router'],
+  plugins: [
+    'expo-router',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Beatify cần quyền truy cập thư viện ảnh để bạn chọn ảnh đại diện.',
+      },
+    ],
+  ],
 };
 
 export default config;

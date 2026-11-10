@@ -9,7 +9,10 @@ import {
   TextInput,
   Image,
   Vibration,
+  Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { FullReplayReport, UserProfile } from '@music-app/shared';
 import { statsStorage } from '../services/stats/statsStorage';
 import {
@@ -136,6 +139,44 @@ export function ProfileModal({
     Vibration.vibrate(10);
   };
 
+  const handlePickImage = async () => {
+    try {
+      Vibration.vibrate(10);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Cần cấp quyền Thư viện ảnh',
+          'Vui lòng cho phép Beatify truy cập Thư viện ảnh trong Cài đặt iPhone để chọn ảnh đại diện của bạn.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        if (asset && asset.uri) {
+          const fileName = `user_avatar_${Date.now()}.jpg`;
+          const destPath = `${FileSystem.documentDirectory || ''}${fileName}`;
+          await FileSystem.copyAsync({
+            from: asset.uri,
+            to: destPath,
+          });
+          setTempAvatarUri(destPath);
+          Vibration.vibrate(10);
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi chọn ảnh đại diện từ iPhone:', err);
+      Alert.alert('Không thể chọn ảnh', 'Đã xảy ra lỗi khi mở thư viện ảnh của thiết bị.');
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!report) return;
     const trimmedName = tempName.trim() || 'Người Yêu Nhạc';
@@ -214,7 +255,7 @@ export function ProfileModal({
                   <View style={styles.editAvatarHint}>
                     <Text style={styles.editAvatarHintTitle}>Xem trước hiển thị</Text>
                     <Text style={styles.editAvatarHintSub}>
-                      {tempAvatarUri ? 'Đang dùng ảnh từ URL' : `Biểu tượng: ${tempAvatarKey}`}
+                      {tempAvatarUri ? 'Ảnh từ Thư viện iPhone' : `Biểu tượng: ${tempAvatarKey}`}
                     </Text>
                     {tempAvatarUri ? (
                       <TouchableOpacity
@@ -231,8 +272,19 @@ export function ProfileModal({
                   </View>
                 </View>
 
+                {/* Nút chọn ảnh trực tiếp từ Thư viện iPhone */}
+                <TouchableOpacity
+                  style={styles.pickImageBtn}
+                  onPress={handlePickImage}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.pickImageBtnText}>
+                    {tempAvatarUri ? '📷 Đổi ảnh khác từ iPhone' : '📷 Chọn ảnh từ Thư viện iPhone'}
+                  </Text>
+                </TouchableOpacity>
+
                 {/* Chọn biểu tượng âm nhạc */}
-                <Text style={styles.editInputLabel}>Chọn biểu tượng đại diện</Text>
+                <Text style={styles.editInputLabel}>Hoặc chọn biểu tượng đại diện</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -246,6 +298,7 @@ export function ProfileModal({
                         style={[styles.avatarOptionBtn, isSelected && styles.avatarOptionBtnActive]}
                         onPress={() => {
                           Vibration.vibrate(10);
+                          setTempAvatarUri('');
                           setTempAvatarKey(opt);
                         }}
                         activeOpacity={0.7}
@@ -255,19 +308,6 @@ export function ProfileModal({
                     );
                   })}
                 </ScrollView>
-
-                {/* Dán liên kết ảnh */}
-                <Text style={styles.editInputLabel}>Hoặc dán liên kết ảnh đại diện (URL)</Text>
-                <TextInput
-                  style={styles.editTextInput}
-                  value={tempAvatarUri}
-                  onChangeText={setTempAvatarUri}
-                  placeholder="https://example.com/avatar.jpg"
-                  placeholderTextColor={colors.textTertiary}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                />
 
                 {/* Tên hiển thị */}
                 <Text style={styles.editInputLabel}>Tên của bạn</Text>
@@ -728,6 +768,20 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.captionLarge,
     color: colors.warning,
     fontWeight: fontWeights.semibold,
+  },
+  pickImageBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  pickImageBtnText: {
+    color: colors.textDark,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
   },
   editInputLabel: {
     fontSize: fontSizes.captionLarge,
