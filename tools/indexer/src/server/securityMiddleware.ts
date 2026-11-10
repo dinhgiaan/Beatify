@@ -63,6 +63,17 @@ export const csrfGuard: MiddlewareHandler = async (c, next) => {
 };
 
 /**
+ * Chọn path library phù hợp: Nếu đang chạy trên Windows hoặc đường dẫn chứa ký tự ổ đĩa / backslash của Windows,
+ * dùng path.win32 để đảm bảo test chạy đúng trên cả Linux CI runner.
+ */
+function selectPathLib(targetPath: string, extraPaths: string[] = []): typeof path.win32 | typeof path.posix {
+  if (process.platform === 'win32') return path.win32;
+  const allPaths = [targetPath, ...extraPaths];
+  const hasWindowsDriveOrSlash = allPaths.some((p) => Boolean(p) && (/^[a-zA-Z]:[/\\]/.test(p) || p.includes('\\')));
+  return hasWindowsDriveOrSlash ? path.win32 : path.posix;
+}
+
+/**
  * Danh sách các thư mục hệ thống Windows nhạy cảm cấm duyệt
  */
 const FORBIDDEN_EXPLORE_PATTERNS = [
@@ -73,13 +84,15 @@ const FORBIDDEN_EXPLORE_PATTERNS = [
   /^[a-z]:\\\$recycle\.bin/i,
   /^[a-z]:\\recovery/i,
   /\\appdata\\(local|roaming)\\system/i,
+  /^\/(bin|boot|dev|etc|lib|lib64|proc|root|run|sbin|sys|usr)(\/|$)/i,
 ];
 
 /**
  * Kiểm tra xem đường dẫn có trỏ vào thư mục hệ điều hành cấm duyệt không
  */
 export function isSystemDirectory(dirPath: string): boolean {
-  const resolved = path.resolve(dirPath).toLowerCase();
+  const p = selectPathLib(dirPath);
+  const resolved = p.resolve(dirPath).toLowerCase();
   return FORBIDDEN_EXPLORE_PATTERNS.some((pattern) => pattern.test(resolved));
 }
 
@@ -99,12 +112,13 @@ export function isSafeDeletePath(
     return { safe: false, reason: 'Đường dẫn thư mục không hợp lệ' };
   }
 
-  const resolvedTarget = path.resolve(targetPath);
+  const p = selectPathLib(targetPath, [...allowedRoots, ...protectedRoots]);
+  const resolvedTarget = p.resolve(targetPath);
   const targetLower = resolvedTarget.toLowerCase();
 
-  // 1. Không xóa ổ đĩa gốc (C:\, D:\...)
-  const root = path.parse(resolvedTarget).root.toLowerCase();
-  if (targetLower === root || targetLower === root.replace(/\\$/, '')) {
+  // 1. Không xóa ổ đĩa gốc (C:\, D:\... hoặc / trên POSIX)
+  const root = p.parse(resolvedTarget).root.toLowerCase();
+  if (targetLower === root || targetLower === root.replace(/[/\\]$/, '')) {
     return { safe: false, reason: 'Tuyệt đối không được xóa ổ đĩa gốc của hệ thống' };
   }
 
@@ -116,13 +130,13 @@ export function isSafeDeletePath(
   // 3. Chặn các thư mục được bảo vệ (ví dụ: MUSIC_SOURCE_DIR, thư mục dự án)
   for (const prot of protectedRoots) {
     if (!prot) continue;
-    const resolvedProt = path.resolve(prot).toLowerCase();
+    const resolvedProt = p.resolve(prot).toLowerCase();
     if (targetLower === resolvedProt) {
       return { safe: false, reason: `Không thể xóa thư mục gốc được bảo vệ: ${prot}` };
     }
     // Nếu target nằm bên trong protectedRoot
-    const rel = path.relative(resolvedProt, targetLower);
-    if (!rel.startsWith('..') && !path.isAbsolute(rel)) {
+    const rel = p.relative(resolvedProt, targetLower);
+    if (!rel.startsWith('..') && !p.isAbsolute(rel)) {
       return {
         safe: false,
         reason: 'Quy tắc an toàn: Không được xóa file/thư mục trong thư mục nguồn (chỉ đọc)',
@@ -131,15 +145,15 @@ export function isSafeDeletePath(
   }
 
   // 4. Phải nằm bên trong ít nhất một thư mục allowedRoots
-  const validAllowedRoots = allowedRoots.filter(Boolean).map((r) => path.resolve(r).toLowerCase());
+  const validAllowedRoots = allowedRoots.filter(Boolean).map((r) => p.resolve(r).toLowerCase());
   if (validAllowedRoots.length === 0) {
     return { safe: false, reason: 'Không có thư mục cho phép nào được cấu hình để xóa' };
   }
 
   const isInsideAllowed = validAllowedRoots.some((allowed) => {
     if (targetLower === allowed) return false; // Không được xóa chính thư mục gốc
-    const rel = path.relative(allowed, targetLower);
-    return !rel.startsWith('..') && !path.isAbsolute(rel);
+    const rel = p.relative(allowed, targetLower);
+    return !rel.startsWith('..') && !p.isAbsolute(rel);
   });
 
   if (!isInsideAllowed) {
