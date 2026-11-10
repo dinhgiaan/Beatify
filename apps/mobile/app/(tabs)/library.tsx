@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Track, UpdateTrack } from '@music-app/shared';
+import type { Track, UpdateTrack, UserProfile } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import {
@@ -32,13 +32,46 @@ import {
   CloseIcon,
   PlaylistIcon,
   DownloadIcon,
+  HeadphonesIcon,
+  MusicNoteIcon,
+  FlameIcon,
+  StarIcon,
+  TrophyIcon,
+  MoonIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
+import { statsStorage } from '../../src/services/stats/statsStorage';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
 import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
 
 type LibrarySegment = 'songs' | 'albums' | 'artists';
+
+function renderUserAvatar(profile: UserProfile | null, size = 18) {
+  if (profile?.avatarUri) {
+    return <Image source={{ uri: profile.avatarUri }} style={styles.avatarImg} resizeMode="cover" />;
+  }
+  const key = profile?.avatarKey || profile?.avatarEmoji || 'headphones';
+  switch (key) {
+    case 'disc':
+      return <DiscIcon size={size} color={colors.primary} />;
+    case 'note':
+      return <MusicNoteIcon size={size} color={colors.primary} />;
+    case 'heart':
+      return <HeartIcon size={size} color={colors.primary} />;
+    case 'flame':
+      return <FlameIcon size={size} color={colors.primary} />;
+    case 'star':
+      return <StarIcon size={size} color={colors.primary} />;
+    case 'trophy':
+      return <TrophyIcon size={size} color={colors.primary} />;
+    case 'moon':
+      return <MoonIcon size={size} color={colors.primary} />;
+    case 'headphones':
+    default:
+      return <HeadphonesIcon size={size} color={colors.primary} />;
+  }
+}
 
 /**
  * Màn hình Thư viện âm nhạc chính thức (Thiết kế lại Pha 3)
@@ -49,6 +82,11 @@ type LibrarySegment = 'songs' | 'albums' | 'artists';
  */
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+  }, []);
   const {
     tracks,
     albums,
@@ -370,15 +408,32 @@ export default function LibraryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Thư viện: Nhấn giữ mở Cài đặt ẩn */}
+      {/* Header Thư viện: Tiêu đề + Nút Avatar/Cài đặt góc trên phải */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onLongPress={handleTitleLongPress}
-          delayLongPress={600}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.headerTitle}>Thư viện</Text>
-        </TouchableOpacity>
+        <View style={styles.headerTitleRow}>
+          <TouchableOpacity
+            onLongPress={handleTitleLongPress}
+            delayLongPress={600}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.headerTitle}>Thư viện</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => {
+              Vibration.vibrate(10);
+              statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+              setHiddenSettingsVisible(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityLabel="Mở Cài đặt và Hồ sơ người dùng"
+          >
+            <View style={styles.avatarWrapper}>
+              {renderUserAvatar(userProfile, 18)}
+            </View>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.headerStatsText}>
           {tracks.length} bài hát • {formatTime(totalDurationSec)}
@@ -719,7 +774,10 @@ export default function LibraryScreen() {
       {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */}
       <HiddenSettingsModal
         visible={hiddenSettingsVisible}
-        onClose={() => setHiddenSettingsVisible(false)}
+        onClose={() => {
+          setHiddenSettingsVisible(false);
+          statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+        }}
       />
 
       {/* Modal Chi tiết Album / Nghệ sĩ */}
@@ -807,6 +865,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  avatarButton: {
+    padding: spacing.xxs,
+  },
+  avatarWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   headerTitle: {
     fontSize: fontSizes.headline,

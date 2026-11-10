@@ -7,10 +7,18 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Image,
   Vibration,
 } from 'react-native';
 import type { FullReplayReport, UserProfile } from '@music-app/shared';
 import { statsStorage } from '../services/stats/statsStorage';
+import {
+  colors,
+  spacing,
+  radius,
+  fontSizes,
+  fontWeights,
+} from '../theme';
 import {
   CloseIcon,
   EditIcon,
@@ -32,6 +40,7 @@ interface ProfileModalProps {
   visible: boolean;
   onClose: () => void;
   totalLibraryTracksCount: number;
+  onProfileUpdated?: (profile: UserProfile) => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -91,11 +100,15 @@ export function ProfileModal({
   visible,
   onClose,
   totalLibraryTracksCount,
+  onProfileUpdated,
 }: ProfileModalProps) {
   const [report, setReport] = useState<FullReplayReport | null>(null);
   const [activeTab, setActiveTab] = useState<'week' | 'month' | 'year' | 'memories'>('week');
-  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tempName, setTempName] = useState('');
+  const [tempBio, setTempBio] = useState('');
+  const [tempAvatarUri, setTempAvatarUri] = useState('');
+  const [tempAvatarKey, setTempAvatarKey] = useState('headphones');
 
   useEffect(() => {
     if (visible) {
@@ -107,26 +120,44 @@ export function ProfileModal({
     const data = await statsStorage.getReplayReport();
     setReport(data);
     setTempName(data.profile.displayName);
+    setTempBio(data.profile.bio);
+    setTempAvatarUri(data.profile.avatarUri || '');
+    setTempAvatarKey(data.profile.avatarKey || data.profile.avatarEmoji || 'headphones');
+    setIsEditingProfile(false);
   };
 
-  const handleCycleAvatar = async () => {
+  const handleStartEditing = () => {
     if (!report) return;
+    setTempName(report.profile.displayName);
+    setTempBio(report.profile.bio);
+    setTempAvatarUri(report.profile.avatarUri || '');
+    setTempAvatarKey(report.profile.avatarKey || report.profile.avatarEmoji || 'headphones');
+    setIsEditingProfile(true);
     Vibration.vibrate(10);
-    const currentKey = report.profile.avatarKey || report.profile.avatarEmoji || 'headphones';
-    const currIdx = AVATAR_OPTIONS.indexOf(currentKey);
-    const nextKey = AVATAR_OPTIONS[(currIdx + 1) % AVATAR_OPTIONS.length] ?? 'headphones';
-    const updated: UserProfile = { ...report.profile, avatarKey: nextKey, avatarEmoji: nextKey };
-    await statsStorage.saveUserProfile(updated);
-    setReport({ ...report, profile: updated });
   };
 
-  const handleSaveName = async () => {
+  const handleSaveProfile = async () => {
     if (!report) return;
-    const trimmed = tempName.trim() || 'Người Yêu Nhạc';
-    const updated: UserProfile = { ...report.profile, displayName: trimmed };
+    const trimmedName = tempName.trim() || 'Người Yêu Nhạc';
+    const trimmedBio = tempBio.trim() || 'Bộ sưu tập âm nhạc cá nhân chất lượng cao trên Beatify';
+    const trimmedUri = tempAvatarUri.trim();
+    const updated: UserProfile = {
+      ...report.profile,
+      displayName: trimmedName,
+      bio: trimmedBio,
+      avatarKey: tempAvatarKey,
+      avatarEmoji: tempAvatarKey,
+      avatarUri: trimmedUri,
+    };
     await statsStorage.saveUserProfile(updated);
     setReport({ ...report, profile: updated });
-    setIsEditingName(false);
+    setIsEditingProfile(false);
+    onProfileUpdated?.(updated);
+    Vibration.vibrate(10);
+  };
+
+  const handleCancelEditing = () => {
+    setIsEditingProfile(false);
     Vibration.vibrate(10);
   };
 
@@ -162,59 +193,181 @@ export function ProfileModal({
           </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* Thẻ thông tin cá nhân */}
-            <View style={styles.profileCard}>
-              <TouchableOpacity
-                style={styles.avatarBox}
-                onPress={handleCycleAvatar}
-                activeOpacity={0.8}
-                accessibilityLabel="Bấm để đổi biểu tượng đại diện"
-              >
-                {renderAvatarSvg(report.profile.avatarKey || report.profile.avatarEmoji || 'headphones', 34, '#1DB954')}
-                <View style={styles.avatarBadge}>
-                  <EditIcon size={10} color="#000000" />
-                </View>
-              </TouchableOpacity>
+            {/* Thẻ thông tin cá nhân hoặc Form chỉnh sửa */}
+            {isEditingProfile ? (
+              <View style={styles.editProfileContainer}>
+                <Text style={styles.editSectionTitle}>CHỈNH SỬA HỒ SƠ & ẢNH ĐẠI DIỆN</Text>
 
-              <View style={styles.profileInfo}>
-                {isEditingName ? (
-                  <View style={styles.nameEditRow}>
-                    <TextInput
-                      style={styles.nameInput}
-                      value={tempName}
-                      onChangeText={setTempName}
-                      autoFocus
-                      maxLength={32}
-                      placeholder="Nhập tên của bạn..."
-                      placeholderTextColor="#777"
-                    />
-                    <TouchableOpacity style={styles.saveNameBtn} onPress={handleSaveName}>
-                      <Text style={styles.saveNameBtnText}>Lưu</Text>
-                    </TouchableOpacity>
+                {/* Xem trước Avatar */}
+                <View style={styles.editAvatarPreviewRow}>
+                  <View style={styles.avatarBox}>
+                    {tempAvatarUri ? (
+                      <Image
+                        source={{ uri: tempAvatarUri }}
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      renderAvatarSvg(tempAvatarKey, 34, colors.primary)
+                    )}
                   </View>
-                ) : (
+                  <View style={styles.editAvatarHint}>
+                    <Text style={styles.editAvatarHintTitle}>Xem trước hiển thị</Text>
+                    <Text style={styles.editAvatarHintSub}>
+                      {tempAvatarUri ? 'Đang dùng ảnh từ URL' : `Biểu tượng: ${tempAvatarKey}`}
+                    </Text>
+                    {tempAvatarUri ? (
+                      <TouchableOpacity
+                        style={styles.clearAvatarUriBtn}
+                        onPress={() => {
+                          setTempAvatarUri('');
+                          Vibration.vibrate(10);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.clearAvatarUriBtnText}>Gỡ ảnh (Dùng biểu tượng)</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Chọn biểu tượng âm nhạc */}
+                <Text style={styles.editInputLabel}>Chọn biểu tượng đại diện</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.avatarOptionsRow}
+                >
+                  {AVATAR_OPTIONS.map((opt) => {
+                    const isSelected = !tempAvatarUri && tempAvatarKey === opt;
+                    return (
+                      <TouchableOpacity
+                        key={opt}
+                        style={[styles.avatarOptionBtn, isSelected && styles.avatarOptionBtnActive]}
+                        onPress={() => {
+                          Vibration.vibrate(10);
+                          setTempAvatarKey(opt);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {renderAvatarSvg(opt, 22, isSelected ? colors.primary : colors.textTertiary)}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Dán liên kết ảnh */}
+                <Text style={styles.editInputLabel}>Hoặc dán liên kết ảnh đại diện (URL)</Text>
+                <TextInput
+                  style={styles.editTextInput}
+                  value={tempAvatarUri}
+                  onChangeText={setTempAvatarUri}
+                  placeholder="https://example.com/avatar.jpg"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+
+                {/* Tên hiển thị */}
+                <Text style={styles.editInputLabel}>Tên của bạn</Text>
+                <TextInput
+                  style={styles.editTextInput}
+                  value={tempName}
+                  onChangeText={setTempName}
+                  maxLength={32}
+                  placeholder="Tên hiển thị..."
+                  placeholderTextColor={colors.textTertiary}
+                />
+
+                {/* Giới thiệu ngắn */}
+                <Text style={styles.editInputLabel}>Giới thiệu ngắn (Bio)</Text>
+                <TextInput
+                  style={[styles.editTextInput, styles.bioInput]}
+                  value={tempBio}
+                  onChangeText={setTempBio}
+                  maxLength={120}
+                  multiline
+                  placeholder="Giới thiệu bản thân..."
+                  placeholderTextColor={colors.textTertiary}
+                />
+
+                {/* Cặp nút Lưu / Hủy */}
+                <View style={styles.editActionRow}>
+                  <TouchableOpacity
+                    style={styles.editCancelBtn}
+                    onPress={handleCancelEditing}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editCancelBtnText}>Hủy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.editSaveBtn}
+                    onPress={handleSaveProfile}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editSaveBtnText}>Lưu thay đổi</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.profileCard}>
+                <TouchableOpacity
+                  style={styles.avatarBox}
+                  onPress={handleStartEditing}
+                  activeOpacity={0.8}
+                  accessibilityLabel="Bấm để chỉnh sửa hồ sơ và ảnh đại diện"
+                >
+                  {report.profile.avatarUri ? (
+                    <Image
+                      source={{ uri: report.profile.avatarUri }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    renderAvatarSvg(
+                      report.profile.avatarKey || report.profile.avatarEmoji || 'headphones',
+                      34,
+                      colors.primary
+                    )
+                  )}
+                  <View style={styles.avatarBadge}>
+                    <EditIcon size={10} color={colors.textDark} />
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.profileInfo}>
                   <TouchableOpacity
                     style={styles.nameDisplayRow}
-                    onPress={() => setIsEditingName(true)}
+                    onPress={handleStartEditing}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.displayName} numberOfLines={1}>
                       {report.profile.displayName}
                     </Text>
-                    <View style={{ marginLeft: 6 }}>
-                      <EditIcon size={14} color="#1DB954" />
+                    <View style={{ marginLeft: spacing.xs }}>
+                      <EditIcon size={14} color={colors.primary} />
                     </View>
                   </TouchableOpacity>
-                )}
-                <Text style={styles.bioText}>{report.profile.bio}</Text>
-                <View style={styles.joinedDateRow}>
-                  <ClockIcon size={13} color="#888888" />
-                  <Text style={styles.joinedDateText}>
-                    Bắt đầu hành trình: {report.profile.joinedDate}
+                  <Text style={styles.bioText} numberOfLines={2}>
+                    {report.profile.bio}
                   </Text>
+                  <View style={styles.joinedDateRow}>
+                    <ClockIcon size={13} color={colors.textTertiary} />
+                    <Text style={styles.joinedDateText}>
+                      Bắt đầu hành trình: {report.profile.joinedDate}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.editProfileTriggerBtn}
+                    onPress={handleStartEditing}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editProfileTriggerText}>Chỉnh sửa hồ sơ & ảnh</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            )}
 
             {/* Chỉ số nhanh bộ sưu tập */}
             <View style={styles.quickStatsRow}>
@@ -505,24 +658,159 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#242424',
+    backgroundColor: colors.surfaceActive,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#1DB954',
+    borderColor: colors.primary,
     position: 'relative',
     marginRight: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   avatarBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: '#1DB954',
+    backgroundColor: colors.primary,
     width: 18,
     height: 18,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editProfileContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
+  },
+  editSectionTitle: {
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
+    color: colors.primary,
+    letterSpacing: 0.5,
+    marginBottom: spacing.md,
+  },
+  editAvatarPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  editAvatarHint: {
+    flex: 1,
+  },
+  editAvatarHintTitle: {
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+  },
+  editAvatarHintSub: {
+    fontSize: fontSizes.captionLarge,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
+  clearAvatarUriBtn: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceHighlight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  clearAvatarUriBtnText: {
+    fontSize: fontSizes.captionLarge,
+    color: colors.warning,
+    fontWeight: fontWeights.semibold,
+  },
+  editInputLabel: {
+    fontSize: fontSizes.captionLarge,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
+    fontWeight: fontWeights.semibold,
+  },
+  avatarOptionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  avatarOptionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  avatarOptionBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryMuted,
+  },
+  editTextInput: {
+    backgroundColor: colors.surfaceSecondary,
+    color: colors.textPrimary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSizes.body,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  bioInput: {
+    minHeight: 56,
+    textAlignVertical: 'top',
+  },
+  editActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  editSaveBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
+  editSaveBtnText: {
+    color: colors.textDark,
+    fontWeight: fontWeights.bold,
+    fontSize: fontSizes.body,
+  },
+  editCancelBtn: {
+    backgroundColor: colors.surfaceHighlight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
+  editCancelBtnText: {
+    color: colors.textSecondary,
+    fontWeight: fontWeights.semibold,
+    fontSize: fontSizes.body,
+  },
+  editProfileTriggerBtn: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceHighlight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  editProfileTriggerText: {
+    fontSize: fontSizes.captionLarge,
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
   },
   profileInfo: {
     flex: 1,

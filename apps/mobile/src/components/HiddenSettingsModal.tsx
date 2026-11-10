@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   StyleSheet,
@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   Vibration,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { UserProfile } from '@music-app/shared';
 import {
   colors,
   spacing,
@@ -21,6 +23,7 @@ import {
   lineHeights,
 } from '../theme';
 import { useLibrary, usePlayer, useOffline } from '../context';
+import { statsStorage } from '../services/stats/statsStorage';
 import { ProfileModal } from './ProfileModal';
 import { OfflineDownloadsModal } from './OfflineDownloadsModal';
 import { formatBytes } from '../services/offline/offlineStorage';
@@ -30,6 +33,7 @@ import {
   MysteryIcon,
   CheckIcon,
   DownloadIcon,
+  EditIcon,
 } from './icons/SvgIcons';
 
 interface HiddenSettingsModalProps {
@@ -76,6 +80,13 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+    }
+  }, [visible]);
 
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
@@ -167,6 +178,42 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* THẺ HỒ SƠ NGƯỜI DÙNG & AVATAR */}
+          <TouchableOpacity
+            style={styles.profileHeaderCard}
+            onPress={() => {
+              Vibration.vibrate(10);
+              setProfileModalVisible(true);
+            }}
+            activeOpacity={0.8}
+            accessibilityLabel="Mở màn hình chỉnh sửa hồ sơ và thống kê"
+          >
+            <View style={styles.profileAvatarWrapper}>
+              {userProfile?.avatarUri ? (
+                <Image
+                  source={{ uri: userProfile.avatarUri }}
+                  style={styles.profileAvatarImg}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  <ProfileIcon size={24} color={colors.primary} />
+                </View>
+              )}
+            </View>
+            <View style={styles.profileHeaderInfo}>
+              <Text style={styles.profileHeaderName} numberOfLines={1}>
+                {userProfile?.displayName || 'Người Yêu Nhạc'}
+              </Text>
+              <Text style={styles.profileHeaderBio} numberOfLines={1}>
+                {userProfile?.bio || 'Chạm để sửa tên, ảnh đại diện & xem thống kê'}
+              </Text>
+            </View>
+            <View style={styles.profileEditBadge}>
+              <EditIcon size={16} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
+
           {/* PHẦN 1: THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>THÔNG TIN HỆ THỐNG & CHỨNG CHỈ</Text>
@@ -530,6 +577,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
           visible={profileModalVisible}
           onClose={() => setProfileModalVisible(false)}
           totalLibraryTracksCount={tracks.length}
+          onProfileUpdated={(updated) => setUserProfile(updated)}
         />
 
         {/* Modal Quản lý nhạc đã tải về máy (OfflineDownloadsModal) */}
@@ -546,6 +594,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  profileHeaderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
+    marginBottom: spacing.xs,
+  },
+  profileAvatarWrapper: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceActive,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  profileAvatarImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  profileAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileHeaderInfo: {
+    flex: 1,
+  },
+  profileHeaderName: {
+    fontSize: fontSizes.titleSmall,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+  },
+  profileHeaderBio: {
+    fontSize: fontSizes.captionLarge,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  profileEditBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
   },
   header: {
     flexDirection: 'row',

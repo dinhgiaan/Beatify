@@ -12,6 +12,7 @@ export interface UserProfile {
   displayName: string;
   avatarKey: string;
   avatarEmoji?: string; // Tương thích ngược phiên bản cũ trước migration
+  avatarUri?: string; // Đường dẫn ảnh đại diện tuỳ chỉnh (URL hoặc file local)
   joinedDate: string; // YYYY-MM-DD
   bio: string;
 }
@@ -53,6 +54,7 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   displayName: 'Người Yêu Nhạc',
   avatarKey: 'headphones',
   avatarEmoji: 'headphones',
+  avatarUri: '',
   joinedDate: new Date().toISOString().slice(0, 10),
   bio: 'Bộ sưu tập âm nhạc cá nhân chất lượng cao trên Beatify',
 };
