@@ -12,7 +12,6 @@ import {
   Vibration,
   Linking,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -707,22 +706,19 @@ export default function SpikePlayerScreen() {
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingLeft: Math.max(gutter, insets.left),
+          paddingRight: Math.max(gutter, insets.right),
+          paddingBottom: insets.bottom + spacing.xxl,
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={true}
     >
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          {
-            paddingLeft: Math.max(gutter, insets.left),
-            paddingRight: Math.max(gutter, insets.right),
-            paddingBottom: insets.bottom + spacing.xxl,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+      <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
         {/* Thẻ hiển thị bài hát chính */}
         <View style={styles.card}>
           <View style={styles.badgeRow}>
@@ -1504,15 +1500,10 @@ export default function SpikePlayerScreen() {
       />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     backgroundColor: colors.background,
     flexGrow: 1,
