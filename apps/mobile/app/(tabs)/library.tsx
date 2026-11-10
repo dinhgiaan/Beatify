@@ -34,6 +34,7 @@ import {
 import { formatTime } from '../../src/utils/formatTime';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
 import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
+import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
 
 type LibrarySegment = 'songs' | 'albums' | 'artists';
 
@@ -75,6 +76,19 @@ export default function LibraryScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [hiddenSettingsVisible, setHiddenSettingsVisible] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<{
+    visible: boolean;
+    title: string;
+    subtitle?: string;
+    coverUrl?: string;
+    tracks: Track[];
+    type: 'album' | 'artist';
+  }>({
+    visible: false,
+    title: '',
+    tracks: [],
+    type: 'album',
+  });
 
   // Tính tổng thời lượng toàn bộ thư viện
   const totalDurationSec = useMemo(() => {
@@ -239,9 +253,15 @@ export default function LibraryScreen() {
         style={styles.albumItem}
         activeOpacity={0.7}
         onPress={() => {
-          if (albumTracks.length > 0) {
-            playQueue(albumTracks, 0);
-          }
+          Vibration.vibrate(10);
+          setSelectedCollection({
+            visible: true,
+            title: item.title,
+            subtitle: `${item.artist} • ${albumTracks.length} bài hát`,
+            coverUrl: item.cover,
+            tracks: albumTracks,
+            type: 'album',
+          });
         }}
       >
         <View style={styles.albumCoverWrapper}>
@@ -270,9 +290,15 @@ export default function LibraryScreen() {
         style={styles.artistItem}
         activeOpacity={0.7}
         onPress={() => {
-          if (item.tracks.length > 0) {
-            playQueue(item.tracks, 0);
-          }
+          Vibration.vibrate(10);
+          setSelectedCollection({
+            visible: true,
+            title: item.artist,
+            subtitle: `${item.trackCount} bài hát trong thư viện`,
+            coverUrl: item.cover,
+            tracks: item.tracks,
+            type: 'artist',
+          });
         }}
       >
         <View style={styles.artistAvatarWrapper}>
@@ -535,6 +561,17 @@ export default function LibraryScreen() {
       <HiddenSettingsModal
         visible={hiddenSettingsVisible}
         onClose={() => setHiddenSettingsVisible(false)}
+      />
+
+      {/* Modal Chi tiết Album / Nghệ sĩ */}
+      <CollectionDetailModal
+        visible={selectedCollection.visible}
+        onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
+        title={selectedCollection.title}
+        subtitle={selectedCollection.subtitle}
+        coverUrl={selectedCollection.coverUrl}
+        tracks={selectedCollection.tracks}
+        type={selectedCollection.type}
       />
     </View>
   );

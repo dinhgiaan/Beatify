@@ -2,7 +2,7 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Thiết kế lại Pha 4: Đồng bộ ngầm ETag (Zero Loading Flash + 304 Not Modified) + Màn hình Cài đặt ẩn hoàn chỉnh (`HiddenSettingsModal`) mở bằng thao tác nhấn giữ tiêu đề Thư viện theo `docs/beatify-plan.md`. Tích hợp đầy đủ thông tin chứng chỉ sideload, build SHA, độ trễ gapless, ETag, hàng đợi ghi đĩa atomic, cấu hình máy chủ, hồ sơ thống kê Replay và hàng phát bí mật từ URL riêng. Toàn bộ 206 tests xanh 100%. Sẵn sàng chuyển sang Thiết kế lại Pha 5 (Album/Nghệ sĩ/Playlist + dọn dẹp code cũ).
+**Phase hiện tại:** Thiết kế lại Pha 5: Hoàn thiện Tab Playlist (Bài hát yêu thích Liked Songs, Quản lý danh sách phát cá nhân, Tạo mới & Xóa bài) + Tuyển tập chi tiết Album & Nghệ sĩ (`CollectionDetailModal` với Phát tất cả & Xáo trộn) + Dọn dẹp mã nguồn theo `docs/beatify-plan.md`. Hệ thống kiểm thử toàn workspace 206 tests xanh 100%. Sẵn sàng cho Pha 6 (Các tính năng phụ & Tinh chỉnh cuối cùng).
 **Cập nhật lần cuối:** 2026-11-10
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
@@ -390,6 +390,24 @@
   - Nhóm 4: Hồ sơ & Thống kê nghe nhạc Replay (Nút mở `ProfileModal` hiển thị tổng thời gian nghe, top bài hát, danh hiệu).
   - Nhóm 5: Hàng phát bí mật (Custom Audio URL: stream trực tiếp file âm thanh từ đường dẫn bên ngoài qua `addCustomTrack`).
 - [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed (+2 tests ETag mới), 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
+
+## Thiết kế lại Pha 5: Album / Nghệ sĩ / Playlist + Dọn dẹp mã nguồn
+- [x] Tab Playlist hoàn chỉnh (`app/(tabs)/playlists.tsx`):
+  - Card "Bài hát yêu thích" (Liked Songs) cố định ở đầu với icon trái tim nổi bật, thống kê số bài hát tự động từ `userState.favoriteIds`.
+  - Quản lý danh sách phát cá nhân (`userState.playlists`): tên playlist, số lượng bài hát, mô tả.
+  - Nút "+ Tạo mới" mở Modal nhập tên & mô tả playlist, đồng bộ tự động vào `userState`.
+  - Nút xóa playlist có hộp thoại Alert xác nhận an toàn.
+  - Chạm vào bất kỳ playlist hoặc danh sách yêu thích để mở màn hình chi tiết tuyển tập.
+- [x] Tuyển tập chi tiết Album & Nghệ sĩ & Playlist (`src/components/CollectionDetailModal.tsx`):
+  - Dùng chung chuẩn mực cho cả Chi tiết Album, Chi tiết Nghệ sĩ, Chi tiết Playlist và Chi tiết Bài hát yêu thích.
+  - Header với ảnh bìa lớn (hoặc avatar nghệ sĩ dạng tròn `radius.pill`), tiêu đề, nghệ sĩ, số lượng bài và thời lượng tổng `formatTime`.
+  - Cụm nút hành động lớn: "▶ Phát tất cả" và "🔀 Xáo trộn" phát toàn bộ danh sách tức thì qua `playQueue`.
+  - Danh sách FlatList bài hát đánh số thứ tự, highlight bài đang phát, nút thả tim nhanh, và nút xóa bài khỏi playlist (dành riêng cho playlist cá nhân).
+- [x] Tích hợp Thư viện Album & Nghệ sĩ (`app/(tabs)/library.tsx`):
+  - Chạm vào thẻ Album $\rightarrow$ Mở `CollectionDetailModal` của Album đó (xem bài, nghe toàn bộ, xáo trộn).
+  - Chạm vào hàng Nghệ sĩ $\rightarrow$ Mở `CollectionDetailModal` của Nghệ sĩ đó (xem toàn bộ bài hát của nghệ sĩ trong thư viện).
+- [x] Dọn dẹp mã nguồn: 0 cảnh báo unused vars, loại bỏ toàn bộ code thừa, 100% theme tokens.
+- [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed, 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích
 - [ ] Search (bỏ dấu), Albums, Playlists, Favorites
