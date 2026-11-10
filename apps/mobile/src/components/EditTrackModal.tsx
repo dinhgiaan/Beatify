@@ -48,7 +48,10 @@ export function EditTrackModal({
   const { height: screenHeight } = useWindowDimensions();
 
   // Chiều cao thân cuộn thích ứng, đảm bảo khi bàn phím mở vẫn cuộn được trên iPhone Face ID
-  const maxBodyHeight = Math.max(220, Math.min(420, Math.round(screenHeight * 0.46)));
+  const maxBodyHeight = Math.max(
+    layout.modalBodyMinHeight,
+    Math.min(layout.modalBodyMaxHeight, Math.round(screenHeight * 0.46))
+  );
 
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');

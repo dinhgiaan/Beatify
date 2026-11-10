@@ -8,6 +8,10 @@ export const layout = {
   // Giới hạn độ rộng tối đa trên màn hình rộng / iPad
   maxContentWidth: 720,
 
+  // Giới hạn chiều cao thân cuộn của Modal Bottom Sheet
+  modalBodyMinHeight: 220,
+  modalBodyMaxHeight: 420,
+
   // Khoảng đệm lề hai bên theo từng kích thước màn hình
   gutter: {
     compact: 16,
