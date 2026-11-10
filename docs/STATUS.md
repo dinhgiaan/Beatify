@@ -2,7 +2,7 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Thiết kế lại Pha 2: Bottom Tabs (Thư viện | Tìm kiếm | Playlist) + MiniPlayer (56pt) + Now Playing Modal (tích hợp panel hàng đợi nội tuyến) theo `docs/beatify-plan.md`. Spike player ở `index.tsx` vẫn duy trì hoạt động 100% kèm nút chuyển sang giao diện mới thử nghiệm. Hệ thống kiểm thử toàn workspace 204 tests xanh 100%. Đang chờ người dùng build .ipa và test trên iPhone 11 Pro Max.
+**Phase hiện tại:** Thiết kế lại Pha 3: Thư viện (Segmented Control Bài hát / Album / Nghệ sĩ) + Tìm kiếm tức thì không dấu tiếng Việt + Tự động chuyển hướng `app/index.tsx` sang `/(tabs)/library` theo `docs/beatify-plan.md`. Spike player ở `index.tsx` đã được thay thế an toàn bằng `Redirect`, giao diện tab trở thành trải nghiệm chính thức (Zero-Settings UI). Hệ thống kiểm thử toàn workspace 204 tests xanh 100%. Sẵn sàng bước sang Thiết kế lại Pha 4 (Đồng bộ ngầm ETag + Màn hình Cài đặt ẩn).
 **Cập nhật lần cuối:** 2026-11-10
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
@@ -351,6 +351,26 @@
 - [x] Nút tạm thời "✨ Giao diện mới (thử nghiệm) →" tại `index.tsx` để vào `/(tabs)/library` (có ghi chú sẽ xóa ở Pha 3).
 - [x] Quy tắc Token: 100% theme token (0 mã màu hex/rgba hardcode, 0 `Dimensions.get`).
 - [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 204/204 tests toàn workspace passed (shared: 65, mobile: 56, indexer: 61, api: 22), 0 lỗi TypeScript, 0 lỗi lint.
+
+## Thiết kế lại Pha 3: Thư viện (Bài hát/Album/Nghệ sĩ) + Tìm kiếm không dấu + Chuyển hướng index.tsx
+- [x] Tìm kiếm tức thì (`app/(tabs)/search.tsx`):
+  - Ô tìm kiếm thanh lịch với icon kính lúp, nền `colors.surface`, placeholder "Tìm bài hát, ca sĩ, album...".
+  - Nút xóa nhanh `x` (kích thước tối thiểu 44x44pt).
+  - Chuẩn hóa văn bản và loại bỏ dấu tiếng Việt với `normalizeText` từ `@music-app/shared`.
+  - Tìm kiếm đồng thời theo tên bài hát (`title`), nghệ sĩ (`artist`), và album (`album`).
+  - FlatList hiển thị kết quả: ảnh bìa album, tên bài hát (đổi màu nổi bật khi đang phát), nghệ sĩ, thời lượng `formatTime`. Chạm để phát tức thì.
+  - Xử lý trạng thái trống: thông báo "Nhập từ khóa để tìm bài hát trong thư viện" khi chưa nhập và "Không tìm thấy bài hát nào" khi không có kết quả khớp.
+- [x] Thư viện hoàn chỉnh (`app/(tabs)/library.tsx`):
+  - Segmented Control 3 phân đoạn: `[ Bài hát | Album | Nghệ sĩ ]` với viền `radius.full` và tương tác mượt mà.
+  - Phân đoạn Bài hát: Thống kê số lượng bài hát và tổng thời lượng; danh sách cuộn mượt mà; hỗ trợ kéo xuống để làm mới (Pull-to-Refresh `syncLibrary`); menu `•••` từng bài mở ActionSheet native (Yêu thích/Bỏ thích, Sửa bài hát mở `EditTrackModal`, Xóa bài hát đưa vào thùng rác R2 có hộp thoại xác nhận an toàn).
+  - Phân đoạn Album: Gom nhóm tự động theo album từ thư viện, hiển thị ảnh bìa album, số lượng bài hát và thời lượng; chạm để phát toàn bộ album.
+  - Phân đoạn Nghệ sĩ: Gom nhóm tự động theo nghệ sĩ, hiển thị số lượng bài hát; chạm để phát toàn bộ bài hát của nghệ sĩ đó.
+  - Nhấn giữ tiêu đề "Thư viện" để mở thông báo Cài đặt ẩn (sẽ hoàn thiện màn hình chi tiết ở Pha 4).
+- [x] Tự động chuyển hướng (`app/index.tsx` & `app/_layout.tsx`):
+  - Chuyển `index.tsx` thành `<Redirect href="/(tabs)/library" />` an toàn tuyệt đối.
+  - Không làm mất bất kỳ logic nào: deep link `beatify://connect` đã chạy ở root `LibraryContext.tsx`, `EditTrackModal` đã được tích hợp vào menu `•••` của `library.tsx`, `LyricsModal` đã được tích hợp trong `NowPlayingView.tsx`.
+  - Ẩn header của route `index` trong `_layout.tsx`.
+- [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 204/204 tests toàn workspace passed, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích
 - [ ] Search (bỏ dấu), Albums, Playlists, Favorites
