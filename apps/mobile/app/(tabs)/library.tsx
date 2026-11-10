@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track, UpdateTrack } from '@music-app/shared';
-import { useLibrary, usePlayer } from '../../src/context';
+import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import {
   colors,
@@ -31,6 +31,7 @@ import {
   TrashIcon,
   CloseIcon,
   PlaylistIcon,
+  DownloadIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
@@ -71,6 +72,8 @@ export default function LibraryScreen() {
     recentTracks,
     clearRecentTracks,
   } = usePlayer();
+
+  const { isTrackOffline, downloadTrack, isDownloading } = useOffline();
 
   const { contentPaddingBottom } = useTabBarMetrics();
 
@@ -264,6 +267,9 @@ export default function LibraryScreen() {
               {item.title}
             </Text>
             {isFav && <HeartIcon size={12} color={colors.primary} fill={colors.primary} />}
+            {isTrackOffline(item.id) && (
+              <DownloadIcon size={11} color={colors.primary} />
+            )}
           </View>
           <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
             {item.artist} {item.album ? `• ${item.album}` : ''}
@@ -624,6 +630,43 @@ export default function LibraryScreen() {
                 >
                   <PlaylistIcon size={20} color={colors.textPrimary} />
                   <Text style={styles.sheetActionText}>Thêm vào danh sách phát...</Text>
+                </TouchableOpacity>
+
+                {/* Nút Tải bài hát về máy (Offline) */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={async () => {
+                    if (selectedTrackForMenu) {
+                      setActionSheetVisible(false);
+                      if (isTrackOffline(selectedTrackForMenu.id)) {
+                        Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
+                      } else {
+                        await downloadTrack(selectedTrackForMenu);
+                      }
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <DownloadIcon
+                    size={20}
+                    color={
+                      isTrackOffline(selectedTrackForMenu.id)
+                        ? colors.primary
+                        : colors.textPrimary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.sheetActionText,
+                      isTrackOffline(selectedTrackForMenu.id) && { color: colors.primary },
+                    ]}
+                  >
+                    {isDownloading[selectedTrackForMenu.id]
+                      ? 'Đang tải về máy...'
+                      : isTrackOffline(selectedTrackForMenu.id)
+                      ? 'Đã tải về máy (Offline)'
+                      : 'Tải bài hát về máy (Offline)'}
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Nút Chỉnh sửa */}

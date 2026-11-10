@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track, Playlist } from '@music-app/shared';
-import { useLibrary, usePlayer } from '../../src/context';
+import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
+import { formatBytes } from '../../src/services/offline/offlineStorage';
 import {
   colors,
   fontSizes,
@@ -29,14 +30,20 @@ import {
   CloseIcon,
   CheckIcon,
   ClockIcon,
+  DownloadIcon,
 } from '../../src/components/icons/SvgIcons';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
+import { OfflineDownloadsModal } from '../../src/components/OfflineDownloadsModal';
 
 export default function PlaylistsScreen() {
   const insets = useSafeAreaInsets();
   const { contentPaddingBottom } = useTabBarMetrics();
   const { tracks, userState, updateUserState } = useLibrary();
   const { recentTracks, clearRecentTracks } = usePlayer();
+  const { offlineTracks, totalSizeBytes } = useOffline();
+
+  // State mở modal Nhạc đã tải về máy
+  const [offlineModalVisible, setOfflineModalVisible] = useState(false);
 
   // State xem chi tiết bộ sưu tập (Favorites, Playlist hoặc Recently Played)
   const [selectedCollection, setSelectedCollection] = useState<{
@@ -310,6 +317,42 @@ export default function PlaylistsScreen() {
               <Text style={styles.chevronText}>→</Text>
             </TouchableOpacity>
 
+            {/* Card Đã tải về máy cố định ở đầu */}
+            <TouchableOpacity
+              style={[
+                styles.favoriteCard,
+                {
+                  backgroundColor: colors.surface,
+                  marginTop: spacing.sm,
+                  borderWidth: 1,
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              onPress={() => {
+                Vibration.vibrate(10);
+                setOfflineModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[
+                  styles.favoriteIconBox,
+                  { backgroundColor: colors.surfaceElevated },
+                ]}
+              >
+                <DownloadIcon size={26} color={colors.primary} />
+              </View>
+              <View style={styles.favoriteInfo}>
+                <Text style={[styles.favoriteTitle, { color: colors.textPrimary }]}>
+                  Đã tải về máy
+                </Text>
+                <Text style={styles.favoriteSubtitle}>
+                  {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)}
+                </Text>
+              </View>
+              <Text style={styles.chevronText}>→</Text>
+            </TouchableOpacity>
+
             <Text style={styles.sectionHeading}>DANH SÁCH PHÁT CỦA BẠN</Text>
           </View>
         }
@@ -334,6 +377,12 @@ export default function PlaylistsScreen() {
         playlistId={selectedCollection.playlistId}
         onRemoveTrackFromPlaylist={handleRemoveTrackFromPlaylist}
         onClearRecentTracks={clearRecentTracks}
+      />
+
+      {/* Modal Quản lý nhạc đã tải về máy (Offline Downloads) */}
+      <OfflineDownloadsModal
+        visible={offlineModalVisible}
+        onClose={() => setOfflineModalVisible(false)}
       />
 
       {/* Modal Tạo Playlist Mới */}

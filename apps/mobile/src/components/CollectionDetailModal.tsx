@@ -18,7 +18,7 @@ import {
   fontSizes,
   fontWeights,
 } from '../theme';
-import { usePlayer, useLibrary } from '../context';
+import { usePlayer, useLibrary, useOffline } from '../context';
 import { formatTime } from '../utils/formatTime';
 import {
   CloseIcon,
@@ -29,6 +29,7 @@ import {
   HeartIcon,
   TrashIcon,
   ClockIcon,
+  DownloadIcon,
 } from './icons/SvgIcons';
 
 export interface CollectionDetailModalProps {
@@ -59,6 +60,7 @@ export function CollectionDetailModal({
   const insets = useSafeAreaInsets();
   const { currentTrack, playQueue, togglePlay } = usePlayer();
   const { userState, toggleFavorite } = useLibrary();
+  const { isTrackOffline } = useOffline();
 
   const totalDurationSec = useMemo(() => {
     return tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
@@ -99,12 +101,15 @@ export function CollectionDetailModal({
         </Text>
 
         <View style={styles.trackInfo}>
-          <Text
-            style={[styles.trackTitle, isCurrent && styles.trackTitleActive]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text
+              style={[styles.trackTitle, isCurrent && styles.trackTitleActive, { flexShrink: 1 }]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            {isTrackOffline(item.id) && <DownloadIcon size={11} color={colors.primary} />}
+          </View>
           <Text style={styles.trackArtist} numberOfLines={1}>
             {item.artist} {item.album ? `• ${item.album}` : ''}
           </Text>

@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,10 +36,12 @@ import {
   DiscIcon,
   TrashIcon,
   ClockIcon,
+  DownloadIcon,
 } from '../icons/SvgIcons';
 import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
+import { useOffline } from '../../context';
 
 /**
  * Giao diện chính của màn hình Now Playing (Đang phát toàn màn hình)
@@ -76,6 +79,7 @@ export function NowPlayingView() {
   } = usePlayer();
 
   const { userState, toggleFavorite, fetchLyrics, saveTrack } = useLibrary();
+  const { isTrackOffline, downloadTrack, isDownloading, getOfflineLyrics } = useOffline();
   const { positionSec, durationSec, progressPercent } = useProgress();
 
   const [barWidth, setBarWidth] = useState(0);
@@ -457,6 +461,47 @@ export function NowPlayingView() {
             </Text>
           </TouchableOpacity>
 
+          {/* Nút Tải bài hát ngoại tuyến */}
+          <TouchableOpacity
+            style={styles.bottomButton}
+            disabled={!currentTrack || Boolean(currentTrack && isDownloading[currentTrack.id])}
+            onPress={async () => {
+              if (currentTrack) {
+                if (isTrackOffline(currentTrack.id)) {
+                  Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
+                } else {
+                  await downloadTrack(currentTrack);
+                }
+              }
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Tải bài hát về máy"
+          >
+            <DownloadIcon
+              size={18}
+              color={
+                currentTrack && isTrackOffline(currentTrack.id)
+                  ? colors.primary
+                  : currentTrack
+                  ? colors.textSecondary
+                  : colors.textTertiary
+              }
+            />
+            <Text
+              style={[
+                styles.bottomButtonText,
+                currentTrack && isTrackOffline(currentTrack.id) && { color: colors.primary },
+              ]}
+            >
+              {currentTrack && isDownloading[currentTrack.id]
+                ? 'Đang tải...'
+                : currentTrack && isTrackOffline(currentTrack.id)
+                ? 'Đã tải'
+                : 'Tải về'}
+            </Text>
+          </TouchableOpacity>
+
           {/* Nút Hẹn giờ tắt nhạc */}
           <TouchableOpacity
             style={[
@@ -499,7 +544,11 @@ export function NowPlayingView() {
           setLyricsModalVisible(false);
           setEditModalVisible(true);
         }}
-        onFetchLyrics={fetchLyrics}
+        onFetchLyrics={async (id) => {
+          const offlineLrc = await getOfflineLyrics(id);
+          if (offlineLrc) return offlineLrc;
+          return await fetchLyrics(id);
+        }}
       />
 
       {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */}
@@ -508,7 +557,11 @@ export function NowPlayingView() {
         track={currentTrack}
         onClose={() => setEditModalVisible(false)}
         onSave={saveTrack}
-        onFetchLyrics={fetchLyrics}
+        onFetchLyrics={async (id) => {
+          const offlineLrc = await getOfflineLyrics(id);
+          if (offlineLrc) return offlineLrc;
+          return await fetchLyrics(id);
+        }}
       />
 
       {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */}

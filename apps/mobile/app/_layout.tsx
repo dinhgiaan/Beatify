@@ -3,14 +3,20 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors, fontWeights, fontSizes } from '../src/theme';
-import { LibraryProvider, PlayerProvider, PlayerProgressProvider } from '../src/context';
+import {
+  LibraryProvider,
+  PlayerProvider,
+  PlayerProgressProvider,
+  OfflineProvider,
+} from '../src/context';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <LibraryProvider>
-        <PlayerProvider>
-          <PlayerProgressProvider>
+        <OfflineProvider>
+          <PlayerProvider>
+            <PlayerProgressProvider>
             <StatusBar style="light" />
             <Stack
               screenOptions={{
@@ -50,7 +56,8 @@ export default function RootLayout() {
             </Stack>
           </PlayerProgressProvider>
         </PlayerProvider>
-      </LibraryProvider>
-    </SafeAreaProvider>
+      </OfflineProvider>
+    </LibraryProvider>
+  </SafeAreaProvider>
   );
 }

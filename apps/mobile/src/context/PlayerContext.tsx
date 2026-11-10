@@ -18,6 +18,7 @@ import {
   type RecentTracksData,
 } from '../services/recent/recentTracksStorage';
 import { useLibrary } from './LibraryContext';
+import { useOffline } from './OfflineContext';
 
 export interface PlayerContextValue {
   tracks: Track[];
@@ -62,6 +63,7 @@ const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { tracks, setTracks, originalTracks, setOriginalTracks } = useLibrary();
+  const { getOfflineAudioUri } = useOffline();
 
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
@@ -209,10 +211,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [tracks]);
 
   // 3. Handlers điều khiển phát nhạc
-  const playQueue = useCallback(async (trackList = tracks, startIndex = currentTrackIndex) => {
-    if (trackList.length === 0) return;
-    await playerService.playQueue(trackList, startIndex);
-  }, [tracks, currentTrackIndex]);
+  const playQueue = useCallback(
+    async (trackList = tracks, startIndex = currentTrackIndex) => {
+      if (trackList.length === 0) return;
+      const offlineAwareTracks = trackList.map((t) => {
+        const localAudio = getOfflineAudioUri(t.id);
+        if (localAudio) {
+          return {
+            ...t,
+            file: localAudio,
+          };
+        }
+        return t;
+      });
+      await playerService.playQueue(offlineAwareTracks, startIndex);
+    },
+    [tracks, currentTrackIndex, getOfflineAudioUri]
+  );
 
   const togglePlay = useCallback(async () => {
     Vibration.vibrate(10);

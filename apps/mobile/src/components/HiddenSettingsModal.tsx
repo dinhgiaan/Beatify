@@ -20,13 +20,16 @@ import {
   fontWeights,
   lineHeights,
 } from '../theme';
-import { useLibrary, usePlayer } from '../context';
+import { useLibrary, usePlayer, useOffline } from '../context';
 import { ProfileModal } from './ProfileModal';
+import { OfflineDownloadsModal } from './OfflineDownloadsModal';
+import { formatBytes } from '../services/offline/offlineStorage';
 import {
   CloseIcon,
   ProfileIcon,
   MysteryIcon,
   CheckIcon,
+  DownloadIcon,
 } from './icons/SvgIcons';
 
 interface HiddenSettingsModalProps {
@@ -64,11 +67,14 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
     clearRecentTracks,
   } = usePlayer();
 
+  const { offlineTracks, totalSizeBytes, clearAllOffline } = useOffline();
+
   const [inputUrl, setInputUrl] = useState(serverUrl);
   const [inputToken, setInputToken] = useState(serverToken);
   const [showToken, setShowToken] = useState(false);
   const [customAudioUrl, setCustomAudioUrl] = useState('');
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
@@ -418,6 +424,70 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
             </TouchableOpacity>
           </View>
 
+          {/* PHẦN 6: QUẢN LÝ DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE) */}
+          <View style={styles.sectionCard}>
+            <View style={styles.mysteryTitleRow}>
+              <DownloadIcon size={20} color={colors.primary} />
+              <Text style={[styles.sectionHeader, { color: colors.primary, marginBottom: 0 }]}>
+                DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE)
+              </Text>
+            </View>
+            <Text style={styles.sectionDesc}>
+              Toàn bộ bài hát tải về được lưu trữ cục bộ an toàn trong thư mục tài liệu của app. Bạn có thể nghe bất cứ lúc nào mà không tốn dung lượng mạng:
+            </Text>
+
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>Tổng dung lượng đã chiếm</Text>
+              <Text style={[styles.valueText, { color: colors.primary, fontWeight: fontWeights.bold }]}>
+                {formatBytes(totalSizeBytes)}
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>Số bài hát đã lưu trữ</Text>
+              <Text style={styles.valueText}>{offlineTracks.length} bài hát</Text>
+            </View>
+
+            <View style={[styles.actionRow, { marginTop: spacing.md }]}>
+              <TouchableOpacity
+                style={styles.primaryActionBtn}
+                onPress={() => {
+                  Vibration.vibrate(10);
+                  setOfflineModalVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.primaryActionBtnText}>Quản lý bài đã tải</Text>
+              </TouchableOpacity>
+
+              {offlineTracks.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.secondaryActionBtn, { borderColor: colors.dangerBorder }]}
+                  onPress={() => {
+                    Vibration.vibrate(10);
+                    Alert.alert(
+                      'Xóa tất cả nhạc ngoại tuyến?',
+                      `Giải phóng toàn bộ ${formatBytes(totalSizeBytes)} bộ nhớ trên máy.`,
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        {
+                          text: 'Xóa sạch',
+                          style: 'destructive',
+                          onPress: () => clearAllOffline(),
+                        },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.secondaryActionBtnText, { color: colors.dangerLight }]}>
+                    Xóa tất cả
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           {/* PHẦN 5: HÀNG CHỜ BÍ MẬT (CUSTOM AUDIO URL) */}
           <View style={styles.sectionCard}>
             <View style={styles.mysteryTitleRow}>
@@ -456,6 +526,12 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
           visible={profileModalVisible}
           onClose={() => setProfileModalVisible(false)}
           totalLibraryTracksCount={tracks.length}
+        />
+
+        {/* Modal Quản lý nhạc đã tải về máy (OfflineDownloadsModal) */}
+        <OfflineDownloadsModal
+          visible={offlineModalVisible}
+          onClose={() => setOfflineModalVisible(false)}
         />
       </View>
     </Modal>
