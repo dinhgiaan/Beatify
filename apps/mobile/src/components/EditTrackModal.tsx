@@ -11,9 +11,21 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track, UpdateTrack } from '@music-app/shared';
-import { CloseIcon, TrashIcon } from './icons/SvgIcons';
+import { TrashIcon } from './icons/SvgIcons';
+import { ModalHeader } from './ModalHeader';
+import {
+  colors,
+  spacing,
+  radius,
+  fontSizes,
+  fontWeights,
+  lineHeights,
+  layout,
+} from '../theme';
 
 export interface EditTrackModalProps {
   visible: boolean;
@@ -32,6 +44,12 @@ export function EditTrackModal({
   onDelete,
   onFetchLyrics,
 }: EditTrackModalProps) {
+  const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
+
+  // Chiều cao thân cuộn thích ứng, đảm bảo khi bàn phím mở vẫn cuộn được trên iPhone Face ID
+  const maxBodyHeight = Math.max(220, Math.min(420, Math.round(screenHeight * 0.46)));
+
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [album, setAlbum] = useState('');
@@ -152,21 +170,19 @@ export function EditTrackModal({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.modalContainer}>
-          {/* Header */}
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.headerTitle}>Chỉnh sửa bài hát</Text>
-              <Text style={styles.headerSubtitle}>ID: {track.id}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={onClose}
-              disabled={isSaving || isDeleting}
-            >
-              <CloseIcon size={18} color="#b3b3b3" />
-            </TouchableOpacity>
-          </View>
+        <View
+          style={[
+            styles.modalContainer,
+            { paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.sm) },
+          ]}
+        >
+          {/* Header dùng chung với nút đóng chuẩn >= 44x44pt */}
+          <ModalHeader
+            title="Chỉnh sửa bài hát"
+            subtitle={`ID: ${track.id}`}
+            onClose={onClose}
+            closeDisabled={isSaving || isDeleting}
+          />
 
           {/* Error Banner */}
           {errorMessage ? (
@@ -175,7 +191,11 @@ export function EditTrackModal({
             </View>
           ) : null}
 
-          <ScrollView style={styles.bodyScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={[styles.bodyScroll, { maxHeight: maxBodyHeight }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Tên bài hát */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
@@ -186,7 +206,7 @@ export function EditTrackModal({
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Nhập tên bài hát"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textPlaceholder}
                 editable={!isSaving && !isDeleting}
               />
             </View>
@@ -201,21 +221,21 @@ export function EditTrackModal({
                 value={artist}
                 onChangeText={setArtist}
                 placeholder="Nhập tên ca sĩ hoặc nghệ sĩ"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textPlaceholder}
                 editable={!isSaving && !isDeleting}
               />
             </View>
 
             {/* Hàng Album & Năm */}
             <View style={styles.rowInputs}>
-              <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
+              <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.sm }]}>
                 <Text style={styles.label}>ALBUM</Text>
                 <TextInput
                   style={styles.input}
                   value={album}
                   onChangeText={setAlbum}
                   placeholder="Tên album (tùy chọn)"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={colors.textPlaceholder}
                   editable={!isSaving && !isDeleting}
                 />
               </View>
@@ -227,7 +247,7 @@ export function EditTrackModal({
                   value={year}
                   onChangeText={setYear}
                   placeholder="2026"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={colors.textPlaceholder}
                   keyboardType="numeric"
                   maxLength={4}
                   editable={!isSaving && !isDeleting}
@@ -237,12 +257,12 @@ export function EditTrackModal({
 
             {/* Lời bài hát (.LRC) */}
             <View style={styles.inputGroup}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <View style={styles.lyricsLabelRow}>
                 <Text style={styles.label}>LỜI BÀI HÁT (.LRC HOẶC TEXT)</Text>
                 {isLoadingLyrics && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color="#1DB954" style={{ marginRight: 4 }} />
-                    <Text style={{ fontSize: 11, color: '#1DB954' }}>Đang nạp lời...</Text>
+                  <View style={styles.lyricsLoadingRow}>
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: spacing.xs }} />
+                    <Text style={styles.lyricsLoadingText}>Đang nạp lời...</Text>
                   </View>
                 )}
               </View>
@@ -251,7 +271,7 @@ export function EditTrackModal({
                 value={lyrics}
                 onChangeText={setLyrics}
                 placeholder="Dán nội dung lời bài hát hoặc cú pháp .lrc [00:12.34]..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textPlaceholder}
                 multiline
                 numberOfLines={5}
                 textAlignVertical="top"
@@ -267,13 +287,16 @@ export function EditTrackModal({
                 style={styles.deleteBtn}
                 onPress={handleDeletePress}
                 disabled={isSaving || isDeleting}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Xóa bài hát khỏi thư viện"
               >
                 {isDeleting ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
+                  <ActivityIndicator size="small" color={colors.danger} />
                 ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TrashIcon size={16} color="#ef4444" />
-                    <Text style={[styles.deleteBtnText, { marginLeft: 6 }]}>Xóa bài</Text>
+                  <View style={styles.btnInnerRow}>
+                    <TrashIcon size={16} color={colors.danger} />
+                    <Text style={[styles.deleteBtnText, { marginLeft: spacing.xs }]}>Xóa bài</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -284,6 +307,9 @@ export function EditTrackModal({
                 style={styles.cancelBtn}
                 onPress={onClose}
                 disabled={isSaving || isDeleting}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Hủy bỏ thay đổi"
               >
                 <Text style={styles.cancelBtnText}>Hủy</Text>
               </TouchableOpacity>
@@ -292,9 +318,12 @@ export function EditTrackModal({
                 style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
                 onPress={handleSave}
                 disabled={isSaving || isDeleting}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Lưu thay đổi thông tin bài hát"
               >
                 {isSaving ? (
-                  <ActivityIndicator size="small" color="#000" />
+                  <ActivityIndicator size="small" color={colors.textDark} />
                 ) : (
                   <Text style={styles.saveBtnText}>Lưu thay đổi</Text>
                 )}
@@ -310,136 +339,135 @@ export function EditTrackModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#181818',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#282828',
-    padding: 20,
-    maxHeight: '90%',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: '#71717a',
-    marginTop: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  closeBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#27272a',
-  },
-  closeBtnText: {
-    color: '#a1a1aa',
-    fontSize: 14,
-    fontWeight: 'bold',
+    borderColor: colors.border,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    maxHeight: '92%',
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    backgroundColor: colors.dangerBgMuted,
+    borderColor: colors.dangerBorder,
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 14,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
   },
   errorText: {
-    color: '#f87171',
-    fontSize: 13,
+    color: colors.dangerLight,
+    fontSize: fontSizes.subhead,
+    lineHeight: lineHeights.subhead,
   },
   bodyScroll: {
-    maxHeight: 400,
+    width: '100%',
   },
   inputGroup: {
-    marginBottom: 14,
+    marginBottom: spacing.md,
   },
   rowInputs: {
     flexDirection: 'row',
   },
   label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#a1a1aa',
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.textMuted,
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: spacing.xs,
   },
   requiredMark: {
-    color: '#ef4444',
+    color: colors.danger,
   },
   input: {
-    backgroundColor: '#222222',
+    minHeight: layout.minTouchTarget,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 8,
-    color: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderColor: colors.borderLight,
+    borderRadius: radius.sm,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSizes.body,
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 96,
     textAlignVertical: 'top',
+    paddingTop: spacing.sm,
+  },
+  lyricsLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  lyricsLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lyricsLoadingText: {
+    fontSize: fontSizes.caption,
+    color: colors.primary,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 14,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#282828',
+    borderTopColor: colors.border,
+  },
+  btnInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   deleteBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+    minHeight: layout.minTouchTarget,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#7f1d1d',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: colors.dangerDark,
+    backgroundColor: colors.dangerBg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtnText: {
-    color: '#ef4444',
-    fontSize: 13,
-    fontWeight: '600',
+    color: colors.danger,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.semibold,
   },
   primaryActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
   cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#27272a',
+    minHeight: layout.minTouchTarget,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelBtnText: {
-    color: '#d4d4d8',
-    fontSize: 13,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.semibold,
   },
   saveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#1DB954',
+    minHeight: layout.minTouchTarget,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -447,8 +475,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveBtnText: {
-    color: '#000000',
-    fontSize: 13,
-    fontWeight: '700',
+    color: colors.textDark,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
   },
 });
