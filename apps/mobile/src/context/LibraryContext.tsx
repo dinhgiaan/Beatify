@@ -27,7 +27,11 @@ export interface LibraryContextValue {
   syncStatus: string | null;
   setSyncStatus: (status: string | null) => void;
   expirationDate: string | null;
-  syncLibrary: () => Promise<void>;
+  lastSyncTime: string | null;
+  currentEtag: string | null;
+  lastSyncError: string | null;
+  syncLibrary: (options?: { silent?: boolean; force?: boolean }) => Promise<void>;
+  clearLibraryCache: () => Promise<void>;
   updateUserState: (updater: (prev: UserState) => UserState) => Promise<void>;
   toggleFavorite: (trackId: string) => Promise<void>;
   fetchLyrics: (trackId: string) => Promise<string | null>;
@@ -39,6 +43,7 @@ const LibraryContext = createContext<LibraryContextValue | null>(null);
 
 const CONFIG_FILE = `${FileSystem.documentDirectory || ''}beatify_server_config.json`;
 const USER_STATE_FILE = `${FileSystem.documentDirectory || ''}beatify_user_state.json`;
+const LIBRARY_CACHE_FILE = `${FileSystem.documentDirectory || ''}beatify_library_cache.json`;
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -60,24 +65,159 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [expirationDate, setExpirationDate] = useState<string | null>('Đang kiểm tra...');
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [currentEtag, setCurrentEtag] = useState<string | null>(null);
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
-  // 1. Tự động nạp cấu hình máy chủ & token đã lưu từ beatify_server_config.json
+  const saveLibraryCache = async (payload: {
+    etag: string | null;
+    lastSyncTime: string;
+    data: { version: number; generatedAt: string; tracks: Track[]; albums: Album[] };
+  }) => {
+    try {
+      const tmpPath = `${LIBRARY_CACHE_FILE}.tmp`;
+      await FileSystem.writeAsStringAsync(tmpPath, JSON.stringify(payload));
+      try {
+        await FileSystem.moveAsync({ from: tmpPath, to: LIBRARY_CACHE_FILE });
+      } catch {
+        await FileSystem.deleteAsync(LIBRARY_CACHE_FILE, { idempotent: true });
+        await FileSystem.moveAsync({ from: tmpPath, to: LIBRARY_CACHE_FILE });
+      }
+    } catch (err) {
+      console.warn('Lỗi ghi cache thư viện:', err);
+    }
+  };
+
+  const syncLibraryInternal = useCallback(
+    async (params: {
+      url: string;
+      token: string;
+      etag: string | null;
+      silent: boolean;
+      force: boolean;
+    }) => {
+      const { url, token, etag, silent, force } = params;
+      setIsSyncing(true);
+      if (!silent) setSyncStatus('Đang kiểm tra bài mới từ Cloudflare R2...');
+
+      try {
+        const client = new MusicApiClient({ baseUrl: url, token });
+        const etagToSend = force ? null : etag;
+        const result = await client.fetchLibraryWithETag(etagToSend);
+
+        const nowIso = new Date().toISOString();
+        setLastSyncTime(nowIso);
+        setLastSyncError(null);
+
+        if (result.notModified) {
+          setSyncStatus('Thư viện đã là mới nhất (304 Not Modified)');
+          try {
+            const cacheInfo = await FileSystem.getInfoAsync(LIBRARY_CACHE_FILE);
+            if (cacheInfo.exists) {
+              const raw = await FileSystem.readAsStringAsync(LIBRARY_CACHE_FILE);
+              const parsed = JSON.parse(raw);
+              parsed.lastSyncTime = nowIso;
+              await saveLibraryCache(parsed);
+            }
+          } catch {
+            // Bỏ qua lỗi cập nhật timestamp cache
+          }
+        } else if (result.data) {
+          const balanced = interleaveTracksByArtist(result.data.tracks);
+          setTracks(balanced);
+          setOriginalTracks(balanced);
+          setAlbums(result.data.albums || []);
+          setCurrentEtag(result.etag || null);
+          setSyncStatus(`Đã đồng bộ ${result.data.tracks.length} bài hát từ Cloudflare!`);
+
+          await saveLibraryCache({
+            etag: result.etag || null,
+            lastSyncTime: nowIso,
+            data: {
+              version: result.data.version,
+              generatedAt: result.data.generatedAt,
+              tracks: balanced,
+              albums: result.data.albums || [],
+            },
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setLastSyncError(msg);
+        setSyncStatus(`Lỗi đồng bộ: ${msg}`);
+        if (!silent) {
+          Alert.alert('Lỗi đồng bộ Cloudflare', msg);
+        }
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    []
+  );
+
+  // 1. Tự động nạp bộ nhớ đệm thư viện từ beatify_library_cache.json (Zero Flash) & cấu hình server
   useEffect(() => {
-    async function loadSavedConfig() {
+    async function loadSavedData() {
+      let loadedEtag: string | null = null;
+      let loadedUrl: string | null = null;
+      let loadedToken: string | null = null;
+
+      // Nạp cache thư viện trước tiên
+      try {
+        const cacheInfo = await FileSystem.getInfoAsync(LIBRARY_CACHE_FILE);
+        if (cacheInfo.exists) {
+          const raw = await FileSystem.readAsStringAsync(LIBRARY_CACHE_FILE);
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.data && Array.isArray(parsed.data.tracks)) {
+            setTracks(parsed.data.tracks);
+            setOriginalTracks(parsed.data.tracks);
+            setAlbums(parsed.data.albums || []);
+            if (parsed.etag) {
+              loadedEtag = parsed.etag;
+              setCurrentEtag(parsed.etag);
+            }
+            if (parsed.lastSyncTime) setLastSyncTime(parsed.lastSyncTime);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi nạp cache thư viện:', err);
+      }
+
+      // Nạp cấu hình server
       try {
         const info = await FileSystem.getInfoAsync(CONFIG_FILE);
         if (info.exists) {
           const raw = await FileSystem.readAsStringAsync(CONFIG_FILE);
           const data = JSON.parse(raw);
-          if (data.serverUrl) setServerUrl(data.serverUrl);
-          if (data.serverToken !== undefined) setServerToken(data.serverToken);
+          if (data.serverUrl) {
+            loadedUrl = data.serverUrl;
+            setServerUrl(data.serverUrl);
+          }
+          if (data.serverToken !== undefined) {
+            loadedToken = data.serverToken;
+            setServerToken(data.serverToken);
+          }
         }
       } catch (err) {
         console.warn('Lỗi đọc cấu hình server đã lưu:', err);
       }
+
+      // Kích hoạt đồng bộ ngầm ETag nếu có URL
+      const targetUrl = (loadedUrl || process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787').trim().replace(/\/+$/, '');
+      const targetToken = (loadedToken ?? process.env.EXPO_PUBLIC_API_TOKEN ?? '').trim();
+      if (targetUrl) {
+        syncLibraryInternal({
+          url: targetUrl,
+          token: targetToken,
+          etag: loadedEtag,
+          silent: true,
+          force: false,
+        }).catch(() => {});
+      }
     }
-    loadSavedConfig();
-  }, []);
+
+    loadSavedData();
+  }, [syncLibraryInternal]);
 
   // 2. Tự động nạp UserState (Playlists & Favorites) từ local cache và đồng bộ từ server
   useEffect(() => {
@@ -285,38 +425,46 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   }, [serverUrl, serverToken]);
 
-  // 8. Tải lại thư viện từ Cloudflare R2
-  const syncLibrary = useCallback(async () => {
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (!cleanUrl) {
-      Alert.alert('Chưa nhập Server URL', 'Vui lòng nhập địa chỉ Worker để đồng bộ');
-      return;
-    }
+  // 8. Đồng bộ thư viện với Cloudflare R2 (hỗ trợ ETag & Force refresh)
+  const syncLibrary = useCallback(
+    async (options?: { silent?: boolean; force?: boolean }) => {
+      const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
+      const cleanToken = serverToken.trim();
+      if (!cleanUrl) {
+        if (!options?.silent) {
+          Alert.alert('Chưa nhập Server URL', 'Vui lòng nhập địa chỉ Worker hoặc quét mã QR từ Dashboard');
+        }
+        return;
+      }
 
-    FileSystem.writeAsStringAsync(
-      CONFIG_FILE,
-      JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
-    ).catch(() => {});
+      FileSystem.writeAsStringAsync(
+        CONFIG_FILE,
+        JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
+      ).catch(() => {});
 
-    setIsSyncing(true);
-    setSyncStatus('Đang tải danh sách bài hát từ Cloudflare R2...');
+      await syncLibraryInternal({
+        url: cleanUrl,
+        token: cleanToken,
+        etag: currentEtag,
+        silent: options?.silent ?? false,
+        force: options?.force ?? false,
+      });
+    },
+    [serverUrl, serverToken, currentEtag, syncLibraryInternal]
+  );
+
+  // 8b. Xóa bộ nhớ đệm thư viện và tải lại từ đầu
+  const clearLibraryCache = useCallback(async () => {
     try {
-      const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-      const lib = await client.fetchLibrary();
-      const balanced = interleaveTracksByArtist(lib.tracks);
-      setTracks(balanced);
-      setOriginalTracks(balanced);
-      setAlbums(lib.albums || []);
-      setSyncStatus(`Đã đồng bộ thành công ${lib.tracks.length} bài hát từ Cloudflare!`);
+      await FileSystem.deleteAsync(LIBRARY_CACHE_FILE, { idempotent: true });
+      setCurrentEtag(null);
+      setLastSyncTime(null);
+      setLastSyncError(null);
+      await syncLibrary({ silent: false, force: true });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSyncStatus(`Lỗi đồng bộ: ${msg}`);
-      Alert.alert('Lỗi kết nối Cloudflare', msg);
-    } finally {
-      setIsSyncing(false);
+      console.warn('Lỗi xóa cache thư viện:', err);
     }
-  }, [serverUrl, serverToken]);
+  }, [syncLibrary]);
 
   // 9. Lưu thông tin chỉnh sửa bài hát
   const saveTrack = useCallback(async (trackId: string, updates: UpdateTrack) => {
@@ -416,7 +564,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         syncStatus,
         setSyncStatus,
         expirationDate,
+        lastSyncTime,
+        currentEtag,
+        lastSyncError,
         syncLibrary,
+        clearLibraryCache,
         updateUserState,
         toggleFavorite,
         fetchLyrics,

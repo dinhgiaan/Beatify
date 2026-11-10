@@ -5,6 +5,12 @@ export interface ApiClientConfig {
   token?: string;
 }
 
+export interface FetchLibraryResult {
+  notModified: boolean;
+  data?: Library;
+  etag?: string | null;
+}
+
 export class MusicApiClient {
   private baseUrl: string;
   private token?: string;
@@ -32,20 +38,41 @@ export class MusicApiClient {
     return headers;
   }
 
-  async fetchLibrary(): Promise<Library> {
+  async fetchLibraryWithETag(etag?: string | null): Promise<FetchLibraryResult> {
+    const headers = this.getHeaders();
+    if (etag) {
+      headers['If-None-Match'] = etag;
+    }
+
     const res = await fetch(`${this.baseUrl}/api/library`, {
       method: 'GET',
-      headers: this.getHeaders(),
+      headers,
     });
+
+    if (res.status === 304) {
+      return { notModified: true, etag };
+    }
 
     if (!res.ok) {
       const errBody = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
       throw new Error(errBody?.message || `Lỗi tải thư viện (${res.status})`);
     }
 
+    const responseEtag = res.headers?.get ? (res.headers.get('ETag') || res.headers.get('etag')) : null;
     const json = (await res.json()) as ApiResponse<Library>;
     if (!json.data) throw new Error('Dữ liệu thư viện trống');
-    return json.data;
+
+    return {
+      notModified: false,
+      data: json.data,
+      etag: responseEtag,
+    };
+  }
+
+  async fetchLibrary(): Promise<Library> {
+    const result = await this.fetchLibraryWithETag(null);
+    if (!result.data) throw new Error('Dữ liệu thư viện trống');
+    return result.data;
   }
 
   async updateTrack(id: string, updates: UpdateTrack): Promise<Track> {

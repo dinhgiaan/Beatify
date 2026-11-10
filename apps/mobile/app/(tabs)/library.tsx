@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Modal,
   Alert,
+  Vibration,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +33,7 @@ import {
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
+import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
 
 type LibrarySegment = 'songs' | 'albums' | 'artists';
 
@@ -72,6 +74,7 @@ export default function LibraryScreen() {
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [hiddenSettingsVisible, setHiddenSettingsVisible] = useState(false);
 
   // Tính tổng thời lượng toàn bộ thư viện
   const totalDurationSec = useMemo(() => {
@@ -163,10 +166,8 @@ export default function LibraryScreen() {
   };
 
   const handleTitleLongPress = () => {
-    Alert.alert(
-      'Cài đặt ẩn (Beatify Hidden Settings)',
-      'Tính năng màn hình Cài đặt ẩn (Hạn chứng chỉ, Build SHA, Lịch sử sync, Hàng chờ URL) sẽ được hoàn thiện đầy đủ ở Thiết kế lại Pha 4.'
-    );
+    Vibration.vibrate(20);
+    setHiddenSettingsVisible(true);
   };
 
   // Render mục Bài hát
@@ -528,6 +529,12 @@ export default function LibraryScreen() {
         onSave={handleSaveTrack}
         onDelete={handleDeleteFromModal}
         onFetchLyrics={fetchLyrics}
+      />
+
+      {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */}
+      <HiddenSettingsModal
+        visible={hiddenSettingsVisible}
+        onClose={() => setHiddenSettingsVisible(false)}
       />
     </View>
   );

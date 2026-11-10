@@ -2,7 +2,7 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Thiết kế lại Pha 3: Thư viện (Segmented Control Bài hát / Album / Nghệ sĩ) + Tìm kiếm tức thì không dấu tiếng Việt + Tự động chuyển hướng `app/index.tsx` sang `/(tabs)/library` theo `docs/beatify-plan.md`. Spike player ở `index.tsx` đã được thay thế an toàn bằng `Redirect`, giao diện tab trở thành trải nghiệm chính thức (Zero-Settings UI). Hệ thống kiểm thử toàn workspace 204 tests xanh 100%. Sẵn sàng bước sang Thiết kế lại Pha 4 (Đồng bộ ngầm ETag + Màn hình Cài đặt ẩn).
+**Phase hiện tại:** Thiết kế lại Pha 4: Đồng bộ ngầm ETag (Zero Loading Flash + 304 Not Modified) + Màn hình Cài đặt ẩn hoàn chỉnh (`HiddenSettingsModal`) mở bằng thao tác nhấn giữ tiêu đề Thư viện theo `docs/beatify-plan.md`. Tích hợp đầy đủ thông tin chứng chỉ sideload, build SHA, độ trễ gapless, ETag, hàng đợi ghi đĩa atomic, cấu hình máy chủ, hồ sơ thống kê Replay và hàng phát bí mật từ URL riêng. Toàn bộ 206 tests xanh 100%. Sẵn sàng chuyển sang Thiết kế lại Pha 5 (Album/Nghệ sĩ/Playlist + dọn dẹp code cũ).
 **Cập nhật lần cuối:** 2026-11-10
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
@@ -371,6 +371,25 @@
   - Không làm mất bất kỳ logic nào: deep link `beatify://connect` đã chạy ở root `LibraryContext.tsx`, `EditTrackModal` đã được tích hợp vào menu `•••` của `library.tsx`, `LyricsModal` đã được tích hợp trong `NowPlayingView.tsx`.
   - Ẩn header của route `index` trong `_layout.tsx`.
 - [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 204/204 tests toàn workspace passed, 0 lỗi TypeScript, 0 lỗi lint.
+
+## Thiết kế lại Pha 4: Đồng bộ ngầm ETag + Cài đặt ẩn
+- [x] Đồng bộ ngầm ETag & Cache thư viện (`LibraryContext.tsx` & `musicApiClient.ts`):
+  - Lưu và nạp cache thư viện từ file `beatify_library_cache.json` bằng cơ chế ghi đĩa atomic (`.tmp` + `moveAsync`).
+  - Mở app nạp ngay bài hát từ bộ nhớ đệm (Zero Loading Flash, không màn hình chờ).
+  - Tự động gửi ngầm `GET /api/library` kèm header `If-None-Match: <etag>`.
+  - Xử lý phản hồi `304 Not Modified`: Giữ nguyên danh sách, cập nhật `lastSyncTime`, không tốn băng thông và không re-render.
+  - Xử lý phản hồi `200 OK`: Cân bằng `interleaveTracksByArtist`, cập nhật `tracks`, `originalTracks`, `albums`, lưu cache kèm ETag mới.
+  - Xử lý khi mất mạng/offline: Giữ nguyên thư viện từ cache, ghi nhận `lastSyncError`, không hiển thị Alert làm phiền người dùng.
+  - Phương thức `clearLibraryCache()`: xóa cache cục bộ và tải lại mới từ Cloudflare R2.
+- [x] Màn hình Cài đặt ẩn (`src/components/HiddenSettingsModal.tsx`):
+  - Kích hoạt bằng thao tác nhấn giữ (Long Press) tiêu đề "Thư viện" trên tab Thư viện (`app/(tabs)/library.tsx`).
+  - Sử dụng 100% theme tokens, Dark mode sang trọng, chuẩn giao diện iOS pageSheet.
+  - Nhóm 1: Thông tin hệ thống & Chứng chỉ Sideload (`expirationDate`, `buildSha`, `iOS 26+`, độ trễ chuyển bài `gaplessDeltaMs`).
+  - Nhóm 2: Đồng bộ ngầm ETag & Bộ nhớ đệm (`lastSyncTime`, `currentEtag`, `atomicWriteBranch`, `recoveryStatus`, `writeQueueStatus`, `lastMoveError`, `lastSyncError`, nút "Kiểm tra bài mới (ETag)", nút "Xóa Cache & Tải lại").
+  - Nhóm 3: Cấu hình máy chủ Cloudflare (Zero-Config: xem URL/Token, cho phép sửa & lưu cấu hình thủ công).
+  - Nhóm 4: Hồ sơ & Thống kê nghe nhạc Replay (Nút mở `ProfileModal` hiển thị tổng thời gian nghe, top bài hát, danh hiệu).
+  - Nhóm 5: Hàng phát bí mật (Custom Audio URL: stream trực tiếp file âm thanh từ đường dẫn bên ngoài qua `addCustomTrack`).
+- [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed (+2 tests ETag mới), 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích
 - [ ] Search (bỏ dấu), Albums, Playlists, Favorites

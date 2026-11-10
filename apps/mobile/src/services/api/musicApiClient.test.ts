@@ -36,6 +36,46 @@ describe('MusicApiClient', () => {
     );
   });
 
+  it('fetchLibraryWithETag gửi If-None-Match và trả về notModified: true khi server phản hồi 304', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      status: 304,
+      ok: false, // 304 not ok in fetch
+    });
+
+    const result = await client.fetchLibraryWithETag('w/etag-123');
+    expect(result.notModified).toBe(true);
+    expect(result.etag).toBe('w/etag-123');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.beatify.local/api/library',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'If-None-Match': 'w/etag-123',
+        }),
+      })
+    );
+  });
+
+  it('fetchLibraryWithETag trả về notModified: false kèm ETag mới khi server phản hồi 200', async () => {
+    const mockLib = {
+      version: 1,
+      generatedAt: '2026-10-08T00:00:00Z',
+      tracks: [{ id: 'track-1', title: 'Bài Mới Nhất', artist: 'Ca sĩ A', duration: 200, file: 'music/new.mp3', storage: 'r2' }],
+      albums: [],
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      headers: new Headers({ ETag: 'new-etag-999' }),
+      json: async () => ({ status: 200, message: 'OK', data: mockLib, error: null }),
+    });
+
+    const result = await client.fetchLibraryWithETag('old-etag');
+    expect(result.notModified).toBe(false);
+    expect(result.data?.tracks.length).toBe(1);
+    expect(result.etag).toBe('new-etag-999');
+  });
+
   it('updateTrack gửi PATCH và trả về track cập nhật', async () => {
     const updatedTrack = {
       id: '1234567890ab',
