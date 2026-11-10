@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track, Playlist } from '@music-app/shared';
-import { useLibrary } from '../../src/context';
+import { useLibrary, usePlayer } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import {
   colors,
@@ -28,6 +28,7 @@ import {
   TrashIcon,
   CloseIcon,
   CheckIcon,
+  ClockIcon,
 } from '../../src/components/icons/SvgIcons';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
 
@@ -35,14 +36,15 @@ export default function PlaylistsScreen() {
   const insets = useSafeAreaInsets();
   const { contentPaddingBottom } = useTabBarMetrics();
   const { tracks, userState, updateUserState } = useLibrary();
+  const { recentTracks, clearRecentTracks } = usePlayer();
 
-  // State xem chi tiết bộ sưu tập (Favorites hoặc Playlist)
+  // State xem chi tiết bộ sưu tập (Favorites, Playlist hoặc Recently Played)
   const [selectedCollection, setSelectedCollection] = useState<{
     visible: boolean;
     title: string;
     subtitle?: string;
     tracks: Track[];
-    type: 'playlist' | 'favorites';
+    type: 'playlist' | 'favorites' | 'recently_played';
     playlistId?: string;
   }>({
     visible: false,
@@ -81,6 +83,18 @@ export default function PlaylistsScreen() {
       subtitle: `${favoriteTracks.length} bài hát đã thích`,
       tracks: favoriteTracks,
       type: 'favorites',
+    });
+  };
+
+  // Mở chi tiết danh sách nghe gần đây
+  const handleOpenRecentlyPlayed = () => {
+    Vibration.vibrate(10);
+    setSelectedCollection({
+      visible: true,
+      title: 'Nghe gần đây',
+      subtitle: `${recentTracks.length} bài hát đã nghe`,
+      tracks: recentTracks,
+      type: 'recently_played',
     });
   };
 
@@ -263,6 +277,39 @@ export default function PlaylistsScreen() {
               <Text style={styles.chevronText}>→</Text>
             </TouchableOpacity>
 
+            {/* Card Nghe gần đây cố định ở đầu */}
+            <TouchableOpacity
+              style={[
+                styles.favoriteCard,
+                {
+                  backgroundColor: colors.surface,
+                  marginTop: spacing.sm,
+                  borderWidth: 1,
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              onPress={handleOpenRecentlyPlayed}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[
+                  styles.favoriteIconBox,
+                  { backgroundColor: colors.surfaceElevated },
+                ]}
+              >
+                <ClockIcon size={26} color={colors.primary} />
+              </View>
+              <View style={styles.favoriteInfo}>
+                <Text style={[styles.favoriteTitle, { color: colors.textPrimary }]}>
+                  Nghe gần đây
+                </Text>
+                <Text style={styles.favoriteSubtitle}>
+                  {recentTracks.length} bài hát • Tự động ghi nhận
+                </Text>
+              </View>
+              <Text style={styles.chevronText}>→</Text>
+            </TouchableOpacity>
+
             <Text style={styles.sectionHeading}>DANH SÁCH PHÁT CỦA BẠN</Text>
           </View>
         }
@@ -286,6 +333,7 @@ export default function PlaylistsScreen() {
         type={selectedCollection.type}
         playlistId={selectedCollection.playlistId}
         onRemoveTrackFromPlaylist={handleRemoveTrackFromPlaylist}
+        onClearRecentTracks={clearRecentTracks}
       />
 
       {/* Modal Tạo Playlist Mới */}

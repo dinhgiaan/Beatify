@@ -59,6 +59,9 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
     recoveryStatus,
     writeQueueStatus,
     addCustomTrack,
+    recentLimit,
+    setRecentLimit,
+    clearRecentTracks,
   } = usePlayer();
 
   const [inputUrl, setInputUrl] = useState(serverUrl);
@@ -364,6 +367,57 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
             </TouchableOpacity>
           </View>
 
+          {/* PHẦN 5: TÙY CHỌN NGHE GẦN ĐÂY */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
+            <Text style={styles.sectionDesc}>
+              Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây. Chọn số lượng bài tối đa được lưu lại:
+            </Text>
+
+            <View style={styles.pillRow}>
+              {([10, 20, 30, 40, 50] as const).map((limitOption) => {
+                const isActive = recentLimit === limitOption;
+                return (
+                  <TouchableOpacity
+                    key={limitOption}
+                    style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                    onPress={() => {
+                      Vibration.vibrate(10);
+                      setRecentLimit(limitOption);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                      {limitOption}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.secondaryActionBtn, { marginTop: spacing.md }]}
+              onPress={() => {
+                Vibration.vibrate(10);
+                Alert.alert(
+                  'Xóa lịch sử nghe gần đây?',
+                  'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
+                  [
+                    { text: 'Hủy', style: 'cancel' },
+                    {
+                      text: 'Xóa ngay',
+                      style: 'destructive',
+                      onPress: () => clearRecentTracks(),
+                    },
+                  ]
+                );
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.secondaryActionBtnText}>Xóa toàn bộ lịch sử nghe</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* PHẦN 5: HÀNG CHỜ BÍ MẬT (CUSTOM AUDIO URL) */}
           <View style={styles.sectionCard}>
             <View style={styles.mysteryTitleRow}>
@@ -653,6 +707,35 @@ const styles = StyleSheet.create({
   mysteryAddBtnText: {
     color: colors.warning,
     fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  pillBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 38,
+  },
+  pillBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  pillBtnText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+  },
+  pillBtnTextActive: {
+    color: colors.textDark,
     fontWeight: fontWeights.bold,
   },
 });

@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
@@ -27,6 +28,7 @@ import {
   HeadphonesIcon,
   HeartIcon,
   TrashIcon,
+  ClockIcon,
 } from './icons/SvgIcons';
 
 export interface CollectionDetailModalProps {
@@ -36,9 +38,10 @@ export interface CollectionDetailModalProps {
   subtitle?: string;
   coverUrl?: string;
   tracks: Track[];
-  type: 'album' | 'artist' | 'playlist' | 'favorites';
+  type: 'album' | 'artist' | 'playlist' | 'favorites' | 'recently_played';
   playlistId?: string;
   onRemoveTrackFromPlaylist?: (trackId: string) => Promise<void> | void;
+  onClearRecentTracks?: () => Promise<void> | void;
 }
 
 export function CollectionDetailModal({
@@ -51,6 +54,7 @@ export function CollectionDetailModal({
   type,
   playlistId,
   onRemoveTrackFromPlaylist,
+  onClearRecentTracks,
 }: CollectionDetailModalProps) {
   const insets = useSafeAreaInsets();
   const { currentTrack, playQueue, togglePlay } = usePlayer();
@@ -188,6 +192,8 @@ export function CollectionDetailModal({
                   <HeadphonesIcon size={64} color={colors.primary} />
                 ) : type === 'favorites' ? (
                   <HeartIcon size={64} color={colors.primary} fill={colors.primary} />
+                ) : type === 'recently_played' ? (
+                  <ClockIcon size={64} color={colors.primary} />
                 ) : (
                   <DiscIcon size={64} color={colors.borderLight} />
                 )}
@@ -224,6 +230,32 @@ export function CollectionDetailModal({
                   <ShuffleIcon size={18} color={colors.textPrimary} />
                   <Text style={styles.shuffleBtnText}>Xáo trộn</Text>
                 </TouchableOpacity>
+
+                {type === 'recently_played' && onClearRecentTracks && tracks.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.clearHistoryBtn}
+                    onPress={() => {
+                      Alert.alert(
+                        'Xóa lịch sử nghe',
+                        'Bạn có chắc chắn muốn xóa toàn bộ danh sách bài hát vừa nghe không?',
+                        [
+                          { text: 'Hủy', style: 'cancel' },
+                          {
+                            text: 'Xóa',
+                            style: 'destructive',
+                            onPress: () => {
+                              onClearRecentTracks();
+                              onClose();
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <TrashIcon size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           }
@@ -349,6 +381,16 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: fontSizes.subhead,
     fontWeight: fontWeights.semibold,
+  },
+  clearHistoryBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.md,
   },
   btnDisabled: {
     opacity: 0.5,

@@ -68,6 +68,8 @@ export default function LibraryScreen() {
     playQueue,
     togglePlay,
     handleTrackDeleted,
+    recentTracks,
+    clearRecentTracks,
   } = usePlayer();
 
   const { contentPaddingBottom } = useTabBarMetrics();
@@ -85,7 +87,7 @@ export default function LibraryScreen() {
     subtitle?: string;
     coverUrl?: string;
     tracks: Track[];
-    type: 'album' | 'artist';
+    type: 'album' | 'artist' | 'recently_played';
   }>({
     visible: false,
     title: '',
@@ -444,6 +446,72 @@ export default function LibraryScreen() {
             styles.listContent,
             { paddingBottom: contentPaddingBottom },
           ]}
+          ListHeaderComponent={
+            recentTracks.length > 0 ? (
+              <View style={styles.recentSection}>
+                <View style={styles.recentHeaderRow}>
+                  <Text style={styles.recentSectionTitle}>VỪA NGHE GẦN ĐÂY</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Vibration.vibrate(10);
+                      setSelectedCollection({
+                        visible: true,
+                        title: 'Nghe gần đây',
+                        subtitle: `${recentTracks.length} bài hát`,
+                        tracks: recentTracks,
+                        type: 'recently_played',
+                      });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.recentSeeAllText}>
+                      Xem tất cả ({recentTracks.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <FlatList
+                  data={recentTracks}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => `recent-${item.id}`}
+                  contentContainerStyle={styles.recentHorizontalList}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.recentCard}
+                      onPress={() => {
+                        Vibration.vibrate(10);
+                        const idx = recentTracks.findIndex((t) => t.id === item.id);
+                        playQueue(recentTracks, idx >= 0 ? idx : 0);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.recentCoverBox}>
+                        {item.cover ? (
+                          <Image
+                            source={{ uri: item.cover }}
+                            style={styles.recentCoverImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <DiscIcon size={32} color={colors.borderLight} />
+                        )}
+                      </View>
+                      <Text style={styles.recentTrackTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.recentTrackArtist} numberOfLines={1}>
+                        {item.artist || 'Chưa rõ nghệ sĩ'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+                <Text style={[styles.recentSectionTitle, { marginTop: spacing.md }]}>
+                  TẤT CẢ BÀI HÁT ({tracks.length})
+                </Text>
+              </View>
+            ) : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={isSyncing}
@@ -620,6 +688,7 @@ export default function LibraryScreen() {
         coverUrl={selectedCollection.coverUrl}
         tracks={selectedCollection.tracks}
         type={selectedCollection.type}
+        onClearRecentTracks={clearRecentTracks}
       />
 
       {/* Modal Chọn danh sách phát để thêm bài */}
@@ -996,5 +1065,59 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.subhead,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  recentSection: {
+    marginBottom: spacing.sm,
+  },
+  recentHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  recentSectionTitle: {
+    color: colors.textTertiary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
+  },
+  recentSeeAllText: {
+    color: colors.primary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+  },
+  recentHorizontalList: {
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  recentCard: {
+    width: 104,
+    marginRight: spacing.xs,
+  },
+  recentCoverBox: {
+    width: 104,
+    height: 104,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  recentCoverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  recentTrackTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+  },
+  recentTrackArtist: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
   },
 });

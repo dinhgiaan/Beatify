@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import { Vibration } from 'react-native';
 import {
   type Track,
@@ -9,6 +9,14 @@ import {
 import { playerService } from '../services/player/rntpPlayerService';
 import type { PlayerState, RepeatMode } from '../services/player/types';
 import { statsStorage } from '../services/stats/statsStorage';
+import {
+  loadRecentTracks,
+  saveRecentTracks,
+  addTrackToRecentList,
+  updateRecentLimit,
+  DEFAULT_RECENT_LIMIT,
+  type RecentTracksData,
+} from '../services/recent/recentTracksStorage';
 import { useLibrary } from './LibraryContext';
 
 export interface PlayerContextValue {
@@ -22,6 +30,10 @@ export interface PlayerContextValue {
   setIsSmartShuffle: (val: boolean) => void;
   sortMode: TrackSortMode;
   setSortMode: (mode: TrackSortMode) => void;
+  recentTracks: Track[];
+  recentLimit: number;
+  setRecentLimit: (limit: number) => Promise<void>;
+  clearRecentTracks: () => Promise<void>;
   playQueue: (trackList?: Track[], startIndex?: number) => Promise<void>;
   togglePlay: () => Promise<void>;
   next: () => Promise<void>;
@@ -75,9 +87,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
   const [sleepTimerRemainingSec, setSleepTimerRemainingSec] = useState<number | null>(null);
 
+  // Nghe gần đây (Recently Played)
+  const [recentTracksData, setRecentTracksData] = useState<RecentTracksData>({
+    limit: DEFAULT_RECENT_LIMIT,
+    trackIds: [],
+  });
+
   const lastRecordedTrackRef = useRef<string | null>(null);
+  const lastRecordedRecentTrackRef = useRef<string | null>(null);
   const currentTrackingTrackIdRef = useRef<string | null>(null);
   const maxListenedSecRef = useRef<number>(0);
+
+  // Nạp danh sách bài nghe gần đây từ đĩa khi khởi động
+  useEffect(() => {
+    loadRecentTracks().then((data) => {
+      setRecentTracksData(data);
+    });
+  }, []);
 
   // 1. Khởi tạo player service và đăng ký listener ĐÚNG MỘT LẦN (State ổn định, không re-render theo tick tiến trình)
   useEffect(() => {
@@ -127,6 +153,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (pos > maxListenedSecRef.current) {
           maxListenedSecRef.current = pos;
         }
+      }
+
+      // Ghi nhận vào danh sách Nghe gần đây khi nghe trên 5 giây
+      if (
+        state.isPlaying &&
+        state.activeTrackId &&
+        pos >= 5 &&
+        lastRecordedRecentTrackRef.current !== state.activeTrackId
+      ) {
+        lastRecordedRecentTrackRef.current = state.activeTrackId;
+        const currentId = state.activeTrackId;
+        setRecentTracksData((prev) => {
+          const updated = addTrackToRecentList(currentId, prev);
+          saveRecentTracks(updated).catch(() => {});
+          return updated;
+        });
       }
 
       if (
@@ -404,6 +446,37 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [tracks, currentTrackIndex, playQueue]);
 
+  // Cập nhật giới hạn số lượng bài nghe gần đây
+  const setRecentLimit = useCallback(async (limit: number) => {
+    Vibration.vibrate(10);
+    setRecentTracksData((prev) => {
+      const updated = updateRecentLimit(limit, prev);
+      saveRecentTracks(updated).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  // Xóa danh sách bài nghe gần đây
+  const clearRecentTracks = useCallback(async () => {
+    Vibration.vibrate(10);
+    setRecentTracksData((prev) => {
+      const updated = { ...prev, trackIds: [] };
+      saveRecentTracks(updated).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  // Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
+  const recentTracks = useMemo(() => {
+    const trackMap = new Map<string, Track>();
+    for (const t of tracks) {
+      trackMap.set(t.id, t);
+    }
+    return recentTracksData.trackIds
+      .map((id) => trackMap.get(id))
+      .filter((t): t is Track => t !== undefined);
+  }, [tracks, recentTracksData.trackIds]);
+
   const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
   const gaplessDeltaMs = playerService.getGaplessDeltaMs();
 
@@ -420,6 +493,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setIsSmartShuffle,
         sortMode,
         setSortMode,
+        recentTracks,
+        recentLimit: recentTracksData.limit,
+        setRecentLimit,
+        clearRecentTracks,
         playQueue,
         togglePlay,
         next,
