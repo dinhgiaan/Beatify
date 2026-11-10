@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,11 +8,8 @@ import {
   ActivityIndicator,
   Image,
   TextInput,
-  Alert,
   Vibration,
-  Linking,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   colors,
@@ -26,23 +23,13 @@ import {
 } from '../src/theme';
 import {
   type Track,
-  type UpdateTrack,
-  type UserState,
-  smartShuffle,
-  mergeUserStates,
-  sortTracksByMode,
-  type TrackSortMode,
-  interleaveTracksByArtist,
 } from '@music-app/shared';
-import { playerService } from '../src/services/player/rntpPlayerService';
-import type { PlayerState, RepeatMode } from '../src/services/player/types';
-import { parseMobileprovisionExpiration } from '../src/utils/mobileprovision';
+import { useLibrary, usePlayer } from '../src/context';
+import { formatTime } from '../src/utils/formatTime';
 import { EditTrackModal } from '../src/components/EditTrackModal';
 import { ProfileModal } from '../src/components/ProfileModal';
 import { LyricsModal } from '../src/components/LyricsModal';
 import { PlaylistModal } from '../src/components/PlaylistModal';
-import { statsStorage } from '../src/services/stats/statsStorage';
-import { MusicApiClient } from '../src/services/api/musicApiClient';
 import {
   PlayIcon,
   PauseIcon,
@@ -63,34 +50,58 @@ import {
   HeartIcon,
 } from '../src/components/icons/SvgIcons';
 
-function formatTime(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return '0:00';
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  if (hours > 0) {
-    return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  }
-  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-}
-
 export default function SpikePlayerScreen() {
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [originalTracks, setOriginalTracks] = useState<Track[]>([]);
+  const {
+    userState,
+    serverUrl,
+    setServerUrl,
+    serverToken,
+    setServerToken,
+    isSyncing,
+    syncStatus,
+    expirationDate,
+    syncLibrary: handleSyncLibrary,
+    updateUserState: handleUpdateUserState,
+    toggleFavorite: handleToggleFavorite,
+    fetchLyrics: handleFetchLyrics,
+    saveTrack: handleSaveTrack,
+    deleteTrack,
+  } = useLibrary();
+
+  const {
+    tracks,
+    currentTrackIndex,
+    currentTrack,
+    playerState,
+    repeatMode,
+    isSmartShuffle,
+    sortMode,
+    togglePlay: handleTogglePlay,
+    next: handleNext,
+    previous: handlePrevious,
+    skipToTrack: handleSkipToTrack,
+    seekOffset: handleSeekOffset,
+    seekTo,
+    cycleRepeat: handleCycleRepeat,
+    toggleSmartShuffle: handleToggleSmartShuffle,
+    applySortMode: handleApplySortMode,
+    addCustomTrack,
+    handleTrackDeleted,
+    gaplessDeltaMs,
+    atomicWriteBranch,
+    lastMoveError,
+    recoveryStatus,
+    writeQueueStatus,
+  } = usePlayer();
+
+  // State cục bộ cho UI
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [playerState, setPlayerState] = useState<PlayerState>({
-    isPlaying: false,
-    isBuffering: false,
-    activeTrackId: null,
-    positionSec: 0,
-    durationSec: 0,
-    bufferedSec: null,
-  });
-  const [expirationDate, setExpirationDate] = useState<string | null>('Đang kiểm tra...');
-  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
-  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
-  const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
   const [barWidth, setBarWidth] = useState<number>(0);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
 
   // Hook đo lường safe area & responsive cho toàn bộ màn hình
   const insets = useSafeAreaInsets();
@@ -102,606 +113,38 @@ export default function SpikePlayerScreen() {
     ? Math.max(140, Math.min(Math.round(height * 0.48), 240))
     : Math.max(140, Math.min(width - gutter * 2 - spacing.xl * 2, Math.round(height * 0.38), 340));
 
-  // State cho Profile & Thống kê
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [atomicWriteBranch, setAtomicWriteBranch] = useState<string>('Chưa ghi');
-  const [lastMoveError, setLastMoveError] = useState<string | null>(null);
-  const [recoveryStatus, setRecoveryStatus] = useState<string>('Không có khôi phục');
-  const [writeQueueStatus, setWriteQueueStatus] = useState<string>('Đã ghi xong (hàng đợi rỗng)');
-  const lastRecordedTrackRef = useRef<string | null>(null);
-  const currentTrackingTrackIdRef = useRef<string | null>(null);
-  const maxListenedSecRef = useRef<number>(0);
-
-  // State cho Edit / Delete Modal & Đồng bộ Cloudflare
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
-  const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
-  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
-  const [userState, setUserState] = useState<UserState>({
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    playlists: [],
-    favoriteIds: [],
-  });
-  const [sortMode, setSortMode] = useState<TrackSortMode>('smart');
-
-  const [serverUrl, setServerUrl] = useState<string>(
-
-    process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787'
-  );
-  const [serverToken, setServerToken] = useState<string>(
-    process.env.EXPO_PUBLIC_API_TOKEN || ''
-  );
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
-
-  const CONFIG_FILE = `${FileSystem.documentDirectory || ''}beatify_server_config.json`;
-  const USER_STATE_FILE = `${FileSystem.documentDirectory || ''}beatify_user_state.json`;
-
-  // Tự động nạp cấu hình máy chủ & token đã lưu từ các lần quét trước
-  useEffect(() => {
-    async function loadSavedConfig() {
-      try {
-        const info = await FileSystem.getInfoAsync(CONFIG_FILE);
-        if (info.exists) {
-          const raw = await FileSystem.readAsStringAsync(CONFIG_FILE);
-          const data = JSON.parse(raw);
-          if (data.serverUrl) setServerUrl(data.serverUrl);
-          if (data.serverToken !== undefined) setServerToken(data.serverToken);
-        }
-      } catch (err) {
-        console.warn('Lỗi đọc cấu hình server đã lưu:', err);
-      }
-    }
-    loadSavedConfig();
-  }, [CONFIG_FILE]);
-
-  // Tự động nạp UserState (Playlists & Favorites) từ local cache và đồng bộ từ server
-  useEffect(() => {
-    async function loadUserState() {
-      let localState: UserState = {
-        version: 1,
-        updatedAt: new Date(0).toISOString(),
-        playlists: [],
-        favoriteIds: [],
-      };
-
-      try {
-        const info = await FileSystem.getInfoAsync(USER_STATE_FILE);
-        if (info.exists) {
-          const raw = await FileSystem.readAsStringAsync(USER_STATE_FILE);
-          const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.playlists) && Array.isArray(parsed.favoriteIds)) {
-            localState = parsed;
-            setUserState(parsed);
-          }
-        }
-      } catch (err) {
-        console.warn('Lỗi đọc user state từ máy:', err);
-      }
-
-      const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-      const cleanToken = serverToken.trim();
-      if (cleanUrl) {
-        try {
-          const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-          const remoteState = await client.fetchUserState();
-          if (remoteState) {
-            // HỢP NHẤT THÔNG MINH 2 CHIỀU: Bảo toàn playlist và favorites của cả iPhone và Web
-            const merged = mergeUserStates(localState, remoteState);
-            setUserState(merged);
-            await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(merged, null, 2));
-
-            // Nếu máy có playlist hoặc favorites mới hơn chưa có trên remote -> tự động đồng bộ lên server
-            if (JSON.stringify(merged) !== JSON.stringify(remoteState)) {
-              await client.saveUserState(merged).catch((e) => {
-                console.warn('Lỗi tự động đẩy merged state lên server:', e);
-              });
-            }
-          }
-        } catch (err) {
-          console.warn('Không thể đồng bộ UserState từ server:', err);
-        }
-      }
-    }
-    loadUserState();
-  }, [USER_STATE_FILE, serverUrl, serverToken]);
-
-
-  // Hàm cập nhật UserState (lưu cache local + đồng bộ Cloudflare R2)
-  const handleUpdateUserState = async (updater: (prev: UserState) => UserState) => {
-    const nextState = updater(userState);
-    nextState.updatedAt = new Date().toISOString();
-    setUserState(nextState);
-
-    try {
-      await FileSystem.writeAsStringAsync(USER_STATE_FILE, JSON.stringify(nextState, null, 2));
-    } catch (err) {
-      console.warn('Lỗi ghi UserState local:', err);
-    }
-
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (cleanUrl) {
-      try {
-        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-        await client.saveUserState(nextState);
-        setSyncStatus('Đã đồng bộ danh sách phát & yêu thích lên Cloudflare R2!');
-      } catch (err) {
-        console.warn('Lỗi đồng bộ UserState lên Cloudflare:', err);
-      }
-    }
-  };
-
-  // Toggle Favorite bài hát
-  const handleToggleFavorite = async (trackId: string) => {
-    Vibration.vibrate(10);
-    const isFav = userState.favoriteIds.includes(trackId);
-    await handleUpdateUserState((prev) => ({
-      ...prev,
-      favoriteIds: isFav
-        ? prev.favoriteIds.filter((id) => id !== trackId)
-        : [...prev.favoriteIds, trackId],
-    }));
-  };
-
-  // Hàm tải lời bài hát từ Cloudflare R2
-  const handleFetchLyrics = async (trackId: string): Promise<string | null> => {
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (!cleanUrl) return null;
-    try {
-      const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-      return await client.fetchLyrics(trackId);
-    } catch (err) {
-      console.warn('Lỗi tải lyrics từ máy chủ:', err);
-      return null;
-    }
-  };
-
-
-  useEffect(() => {
-    // 1. Khởi tạo player và đăng ký theo dõi trạng thái
-    playerService.setup().catch((err) => {
-      console.warn('Lỗi setup player:', err);
-    });
-
-    const unsubscribe = playerService.subscribe((state) => {
-      setPlayerState(state);
-      if (state.activeTrackId) {
-        const idx = tracks.findIndex((t) => t.id === state.activeTrackId);
-        if (idx !== -1) setCurrentTrackIndex(idx);
-      }
-    });
-
-    // 2. Đọc ngày hết hạn từ file embedded.mobileprovision trong bundle ứng dụng
-    async function loadProvisionExpiration() {
-      try {
-        const bundleDir = FileSystem.bundleDirectory;
-        if (!bundleDir) {
-          setExpirationDate('Không tìm thấy bundleDirectory (Dev/Sim)');
-          return;
-        }
-
-        const profilePath = `${bundleDir}embedded.mobileprovision`;
-        const fileInfo = await FileSystem.getInfoAsync(profilePath);
-        if (!fileInfo.exists) {
-          setExpirationDate('Chưa có embedded.mobileprovision (Simulator hoặc chưa build IPA)');
-          return;
-        }
-
-        const base64Data = await FileSystem.readAsStringAsync(profilePath, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        const date = parseMobileprovisionExpiration(base64Data);
-        if (date) {
-          setExpirationDate(date.toLocaleString('vi-VN'));
-        } else {
-          setExpirationDate('Không bóc tách được ExpirationDate từ file');
-        }
-      } catch (err) {
-        setExpirationDate(`Lỗi đọc file: ${String(err)}`);
-      }
-    }
-
-    loadProvisionExpiration();
-
-    return () => {
-      unsubscribe();
-    };
-  }, [tracks]);
-
-  // Lắng nghe Deep Link khi người dùng quét mã QR từ camera iPhone: beatify://connect?api=...&token=...
-  useEffect(() => {
-    const handleDeepLink = async (event: { url: string }) => {
-      try {
-        if (!event.url) return;
-        const rawUrl = event.url;
-        if (rawUrl.includes('connect?') || rawUrl.includes('api=')) {
-          const queryString = rawUrl.split('?')[1];
-          if (!queryString) return;
-          const params = new URLSearchParams(queryString);
-          const newApiUrl = params.get('api');
-          const newToken = params.get('token') || '';
-
-          if (newApiUrl) {
-            const cleanUrl = decodeURIComponent(newApiUrl).trim().replace(/\/+$/, '');
-            const cleanToken = decodeURIComponent(newToken).trim();
-            setServerUrl(cleanUrl);
-            setServerToken(cleanToken);
-
-            // Lưu vĩnh viễn cấu hình vào ổ đĩa điện thoại
-            FileSystem.writeAsStringAsync(
-              CONFIG_FILE,
-              JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
-            ).catch((e) => console.warn('Lỗi ghi file cấu hình server:', e));
-
-            Vibration.vibrate([0, 80, 50, 80]);
-            Alert.alert(
-              'Kết nối thành công! 🎉',
-              `Đã nhận cấu hình máy chủ từ mã QR của Beatify Dashboard:\n\nServer: ${cleanUrl}\n\nĐang tự động đồng bộ thư viện nhạc...`
-            );
-
-            // Tự động tải thư viện ngay
-            try {
-              setIsSyncing(true);
-              setSyncStatus('Đang tải danh sách bài hát...');
-              const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-              const lib = await client.fetchLibrary();
-              setTracks(lib.tracks);
-              setOriginalTracks(lib.tracks);
-              setSyncStatus(`Đã đồng bộ ${lib.tracks.length} bài hát từ Cloudflare!`);
-            } catch (syncErr) {
-              setSyncStatus(`Lỗi tải nhạc: ${String(syncErr)}`);
-            } finally {
-              setIsSyncing(false);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Lỗi xử lý Deep Link:', err);
-      }
-    };
-
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink({ url });
-    });
-
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  // Tự động ghi nhận lượt nghe và đo chính xác thời lượng nghe thực tế cho Profile & Replay
-  useEffect(() => {
-    // 1. Khi bài hát đổi sang bài khác: Chốt thời lượng thực tế của bài hát trước đó
-    if (playerState.activeTrackId !== currentTrackingTrackIdRef.current) {
-      const prevTrackId = currentTrackingTrackIdRef.current;
-      const prevListened = maxListenedSecRef.current;
-
-      if (prevTrackId && prevListened >= 15) {
-        statsStorage.updateLastTrackListenedSec(prevTrackId, prevListened).catch((err) => {
-          console.warn('Lỗi cập nhật thời lượng nghe thực tế cho bài trước:', err);
-        });
-      }
-
-      currentTrackingTrackIdRef.current = playerState.activeTrackId;
-      maxListenedSecRef.current = Math.max(0, playerState.positionSec || 0);
-    } else {
-      // 2. Bài hát đang tiếp tục phát: Cập nhật vị trí nghe cao nhất đạt được
-      if (playerState.positionSec > maxListenedSecRef.current) {
-        maxListenedSecRef.current = playerState.positionSec;
-      }
-    }
-
-    // 3. Ghi nhận lượt nghe ban đầu khi bài hát vượt qua mốc 15 giây
-    if (
-      playerState.isPlaying &&
-      playerState.activeTrackId &&
-      playerState.positionSec >= 15 &&
-      lastRecordedTrackRef.current !== playerState.activeTrackId
-    ) {
-      lastRecordedTrackRef.current = playerState.activeTrackId;
-      const t = tracks.find((x) => x.id === playerState.activeTrackId);
-      if (t) {
-        setWriteQueueStatus('Đang ghi (1 tác vụ)...');
-        statsStorage.recordTrackListen({
-          trackId: t.id,
-          title: t.title,
-          artist: t.artist,
-          album: t.album,
-          durationSec: t.duration || Math.round(playerState.durationSec),
-          listenedSec: Math.round(playerState.positionSec),
-        })
-          .then(() => {
-            setAtomicWriteBranch(statsStorage.getLastWriteBranch());
-            setLastMoveError(statsStorage.getLastMoveError());
-            setRecoveryStatus(statsStorage.getLastRecoveryStatus());
-            setWriteQueueStatus(statsStorage.getWriteQueueStatus());
-          })
-          .catch((err) => {
-            console.warn('Lỗi ghi stats:', err);
-            setWriteQueueStatus('Lỗi ghi đĩa');
-          });
-      }
-    }
-  }, [playerState.isPlaying, playerState.activeTrackId, playerState.positionSec, tracks]);
-
-
-  const handlePlayQueue = async (trackList = tracks, startIndex = currentTrackIndex) => {
-    if (trackList.length === 0) return;
-    await playerService.playQueue(trackList, startIndex);
-  };
-
-  const handleTogglePlay = async () => {
-    Vibration.vibrate(10);
-    if (playerState.isPlaying) {
-      await playerService.pause();
-    } else {
-      if (!playerState.activeTrackId && tracks.length > 0) {
-        await handlePlayQueue();
-      } else if (playerState.activeTrackId) {
-        await playerService.play();
-      }
-    }
-  };
-
-  const handleAddCustomTrack = async () => {
-    const trimmed = customUrl.trim();
-    if (!trimmed) return;
-
-    const newTrack: Track = {
-      id: `custom-${Date.now()}`,
-      file: trimmed,
-      storage: 'r2',
-      title: trimmed.split('/').pop()?.split('?')[0] || 'Bài hát của bạn',
-      artist: 'Tự tải lên',
-      album: 'Beatify Stream',
-      duration: 0,
-    };
-
-    const newTrackList = [...tracks, newTrack];
-    setTracks(newTrackList);
-    if (isSmartShuffle) {
-      setOriginalTracks((prev) => [...prev, newTrack]);
-    }
-    setCustomUrl('');
-    await handlePlayQueue(newTrackList, newTrackList.length - 1);
-  };
-
-  const handleNext = async () => {
-    Vibration.vibrate(10);
-    if (tracks.length > 0) {
-      await playerService.next();
-    }
-  };
-
-  const handlePrevious = async () => {
-    Vibration.vibrate(10);
-    if (tracks.length > 0) {
-      await playerService.previous();
-    }
-  };
-
-  const handleSkipToTrack = async (index: number) => {
-    Vibration.vibrate(10);
-    if (!playerState.activeTrackId) {
-      await handlePlayQueue(tracks, index);
-    } else {
-      await playerService.skipToIndex(index);
-    }
-  };
-
-  const handleSeekOffset = async (secondsOffset: number) => {
-    Vibration.vibrate(10);
-    const currTrack = tracks[currentTrackIndex];
-    const totalSec = playerState.durationSec || (currTrack ? currTrack.duration : 0);
-    const target = totalSec > 0
-      ? Math.min(totalSec, Math.max(0, playerState.positionSec + secondsOffset))
-      : Math.max(0, playerState.positionSec + secondsOffset);
-    await playerService.seekTo(target);
-  };
-
-  const handleBarPress = async (locationX: number) => {
-    if (barWidth <= 0 || tracks.length === 0) return;
-    Vibration.vibrate(10);
-    const currentTrack = tracks[currentTrackIndex];
-    const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
-    if (totalDuration <= 0) return;
-    const ratio = Math.max(0, Math.min(1, locationX / barWidth));
-    const target = ratio * totalDuration;
-    await playerService.seekTo(target);
-  };
-
-  const handleCycleRepeat = async () => {
-    Vibration.vibrate(10);
-    const nextMode: RepeatMode =
-      repeatMode === 'off' ? 'track' : repeatMode === 'track' ? 'queue' : 'off';
-    setRepeatMode(nextMode);
-    await playerService.setRepeatMode(nextMode);
-  };
-
-  const handleToggleSmartShuffle = async () => {
-    Vibration.vibrate(10);
-    if (tracks.length === 0) return;
-
-    if (!isSmartShuffle) {
-      // 1. Kích hoạt Smart Shuffle
-      setOriginalTracks([...tracks]);
-      const currentTrack = tracks[currentTrackIndex];
-      const shuffled = smartShuffle(tracks, currentTrack?.id);
-      setTracks(shuffled);
-      setCurrentTrackIndex(0);
-      setIsSmartShuffle(true);
-      await playerService.playQueue(shuffled, 0);
-    } else {
-      // 2. Tắt Smart Shuffle, hoàn trả thứ tự bài ban đầu
-      const currentTrack = tracks[currentTrackIndex];
-      const restored = originalTracks.length > 0 ? originalTracks : tracks;
-      const restoredIdx = currentTrack
-        ? Math.max(0, restored.findIndex((t) => t.id === currentTrack.id))
-        : 0;
-      setTracks(restored);
-      setCurrentTrackIndex(restoredIdx);
-      setIsSmartShuffle(false);
-      await playerService.playQueue(restored, restoredIdx);
-    }
-  };
-
   const handleOpenEdit = (track: Track) => {
     setEditingTrack(track);
     setEditModalVisible(true);
   };
 
-  const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
-    // 1. Optimistic Update ngay lập tức trên Mobile
-    const updatedList = tracks.map((t) => {
-      if (t.id === trackId) {
-        return {
-          ...t,
-          ...(updates.title !== undefined ? { title: updates.title } : {}),
-          ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
-          ...(updates.album !== undefined ? { album: updates.album } : {}),
-          ...(updates.year !== undefined ? { year: updates.year } : {}),
-        };
-      }
-      return t;
-    });
-    setTracks(updatedList);
-    if (originalTracks.length > 0) {
-      setOriginalTracks((prev) =>
-        prev.map((t) => {
-          if (t.id === trackId) {
-            return {
-              ...t,
-              ...(updates.title !== undefined ? { title: updates.title } : {}),
-              ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
-              ...(updates.album !== undefined ? { album: updates.album } : {}),
-              ...(updates.year !== undefined ? { year: updates.year } : {}),
-            };
-          }
-          return t;
-        })
-      );
-    }
+  const handleBarPress = async (locationX: number) => {
+    if (barWidth <= 0 || tracks.length === 0) return;
+    Vibration.vibrate(10);
+    const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
+    if (totalDuration <= 0) return;
+    const ratio = Math.max(0, Math.min(1, locationX / barWidth));
+    const target = ratio * totalDuration;
+    await seekTo(target);
+  };
 
-    // 2. Gửi request đồng bộ lên Cloudflare Worker (nếu đã cấu hình server)
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (cleanUrl && !trackId.startsWith('custom-')) {
-      try {
-        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-        await client.updateTrack(trackId, updates);
-        setSyncStatus(`Đã lưu và đồng bộ "${updates.title || 'bài hát'}" lên Cloudflare R2!`);
-      } catch (err) {
-        console.warn('Lỗi đồng bộ Cloudflare:', err);
-        setSyncStatus(`Lưu cục bộ thành công (Đồng bộ Cloudflare thất bại: ${String(err)})`);
-      }
-    } else {
-      setSyncStatus(`Đã cập nhật bài hát "${updates.title || ''}" trên app`);
-    }
+  const handleAddCustomTrack = async () => {
+    const trimmed = customUrl.trim();
+    if (!trimmed) return;
+    setCustomUrl('');
+    await addCustomTrack(trimmed);
   };
 
   const handleDeleteTrack = async (trackId: string) => {
-    // 1. Optimistic Update ngay lập tức trên Mobile
-    const targetIdx = tracks.findIndex((t) => t.id === trackId);
-    const updatedList = tracks.filter((t) => t.id !== trackId);
-    setTracks(updatedList);
-    if (originalTracks.length > 0) {
-      setOriginalTracks((prev) => prev.filter((t) => t.id !== trackId));
-    }
-
-    // Nếu bài đang phát bị xóa, chuyển bài hoặc dừng
-    if (tracks[currentTrackIndex]?.id === trackId) {
-      if (updatedList.length > 0) {
-        const nextIdx = Math.min(targetIdx, updatedList.length - 1);
-        setCurrentTrackIndex(nextIdx);
-        await handlePlayQueue(updatedList, nextIdx);
-      } else {
-        setCurrentTrackIndex(0);
-        await playerService.pause();
-      }
-    } else if (targetIdx < currentTrackIndex) {
-      // Bảo toàn vị trí bài đang phát khi xóa bài đứng trước
-      setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
-    }
-
-    // 2. Gửi request xóa lên Cloudflare Worker (nếu là bài từ Cloudflare)
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (cleanUrl && !trackId.startsWith('custom-')) {
-      try {
-        const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-        await client.deleteTrack(trackId);
-        setSyncStatus(`Đã chuyển bài hát vào thùng rác trên Cloudflare R2!`);
-      } catch (err) {
-        console.warn('Lỗi xóa trên Cloudflare:', err);
-        setSyncStatus(`Đã xóa khỏi app (Đồng bộ Cloudflare thất bại: ${String(err)})`);
-      }
-    } else {
-      setSyncStatus('Đã xóa bài hát khỏi danh sách phát');
-    }
+    await deleteTrack(trackId, handleTrackDeleted);
   };
 
-  const handleApplySortMode = (mode: TrackSortMode) => {
-    Vibration.vibrate(10);
-    setSortMode(mode);
-    const sorted = sortTracksByMode(tracks, mode);
-    setTracks(sorted);
-    if (playerState.activeTrackId) {
-      const newIdx = sorted.findIndex((t) => t.id === playerState.activeTrackId);
-      if (newIdx >= 0) setCurrentTrackIndex(newIdx);
-    }
-  };
-
-  const handleSyncLibrary = async () => {
-    const cleanUrl = serverUrl.trim().replace(/\/+$/, '');
-    const cleanToken = serverToken.trim();
-    if (!cleanUrl) {
-      Alert.alert('Chưa nhập Server URL', 'Vui lòng nhập địa chỉ Worker để đồng bộ');
-      return;
-    }
-
-    FileSystem.writeAsStringAsync(
-      CONFIG_FILE,
-      JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
-    ).catch(() => {});
-
-    setIsSyncing(true);
-    setSyncStatus('Đang tải danh sách bài hát từ Cloudflare R2...');
-    try {
-      const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-      const lib = await client.fetchLibrary();
-      // Tự động đan xen các ca sĩ ngay khi tải về (Smart Interleaving)
-      const balanced = interleaveTracksByArtist(lib.tracks);
-      setTracks(balanced);
-      setOriginalTracks(balanced);
-      setSortMode('smart');
-      setIsSmartShuffle(false);
-      setSyncStatus(`Đã đồng bộ thành công ${lib.tracks.length} bài hát từ Cloudflare!`);
-      if (balanced.length > 0 && !playerState.isPlaying) {
-        setCurrentTrackIndex(0);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSyncStatus(`Lỗi đồng bộ: ${msg}`);
-      Alert.alert('Lỗi kết nối Cloudflare', msg);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-
-
-  const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
   const totalDuration = playerState.durationSec || (currentTrack ? currentTrack.duration : 0);
   const progressPercent = totalDuration > 0
     ? Math.min(100, (playerState.positionSec / totalDuration) * 100)
     : 0;
 
-  const gaplessMs = playerService.getGaplessDeltaMs();
+  const gaplessMs = gaplessDeltaMs;
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
   return (
@@ -1465,7 +908,7 @@ export default function SpikePlayerScreen() {
         currentTimeSec={playerState.positionSec}
         onClose={() => setLyricsModalVisible(false)}
         onSeek={(seconds) => {
-          playerService.seekTo(seconds);
+          seekTo(seconds);
         }}
         onOpenEditLyrics={(track) => {
           setLyricsModalVisible(false);
