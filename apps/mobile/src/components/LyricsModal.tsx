@@ -9,7 +9,7 @@ import {
   StyleSheet,
   StatusBar,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
 import { parseLrc, findActiveLrcIndex, type LrcLine } from '@music-app/shared';
 import { EditIcon, LyricsIcon } from './icons/SvgIcons';
@@ -47,7 +47,6 @@ export function LyricsModal({
   onOpenEditLyrics,
   onFetchLyrics,
 }: LyricsModalProps) {
-  const insets = useSafeAreaInsets();
   const [rawLyrics, setRawLyrics] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -128,15 +127,7 @@ export function LyricsModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View
-        style={[
-          styles.container,
-          {
-            paddingTop: insets.top > 0 ? insets.top : spacing.sm,
-            paddingBottom: insets.bottom,
-          },
-        ]}
-      >
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <StatusBar barStyle="light-content" />
 
         {/* Thanh gạt kéo xuống chuẩn iOS (Pill handle) */}
@@ -241,7 +232,7 @@ export function LyricsModal({
             <View style={{ height: 120 }} />
           </ScrollView>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
