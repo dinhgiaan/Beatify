@@ -1,6 +1,8 @@
+import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { colors, fontWeights, fontSizes } from '../src/theme';
 
 export default function RootLayout() {
   return (
@@ -9,14 +11,16 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#121212',
+            backgroundColor: colors.backgroundElevated,
           },
-          headerTintColor: '#ffffff',
+          headerTintColor: colors.textPrimary,
           headerTitleStyle: {
-            fontWeight: '600',
+            fontWeight: fontWeights.semibold,
+            fontSize: fontSizes.titleSmall,
           },
+          headerShadowVisible: false,
           contentStyle: {
-            backgroundColor: '#0a0a0a',
+            backgroundColor: colors.background,
           },
         }}
       >
