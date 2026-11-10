@@ -2,12 +2,12 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Pha 2: Bottom Tabs (Thư viện | Tìm kiếm | Playlist) + MiniPlayer (56pt) + Now Playing Modal theo `docs/beatify-plan.md`. Spike player ở `index.tsx` vẫn duy trì hoạt động 100% kèm nút chuyển sang giao diện mới thử nghiệm. Hệ thống kiểm thử toàn workspace 184 tests xanh 100%.
+**Phase hiện tại:** Thiết kế lại Pha 2: Bottom Tabs (Thư viện | Tìm kiếm | Playlist) + MiniPlayer (56pt) + Now Playing Modal (tích hợp panel hàng đợi nội tuyến) theo `docs/beatify-plan.md`. Spike player ở `index.tsx` vẫn duy trì hoạt động 100% kèm nút chuyển sang giao diện mới thử nghiệm. Hệ thống kiểm thử toàn workspace 204 tests xanh 100%. Đang chờ người dùng build .ipa và test trên iPhone 11 Pro Max.
 **Cập nhật lần cuối:** 2026-11-10
-**Quy tắc phạm vi:** đóng băng, không thêm tính năng mới cho tới khi dùng MVP ít nhất hai tuần. Ý tưởng mới ghi vào `docs/IDEAS.md`.
+**Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
-- iPhone 16, **iOS 27 bản chính thức**.
+- Thiết bị: Test thật duy nhất trên **iPhone 11 Pro Max** (màn hình chuẩn 414x896); dải thiết bị hỗ trợ từ **iPhone 11 Pro Max đến 16 Pro Max**, **iOS 26+** (khóa portrait, không hỗ trợ landscape, iPad, Android).
 - PC Windows. Có thẻ VISA (cần bật được R2, kiểm tra ở Phase 0).
 - Người dùng tự lo việc gia hạn app mỗi 7 ngày.
 - Ngoài phạm vi: CarPlay, widget.
@@ -15,7 +15,7 @@
 ## Quyết định đã chốt
 - Audio: `@rntp/player` (RNTP v5), dự phòng `expo-audio`. Giấy phép dùng cá nhân: **chưa xác nhận** (đọc `https://www.rntp.dev/terms` ở Phase 0).
 - Backend: Cloudflare Worker (Hono + Zod) + R2. Không dùng nhiều tài khoản để lách giới hạn free.
-- Token nhập trong app, lưu SecureStore.
+- Token & Cấu hình server: Lưu trong file JSON `beatify_server_config.json` qua `expo-file-system` (hiện tại chưa dùng `expo-secure-store`) [backlog bảo mật]. Kết nối bằng deep link `beatify://connect?api=...&token=...` từ mã QR trên Web Dashboard.
 - Ký app: Apple ID miễn phí + Sideloadly/AltStore (gia hạn 7 ngày).
 - Bundle ID: **`com.dinhgiaan.beatify`** (bản dev: `com.dinhgiaan.beatify.dev`).
 - Expo SDK: **57 ổn định + Xcode 26.x ghim**, chưa dùng SDK 58 beta (xem `docs/PLAN.md` mục 12.7).
@@ -325,7 +325,7 @@
 - [ ] Người dùng chạy nghiệm thu thực tế 15 tiêu chí Phase 0 (bảng C3) trong `docs/ACCEPTANCE.md`
 - [ ] Người dùng chạy đồng bộ thư viện nhạc thật lên Cloudflare R2
 
-## Phase 2: Bottom Tabs, MiniPlayer & Now Playing Modal (Đã hoàn thành theo docs/beatify-plan.md)
+## Thiết kế lại Pha 2: Bottom Tabs, MiniPlayer & Now Playing (Đã hoàn thành theo docs/beatify-plan.md)
 - [x] Cấu trúc Bottom Tabs chuẩn Expo Router: `app/(tabs)/_layout.tsx`, 3 tab Thư viện | Tìm kiếm | Playlist, tôn trọng insets.bottom (Home indicator).
 - [x] Custom Tab Bar tích hợp MiniPlayer: MiniPlayer nằm ngay trên thanh điều hướng đáy, không nhảy z-index hay flicker.
 - [x] Hook `useTabBarMetrics`: tính toán hình học động (`tabBarHeight = 49`, `miniPlayerHeight = 56` khi có bài / 0 khi không có bài, `contentPaddingBottom = tabBar + miniPlayer + insets.bottom + spacing.sm`) kèm 3 unit test tự động.
@@ -340,16 +340,17 @@
 - [x] Màn hình Now Playing (`NowPlayingView.tsx` & `app/now-playing.tsx`):
   - Modal sheet `presentation: 'modal'` vuốt xuống hoặc chạm ChevronDown để thu nhỏ/đóng.
   - Ảnh bìa responsive vuông theo `useResponsive()` (`height * 0.36`), bo góc `radius.xl`, placeholder đĩa than khi không có ảnh bìa.
+  - **Hàng đợi phát nội tuyến (Inline Queue Panel):** Bấm nút "Hàng đợi" ở thanh công cụ dưới để chuyển đổi vùng ảnh bìa thành panel danh sách chờ (và ngược lại), hỗ trợ chạm vào bài bất kỳ để phát và nút thùng rác xóa bài khỏi queue (`removeFromQueue`) an toàn.
   - Nút Tim (HeartIcon) đồng bộ với danh sách Yêu thích của `LibraryContext` (`toggleFavorite`).
   - Thanh tua nhạc (Scrubber) có vùng chạm 44pt chuẩn Apple HIG, thanh bar 4pt bo tròn `radius.pill`, nhãn thời gian 2 bên `formatTime`.
   - Cụm điều khiển chính: Play/Pause tròn to 64x64 nổi bật ở tâm, Prev, Next, Shuffle thông minh, Repeat (Tắt / Tất cả / 1 bài).
-  - Nút phụ: "Lời nhạc" mở `LyricsModal` (tái dùng mã nguồn có sẵn) và nút "Hàng đợi" mở sheet danh sách bài đang chờ phát.
+  - Nút phụ: "Lời nhạc" mở `LyricsModal` (tái dùng mã nguồn có sẵn) và nút "Hàng đợi" đổi vùng ảnh bìa.
   - Khảo sát tràn màn hình: Bảng kích thước trên 4 cỡ màn hình iPhone Face ID (375x812, 393x852, 414x896, 440x956) đều dư từ 85pt đến 162pt không bị tràn; phòng vệ kép bằng `ScrollView`.
 - [x] Màn hình Thư viện (`app/(tabs)/library.tsx`): FlatList bài hát tối thiểu, chạm để phát, padding đáy thích ứng an toàn.
 - [x] Các màn hình placeholder `search.tsx` và `playlists.tsx` có tiêu đề và thông điệp tiếng Việt.
 - [x] Nút tạm thời "✨ Giao diện mới (thử nghiệm) →" tại `index.tsx` để vào `/(tabs)/library` (có ghi chú sẽ xóa ở Pha 3).
 - [x] Quy tắc Token: 100% theme token (0 mã màu hex/rgba hardcode, 0 `Dimensions.get`).
-- [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 184/184 tests toàn workspace passed, 0 lỗi TypeScript, 0 lỗi lint.
+- [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 204/204 tests toàn workspace passed (shared: 65, mobile: 56, indexer: 61, api: 22), 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích
 - [ ] Search (bỏ dấu), Albums, Playlists, Favorites

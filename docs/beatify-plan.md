@@ -2,21 +2,21 @@
 
 > **QUYẾT ĐỊNH ĐÃ CHỐT & QUYỀN ƯU TIÊN TÀI LIỆU:**
 > Tài liệu này **THAY THẾ** các nội dung mâu thuẫn trong `docs/SCREENS.md` và `docs/PLAN.md` về cấu trúc màn hình, cơ chế kết nối và lộ trình thực hiện:
-> 1. **Kết nối:** Deep link `beatify://connect?api=...&token=...` là phương thức kết nối chính (giữ nguyên cơ chế hiện có). **KHÔNG** nhúng token vào build, **KHÔNG** thêm `EXPO_PUBLIC_API_URL` / `API_TOKEN`. Không sửa `apps/api` và `packages/shared`.
+> 1. **Kết nối:** Deep link `beatify://connect?api=...&token=...` là phương thức kết nối chính (giữ nguyên cơ chế hiện có). **KHÔNG** nhúng token vào build, **KHÔNG** thêm `EXPO_PUBLIC_API_URL` / `API_TOKEN`. Token & cấu hình server hiện lưu trong `beatify_server_config.json` qua `expo-file-system` (chưa dùng `expo-secure-store`) [backlog bảo mật]. Không sửa `apps/api` và `packages/shared`.
 > 2. **Giữ nguyên tính năng:** Giữ `EditTrackModal` (sẽ chuyển vào menu "..." của bài hát ở pha sau). Hàng chờ "bí mật" (`customUrl`) và Hồ sơ/thống kê nghe sẽ chuyển vào màn "Cài đặt ẩn" ở pha sau, giữ nguyên toàn bộ logic. Chưa xóa bất kỳ tính năng nào.
 > 3. **Không thêm dependency & Không dùng MMKV:** Cache thư viện dùng định dạng JSON bằng `expo-file-system` kết hợp cơ chế ghi atomic hiện có (`statsStorage` an toàn dữ liệu, khôi phục `.tmp`), **KHÔNG** dùng MMKV.
 > 4. **Đồng bộ:** Dùng HTTP `GET` kèm header `If-None-Match` để nhận `304 Not Modified` khi không có bài mới (API chưa có route HEAD riêng). Không cam kết số mili-giây.
 > 5. **Cấu trúc UI:** 3 Tab đáy (`Thư viện`, `Tìm kiếm`, `Playlist`) thay vì 4 tab; **BỎ** màn hình Connect độc lập; màn **"Cài đặt ẩn"** (mở khi nhấn giữ tiêu đề Thư viện) thay thế cho tab Cài đặt & bảng Debug; nút "+ Playlist" đặt trong menu "...".
-> 6. **Lộ trình thực hiện (6 Pha):**
->    - **Pha 1:** Nền tảng State Providers (`LibraryContext`, `PlayerContext`).
->    - **Pha 2:** Khung điều hướng Bottom Tab Bar + MiniPlayer + Now Playing Sheet.
->    - **Pha 3:** Màn hình Thư viện (Bài hát trước) + Tìm kiếm (và **CHỈ ĐẾN LÚC NÀY** `index.tsx` mới thành redirect).
->    - **Pha 4:** Đồng bộ ngầm ETag + Màn hình Cài đặt ẩn.
->    - **Pha 5:** Album / Nghệ sĩ / Playlist + Dọn dẹp code cũ.
->    - **Pha 6:** Các tính năng phụ mở rộng (khi người dùng gõ "tiếp").
+> 6. **Lộ trình thực hiện (6 Pha thiết kế lại):**
+>    - **Thiết kế lại Pha 1:** Nền tảng State Providers (`LibraryContext`, `PlayerContext`).
+>    - **Thiết kế lại Pha 2:** Khung điều hướng Bottom Tab Bar + MiniPlayer + Now Playing Sheet (tích hợp panel hàng đợi nội tuyến).
+>    - **Thiết kế lại Pha 3:** Màn hình Thư viện (Bài hát trước) + Tìm kiếm (và **CHỈ ĐẾN LÚC NÀY** `index.tsx` mới thành redirect).
+>    - **Thiết kế lại Pha 4:** Đồng bộ ngầm ETag + Màn hình Cài đặt ẩn.
+>    - **Thiết kế lại Pha 5:** Album / Nghệ sĩ / Playlist + Dọn dẹp code cũ.
+>    - **Thiết kế lại Pha 6:** Các tính năng phụ mở rộng (khi người dùng gõ "tiếp").
 >    *(Quy tắc bất biến: Trước Pha 3, `index.tsx` phải luôn hoạt động 100% đầy đủ tính năng để app luôn dùng được).*
 
-Tài liệu này vạch ra toàn bộ kiến trúc, chức năng, luồng thao tác người dùng (UI/UX) và lộ trình kỹ thuật chuẩn xác cho ứng dụng **Beatify** trên iOS (tối ưu hóa đặc thù cho **iPhone 11 Pro Max**, iOS 26+). Mục tiêu cốt lõi: **Trải nghiệm nghe nhạc thuần túy, mượt mà, cao cấp chuẩn Apple Music / Spotify — 0 thao tác cài đặt thủ công trên app, toàn bộ cấu hình chuyển lên PC Web Dashboard**.
+Tài liệu này vạch ra toàn bộ kiến trúc, chức năng, luồng thao tác người dùng (UI/UX) và lộ trình kỹ thuật chuẩn xác cho ứng dụng **Beatify** trên iOS (test thật trên **iPhone 11 Pro Max**, dải hỗ trợ **iPhone 11 Pro Max đến 16 Pro Max**, iOS 26+). Mục tiêu cốt lõi: **Trải nghiệm nghe nhạc thuần túy, mượt mà, cao cấp chuẩn Apple Music / Spotify — 0 thao tác cài đặt thủ công trên app, toàn bộ cấu hình chuyển lên PC Web Dashboard**.
 
 ---
 
