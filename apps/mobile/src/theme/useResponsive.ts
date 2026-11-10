@@ -49,3 +49,4 @@ export function useResponsive(): ResponsiveInfo {
     maxContentWidth: layout.maxContentWidth,
   };
 }
+

@@ -17,6 +17,7 @@ export const colors = {
   surfaceActive: '#242424',
   surfacePressed: '#202020',
   surfaceMuted: '#1f1f1f',
+  surfaceControl: '#1c1c1c',
   surfaceDarker: '#161616',
 
   // Nền các màn hình và modal đặc thù
@@ -113,3 +114,4 @@ export const colors = {
 } as const;
 
 export type ColorToken = keyof typeof colors;
+

@@ -1221,7 +1221,7 @@ export default function SpikePlayerScreen() {
             <Text style={styles.queueHeader}>DANH SÁCH BÀI HÁT ({tracks.length})</Text>
             {isSmartShuffle && (
               <View style={styles.mysteryQueueTag}>
-                <MysteryIcon size={12} color="#1DB954" />
+                <MysteryIcon size={12} color={colors.warning} />
                 <Text style={styles.mysteryQueueTagText}>BÍ MẬT HÀNG ĐỢI</Text>
               </View>
             )}
@@ -1260,12 +1260,11 @@ export default function SpikePlayerScreen() {
             </TouchableOpacity>
           </View>
 
-
           {/* Banner giải thích tính năng bất ngờ của Smart Shuffle */}
           {isSmartShuffle && (
             <View style={styles.mysteryBannerBox}>
-              <MysteryIcon size={20} color="#1DB954" />
-              <View style={{ flex: 1, marginLeft: 10 }}>
+              <MysteryIcon size={20} color={colors.warning} />
+              <View style={{ flex: 1, marginLeft: spacing.sm }}>
                 <Text style={styles.mysteryBannerTitle}>Trộn bài thông minh đang bật</Text>
                 <Text style={styles.mysteryBannerDesc}>
                   Thứ tự các bài tiếp theo được giữ bí mật để mang lại cảm giác tò mò và bất ngờ!
@@ -1289,7 +1288,7 @@ export default function SpikePlayerScreen() {
               >
                 <View style={styles.queueIndexBox}>
                   {isMysterious ? (
-                    <QuestionIcon size={13} color="#71717a" />
+                    <QuestionIcon size={13} color={colors.textTertiary} />
                   ) : (
                     <Text
                       style={[
@@ -1314,6 +1313,8 @@ export default function SpikePlayerScreen() {
                       isActive && styles.queueItemTitleActive,
                       isMysterious && styles.queueItemTitleMysterious,
                     ]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {isMysterious ? 'Bài hát bí ẩn' : track.title}
                   </Text>
@@ -1322,6 +1323,8 @@ export default function SpikePlayerScreen() {
                       styles.queueItemArtist,
                       isMysterious && styles.queueItemArtistMysterious,
                     ]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {isMysterious
                       ? 'Sẽ được tiết lộ khi bài này phát'
@@ -1331,11 +1334,11 @@ export default function SpikePlayerScreen() {
 
                 <View style={styles.queueActionsRow}>
                   {isActive && (
-                    <View style={{ marginRight: 6 }}>
+                    <View style={{ marginRight: spacing.xs }}>
                       {playerState.isPlaying ? (
-                        <PlayIcon size={13} color="#1DB954" />
+                        <PlayIcon size={13} color={colors.primary} />
                       ) : (
-                        <PauseIcon size={13} color="#1DB954" />
+                        <PauseIcon size={13} color={colors.primary} />
                       )}
                     </View>
                   )}
@@ -1346,16 +1349,17 @@ export default function SpikePlayerScreen() {
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <TouchableOpacity
-                        style={[styles.queueEditBtn, { marginRight: 4 }]}
+                        style={[styles.queueEditBtn, { marginRight: spacing.xs }]}
                         onPress={() => handleToggleFavorite(track.id)}
                         activeOpacity={0.6}
+                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
                         accessibilityRole="button"
                         accessibilityLabel={userState.favoriteIds.includes(track.id) ? `Bỏ thích ${track.title}` : `Thích ${track.title}`}
                       >
                         <HeartIcon
                           size={13}
-                          color={userState.favoriteIds.includes(track.id) ? '#f43f5e' : '#71717a'}
-                          fill={userState.favoriteIds.includes(track.id) ? '#f43f5e' : 'none'}
+                          color={userState.favoriteIds.includes(track.id) ? colors.favorite : colors.textTertiary}
+                          fill={userState.favoriteIds.includes(track.id) ? colors.favorite : 'none'}
                         />
                       </TouchableOpacity>
 
@@ -1363,10 +1367,11 @@ export default function SpikePlayerScreen() {
                         style={styles.queueEditBtn}
                         onPress={() => handleOpenEdit(track)}
                         activeOpacity={0.6}
+                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
                         accessibilityRole="button"
                         accessibilityLabel={`Sửa thông tin ${track.title}`}
                       >
-                        <EditIcon size={13} color="#a1a1aa" />
+                        <EditIcon size={13} color={colors.textMuted} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -1585,6 +1590,7 @@ const styles = StyleSheet.create({
   progressBarTouchable: {
     width: '100%',
     height: layout.minTouchTarget,
+    marginVertical: -12,
     justifyContent: 'center',
   },
   progressBarBg: {
@@ -1621,7 +1627,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.borderDark,
+    backgroundColor: colors.surfaceControl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1678,12 +1684,12 @@ const styles = StyleSheet.create({
   repeatBottomBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs + 2,
-    paddingVertical: spacing.xs + 1,
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md + 2,
-    backgroundColor: colors.borderDark,
-    marginTop: spacing.lg + 2,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceControl,
+    marginTop: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderNeutral,
   },
@@ -1748,88 +1754,93 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   queueCard: {
-    backgroundColor: '#141414',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: colors.border,
   },
   queueHeader: {
-    color: '#888888',
-    fontSize: 11,
-    fontWeight: '700',
+    color: colors.textSubtle,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
     letterSpacing: 1,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   sortFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: '#1b1b1b',
-    borderRadius: 8,
-    padding: 3,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radius.sm,
+    padding: spacing.xxs,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: colors.border,
   },
   sortFilterBtn: {
     flex: 1,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sortFilterBtnActive: {
-    backgroundColor: '#262626',
+    backgroundColor: colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(29, 185, 84, 0.4)',
+    borderColor: colors.primaryBorder,
   },
   sortFilterText: {
-    color: '#888888',
-    fontSize: 11,
-    fontWeight: '600',
+    color: colors.textSubtle,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
   },
   sortFilterTextActive: {
-    color: '#1DB954',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: fontWeights.bold,
   },
 
   queueItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 6,
-    backgroundColor: '#1a1a1a',
+    minHeight: 56,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.surfaceSubtle,
   },
   queueItemActive: {
-    backgroundColor: '#242424',
-    borderColor: '#1DB954',
+    backgroundColor: colors.surfaceActive,
+    borderColor: colors.primary,
     borderWidth: 1,
   },
   queueItemInfo: {
     flex: 1,
+    justifyContent: 'center',
+    paddingRight: spacing.sm,
   },
   queueItemTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.semibold,
+    lineHeight: lineHeights.body,
   },
   queueItemTitleActive: {
-    color: '#1DB954',
+    color: colors.primary,
   },
   queueItemArtist: {
-    color: '#888888',
-    fontSize: 12,
-    marginTop: 2,
+    color: colors.textSubtle,
+    fontSize: fontSizes.captionLarge,
+    marginTop: spacing.xxs,
+    lineHeight: lineHeights.captionLarge,
   },
   queueActiveBadge: {
-    color: '#1DB954',
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginLeft: 8,
+    color: colors.primary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    marginLeft: spacing.sm,
   },
   debugCard: {
     backgroundColor: '#121212',
@@ -1863,9 +1874,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   subtleEditBtn: {
-    padding: spacing.xs + 2,
-    borderRadius: radius.xs + 2,
-    backgroundColor: colors.borderDark,
+    padding: spacing.xs,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceControl,
     opacity: 0.45,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1936,37 +1947,37 @@ const styles = StyleSheet.create({
   queueActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   queueEditBtn: {
-    backgroundColor: '#27272a',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: colors.surfaceHover,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.xs + 2,
     borderWidth: 1,
-    borderColor: '#3f3f46',
+    borderColor: colors.borderFocus,
     alignItems: 'center',
     justifyContent: 'center',
   },
   queueEditBtnText: {
-    color: '#d4d4d8',
-    fontSize: 11,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
   },
   queueIndexBox: {
-    width: 26,
+    width: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 6,
+    marginRight: spacing.sm,
   },
   queueIndexText: {
-    color: '#71717a',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.textTertiary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.semibold,
   },
   queueIndexTextActive: {
-    color: '#1DB954',
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontWeight: fontWeights.bold,
   },
   badgeLeftGroup: {
     flexDirection: 'row',
@@ -1976,15 +1987,15 @@ const styles = StyleSheet.create({
   badgeRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm + 2,
+    gap: spacing.sm,
   },
   profileHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs + 2,
+    gap: spacing.xs,
     backgroundColor: colors.surfaceElevated,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -2001,9 +2012,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     borderWidth: 1,
     borderColor: colors.primary,
-    paddingHorizontal: spacing.xs + 2,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xxs,
-    borderRadius: radius.md - 2,
+    borderRadius: radius.sm,
   },
   shuffleActivePillText: {
     color: colors.primary,
@@ -2013,19 +2024,19 @@ const styles = StyleSheet.create({
   },
   modeButtonsRow: {
     flexDirection: 'row',
-    gap: spacing.sm + 2,
-    marginTop: spacing.md + 2,
+    gap: spacing.sm,
+    marginTop: spacing.md,
     width: '100%',
     justifyContent: 'center',
   },
   modeBottomBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs + 2,
-    paddingVertical: spacing.xs + 2,
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     backgroundColor: colors.surfacePressed,
-    borderRadius: radius.xl,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.borderDivider,
   },
@@ -2037,79 +2048,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   mysteryQueueTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    gap: spacing.xs,
+    backgroundColor: colors.warningMuted,
     borderWidth: 1,
-    borderColor: '#eab308',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
+    borderColor: colors.warning,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.sm,
   },
   mysteryQueueTagText: {
-    color: '#eab308',
-    fontSize: 9.5,
-    fontWeight: 'bold',
+    color: colors.warning,
+    fontSize: fontSizes.micro,
+    fontWeight: fontWeights.bold,
   },
   mysteryBannerBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1b1b1f',
+    backgroundColor: colors.mysteryBanner,
     borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.3)',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-    gap: 10,
+    borderColor: colors.warningBorder,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.md,
   },
   mysteryBannerIcon: {
-    fontSize: 22,
+    fontSize: fontSizes.titleLarge + 2,
   },
   mysteryBannerTitle: {
-    color: '#eab308',
-    fontSize: 12,
-    fontWeight: '700',
+    color: colors.warning,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
   },
   mysteryBannerDesc: {
-    color: '#888888',
-    fontSize: 10.5,
-    marginTop: 2,
-    lineHeight: 14,
+    color: colors.textSubtle,
+    fontSize: fontSizes.caption,
+    marginTop: spacing.xxs,
+    lineHeight: lineHeights.caption,
   },
   queueItemMysterious: {
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: '#161618',
+    borderColor: colors.borderLight,
+    backgroundColor: colors.mysteryBackground,
   },
   queueIndexTextMysterious: {
-    color: '#eab308',
-    fontSize: 13,
+    color: colors.warning,
+    fontSize: fontSizes.subhead,
   },
   queueItemTitleMysterious: {
-    color: '#cccccc',
+    color: colors.textSecondaryAlt,
     fontStyle: 'italic',
     letterSpacing: 0.2,
   },
   queueItemArtistMysterious: {
-    color: '#666666',
-    fontSize: 11,
+    color: colors.textDisabled,
+    fontSize: fontSizes.caption,
     fontStyle: 'italic',
   },
   mysteryBadgePill: {
-    backgroundColor: '#242426',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.mysteryBadgeBg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.xs + 2,
   },
   mysteryBadgePillText: {
-    color: '#888888',
-    fontSize: 10,
-    fontWeight: '600',
+    color: colors.textSubtle,
+    fontSize: fontSizes.micro,
+    fontWeight: fontWeights.semibold,
   },
 });
 
