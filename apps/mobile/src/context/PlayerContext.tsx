@@ -33,6 +33,7 @@ export interface PlayerContextValue {
   toggleSmartShuffle: () => Promise<void>;
   applySortMode: (mode: TrackSortMode) => void;
   addCustomTrack: (url: string) => Promise<void>;
+  removeFromQueue: (index: number) => Promise<void>;
   handleTrackDeleted: (deletedTrackId: string, remaining: Track[]) => Promise<void>;
   gaplessDeltaMs: number | null;
   atomicWriteBranch: string;
@@ -280,6 +281,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     await playQueue(newTrackList, newTrackList.length - 1);
   }, [tracks, isSmartShuffle, setTracks, setOriginalTracks, playQueue]);
 
+  // Xóa bài hát khỏi hàng đợi phát hiện tại
+  const removeFromQueue = useCallback(async (index: number) => {
+    Vibration.vibrate(10);
+    if (index < 0 || index >= tracks.length) return;
+    const remaining = tracks.filter((_, idx) => idx !== index);
+
+    if (remaining.length === 0) {
+      setTracks([]);
+      setCurrentTrackIndex(0);
+      await playerService.pause();
+      return;
+    }
+
+    if (index === currentTrackIndex) {
+      const nextIdx = Math.min(index, remaining.length - 1);
+      setTracks(remaining);
+      setCurrentTrackIndex(nextIdx);
+      await playQueue(remaining, nextIdx);
+    } else if (index < currentTrackIndex) {
+      setTracks(remaining);
+      setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+    } else {
+      setTracks(remaining);
+    }
+  }, [tracks, currentTrackIndex, playQueue, setTracks]);
+
   // Xử lý khi bài hát bị xóa khỏi app
   const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {
     const targetIdx = tracks.findIndex((t) => t.id === trackId);
@@ -324,6 +351,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleSmartShuffle,
         applySortMode,
         addCustomTrack,
+        removeFromQueue,
         handleTrackDeleted,
         gaplessDeltaMs,
         atomicWriteBranch,

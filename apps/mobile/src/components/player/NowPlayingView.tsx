@@ -4,7 +4,6 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  Modal,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -33,7 +32,7 @@ import {
   QueueIcon,
   ChevronDownIcon,
   DiscIcon,
-  CloseIcon,
+  TrashIcon,
 } from '../icons/SvgIcons';
 import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
@@ -43,9 +42,10 @@ import { LyricsModal } from '../LyricsModal';
  * Thiết kế chuẩn Apple Music / Spotify cho iOS:
  * - Kéo xuống hoặc bấm Chevron để đóng
  * - Ảnh bìa co giãn linh hoạt (responsive) theo chiều cao màn hình
+ * - Hàng đợi phát (Queue) tích hợp nội tuyến (inline panel) thay thế ảnh bìa mượt mà
  * - Scrubber tua nhạc vùng chạm 44pt chuẩn HIG
  * - Cụm nút phát nổi bật (Play/Pause tròn to 64x64)
- * - Tích hợp Hàng đợi phát & Lời bài hát đồng bộ LRC
+ * - Tích hợp Lời bài hát đồng bộ LRC (LyricsModal)
  */
 export function NowPlayingView() {
   const router = useRouter();
@@ -66,6 +66,7 @@ export function NowPlayingView() {
     seekTo,
     cycleRepeat,
     toggleSmartShuffle,
+    removeFromQueue,
   } = usePlayer();
 
   const { userState, toggleFavorite, fetchLyrics } = useLibrary();
@@ -73,10 +74,9 @@ export function NowPlayingView() {
 
   const [barWidth, setBarWidth] = useState(0);
   const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
-  const [queueModalVisible, setQueueModalVisible] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
 
-  // Kích thước ảnh bìa thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
-  // Chiếm tối đa 38% chiều cao màn hình nhưng không vượt quá chiều rộng trừ lề
+  // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
   const artworkSize = Math.min(
     width - spacing.xl * 2,
     Math.max(200, Math.round(height * 0.36))
@@ -104,7 +104,11 @@ export function NowPlayingView() {
 
   const handleSelectQueueItem = (index: number) => {
     skipToTrack(index);
-    setQueueModalVisible(false);
+  };
+
+  const handleRemoveQueueItem = (e: { stopPropagation?: () => void }, index: number) => {
+    e.stopPropagation?.();
+    removeFromQueue(index);
   };
 
   return (
@@ -123,8 +127,10 @@ export function NowPlayingView() {
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>ĐANG PHÁT</Text>
-          {currentTrack?.album && (
+          <Text style={styles.headerTitle}>
+            {showQueue ? 'HÀNG ĐỢI PHÁT' : 'ĐANG PHÁT'}
+          </Text>
+          {currentTrack?.album && !showQueue && (
             <Text style={styles.headerSubtitle} numberOfLines={1}>
               {currentTrack.album}
             </Text>
@@ -140,28 +146,113 @@ export function NowPlayingView() {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ảnh bìa bài hát responsive */}
-        <View
-          style={[
-            styles.artworkContainer,
-            { width: artworkSize, height: artworkSize },
-          ]}
-        >
-          {currentTrack?.cover ? (
-            <Image
-              source={{ uri: currentTrack.cover }}
-              style={styles.artworkImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.artworkPlaceholder}>
-              <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
-              <Text style={styles.artworkEmptyText}>
-                {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+        {/* VÙNG CHUYỂN ĐỔI: Ảnh bìa HOẶC Danh sách hàng đợi phát inline */}
+        {!showQueue ? (
+          <View
+            style={[
+              styles.artworkContainer,
+              { width: artworkSize, height: artworkSize },
+            ]}
+          >
+            {currentTrack?.cover ? (
+              <Image
+                source={{ uri: currentTrack.cover }}
+                style={styles.artworkImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.artworkPlaceholder}>
+                <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
+                <Text style={styles.artworkEmptyText}>
+                  {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.queuePanelContainer,
+              { width: artworkSize, height: artworkSize },
+            ]}
+          >
+            <View style={styles.queuePanelHeader}>
+              <Text style={styles.queuePanelTitle}>
+                DANH SÁCH CHỜ ({tracks.length})
               </Text>
+              <TouchableOpacity
+                onPress={() => setShowQueue(false)}
+                style={styles.queueBackBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Quay lại ảnh bìa"
+              >
+                <DiscIcon size={16} color={colors.primary} />
+                <Text style={styles.queueBackBtnText}>Xem bìa</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+
+            <FlatList
+              data={tracks}
+              keyExtractor={(item, idx) => `${item.id}-${idx}`}
+              contentContainerStyle={styles.queueListInner}
+              showsVerticalScrollIndicator={true}
+              renderItem={({ item, index }) => {
+                const isCurrent = currentTrackIndex === index;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.queueItem,
+                      isCurrent && styles.queueItemActive,
+                    ]}
+                    onPress={() => handleSelectQueueItem(index)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.queueItemIndex}>
+                      {isCurrent ? (
+                        playerState.isPlaying ? (
+                          <PauseIcon size={14} color={colors.primary} />
+                        ) : (
+                          <PlayIcon size={14} color={colors.primary} />
+                        )
+                      ) : (
+                        <Text style={styles.queueIndexText}>{index + 1}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.queueItemInfo}>
+                      <Text
+                        style={[
+                          styles.queueItemTitle,
+                          isCurrent && styles.queueItemTitleActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text style={styles.queueItemArtist} numberOfLines={1}>
+                        {item.artist}
+                      </Text>
+                    </View>
+
+                    {/* Nút xóa bài khỏi hàng đợi */}
+                    <TouchableOpacity
+                      style={styles.queueRemoveBtn}
+                      onPress={(e) => handleRemoveQueueItem(e, index)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Xóa ${item.title} khỏi hàng đợi`}
+                    >
+                      <TrashIcon size={16} color={colors.dangerLight} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        )}
 
         {/* Thông tin bài hát + Nút Tim */}
         <View style={styles.trackInfoRow}>
@@ -286,7 +377,7 @@ export function NowPlayingView() {
           </TouchableOpacity>
         </View>
 
-        {/* Hàng nút tính năng phụ: Lời nhạc & Hàng đợi */}
+        {/* Hàng nút tính năng phụ: Lời nhạc & Nút Đổi Hàng đợi / Ảnh bìa */}
         <View style={styles.bottomButtonsRow}>
           <TouchableOpacity
             style={[styles.bottomButton, lyricsModalVisible && styles.bottomButtonActive]}
@@ -310,22 +401,27 @@ export function NowPlayingView() {
             </Text>
           </TouchableOpacity>
 
+          {/* Bấm nút này đổi vùng ảnh bìa thành hàng đợi và ngược lại */}
           <TouchableOpacity
-            style={[styles.bottomButton, queueModalVisible && styles.bottomButtonActive]}
-            onPress={() => setQueueModalVisible(true)}
+            style={[styles.bottomButton, showQueue && styles.bottomButtonActive]}
+            onPress={() => setShowQueue(!showQueue)}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Mở danh sách hàng đợi phát"
+            accessibilityLabel={showQueue ? 'Hiển thị ảnh bìa' : 'Hiển thị danh sách hàng đợi'}
           >
-            <QueueIcon size={18} color={colors.primary} />
+            {showQueue ? (
+              <DiscIcon size={18} color={colors.primary} />
+            ) : (
+              <QueueIcon size={18} color={colors.primary} />
+            )}
             <Text style={[styles.bottomButtonText, styles.bottomButtonTextActive]}>
-              Hàng đợi ({tracks.length})
+              {showQueue ? 'Ảnh bìa' : `Hàng đợi (${tracks.length})`}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modal Lời bài hát đồng bộ LRC (tái dùng LyricsModal đã có) */}
+      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */}
       <LyricsModal
         visible={lyricsModalVisible}
         track={currentTrack}
@@ -339,73 +435,6 @@ export function NowPlayingView() {
         }}
         onFetchLyrics={fetchLyrics}
       />
-
-      {/* Modal Sheet Hàng đợi phát (Queue) */}
-      <Modal
-        visible={queueModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setQueueModalVisible(false)}
-      >
-        <View style={[styles.queueModalRoot, { paddingTop: insets.top }]}>
-          <View style={styles.queueHeaderRow}>
-            <Text style={styles.queueHeaderTitle}>Hàng đợi phát</Text>
-            <TouchableOpacity
-              onPress={() => setQueueModalVisible(false)}
-              style={styles.queueCloseButton}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <CloseIcon size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            data={tracks}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.queueListContent}
-            renderItem={({ item, index }) => {
-              const isCurrent = currentTrackIndex === index;
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.queueItem,
-                    isCurrent && styles.queueItemActive,
-                  ]}
-                  onPress={() => handleSelectQueueItem(index)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.queueItemIndex}>
-                    {isCurrent ? (
-                      playerState.isPlaying ? (
-                        <PauseIcon size={14} color={colors.primary} />
-                      ) : (
-                        <PlayIcon size={14} color={colors.primary} />
-                      )
-                    ) : (
-                      <Text style={styles.queueIndexText}>{index + 1}</Text>
-                    )}
-                  </View>
-                  <View style={styles.queueItemInfo}>
-                    <Text
-                      style={[
-                        styles.queueItemTitle,
-                        isCurrent && styles.queueItemTitleActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.title}
-                    </Text>
-                    <Text style={styles.queueItemArtist} numberOfLines={1}>
-                      {item.artist}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -476,6 +505,92 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.caption,
     color: colors.textTertiary,
     marginTop: spacing.sm,
+  },
+  // Panel Hàng đợi nội tuyến thay thế vùng ảnh bìa
+  queuePanelContainer: {
+    borderRadius: radius.xl,
+    backgroundColor: colors.surfaceElevated,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  queuePanelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.xs,
+  },
+  queuePanelTitle: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.textSecondary,
+    letterSpacing: 0.8,
+  },
+  queueBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: 2,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+  },
+  queueBackBtnText: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+    color: colors.primary,
+  },
+  queueListInner: {
+    paddingVertical: spacing.xs,
+  },
+  queueItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.sm,
+    marginBottom: 2,
+  },
+  queueItemActive: {
+    backgroundColor: colors.surface,
+  },
+  queueItemIndex: {
+    width: 20,
+    alignItems: 'center',
+    marginRight: spacing.xs,
+  },
+  queueIndexText: {
+    fontSize: fontSizes.caption,
+    color: colors.textTertiary,
+  },
+  queueItemInfo: {
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  queueItemTitle: {
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.medium,
+    color: colors.textPrimary,
+  },
+  queueItemTitleActive: {
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
+  },
+  queueItemArtist: {
+    fontSize: fontSizes.caption,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  queueRemoveBtn: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trackInfoRow: {
     flexDirection: 'row',
@@ -585,70 +700,5 @@ const styles = StyleSheet.create({
   },
   bottomButtonTextActive: {
     color: colors.textPrimary,
-  },
-  queueModalRoot: {
-    flex: 1,
-    backgroundColor: colors.backgroundElevated,
-  },
-  queueHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  queueHeaderTitle: {
-    fontSize: fontSizes.title,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-  },
-  queueCloseButton: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  queueListContent: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  queueItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    marginBottom: 4,
-  },
-  queueItemActive: {
-    backgroundColor: colors.surfaceElevated,
-  },
-  queueItemIndex: {
-    width: 24,
-    alignItems: 'center',
-    marginRight: spacing.sm,
-  },
-  queueIndexText: {
-    fontSize: fontSizes.caption,
-    color: colors.textTertiary,
-  },
-  queueItemInfo: {
-    flex: 1,
-  },
-  queueItemTitle: {
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.medium,
-    color: colors.textPrimary,
-  },
-  queueItemTitleActive: {
-    color: colors.primary,
-    fontWeight: fontWeights.semibold,
-  },
-  queueItemArtist: {
-    fontSize: fontSizes.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
   },
 });
