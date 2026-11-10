@@ -11,7 +11,6 @@ import {
   getOfflineTotalSizeBytes,
   getAbsoluteOfflineUri,
   type OfflineIndex,
-  type OfflineTrackMeta,
 } from '../services/offline/offlineStorage';
 import { useLibrary } from './LibraryContext';
 
@@ -135,7 +134,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       } finally {
         setIsDownloading((prev) => {
           const next = { ...prev };
-          delete next[track.id];
+          Reflect.deleteProperty(next, track.id);
           return next;
         });
       }

@@ -211,7 +211,7 @@ export async function deleteTrackOffline(trackId: string): Promise<OfflineIndex>
   }
 
   const currentIndex = await loadOfflineIndex();
-  delete currentIndex[trackId];
+  Reflect.deleteProperty(currentIndex, trackId);
   await saveOfflineIndex(currentIndex);
   return currentIndex;
 }
@@ -234,7 +234,7 @@ export async function deleteMultipleTracksOffline(trackIds: string[]): Promise<O
 
   const currentIndex = await loadOfflineIndex();
   for (const trackId of trackIds) {
-    delete currentIndex[trackId];
+    Reflect.deleteProperty(currentIndex, trackId);
   }
   await saveOfflineIndex(currentIndex);
   return currentIndex;

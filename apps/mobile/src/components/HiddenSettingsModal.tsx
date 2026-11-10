@@ -335,6 +335,10 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
               autoCorrect={false}
             />
 
+            <Text style={[styles.sectionDesc, { marginTop: spacing.xxs, color: colors.primary }]}>
+              🔐 Token được mã hóa phần cứng và lưu an toàn trong iOS Keychain (Apple Secure Enclave).
+            </Text>
+
             <TouchableOpacity
               style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
               onPress={handleSaveConfig}

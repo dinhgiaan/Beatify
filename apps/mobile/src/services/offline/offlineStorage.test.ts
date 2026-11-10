@@ -22,12 +22,12 @@ vi.mock('expo-file-system/legacy', () => ({
     mockFiles[uri] = content;
   }),
   deleteAsync: vi.fn(async (uri: string) => {
-    delete mockFiles[uri];
-    delete mockFileSizes[uri];
+    Reflect.deleteProperty(mockFiles, uri);
+    Reflect.deleteProperty(mockFileSizes, uri);
   }),
   moveAsync: vi.fn(async ({ from, to }: { from: string; to: string }) => {
     mockFiles[to] = mockFiles[from] || '';
-    delete mockFiles[from];
+    Reflect.deleteProperty(mockFiles, from);
   }),
   makeDirectoryAsync: vi.fn(async () => {}),
   downloadAsync: vi.fn(async (_url: string, targetUri: string) => {
@@ -52,10 +52,10 @@ import {
 describe('offlineStorage', () => {
   beforeEach(() => {
     for (const key of Object.keys(mockFiles)) {
-      delete mockFiles[key];
+      Reflect.deleteProperty(mockFiles, key);
     }
     for (const key of Object.keys(mockFileSizes)) {
-      delete mockFileSizes[key];
+      Reflect.deleteProperty(mockFileSizes, key);
     }
   });
 

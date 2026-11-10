@@ -330,13 +330,24 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                     </TouchableOpacity>
                   </>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.selectToggleBtn}
-                    onPress={() => setIsSelectMode(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.selectToggleBtnText}>Chọn bài</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity
+                      style={styles.selectToggleBtn}
+                      onPress={() => setIsSelectMode(true)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.selectToggleBtnText}>Chọn bài</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.clearAllBtn}
+                      onPress={handleClearAll}
+                      activeOpacity={0.8}
+                      accessibilityLabel="Xóa toàn bộ nhạc đã tải"
+                    >
+                      <TrashIcon size={16} color={colors.textTertiary} />
+                    </TouchableOpacity>
+                  </>
                 )}
               </>
             )}
@@ -479,6 +490,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.semibold,
+  },
+  clearAllBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectTextBtn: {
     paddingVertical: spacing.xs,

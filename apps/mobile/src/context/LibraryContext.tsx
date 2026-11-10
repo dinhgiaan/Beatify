@@ -11,6 +11,10 @@ import {
 } from '@music-app/shared';
 import { MusicApiClient } from '../services/api/musicApiClient';
 import { parseMobileprovisionExpiration } from '../utils/mobileprovision';
+import {
+  getSecureServerToken,
+  setSecureServerToken,
+} from '../services/auth/secureTokenStorage';
 
 export interface LibraryContextValue {
   tracks: Track[];
@@ -183,7 +187,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         console.warn('Lỗi nạp cache thư viện:', err);
       }
 
-      // Nạp cấu hình server
+      // Nạp cấu hình server (URL từ file, Token từ Keychain)
       try {
         const info = await FileSystem.getInfoAsync(CONFIG_FILE);
         if (info.exists) {
@@ -193,10 +197,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             loadedUrl = data.serverUrl;
             setServerUrl(data.serverUrl);
           }
-          if (data.serverToken !== undefined) {
-            loadedToken = data.serverToken;
-            setServerToken(data.serverToken);
-          }
+        }
+        const secureToken = await getSecureServerToken();
+        if (secureToken) {
+          loadedToken = secureToken;
+          setServerToken(secureToken);
         }
       } catch (err) {
         console.warn('Lỗi đọc cấu hình server đã lưu:', err);
@@ -321,11 +326,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             const cleanToken = decodeURIComponent(newToken).trim();
             setServerUrl(cleanUrl);
             setServerToken(cleanToken);
+            setSecureServerToken(cleanToken).catch(() => {});
 
-            // Lưu vĩnh viễn cấu hình vào ổ đĩa điện thoại
+            // Lưu cấu hình serverUrl vào file (token bảo mật lưu trong iOS Keychain)
             FileSystem.writeAsStringAsync(
               CONFIG_FILE,
-              JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
+              JSON.stringify({ serverUrl: cleanUrl })
             ).catch((e) => console.warn('Lỗi ghi file cấu hình server:', e));
 
             Vibration.vibrate([0, 80, 50, 80]);
@@ -439,8 +445,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
       FileSystem.writeAsStringAsync(
         CONFIG_FILE,
-        JSON.stringify({ serverUrl: cleanUrl, serverToken: cleanToken })
+        JSON.stringify({ serverUrl: cleanUrl })
       ).catch(() => {});
+      setSecureServerToken(cleanToken).catch(() => {});
 
       await syncLibraryInternal({
         url: cleanUrl,
