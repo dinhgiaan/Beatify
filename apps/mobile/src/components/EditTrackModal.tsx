@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track, UpdateTrack } from '@music-app/shared';
 import { TrashIcon } from './icons/SvgIcons';
 import { ModalHeader } from './ModalHeader';
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
 import {
   colors,
   spacing,
@@ -46,12 +47,36 @@ export function EditTrackModal({
 }: EditTrackModalProps) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
+  const keyboardHeight = useKeyboardHeight();
+  const isKeyboardVisible = keyboardHeight > 0;
 
-  // Chiều cao thân cuộn thích ứng, đảm bảo khi bàn phím mở vẫn cuộn được trên iPhone Face ID
-  const maxBodyHeight = Math.max(
-    layout.modalBodyMinHeight,
-    Math.min(layout.modalBodyMaxHeight, Math.round(screenHeight * 0.46))
-  );
+  // Khi bàn phím mở, Home bar bị bàn phím che nên chân sheet chỉ cần đệm nhẹ spacing.sm
+  const sheetPaddingBottom = isKeyboardVisible
+    ? spacing.sm
+    : Math.max(spacing.lg, insets.bottom + spacing.sm);
+
+  // Chiều cao cố định ngoài ScrollView (paddingTop 20, sheetPaddingBottom, header ~64, footer ~74, buffer an toàn 16)
+  const fixedModalElementsHeight =
+    spacing.xl + sheetPaddingBottom + 64 + 74 + spacing.lg;
+
+  // Chiều cao tối đa khả dụng cho phần thân cuộn khi bàn phím mở
+  const availableBodyHeight =
+    screenHeight - insets.top - keyboardHeight - fixedModalElementsHeight;
+
+  // Nếu bàn phím mở: giới hạn không vượt quá khoảng trống khả dụng để đỉnh sheet không bị đẩy vọt qua Status Bar
+  // Nếu chiều cao khả dụng nhỏ hơn modalBodyMinHeight thì ưu tiên chiều cao khả dụng (không ép min)
+  const maxBodyHeight = isKeyboardVisible
+    ? availableBodyHeight < layout.modalBodyMinHeight
+      ? Math.max(100, availableBodyHeight)
+      : Math.min(
+          layout.modalBodyMaxHeight,
+          Math.round(screenHeight * 0.46),
+          availableBodyHeight
+        )
+    : Math.max(
+        layout.modalBodyMinHeight,
+        Math.min(layout.modalBodyMaxHeight, Math.round(screenHeight * 0.46))
+      );
 
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -176,7 +201,7 @@ export function EditTrackModal({
         <View
           style={[
             styles.modalContainer,
-            { paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.sm) },
+            { paddingBottom: sheetPaddingBottom },
           ]}
         >
           {/* Header dùng chung với nút đóng chuẩn >= 44x44pt */}
