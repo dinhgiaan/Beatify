@@ -11,6 +11,8 @@ import {
   Alert,
   Vibration,
   Linking,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -97,6 +99,7 @@ export default function SpikePlayerScreen() {
   const { width, height, isLandscape, gutter, maxContentWidth } = useResponsive();
 
   // Tính toán kích thước ảnh bìa thích ứng
+  // Lưu ý: Nhánh landscape tạm thời không chạy vì app đang khóa orientation: 'portrait' trong app.config.ts (giữ nguyên code kiến trúc responsive dự phòng).
   const artworkSize = isLandscape
     ? Math.max(140, Math.min(Math.round(height * 0.48), 240))
     : Math.max(140, Math.min(width - gutter * 2 - spacing.xl * 2, Math.round(height * 0.38), 340));
@@ -704,17 +707,22 @@ export default function SpikePlayerScreen() {
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        {
-          paddingLeft: Math.max(gutter, insets.left),
-          paddingRight: Math.max(gutter, insets.right),
-          paddingBottom: insets.bottom + spacing.xxl,
-        },
-      ]}
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoid}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingLeft: Math.max(gutter, insets.left),
+            paddingRight: Math.max(gutter, insets.right),
+            paddingBottom: insets.bottom + spacing.xxl,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
         {/* Thẻ hiển thị bài hát chính */}
         <View style={styles.card}>
           <View style={styles.badgeRow}>
@@ -776,6 +784,7 @@ export default function SpikePlayerScreen() {
             </View>
           </View>
 
+          {/* Nhánh landscape 2 cột dưới đây tạm thời không chạy vì app đang khóa orientation: 'portrait' trong app.config.ts. Giữ nguyên theo kiến trúc responsive dự phòng. */}
           {isLandscape ? (
             <View style={styles.landscapePlayerBody}>
               {/* Cột trái: Khung ảnh bìa thích ứng */}
@@ -1151,19 +1160,19 @@ export default function SpikePlayerScreen() {
           <TextInput
             style={styles.inputField}
             placeholder="http://192.168.1.x:8787 hoặc domain Worker"
-            placeholderTextColor="#666666"
+            placeholderTextColor={colors.textPlaceholder}
             value={serverUrl}
             onChangeText={setServerUrl}
             autoCapitalize="none"
             autoCorrect={false}
           />
         </View>
-        <View style={[styles.syncInputGroup, { marginTop: 8 }]}>
+        <View style={[styles.syncInputGroup, { marginTop: spacing.sm }]}>
           <Text style={styles.syncInputLabel}>API Token (Bearer):</Text>
           <TextInput
             style={styles.inputField}
             placeholder="Token bí mật để xác thực"
-            placeholderTextColor="#666666"
+            placeholderTextColor={colors.textPlaceholder}
             value={serverToken}
             onChangeText={setServerToken}
             secureTextEntry
@@ -1175,21 +1184,26 @@ export default function SpikePlayerScreen() {
           style={[styles.syncBtn, isSyncing && styles.syncBtnDisabled]}
           disabled={isSyncing}
           onPress={handleSyncLibrary}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Tải toàn bộ thư viện bài hát từ Cloudflare"
         >
           {isSyncing ? (
-            <ActivityIndicator size="small" color="#000" />
+            <ActivityIndicator size="small" color={colors.textDark} />
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <RepeatIcon size={15} color="#000000" />
-              <Text style={[styles.syncBtnText, { marginLeft: 6 }]}>Tải toàn bộ thư viện từ Cloudflare</Text>
+              <RepeatIcon size={15} color={colors.textDark} />
+              <Text style={[styles.syncBtnText, { marginLeft: spacing.sm }]}>Tải toàn bộ thư viện từ Cloudflare</Text>
             </View>
           )}
         </TouchableOpacity>
-        {syncStatus && (
+        {syncStatus ? (
           <View style={styles.syncStatusBox}>
-            <Text style={styles.syncStatusText}>{syncStatus}</Text>
+            <Text style={styles.syncStatusText} numberOfLines={3} ellipsizeMode="tail">
+              {syncStatus}
+            </Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       {/* Khung nhập link nhạc thật (Không dùng mock data) */}
@@ -1202,13 +1216,19 @@ export default function SpikePlayerScreen() {
           <TextInput
             style={styles.inputField}
             placeholder="https://example.com/song.mp3"
-            placeholderTextColor="#666666"
+            placeholderTextColor={colors.textPlaceholder}
             value={customUrl}
             onChangeText={setCustomUrl}
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TouchableOpacity style={styles.addBtn} onPress={handleAddCustomTrack}>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={handleAddCustomTrack}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Phát trực tiếp bài hát từ liên kết"
+          >
             <Text style={styles.addBtnText}>Phát</Text>
           </TouchableOpacity>
         </View>
@@ -1475,12 +1495,17 @@ export default function SpikePlayerScreen() {
         onClose={() => setProfileModalVisible(false)}
         totalLibraryTracksCount={tracks.length}
       />
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     backgroundColor: colors.background,
     flexGrow: 1,
@@ -1706,52 +1731,54 @@ const styles = StyleSheet.create({
     color: '#1DB954',
   },
   inputCard: {
-    backgroundColor: '#141414',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: colors.borderSubtle,
   },
   inputCardTitle: {
-    color: '#1DB954',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
     letterSpacing: 1,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   inputCardSubtitle: {
-    color: '#888888',
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 12,
+    color: colors.textSubtle,
+    fontSize: fontSizes.captionLarge,
+    lineHeight: lineHeights.captionLarge,
+    marginBottom: spacing.md,
   },
   inputRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   inputField: {
     flex: 1,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: '#ffffff',
-    fontSize: 13,
+    minHeight: layout.minTouchTarget,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: colors.borderLight,
   },
   addBtn: {
-    backgroundColor: '#1DB954',
-    paddingHorizontal: 16,
+    minHeight: layout.minTouchTarget,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   addBtnText: {
-    color: '#000000',
-    fontWeight: 'bold',
-    fontSize: 13,
+    color: colors.textDark,
+    fontWeight: fontWeights.bold,
+    fontSize: fontSizes.subhead,
   },
   queueCard: {
     backgroundColor: colors.surface,
@@ -1887,62 +1914,65 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   syncCard: {
-    backgroundColor: '#121212',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#242424',
+    borderColor: colors.border,
   },
   syncCardTitle: {
-    color: '#1DB954',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
     letterSpacing: 1,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   syncCardSubtitle: {
-    color: '#888888',
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 12,
+    color: colors.textSubtle,
+    fontSize: fontSizes.captionLarge,
+    lineHeight: lineHeights.captionLarge,
+    marginBottom: spacing.md,
   },
   syncInputGroup: {
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   syncInputLabel: {
-    color: '#a1a1aa',
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 4,
+    color: colors.textMuted,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+    marginBottom: spacing.xs,
   },
   syncBtn: {
-    backgroundColor: '#1DB954',
-    paddingVertical: 10,
-    borderRadius: 8,
+    minHeight: layout.minTouchTarget,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   syncBtnDisabled: {
     opacity: 0.6,
   },
   syncBtnText: {
-    color: '#000000',
-    fontWeight: 'bold',
-    fontSize: 13,
+    color: colors.textDark,
+    fontWeight: fontWeights.bold,
+    fontSize: fontSizes.subhead,
   },
   syncStatusBox: {
-    backgroundColor: '#181818',
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 10,
+    backgroundColor: colors.surfaceSubtle,
+    padding: spacing.sm,
+    borderRadius: radius.xs,
+    marginTop: spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: '#1DB954',
+    borderLeftColor: colors.primary,
   },
   syncStatusText: {
-    color: '#a1a1aa',
-    fontSize: 12,
+    color: colors.textMuted,
+    fontSize: fontSizes.captionLarge,
+    lineHeight: lineHeights.captionLarge,
   },
   queueActionsRow: {
     flexDirection: 'row',
