@@ -2,7 +2,7 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Pha 1: Nền tảng State Providers (`LibraryContext`, `PlayerContext`) cho `@music-app/mobile`, chuẩn bị cho kiến trúc Bottom Tabs & Zero-Settings UI theo `docs/beatify-plan.md`. Spike player, lock screen, gapless, ReplayGain, atomic stats storage và CI kiểm thử 190 tests đã hoàn thành xanh 100%.
+**Phase hiện tại:** Pha 2: Bottom Tabs (Thư viện | Tìm kiếm | Playlist) + MiniPlayer (56pt) + Now Playing Modal theo `docs/beatify-plan.md`. Spike player ở `index.tsx` vẫn duy trì hoạt động 100% kèm nút chuyển sang giao diện mới thử nghiệm. Hệ thống kiểm thử toàn workspace 184 tests xanh 100%.
 **Cập nhật lần cuối:** 2026-11-10
 **Quy tắc phạm vi:** đóng băng, không thêm tính năng mới cho tới khi dùng MVP ít nhất hai tuần. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
@@ -325,16 +325,31 @@
 - [ ] Người dùng chạy nghiệm thu thực tế 15 tiêu chí Phase 0 (bảng C3) trong `docs/ACCEPTANCE.md`
 - [ ] Người dùng chạy đồng bộ thư viện nhạc thật lên Cloudflare R2
 
-## Phase 2: MVP app
-- [ ] Màn hình Kết nối, Library, Now Playing, MiniPlayer
-- [ ] Màn hình Hàng đợi (xem, kéo sắp xếp, xoá, "Phát tiếp theo")
-- [ ] Bố cục, tab và điều hướng theo `docs/SCREENS.md`. Chế độ demo (chỉ biến thể development, có nhãn DEMO)
-- [ ] Thanh tiến trình (`SeekBar`) theo `docs/SCREENS.md`: kéo để tua (chỉ tua khi thả), chạm để tua, nội suy vị trí cho mượt, trạng thái đang tải, vạch tiến trình ở MiniPlayer. Hàm thuần `positionFromTouch`, `clampSeek` có test, `formatTime` hỗ trợ `h:mm:ss` và dạng còn lại
-- [ ] Xử lý lỗi `INVALID_TOKEN`: về màn hình nhập lại token, không crash. Nút Kiểm tra kết nối dùng `/api/health`. Thông báo tiếng Việt theo `ErrorCode` (bảng đầy đủ)
-- [ ] `formatTime` trong `packages/shared` (có test), app import từ `@music-app/shared`
-- [ ] Lock screen, Control Center, ReplayGain, queue, repeat, lưu hàng đợi
-- [ ] Shuffle theo đặc tả mục 13.3: thứ tự tính trước, không lặp bài, Previous theo lịch sử, hàm thuần `buildShuffleOrder` có test
-- [ ] Nghiệm thu ACCEPTANCE mục 1-11
+## Phase 2: Bottom Tabs, MiniPlayer & Now Playing Modal (Đã hoàn thành theo docs/beatify-plan.md)
+- [x] Cấu trúc Bottom Tabs chuẩn Expo Router: `app/(tabs)/_layout.tsx`, 3 tab Thư viện | Tìm kiếm | Playlist, tôn trọng insets.bottom (Home indicator).
+- [x] Custom Tab Bar tích hợp MiniPlayer: MiniPlayer nằm ngay trên thanh điều hướng đáy, không nhảy z-index hay flicker.
+- [x] Hook `useTabBarMetrics`: tính toán hình học động (`tabBarHeight = 49`, `miniPlayerHeight = 56` khi có bài / 0 khi không có bài, `contentPaddingBottom = tabBar + miniPlayer + insets.bottom + spacing.sm`) kèm 3 unit test tự động.
+- [x] MiniPlayer Component (`MiniPlayer.tsx`):
+  - Chiều cao 56pt chuẩn pixel.
+  - Ảnh bìa 40x40 bo góc `radius.sm`, tên bài và ca sĩ cắt dòng an toàn (`numberOfLines={1}`).
+  - Nút Play/Pause và Next có vùng chạm $\ge 44\times 44$ qua `hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}`.
+  - Thanh tiến trình 2pt ở đỉnh dùng `useProgress()`, tách riêng tránh re-render MiniPlayer mỗi 250ms.
+  - Ẩn hoàn toàn khi không có bài (`miniPlayerHeight = 0`), layout dưới dâng lên tự nhiên.
+  - Chạm vào nền MiniPlayer mở modal toàn màn hình `/now-playing`.
+  - Bộ 5 unit test tự động xác thực hiển thị, ẩn khi trống, navigation và gọi hàm điều khiển.
+- [x] Màn hình Now Playing (`NowPlayingView.tsx` & `app/now-playing.tsx`):
+  - Modal sheet `presentation: 'modal'` vuốt xuống hoặc chạm ChevronDown để thu nhỏ/đóng.
+  - Ảnh bìa responsive vuông theo `useResponsive()` (`height * 0.36`), bo góc `radius.xl`, placeholder đĩa than khi không có ảnh bìa.
+  - Nút Tim (HeartIcon) đồng bộ với danh sách Yêu thích của `LibraryContext` (`toggleFavorite`).
+  - Thanh tua nhạc (Scrubber) có vùng chạm 44pt chuẩn Apple HIG, thanh bar 4pt bo tròn `radius.pill`, nhãn thời gian 2 bên `formatTime`.
+  - Cụm điều khiển chính: Play/Pause tròn to 64x64 nổi bật ở tâm, Prev, Next, Shuffle thông minh, Repeat (Tắt / Tất cả / 1 bài).
+  - Nút phụ: "Lời nhạc" mở `LyricsModal` (tái dùng mã nguồn có sẵn) và nút "Hàng đợi" mở sheet danh sách bài đang chờ phát.
+  - Khảo sát tràn màn hình: Bảng kích thước trên 4 cỡ màn hình iPhone Face ID (375x812, 393x852, 414x896, 440x956) đều dư từ 85pt đến 162pt không bị tràn; phòng vệ kép bằng `ScrollView`.
+- [x] Màn hình Thư viện (`app/(tabs)/library.tsx`): FlatList bài hát tối thiểu, chạm để phát, padding đáy thích ứng an toàn.
+- [x] Các màn hình placeholder `search.tsx` và `playlists.tsx` có tiêu đề và thông điệp tiếng Việt.
+- [x] Nút tạm thời "✨ Giao diện mới (thử nghiệm) →" tại `index.tsx` để vào `/(tabs)/library` (có ghi chú sẽ xóa ở Pha 3).
+- [x] Quy tắc Token: 100% theme token (0 mã màu hex/rgba hardcode, 0 `Dimensions.get`).
+- [x] Kiểm thử toàn diện: 56/56 unit tests của mobile passed, 184/184 tests toàn workspace passed, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Phase 3: Tiện ích
 - [ ] Search (bỏ dấu), Albums, Playlists, Favorites

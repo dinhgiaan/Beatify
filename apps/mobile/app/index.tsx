@@ -11,6 +11,7 @@ import {
   Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   colors,
   spacing,
@@ -51,6 +52,7 @@ import {
 } from '../src/components/icons/SvgIcons';
 
 export default function SpikePlayerScreen() {
+  const router = useRouter();
   const {
     userState,
     serverUrl,
@@ -159,6 +161,17 @@ export default function SpikePlayerScreen() {
       automaticallyAdjustKeyboardInsets={true}
     >
       <View style={[styles.contentWrapper, { maxWidth: maxContentWidth }]}>
+        {/* NÚT TẠM THỜI: Chuyển sang giao diện Bottom Tabs (Pha 2 thử nghiệm). SẼ BỊ XÓA Ở PHA 3 khi chuyển hẳn index.tsx thành redirect */}
+        <TouchableOpacity
+          style={styles.newUiButton}
+          onPress={() => router.push('/(tabs)/library')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Chuyển sang giao diện mới thử nghiệm"
+        >
+          <Text style={styles.newUiButtonText}>✨ Giao diện mới (thử nghiệm) →</Text>
+        </TouchableOpacity>
+
         {/* Thẻ hiển thị bài hát chính */}
         <View style={styles.card}>
           <View style={styles.badgeRow}>
@@ -1593,6 +1606,19 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: fontSizes.micro,
     fontWeight: fontWeights.semibold,
+  },
+  newUiButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  newUiButtonText: {
+    color: colors.textDark,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
   },
 });
 

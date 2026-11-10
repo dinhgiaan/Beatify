@@ -34,6 +34,19 @@ export default function RootLayout() {
                   title: 'Beatify Spike',
                 }}
               />
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="now-playing"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                }}
+              />
             </Stack>
           </PlayerProgressProvider>
         </PlayerProvider>
