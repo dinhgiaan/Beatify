@@ -1253,6 +1253,7 @@ export default function SpikePlayerScreen() {
               style={[styles.sortFilterBtn, sortMode === 'smart' && styles.sortFilterBtnActive]}
               onPress={() => handleApplySortMode('smart')}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
             >
               <Text style={[styles.sortFilterText, sortMode === 'smart' && styles.sortFilterTextActive]}>
                 ✨ Đan xen ca sĩ
@@ -1263,6 +1264,7 @@ export default function SpikePlayerScreen() {
               style={[styles.sortFilterBtn, sortMode === 'artist' && styles.sortFilterBtnActive]}
               onPress={() => handleApplySortMode('artist')}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
             >
               <Text style={[styles.sortFilterText, sortMode === 'artist' && styles.sortFilterTextActive]}>
                 🎤 Theo ca sĩ
@@ -1273,6 +1275,7 @@ export default function SpikePlayerScreen() {
               style={[styles.sortFilterBtn, sortMode === 'title' && styles.sortFilterBtnActive]}
               onPress={() => handleApplySortMode('title')}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
             >
               <Text style={[styles.sortFilterText, sortMode === 'title' && styles.sortFilterTextActive]}>
                 🔤 Tên A-Z
@@ -1372,7 +1375,7 @@ export default function SpikePlayerScreen() {
                         style={[styles.queueEditBtn, { marginRight: spacing.xs }]}
                         onPress={() => handleToggleFavorite(track.id)}
                         activeOpacity={0.6}
-                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+                        hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
                         accessibilityRole="button"
                         accessibilityLabel={userState.favoriteIds.includes(track.id) ? `Bỏ thích ${track.title}` : `Thích ${track.title}`}
                       >
@@ -1387,7 +1390,7 @@ export default function SpikePlayerScreen() {
                         style={styles.queueEditBtn}
                         onPress={() => handleOpenEdit(track)}
                         activeOpacity={0.6}
-                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+                        hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
                         accessibilityRole="button"
                         accessibilityLabel={`Sửa thông tin ${track.title}`}
                       >
@@ -1990,6 +1993,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   queueEditBtn: {
+    minHeight: 28,
     backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
