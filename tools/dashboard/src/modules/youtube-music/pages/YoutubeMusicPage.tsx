@@ -875,10 +875,15 @@ export const YoutubeMusicPage: React.FC = () => {
       {/* Input Area */}
       <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] shadow-sm space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-[11.5px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
-            <Link2 size={13} className="text-[#1DB954]" />
-            <span>Nhập link bài nhạc</span>
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="text-[11.5px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+              <Link2 size={13} className="text-[#1DB954]" />
+              <span>Nhập link bài nhạc hoặc Playlist YouTube</span>
+            </label>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1DB954]/10 text-[#1DB954] border border-[#1DB954]/20 font-medium">
+              Hỗ trợ link cả Playlist
+            </span>
+          </div>
           <button
             type="button"
             onClick={handlePasteClipboard}
@@ -894,7 +899,7 @@ export const YoutubeMusicPage: React.FC = () => {
           name="youtubeUrlInput"
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
-          placeholder="Nhập link YouTube (mỗi link 1 dòng)"
+          placeholder="Dán link video đơn lẻ HOẶC dán thẳng 1 link Playlist YouTube (ví dụ: https://www.youtube.com/playlist?list=...). Hệ thống sẽ tự động quét toàn bộ bài hát trong playlist!"
           className="w-full h-20 p-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] text-[12px] focus:outline-none focus:border-[#1DB954] transition-colors resize-y leading-relaxed text-[var(--text-primary)]"
         />
 

@@ -362,7 +362,7 @@ export const YoutubeService = {
   /**
    * Xem trước thông tin bài hát / playlist từ link YouTube mà chưa tải
    */
-  async previewUrl(url: string): Promise<YoutubePreviewResult> {
+  async previewUrl(url: string, maxItems = 150): Promise<YoutubePreviewResult> {
     const cleanUrl = url.trim();
     if (!this.isValidYoutubeUrl(cleanUrl)) {
       throw new Error('URL YouTube không hợp lệ. Vui lòng nhập link youtube.com hoặc youtu.be');
@@ -377,6 +377,11 @@ export const YoutubeService = {
     ]);
 
     if (exitCode !== 0) {
+      if (/playlist does not exist|private playlist/i.test(stderr)) {
+        throw new Error(
+          'Playlist YouTube này đang ở chế độ "Riêng tư" (Private) hoặc không tồn tại. Vui lòng vào YouTube đổi quyền riêng tư của Playlist sang "Không công khai" (Unlisted) hoặc "Công khai" (Public) rồi thử lại!'
+        );
+      }
       throw new Error(`Không thể lấy thông tin từ YouTube: ${stderr || 'Lỗi không xác định'}`);
     }
 
@@ -394,8 +399,8 @@ export const YoutubeService = {
 
     const entries: YoutubePreviewEntry[] = [];
 
-    for (const item of rawEntries.slice(0, 50)) {
-      // Giới hạn xem trước tối đa 50 bài cho 1 playlist
+    for (const item of rawEntries.slice(0, maxItems)) {
+      // Giới hạn xem trước tối đa maxItems bài cho 1 playlist
       const id = String(item.id || '');
       const originalTitle = String(item.title || 'Unknown Title');
       const itemUrl = item.webpage_url ? String(item.webpage_url) : `https://www.youtube.com/watch?v=${id}`;

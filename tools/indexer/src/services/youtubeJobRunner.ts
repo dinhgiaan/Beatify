@@ -181,7 +181,7 @@ class YoutubeJobRunner extends EventEmitter {
 
     for (const url of urls) {
       if (allItems.length >= maxItems) break;
-      const res = await YoutubeService.previewUrl(url);
+      const res = await YoutubeService.previewUrl(url, maxItems);
       if (res.isPlaylist) {
         isPlaylist = true;
         playlistTitle = res.playlistTitle;
