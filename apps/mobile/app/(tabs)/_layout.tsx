@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
@@ -26,6 +26,20 @@ type TabsTabBarProps = Parameters<
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [tabWidth, setTabWidth] = useState(0);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const numTabs = state.routes.length || 3;
+
+  useEffect(() => {
+    if (tabWidth > 0) {
+      Animated.spring(slideAnim, {
+        toValue: state.index * tabWidth,
+        useNativeDriver: true,
+        friction: 9,
+        tension: 70,
+      }).start();
+    }
+  }, [state.index, tabWidth, slideAnim]);
 
   return (
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
@@ -40,7 +54,26 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             marginBottom: Math.max(insets.bottom, 10),
           },
         ]}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0) {
+            setTabWidth((w - spacing.xs * 2) / numTabs);
+          }
+        }}
       >
+        {/* Lớp nền viên thuốc động lướt mượt mà giữa các tab (Smooth Sliding Active Pill) */}
+        {tabWidth > 0 && (
+          <Animated.View
+            style={[
+              styles.activePillIndicator,
+              {
+                width: tabWidth,
+                transform: [{ translateX: slideAnim }],
+              },
+            ]}
+          />
+        )}
+
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor?.options ?? {};
@@ -91,10 +124,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               onLongPress={onLongPress}
               delayLongPress={500}
               activeOpacity={0.7}
-              style={[
-                styles.tabButton,
-                isFocused && styles.tabButtonFocused,
-              ]}
+              style={styles.tabButton}
             >
               <View style={styles.iconContainer}>{icon}</View>
               <Text
@@ -171,6 +201,14 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 12,
   },
+  activePillIndicator: {
+    position: 'absolute',
+    top: spacing.xxs,
+    bottom: spacing.xxs,
+    left: spacing.xs,
+    backgroundColor: colors.surfaceActive,
+    borderRadius: radius.pill,
+  },
   tabButton: {
     flex: 1,
     height: 52,
@@ -179,9 +217,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: radius.pill,
-  },
-  tabButtonFocused: {
-    backgroundColor: colors.surfaceActive,
+    zIndex: 1,
+    backgroundColor: 'transparent',
   },
   iconContainer: {
     height: 22,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   Vibration,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
@@ -128,6 +129,22 @@ export default function LibraryScreen() {
   const { contentPaddingBottom } = useTabBarMetrics();
 
   const [activeSegment, setActiveSegment] = useState<LibrarySegment>('songs');
+  const segmentSlideAnim = useRef(new Animated.Value(0)).current;
+  const [segmentWidth, setSegmentWidth] = useState(0);
+
+  const segmentIndex =
+    activeSegment === 'songs' ? 0 : activeSegment === 'albums' ? 1 : 2;
+
+  useEffect(() => {
+    if (segmentWidth > 0) {
+      Animated.spring(segmentSlideAnim, {
+        toValue: segmentIndex * segmentWidth,
+        useNativeDriver: true,
+        friction: 9,
+        tension: 70,
+      }).start();
+    }
+  }, [segmentIndex, segmentWidth, segmentSlideAnim]);
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [addToPlaylistModalVisible, setAddToPlaylistModalVisible] = useState(false);
@@ -343,7 +360,12 @@ export default function LibraryScreen() {
 
   // Render mục Album
   const renderAlbumItem = ({ item }: { item: (typeof albums)[0] }) => {
-    const albumTracks = tracks.filter((t) => t.album === item.title);
+    if (!item) return null;
+    const albumTitle = item.title || 'Chưa rõ Album';
+    const albumArtist = item.artist || 'Chưa rõ nghệ sĩ';
+    const albumTracks = (tracks || []).filter((t) =>
+      t.albumId && item.id ? t.albumId === item.id : t.album === albumTitle
+    );
     return (
       <TouchableOpacity
         style={styles.albumItem}
@@ -352,8 +374,8 @@ export default function LibraryScreen() {
           Vibration.vibrate(10);
           setSelectedCollection({
             visible: true,
-            title: item.title,
-            subtitle: `${item.artist} • ${albumTracks.length} bài hát`,
+            title: albumTitle,
+            subtitle: `${albumArtist} • ${albumTracks.length} bài hát`,
             coverUrl: item.cover,
             tracks: albumTracks,
             type: 'album',
@@ -370,10 +392,10 @@ export default function LibraryScreen() {
           )}
         </View>
         <Text style={styles.albumTitleText} numberOfLines={1}>
-          {item.title}
+          {albumTitle}
         </Text>
         <Text style={styles.albumSubtitleText} numberOfLines={1}>
-          {item.artist} • {albumTracks.length} bài
+          {albumArtist} • {albumTracks.length} bài
         </Text>
       </TouchableOpacity>
     );
@@ -451,13 +473,30 @@ export default function LibraryScreen() {
           {tracks.length} bài hát • {formatTime(totalDurationSec)}
         </Text>
 
-        {/* Thanh chọn phân đoạn Segmented Control */}
-        <View style={styles.segmentContainer}>
+        {/* Thanh chọn phân đoạn Segmented Control với hiệu ứng trượt mượt mà (Smooth Sliding Active Pill) */}
+        <View
+          style={styles.segmentContainer}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0) {
+              setSegmentWidth((w - 6) / 3);
+            }
+          }}
+        >
+          {segmentWidth > 0 && (
+            <Animated.View
+              style={[
+                styles.segmentPillIndicator,
+                {
+                  width: segmentWidth,
+                  transform: [{ translateX: segmentSlideAnim }],
+                },
+              ]}
+            />
+          )}
+
           <TouchableOpacity
-            style={[
-              styles.segmentButton,
-              activeSegment === 'songs' && styles.segmentButtonActive,
-            ]}
+            style={styles.segmentButton}
             onPress={() => setActiveSegment('songs')}
             activeOpacity={0.7}
           >
@@ -472,10 +511,7 @@ export default function LibraryScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.segmentButton,
-              activeSegment === 'albums' && styles.segmentButtonActive,
-            ]}
+            style={styles.segmentButton}
             onPress={() => setActiveSegment('albums')}
             activeOpacity={0.7}
           >
@@ -490,10 +526,7 @@ export default function LibraryScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.segmentButton,
-              activeSegment === 'artists' && styles.segmentButtonActive,
-            ]}
+            style={styles.segmentButton}
             onPress={() => setActiveSegment('artists')}
             activeOpacity={0.7}
           >
@@ -512,8 +545,9 @@ export default function LibraryScreen() {
       {/* Nội dung danh sách theo phân đoạn đã chọn */}
       {activeSegment === 'songs' ? (
         <FlatList
+          key="flatlist-songs"
           data={tracks}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
           renderItem={renderTrackItem}
           contentContainerStyle={[
             styles.listContent,
@@ -605,8 +639,9 @@ export default function LibraryScreen() {
         />
       ) : activeSegment === 'albums' ? (
         <FlatList
+          key="flatlist-albums"
           data={albums}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
           renderItem={renderAlbumItem}
           numColumns={2}
           columnWrapperStyle={styles.albumColumnWrapper}
@@ -623,8 +658,9 @@ export default function LibraryScreen() {
         />
       ) : (
         <FlatList
+          key="flatlist-artists"
           data={artistGroups}
-          keyExtractor={(item) => item.artist}
+          keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
           renderItem={renderArtistItem}
           contentContainerStyle={[
             styles.listContent,
@@ -921,14 +957,21 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
+  segmentPillIndicator: {
+    position: 'absolute',
+    top: 3,
+    bottom: 3,
+    left: 3,
+    backgroundColor: colors.surfaceActive,
+    borderRadius: radius.pill,
+  },
   segmentButton: {
     flex: 1,
     paddingVertical: spacing.xs,
     alignItems: 'center',
     borderRadius: radius.pill,
-  },
-  segmentButtonActive: {
-    backgroundColor: colors.surface,
+    zIndex: 1,
+    backgroundColor: 'transparent',
   },
   segmentText: {
     fontSize: fontSizes.caption,

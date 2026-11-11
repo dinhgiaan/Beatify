@@ -141,11 +141,21 @@ export function MiniPlayer() {
 
 const styles = StyleSheet.create({
   container: {
+    width: '92%',
+    maxWidth: 380,
     height: MINI_PLAYER_HEIGHT,
-    backgroundColor: colors.backgroundElevated,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
     justifyContent: 'center',
+    marginBottom: spacing.xs,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
   progressBarTrack: {
     position: 'absolute',
