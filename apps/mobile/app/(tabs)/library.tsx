@@ -43,6 +43,7 @@ import {
   MoreHorizontalIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
+import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
 import { statsStorage } from '../../src/services/stats/statsStorage';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
 import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
@@ -146,6 +147,17 @@ export default function LibraryScreen() {
       }).start();
     }
   }, [segmentIndex, segmentWidth, segmentSlideAnim]);
+
+  // Hiệu ứng mờ dần / hiện dần (Fade Transition) khi đổi phân đoạn thư viện
+  const contentFadeAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    contentFadeAnim.setValue(0.5);
+    Animated.timing(contentFadeAnim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [activeSegment, contentFadeAnim]);
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [addToPlaylistModalVisible, setAddToPlaylistModalVisible] = useState(false);
@@ -340,11 +352,7 @@ export default function LibraryScreen() {
           )}
           {isCurrent && (
             <View style={styles.playingOverlay}>
-              {playerState.isPlaying ? (
-                <PauseIcon size={16} color={colors.primary} />
-              ) : (
-                <PlayIcon size={16} color={colors.primary} />
-              )}
+              <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
             </View>
           )}
         </View>
@@ -569,8 +577,9 @@ export default function LibraryScreen() {
         </View>
       </View>
 
-      {/* Nội dung danh sách theo phân đoạn đã chọn */}
-      {activeSegment === 'songs' ? (
+      {/* Nội dung danh sách theo phân đoạn đã chọn (chuyển cảnh fade mượt mà) */}
+      <Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
+        {activeSegment === 'songs' ? (
         <FlatList
           key="flatlist-songs"
           data={tracks}
@@ -703,6 +712,7 @@ export default function LibraryScreen() {
           }
         />
       )}
+      </Animated.View>
 
       {/* Action Sheet Menu '...' cho bài hát */}
       <Modal

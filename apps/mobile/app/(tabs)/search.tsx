@@ -28,6 +28,7 @@ import {
   PauseIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
+import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
 
 /**
  * Màn hình Tìm kiếm tức thì (Thiết kế lại Pha 3)
@@ -88,11 +89,7 @@ export default function SearchScreen() {
           )}
           {isCurrent && (
             <View style={styles.playingOverlay}>
-              {playerState.isPlaying ? (
-                <PauseIcon size={16} color={colors.primary} />
-              ) : (
-                <PlayIcon size={16} color={colors.primary} />
-              )}
+              <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
             </View>
           )}
         </View>

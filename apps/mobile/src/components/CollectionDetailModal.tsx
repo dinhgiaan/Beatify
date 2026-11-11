@@ -20,6 +20,7 @@ import {
 } from '../theme';
 import { usePlayer, useLibrary, useOffline } from '../context';
 import { formatTime } from '../utils/formatTime';
+import { EqualizerIndicator } from './player/EqualizerIndicator';
 import {
   CloseIcon,
   PlayIcon,
@@ -58,7 +59,7 @@ export function CollectionDetailModal({
   onClearRecentTracks,
 }: CollectionDetailModalProps) {
   const insets = useSafeAreaInsets();
-  const { currentTrack, playQueue, togglePlay } = usePlayer();
+  const { currentTrack, playQueue, togglePlay, playerState } = usePlayer();
   const { userState, toggleFavorite } = useLibrary();
   const { isTrackOffline } = useOffline();
 
@@ -96,9 +97,13 @@ export function CollectionDetailModal({
         onPress={() => handleTrackPress(item, index)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.indexText, isCurrent && styles.indexTextActive]}>
-          {index + 1}
-        </Text>
+        {isCurrent ? (
+          <View style={{ width: 24, alignItems: 'center', justifyContent: 'center' }}>
+            <EqualizerIndicator isPlaying={playerState.isPlaying} size={14} color={colors.primary} />
+          </View>
+        ) : (
+          <Text style={styles.indexText}>{index + 1}</Text>
+        )}
 
         <View style={styles.trackInfo}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

@@ -30,6 +30,7 @@ import {
   MoreHorizontalIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
+import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
 
 export default function RecentScreen() {
   const insets = useSafeAreaInsets();
@@ -94,11 +95,7 @@ export default function RecentScreen() {
           )}
           {isPlayingCurrent && (
             <View style={styles.playingOverlay}>
-              {playerState.isPlaying ? (
-                <PauseIcon size={14} color={colors.primary} />
-              ) : (
-                <PlayIcon size={14} color={colors.primary} />
-              )}
+              <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
             </View>
           )}
         </View>

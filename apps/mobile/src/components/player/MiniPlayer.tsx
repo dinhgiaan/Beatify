@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { usePlayer, useProgress } from '../../context';
@@ -21,6 +22,7 @@ import {
   NextIcon,
   DiscIcon,
 } from '../icons/SvgIcons';
+import { EqualizerIndicator } from './EqualizerIndicator';
 import { MINI_PLAYER_HEIGHT } from '../../hooks/useTabBarMetrics';
 
 /**
@@ -43,6 +45,14 @@ export function MiniProgressBar() {
 export function MiniPlayer() {
   const router = useRouter();
   const { currentTrack, playerState, togglePlay, next } = usePlayer();
+
+  const playScale = useRef(new Animated.Value(1)).current;
+  const onPlayPressIn = () => {
+    Animated.spring(playScale, { toValue: 0.85, friction: 6, tension: 160, useNativeDriver: true }).start();
+  };
+  const onPlayPressOut = () => {
+    Animated.spring(playScale, { toValue: 1.0, friction: 4, tension: 120, useNativeDriver: true }).start();
+  };
 
   if (!currentTrack) {
     return null;
@@ -97,13 +107,20 @@ export function MiniPlayer() {
           >
             {currentTrack.title}
           </Text>
-          <Text
-            style={styles.artistText}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {currentTrack.artist}
-          </Text>
+          <View style={styles.artistRow}>
+            {playerState.isPlaying && (
+              <View style={styles.miniEqualizerBadge}>
+                <EqualizerIndicator isPlaying={true} size={11} color={colors.primary} />
+              </View>
+            )}
+            <Text
+              style={styles.artistText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {currentTrack.artist}
+            </Text>
+          </View>
         </View>
 
         {/* Cụm nút điều khiển: Play/Pause và Next */}
@@ -111,16 +128,20 @@ export function MiniPlayer() {
           <TouchableOpacity
             style={styles.controlButton}
             onPress={handleTogglePlay}
-            activeOpacity={0.7}
+            onPressIn={onPlayPressIn}
+            onPressOut={onPlayPressOut}
+            activeOpacity={0.9}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
             accessibilityLabel={playerState.isPlaying ? 'Tạm dừng' : 'Tiếp tục phát'}
           >
-            {playerState.isPlaying ? (
-              <PauseIcon size={22} color={colors.textPrimary} />
-            ) : (
-              <PlayIcon size={22} color={colors.textPrimary} />
-            )}
+            <Animated.View style={{ transform: [{ scale: playScale }] }}>
+              {playerState.isPlaying ? (
+                <PauseIcon size={22} color={colors.textPrimary} />
+              ) : (
+                <PlayIcon size={22} color={colors.textPrimary} />
+              )}
+            </Animated.View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -202,11 +223,21 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
   },
+  artistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  miniEqualizerBadge: {
+    marginRight: 4,
+    height: 12,
+    justifyContent: 'center',
+  },
   artistText: {
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.regular,
     color: colors.textSecondary,
-    marginTop: 2,
+    flexShrink: 1,
   },
   controlsRow: {
     flexDirection: 'row',

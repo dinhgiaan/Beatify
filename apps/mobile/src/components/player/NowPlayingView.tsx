@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +43,7 @@ import {
 import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
+import { EqualizerIndicator } from './EqualizerIndicator';
 import { useOffline } from '../../context';
 
 /**
@@ -90,6 +92,29 @@ export function NowPlayingView() {
   const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState('');
 
+  // 1. Animation "Thở" cho ảnh bìa (Artwork Breath Scale) chuẩn Apple Music
+  const artworkScale = useRef(new Animated.Value(playerState.isPlaying ? 1.0 : 0.88)).current;
+  useEffect(() => {
+    Animated.spring(artworkScale, {
+      toValue: playerState.isPlaying ? 1.0 : 0.88,
+      friction: 8,
+      tension: 45,
+      useNativeDriver: true,
+    }).start();
+  }, [playerState.isPlaying, artworkScale]);
+
+  // 2. Animation "Nảy trái tim" khi thả tim (Favorite Pop Spring Bounce)
+  const heartScale = useRef(new Animated.Value(1)).current;
+
+  // 3. Animation nảy vật lý cho nút Play/Pause
+  const playBtnScale = useRef(new Animated.Value(1)).current;
+  const onPlayPressIn = () => {
+    Animated.spring(playBtnScale, { toValue: 0.88, friction: 6, tension: 160, useNativeDriver: true }).start();
+  };
+  const onPlayPressOut = () => {
+    Animated.spring(playBtnScale, { toValue: 1.0, friction: 4, tension: 120, useNativeDriver: true }).start();
+  };
+
   // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
   const artworkSize = Math.min(
     width - spacing.xl * 2,
@@ -112,6 +137,11 @@ export function NowPlayingView() {
 
   const handleToggleFavorite = () => {
     if (currentTrack) {
+      Animated.sequence([
+        Animated.timing(heartScale, { toValue: 0.75, duration: 80, useNativeDriver: true }),
+        Animated.spring(heartScale, { toValue: 1.35, friction: 3, tension: 220, useNativeDriver: true }),
+        Animated.spring(heartScale, { toValue: 1.0, friction: 6, tension: 160, useNativeDriver: true }),
+      ]).start();
       toggleFavorite(currentTrack.id);
     }
   };
@@ -162,10 +192,14 @@ export function NowPlayingView() {
       >
         {/* VÙNG CHUYỂN ĐỔI: Ảnh bìa HOẶC Danh sách hàng đợi phát inline */}
         {!showQueue ? (
-          <View
+          <Animated.View
             style={[
               styles.artworkContainer,
-              { width: artworkSize, height: artworkSize },
+              {
+                width: artworkSize,
+                height: artworkSize,
+                transform: [{ scale: artworkScale }],
+              },
             ]}
           >
             {currentTrack?.cover ? (
@@ -182,7 +216,7 @@ export function NowPlayingView() {
                 </Text>
               </View>
             )}
-          </View>
+          </Animated.View>
         ) : (
           <View
             style={[
@@ -225,11 +259,7 @@ export function NowPlayingView() {
                   >
                     <View style={styles.queueItemIndex}>
                       {isCurrent ? (
-                        playerState.isPlaying ? (
-                          <PauseIcon size={14} color={colors.primary} />
-                        ) : (
-                          <PlayIcon size={14} color={colors.primary} />
-                        )
+                        <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
                       ) : (
                         <Text style={styles.queueIndexText}>{index + 1}</Text>
                       )}
@@ -312,16 +342,18 @@ export function NowPlayingView() {
           <TouchableOpacity
             onPress={handleToggleFavorite}
             style={styles.heartButton}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityRole="button"
             accessibilityLabel={isFavorite ? 'Bỏ thích bài hát' : 'Thêm vào yêu thích'}
           >
-            <HeartIcon
-              size={24}
-              color={isFavorite ? colors.primary : colors.textSecondary}
-              fill={isFavorite ? colors.primary : 'none'}
-            />
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <HeartIcon
+                size={24}
+                color={isFavorite ? colors.primary : colors.textSecondary}
+                fill={isFavorite ? colors.primary : 'none'}
+              />
+            </Animated.View>
           </TouchableOpacity>
         </View>
 
@@ -374,20 +406,24 @@ export function NowPlayingView() {
             <PrevIcon size={28} color={colors.textPrimary} />
           </TouchableOpacity>
 
-          {/* Nút Play/Pause tròn to nổi bật 64x64 */}
+          {/* Nút Play/Pause tròn to nổi bật 64x64 nảy vật lý đàn hồi */}
           <TouchableOpacity
             style={styles.mainPlayButton}
             onPress={togglePlay}
+            onPressIn={onPlayPressIn}
+            onPressOut={onPlayPressOut}
             disabled={tracks.length === 0 && !playerState.isPlaying}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
             accessibilityRole="button"
             accessibilityLabel={playerState.isPlaying ? 'Tạm dừng' : 'Phát'}
           >
-            {playerState.isPlaying ? (
-              <PauseIcon size={30} color={colors.textDark} />
-            ) : (
-              <PlayIcon size={30} color={colors.textDark} />
-            )}
+            <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
+              {playerState.isPlaying ? (
+                <PauseIcon size={30} color={colors.textDark} />
+              ) : (
+                <PlayIcon size={30} color={colors.textDark} />
+              )}
+            </Animated.View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -890,8 +926,13 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceHighlight,
   },
   bottomButtonActive: {
-    backgroundColor: colors.surfaceActive,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bottomButtonText: {
     display: 'none',

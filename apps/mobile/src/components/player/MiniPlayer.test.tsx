@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
+vi.mock('react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react')>();
+  return {
+    ...actual,
+    useRef: vi.fn((val) => ({ current: val })),
+  };
+});
+
 const mockPush = vi.fn();
 vi.mock('expo-router', () => ({
   useRouter: () => ({
@@ -22,19 +30,38 @@ vi.mock('../../context', () => ({
   }),
 }));
 
-vi.mock('react-native', () => ({
-  View: (props: Record<string, unknown>) => React.createElement('view', props),
-  Text: (props: Record<string, unknown>) => React.createElement('text', props),
-  Image: (props: Record<string, unknown>) => React.createElement('image', props),
-  TouchableOpacity: (props: { onPress?: () => void; children?: React.ReactNode }) =>
-    React.createElement('touchable-opacity', props),
-  StyleSheet: {
-    create: function <T>(styles: T): T {
-      return styles;
+vi.mock('react-native', () => {
+  class MockAnimatedValue {
+    _value: number;
+    constructor(val: number) {
+      this._value = val;
+    }
+    setValue = vi.fn();
+    interpolate = vi.fn();
+  }
+  const spring = vi.fn().mockReturnValue({
+    start: vi.fn((cb?: () => void) => cb?.()),
+    stop: vi.fn(),
+  });
+  return {
+    View: (props: Record<string, unknown>) => React.createElement('view', props),
+    Text: (props: Record<string, unknown>) => React.createElement('text', props),
+    Image: (props: Record<string, unknown>) => React.createElement('image', props),
+    TouchableOpacity: (props: { onPress?: () => void; children?: React.ReactNode }) =>
+      React.createElement('touchable-opacity', props),
+    StyleSheet: {
+      create: function <T>(styles: T): T {
+        return styles;
+      },
+      hairlineWidth: 1,
     },
-    hairlineWidth: 1,
-  },
-}));
+    Animated: {
+      Value: MockAnimatedValue,
+      spring,
+      View: (props: Record<string, unknown>) => React.createElement('animated-view', props),
+    },
+  };
+});
 
 vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
