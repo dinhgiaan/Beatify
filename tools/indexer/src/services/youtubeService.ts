@@ -234,6 +234,24 @@ export function resolveArtistDirectory(targetDir: string, artistName?: string): 
 /**
  * Kiểm tra xem thư mục nghệ sĩ đã có ảnh nghệ sĩ (artist.jpg, folder.jpg, cover.jpg...) chưa
  */
+const processedArtistDirs = new Set<string>();
+
+/**
+ * Gọi lệnh attrib trên Windows an toàn tuyệt đối, có timeout 2.5s và không bao giờ làm treo luồng Node.js
+ */
+function safeAttrib(args: string[]): void {
+  if (process.platform !== 'win32') return;
+  try {
+    execFileSync('attrib', args, {
+      timeout: 2500,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+  } catch {
+    // Bỏ qua lỗi attrib nếu file đang bận hoặc đường dẫn chứa ký tự đặc biệt
+  }
+}
+
 export function hasArtistImage(artistDir: string): boolean {
   return Boolean(getArtistImagePath(artistDir));
 }
@@ -689,12 +707,16 @@ export const YoutubeService = {
       if (!finalLyricsText) {
         try {
           const lrc = await LyricsService.fetchLyrics(finalTitle, finalArtist, options.duration);
-          if (lrc?.syncedLyrics) {
+          if (lrc?.syncedLyrics && !lrc.durationMismatchWarning) {
             finalLyricsText = lrc.syncedLyrics;
           } else {
+            // Nếu LRCLIB không có hoặc lệch thời lượng (> 3s), ƯU TIÊN trích xuất phụ đề YouTube CC (chuẩn 100% video)
             const ytSub = await LyricsService.extractYouTubeSubtitles(url);
             if (ytSub?.syncedLyrics) {
               finalLyricsText = ytSub.syncedLyrics;
+            } else if (lrc?.syncedLyrics) {
+              // Dự phòng: nếu YouTube CC không có thì mới đành chấp nhận LRCLIB
+              finalLyricsText = lrc.syncedLyrics;
             } else if (lrc?.plainLyrics) {
               finalLyricsText = lrc.plainLyrics;
             } else if (ytSub?.plainLyrics) {
@@ -727,8 +749,10 @@ export const YoutubeService = {
           await fsPromises.mkdir(artistDir, { recursive: true });
         }
 
-        const hasExistingArtistImg = hasArtistImage(artistDir);
+        const isAlreadyProcessed = processedArtistDirs.has(artistDir);
+        const hasExistingArtistImg = isAlreadyProcessed || hasArtistImage(artistDir);
         if (!hasExistingArtistImg) {
+          processedArtistDirs.add(artistDir);
           onProgress?.(94, 'Đang tìm kiếm avatar channel nghệ sĩ...');
           const avatarBuf = await fetchChannelAvatarBuffer(url, options.channelUrl);
           if (avatarBuf && avatarBuf.length > 0) {
@@ -746,14 +770,14 @@ export const YoutubeService = {
             const oldArtistJpg = path.join(artistDir, 'artist.jpg');
             if (fs.existsSync(oldArtistJpg)) {
               try {
-                if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldArtistJpg]);
+                safeAttrib(['-r', '-h', '-s', oldArtistJpg]);
                 await fsPromises.unlink(oldArtistJpg);
               } catch { /* bỏ qua */ }
             }
             const oldFolderJpg = path.join(artistDir, 'folder.jpg');
             if (fs.existsSync(oldFolderJpg)) {
               try {
-                if (process.platform === 'win32') execFileSync('attrib', ['-r', '-h', '-s', oldFolderJpg]);
+                safeAttrib(['-r', '-h', '-s', oldFolderJpg]);
                 await fsPromises.unlink(oldFolderJpg);
               } catch { /* bỏ qua */ }
             }
@@ -768,39 +792,31 @@ export const YoutubeService = {
             }
 
             // Thiết lập thuộc tính ẩn (+h +s) cho file folder.png sau khi đã ghi metadata
-            if (process.platform === 'win32') {
-              try {
-                if (fs.existsSync(artistFolderPngPath)) {
-                  execFileSync('attrib', ['+h', '+s', artistFolderPngPath]);
-                }
-              } catch {
-                /* bỏ qua */
-              }
+            if (fs.existsSync(artistFolderPngPath)) {
+              safeAttrib(['+h', '+s', artistFolderPngPath]);
             }
 
             // 8.3. Tạo desktop.ini cho thư mục nghệ sĩ trỏ tới artist.png
-            if (process.platform === 'win32') {
-              try {
-                const artistIniPath = path.join(artistDir, 'desktop.ini');
-                if (fs.existsSync(artistIniPath)) {
-                  try { execFileSync('attrib', ['-r', '-h', '-s', artistIniPath]); } catch { /* bỏ qua */ }
-                }
-                const artistIniContent = [
-                  '[.ShellClassInfo]',
-                  'FolderType=Generic',
-                  '[ViewState]',
-                  'Mode=1',
-                  'Vid=',
-                  'FolderType=Generic',
-                  'Logo=artist.png',
-                  '',
-                ].join('\r\n');
-                await fsPromises.writeFile(artistIniPath, artistIniContent, 'utf-8');
-                execFileSync('attrib', ['+r', artistDir]);
-                execFileSync('attrib', ['+h', '+s', artistIniPath]);
-              } catch {
-                /* bỏ qua */
+            try {
+              const artistIniPath = path.join(artistDir, 'desktop.ini');
+              if (fs.existsSync(artistIniPath)) {
+                safeAttrib(['-r', '-h', '-s', artistIniPath]);
               }
+              const artistIniContent = [
+                '[.ShellClassInfo]',
+                'FolderType=Generic',
+                '[ViewState]',
+                'Mode=1',
+                'Vid=',
+                'FolderType=Generic',
+                'Logo=artist.png',
+                '',
+              ].join('\r\n');
+              await fsPromises.writeFile(artistIniPath, artistIniContent, 'utf-8');
+              safeAttrib(['+r', artistDir]);
+              safeAttrib(['+h', '+s', artistIniPath]);
+            } catch {
+              /* bỏ qua */
             }
 
             artistAvatarStatus = 'Đã tải thành công avatar channel YouTube (artist.png)';
@@ -893,23 +909,15 @@ export const YoutubeService = {
             await fsPromises.writeFile(folderJpgDest, squareCoverBuffer);
           }
           if (process.platform === 'win32') {
-            try {
-              execFileSync('attrib', ['+h', '+s', folderJpgDest]);
-            } catch {
-              /* bỏ qua lỗi gán thuộc tính ẩn cho folder.jpg */
-            }
+            safeAttrib(['+h', '+s', folderJpgDest]);
           }
         }
 
         if (process.platform === 'win32') {
-          try {
-            // Đặt thuộc tính Read-Only cho thư mục đích để Windows Explorer nhận diện desktop.ini
-            execFileSync('attrib', ['+r', finalTrackDir]);
-            // Đặt thuộc tính Hidden + System cho desktop.ini
-            execFileSync('attrib', ['+h', '+s', iniDest]);
-          } catch {
-            /* bỏ qua lỗi gán thuộc tính cho desktop.ini */
-          }
+          // Đặt thuộc tính Read-Only cho thư mục đích để Windows Explorer nhận diện desktop.ini
+          safeAttrib(['+r', finalTrackDir]);
+          // Đặt thuộc tính Hidden + System cho desktop.ini
+          safeAttrib(['+h', '+s', iniDest]);
         }
       } catch {
         // Bỏ qua lỗi cấu hình desktop.ini

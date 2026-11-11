@@ -227,21 +227,23 @@ class YoutubeJobRunner extends EventEmitter {
               }
             }
 
-            if (lrc?.syncedLyrics) {
+            if (lrc?.syncedLyrics && !lrc.durationMismatchWarning) {
               source = 'lrclib-synced';
               text = lrc.syncedLyrics;
-            } else if (lrc?.plainLyrics) {
-              source = 'lrclib-plain';
-              text = lrc.plainLyrics;
-            }
-
-            // Với bài đơn hoặc danh sách ngắn (dưới 5 bài), thử thêm phụ đề YouTube CC
-            if (source !== 'lrclib-synced' && entriesToProcess.length <= 5) {
+            } else {
+              // Nếu LRCLIB không có hoặc thời lượng lệch (> 3s), thử lấy phụ đề chính thức YouTube CC chuẩn theo video
               const ytSub = await LyricsService.extractYouTubeSubtitles(entry.url);
               if (ytSub?.syncedLyrics) {
                 source = 'yt-subs';
                 text = ytSub.syncedLyrics;
-              } else if (!text && ytSub?.plainLyrics) {
+              } else if (lrc?.syncedLyrics) {
+                // Dự phòng: nếu YouTube CC không có, chấp nhận bản synced từ LRCLIB
+                source = 'lrclib-synced';
+                text = lrc.syncedLyrics;
+              } else if (lrc?.plainLyrics) {
+                source = 'lrclib-plain';
+                text = lrc.plainLyrics;
+              } else if (ytSub?.plainLyrics) {
                 source = 'yt-subs';
                 text = ytSub.plainLyrics;
               }
@@ -344,6 +346,16 @@ class YoutubeJobRunner extends EventEmitter {
     let completed = 0;
     let failed = 0;
 
+    // Lấy danh sách bài đã tải thành công trước đó để tránh tải lại (Resume thông minh)
+    const existingDownloads = await this.getDownloads(5000);
+    const completedExistingMap = new Map<string, YoutubeMusicDownloadRecord>();
+    for (const d of existingDownloads) {
+      if (d.status === 'completed' && d.fileExists !== false && d.relativeFilePath) {
+        if (d.sourceUrl) completedExistingMap.set(d.sourceUrl, d);
+        if (d.videoId) completedExistingMap.set(d.videoId, d);
+      }
+    }
+
     this.emitEvent(jobId, {
       jobId,
       status: 'running',
@@ -412,6 +424,30 @@ class YoutubeJobRunner extends EventEmitter {
           createdAt: now,
           updatedAt: now,
         };
+
+        // Kiểm tra xem bài hát đã tải thành công trước đó hay chưa (hỗ trợ tiếp tục tải / Resume không tốn công tải lại)
+        const existingCompleted = completedExistingMap.get(url) || completedExistingMap.get(realVideoId);
+        if (existingCompleted && existingCompleted.relativeFilePath) {
+          const absPath = path.resolve(existingCompleted.libraryRootPath || targetDir, existingCompleted.relativeFilePath);
+          if (existsSync(absPath)) {
+            completed++;
+            record.status = 'completed';
+            record.title = existingCompleted.title;
+            record.artist = existingCompleted.artist;
+            record.album = existingCompleted.album;
+            record.relativeFilePath = existingCompleted.relativeFilePath;
+            record.relativeCoverPath = existingCompleted.relativeCoverPath;
+            record.relativeLyricsPath = existingCompleted.relativeLyricsPath;
+            record.duration = existingCompleted.duration;
+            record.lyricsExists = existingCompleted.lyricsExists;
+            record.coverExists = existingCompleted.coverExists;
+            record.lyricsSource = existingCompleted.lyricsSource;
+            record.fileSizeBytes = existingCompleted.fileSizeBytes;
+            record.fileExists = true;
+            await this.addOrUpdateDownload(record);
+            continue;
+          }
+        }
 
         await this.addOrUpdateDownload(record);
 

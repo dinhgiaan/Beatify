@@ -101,6 +101,16 @@ export const LyricsService = {
     const cleanTitle = title.normalize('NFC').trim();
     const cleanArtist = (artist || '').normalize('NFC').trim();
 
+    // Trích xuất tên bài hát cốt lõi (bỏ các chú thích như [prod. by ...], (ft. ...), (feat. ...), | Official MV...)
+    const coreTitle = cleanTitle
+      .replace(/\s*([([].*?[)\]]|\b(?:ft\.?|feat\.?|prod\.?)\b.*$)/gi, '')
+      .trim();
+
+    // Trích xuất nghệ sĩ chính (loại bỏ nghệ sĩ kết hợp sau ft, feat, x, dấu phẩy)
+    const primaryArtist = cleanArtist
+      .split(/\s*(?:x|,|ft\.?|feat\.?)\s*/i)[0]
+      ?.trim() || cleanArtist;
+
     // 1. Thử lấy chính xác bằng /api/get (artist_name + track_name)
     const getParams = new URLSearchParams({
       track_name: cleanTitle,
@@ -110,9 +120,26 @@ export const LyricsService = {
       getParams.append('duration', Math.round(durationSeconds).toString());
     }
 
-    const exactMatch = (await fetchWithRetry(
+    let exactMatch = (await fetchWithRetry(
       `${LRCLIB_BASE}/get?${getParams.toString()}`
     )) as LrcLibTrack | null;
+
+    // 1b. Thử /api/get với coreTitle và primaryArtist nếu khác tên gốc
+    if ((!exactMatch || exactMatch.instrumental) && coreTitle && coreTitle !== cleanTitle) {
+      const coreGetParams = new URLSearchParams({
+        track_name: coreTitle,
+        artist_name: primaryArtist,
+      });
+      if (durationSeconds && durationSeconds > 0) {
+        coreGetParams.append('duration', Math.round(durationSeconds).toString());
+      }
+      const coreExact = (await fetchWithRetry(
+        `${LRCLIB_BASE}/get?${coreGetParams.toString()}`
+      )) as LrcLibTrack | null;
+      if (coreExact && !coreExact.instrumental && (coreExact.syncedLyrics || coreExact.plainLyrics)) {
+        exactMatch = coreExact;
+      }
+    }
 
     if (exactMatch && !exactMatch.instrumental) {
       if (exactMatch.syncedLyrics) {
@@ -144,10 +171,23 @@ export const LyricsService = {
       `${LRCLIB_BASE}/search?${searchParams.toString()}`
     )) as LrcLibTrack[] | null;
 
+    // 2b. Tìm kiếm theo coreTitle + primaryArtist nếu chưa ra
+    if ((!Array.isArray(searchResults) || searchResults.length === 0) && coreTitle && coreTitle !== cleanTitle) {
+      const coreSearchParams = new URLSearchParams({
+        track_name: coreTitle,
+      });
+      if (primaryArtist) {
+        coreSearchParams.append('artist_name', primaryArtist);
+      }
+      searchResults = (await fetchWithRetry(
+        `${LRCLIB_BASE}/search?${coreSearchParams.toString()}`
+      )) as LrcLibTrack[] | null;
+    }
+
     // 3. Fallback mở rộng: nếu tìm theo artist + track_name chưa ra, thử tìm theo query q rộng hơn
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       const qParams = new URLSearchParams({
-        q: `${cleanTitle} ${cleanArtist}`.trim(),
+        q: `${coreTitle || cleanTitle} ${primaryArtist || cleanArtist}`.trim(),
       });
       searchResults = (await fetchWithRetry(
         `${LRCLIB_BASE}/search?${qParams.toString()}`
