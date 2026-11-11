@@ -2744,6 +2744,13 @@ app.post('/api/youtube-music/jobs', async (c) => {
   try {
     const payload = await c.req.json();
     const jobId = await youtubeJobRunner.createJob(payload);
+    // Tự động giải phóng cache để thanh Sidebar hiển thị số lượng bài mới ngay lập tức
+    youtubeJobRunner.on(`job:${jobId}`, (event: JobEvent) => {
+      if (event.status === 'completed' || event.status === 'stopped' || event.status === 'failed') {
+        cachedStatusResponse = null;
+        cachedScannedTracks = [];
+      }
+    });
     return c.json({ status: 'success', data: { jobId } });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
