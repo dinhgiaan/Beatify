@@ -85,7 +85,34 @@ export const MetadataEditDialog: React.FC<MetadataEditDialogProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Tên bài hát</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Tên bài hát</label>
+                {/* Gợi ý thêm tag nhanh cho bản làm mới / Cover */}
+                <div className="flex items-center gap-1">
+                  {['(Cover)', '(Remake)', '(Remix)', '(Acoustic)', '(Live)'].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        const cleanTag = tag.trim();
+                        if (title.includes(cleanTag)) {
+                          setTitle(title.replace(cleanTag, '').trim());
+                        } else {
+                          setTitle(`${title.trim()} ${cleanTag}`.trim());
+                        }
+                      }}
+                      className={`text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                        title.includes(tag)
+                          ? 'border-[#1DB954] bg-[#1DB954]/20 text-[#1DB954] font-semibold'
+                          : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                      }`}
+                      title={`Thêm hoặc bỏ hậu tố ${tag}`}
+                    >
+                      +{tag.replace(/[()]/g, '')}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input
                 type="text"
                 value={title}
@@ -96,7 +123,9 @@ export const MetadataEditDialog: React.FC<MetadataEditDialogProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Nghệ sĩ / Ca sĩ</label>
+              <label className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                Nghệ sĩ / Ca sĩ thể hiện (Main Artist)
+              </label>
               <input
                 type="text"
                 value={artist}
@@ -104,6 +133,19 @@ export const MetadataEditDialog: React.FC<MetadataEditDialogProps> = ({
                 placeholder="Nhập tên ca sĩ/nghệ sĩ..."
                 className="w-full px-3 py-1.5 rounded-lg border text-xs bg-[var(--bg-subtle)] border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[#1DB954]"
               />
+            </div>
+
+            {/* Hộp gợi ý cách đặt tên chuẩn cho bài hát Cover / Remake / Nhạc sĩ sáng tác khác ca sĩ */}
+            <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-[10.5px] space-y-1 leading-relaxed text-[var(--text-secondary)]">
+              <div className="font-semibold text-emerald-400 flex items-center gap-1">
+                <span>💡 Quy ước bản Cover / Remake / Nhạc sĩ khác ca sĩ:</span>
+              </div>
+              <div>
+                • <strong>Nghệ sĩ:</strong> Điền <strong>Nghệ sĩ thể hiện bản này</strong> (Nghệ sĩ A) để bài hát gom đúng vào thư mục và trang cá nhân của A.
+              </div>
+              <div>
+                • <strong>Tên bài:</strong> Đặt dạng <em>Tên Bài (Cover)</em> hoặc <em>Tên Bài (prod. Nghệ sĩ B)</em>. Hệ thống tìm kiếm trên app hỗ trợ tìm cả tên ca sĩ và tiêu đề, nên gõ tên A hay B đều tìm thấy bài!
+              </div>
             </div>
 
             <div className="space-y-1.5">

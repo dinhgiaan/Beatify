@@ -18,6 +18,8 @@ import {
   Layers,
   FileMusic,
   ExternalLink,
+  Users,
+  List,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -128,6 +130,8 @@ export const YoutubeMusicPage: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  // Chế độ xem: 'artist' (Khung riêng từng Nghệ Sĩ kèm Avatar) hoặc 'table' (Bảng phẳng)
+  const [viewMode, setViewMode] = useState<'artist' | 'table'>('artist');
 
   // Configuration State
   const [preferredFormat, setPreferredFormat] = useState<YoutubeMusicFormat>('m4a');
@@ -364,6 +368,67 @@ export const YoutubeMusicPage: React.FC = () => {
     });
     setSelectedIds(next);
     toast.info(`Đã chọn ${next.size} bài chưa có trong máy`);
+  };
+
+  // Gom nhóm danh sách xem trước theo từng nghệ sĩ (Khung riêng cho từng nghệ sĩ)
+  const artistGroups = useMemo(() => {
+    if (!previewData?.items) return [];
+
+    const map = new Map<
+      string,
+      {
+        artistName: string;
+        avatarUrl?: string;
+        thumbnailFallback?: string;
+        folderPath?: string;
+        matchedFolder?: string;
+        items: YoutubeMusicPreviewItem[];
+      }
+    >();
+
+    for (const item of previewData.items) {
+      const override = itemOverrides[item.url] || itemOverrides[item.id];
+      const artist = (override?.artist || item.artist || 'Chưa rõ nghệ sĩ').trim();
+      const normKey = artist.normalize('NFC').toLowerCase();
+
+      if (!map.has(normKey)) {
+        const existing = getExistingArtistFolder(artist);
+        map.set(normKey, {
+          artistName: artist,
+          avatarUrl: existing?.folderPath ? `/local-api/artists/${encodeURIComponent(artist)}/avatar` : undefined,
+          thumbnailFallback: item.thumbnailUrl,
+          folderPath: customFolderMap[item.url] || customFolderMap[item.id] || existing?.folderPath,
+          matchedFolder: existing?.folderPath,
+          items: [],
+        });
+      }
+
+      const targetGroup = map.get(normKey);
+      if (targetGroup) {
+        targetGroup.items.push(item);
+      }
+    }
+
+    return Array.from(map.values());
+  }, [previewData, itemOverrides, customFolderMap, artistFolderMap]);
+
+  const toggleSelectArtistGroup = (items: YoutubeMusicPreviewItem[]) => {
+    const allSelected = items.every((i) => selectedIds.has(i.id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        items.forEach((i) => next.delete(i.id));
+      } else {
+        items.forEach((i) => next.add(i.id));
+      }
+      return next;
+    });
+  };
+
+  const openFolderForArtistGroup = (items: YoutubeMusicPreviewItem[]) => {
+    const ids = items.map((i) => i.id);
+    setFolderDialogTargetIds(ids);
+    setIsFolderDialogOpen(true);
   };
 
   // 4. Preview Mutation
@@ -1034,6 +1099,36 @@ export const YoutubeMusicPage: React.FC = () => {
                 <span className="text-[10.5px] px-2 py-0.5 rounded border border-[#1DB954]/30 bg-[#1DB954]/10 text-[#1DB954] font-medium tabular-nums shrink-0">
                   {selectedIds.size}/{previewData.totalCount} đã chọn {selectedIds.size > 0 && totalSelectedEstimatedSize ? `(${totalSelectedEstimatedSize})` : ''}
                 </span>
+
+                {/* Chế độ hiển thị: Khung Nghệ Sĩ vs Bảng Phẳng */}
+                <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-0.5 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('artist')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${
+                      viewMode === 'artist'
+                        ? 'bg-[#1DB954]/15 text-[#1DB954] font-semibold border border-[#1DB954]/30'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                    title="Hiển thị theo từng khung riêng biệt của từng Nghệ sĩ kèm ảnh đại diện"
+                  >
+                    <Users size={12} />
+                    <span>Khung Nghệ sĩ ({artistGroups.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${
+                      viewMode === 'table'
+                        ? 'bg-[#1DB954]/15 text-[#1DB954] font-semibold border border-[#1DB954]/30'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                    title="Hiển thị dạng bảng danh sách truyền thống"
+                  >
+                    <List size={12} />
+                    <span>Bảng tổng hợp</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
@@ -1124,9 +1219,264 @@ export const YoutubeMusicPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Table Content */}
-            <div className="max-h-[520px] overflow-auto">
-              <table className="w-full text-left text-[11px] border-collapse">
+            {/* View Mode 1: Khung riêng từng Nghệ Sĩ kèm Avatar */}
+            {viewMode === 'artist' ? (
+              <div className="p-4 space-y-4 max-h-[580px] overflow-auto">
+                {artistGroups.map((group) => {
+                  const allSelected = group.items.length > 0 && group.items.every((i) => selectedIds.has(i.id));
+                  const totalGroupDuration = group.items.reduce((acc, i) => acc + (i.duration || 0), 0);
+
+                  return (
+                    <div
+                      key={group.artistName}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] overflow-hidden shadow-xs transition-colors"
+                    >
+                      {/* KHUNG HEADER CỦA NGHỆ SĨ */}
+                      <div className="px-4 py-3 bg-[var(--bg-subtle)] border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Checkbox
+                            checked={allSelected}
+                            onChange={() => toggleSelectArtistGroup(group.items)}
+                            title="Chọn/bỏ chọn tất cả bài hát của nghệ sĩ này"
+                          />
+
+                          {/* Avatar nghệ sĩ tròn */}
+                          <div className="w-11 h-11 rounded-full border-2 border-[#1DB954]/40 overflow-hidden shrink-0 flex items-center justify-center bg-black/40 relative shadow-xs">
+                            {group.avatarUrl ? (
+                              <img
+                                src={group.avatarUrl}
+                                alt={group.artistName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : group.thumbnailFallback ? (
+                              <img
+                                src={group.thumbnailFallback}
+                                alt={group.artistName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <span className="font-bold text-sm text-[#1DB954]">
+                                {group.artistName.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-[13px] text-[var(--text-primary)]">
+                                {group.artistName}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1DB954]/10 text-[#1DB954] border border-[#1DB954]/25 font-semibold">
+                                {group.items.length} bài hát
+                              </span>
+                              {group.matchedFolder && (
+                                <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">
+                                  Đã có thư mục máy tính
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10.5px] text-[var(--text-muted)] flex items-center gap-1.5 mt-0.5">
+                              <span>📁 Thư mục lưu:</span>
+                              <span className="font-medium text-[var(--text-secondary)] truncate max-w-[320px]" title={group.folderPath || 'Theo mặc định nghệ sĩ'}>
+                                {group.folderPath ? (group.folderPath.split(/[\\/]/).filter(Boolean).slice(-1)[0] || group.folderPath) : 'Theo nghệ sĩ'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openFolderForArtistGroup(group.items)}
+                                className="text-[10px] text-[#1DB954] hover:underline flex items-center gap-0.5 cursor-pointer ml-1 font-medium"
+                                title="Đổi thư mục lưu cho tất cả bài hát của nghệ sĩ này"
+                              >
+                                <Folder size={10} />
+                                <span>Đổi</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10.5px] text-[var(--text-muted)] font-medium">
+                            {group.items.filter((i) => selectedIds.has(i.id)).length}/{group.items.length} đã chọn
+                            {totalGroupDuration > 0 && ` • ${formatDuration(totalGroupDuration)}`}
+                          </span>
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => toggleSelectArtistGroup(group.items)}
+                            className="text-[10.5px] h-6 px-2 cursor-pointer font-medium"
+                          >
+                            {allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* DANH SÁCH CÁC BÀI CON TRONG KHUNG CỦA NGHỆ SĨ NÀY */}
+                      <div className="divide-y divide-[var(--border)]">
+                        {group.items.map((item, idx) => {
+                          const isSelected = selectedIds.has(item.id);
+                          const override = itemOverrides[item.url] || itemOverrides[item.id];
+                          const title = override?.cleanTitle || item.cleanTitle;
+                          const album = override?.album || item.album || 'Singles';
+                          const customFolder = customFolderMap[item.url] || customFolderMap[item.id];
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => toggleSelectItem(item.id)}
+                              className={`px-4 py-2.5 flex items-center justify-between gap-3 text-[11px] transition-colors group cursor-pointer ${
+                                !isSelected
+                                  ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)]'
+                                  : idx % 2 === 1
+                                    ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)]'
+                                    : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onChange={() => toggleSelectItem(item.id)}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-[var(--text-muted)] tabular-nums w-4 text-center font-medium">
+                                  {idx + 1}
+                                </span>
+
+                                {/* Thumbnail bìa bài hát */}
+                                <div
+                                  onClick={(e) => {
+                                    if (item.thumbnailUrl) {
+                                      e.stopPropagation();
+                                      setViewingCover({
+                                        url: item.thumbnailUrl,
+                                        title,
+                                        artist: group.artistName,
+                                      });
+                                    }
+                                  }}
+                                  className="w-8 h-8 rounded-md border border-[var(--border)] overflow-hidden shrink-0 flex items-center justify-center bg-black/40 text-[var(--text-muted)] cursor-pointer hover:ring-1 hover:ring-[#1DB954]"
+                                  title="Bấm để phóng to ảnh bìa"
+                                >
+                                  {item.thumbnailUrl ? (
+                                    <img
+                                      src={item.thumbnailUrl}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <Music size={12} />
+                                  )}
+                                </div>
+
+                                {/* Thông tin bài con */}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-[12px] text-[var(--text-primary)] truncate">
+                                      {title}
+                                    </span>
+                                    {override && (
+                                      <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-medium">
+                                        Đã sửa
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingItem(item);
+                                      }}
+                                      className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer"
+                                      title="Sửa tên bài, nghệ sĩ hoặc album"
+                                    >
+                                      <Edit3 size={11} />
+                                    </button>
+                                    <a
+                                      href={item.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer inline-flex items-center"
+                                      title="Mở nghe trên YouTube (Tab mới)"
+                                    >
+                                      <ExternalLink size={10} />
+                                    </a>
+                                  </div>
+                                  <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
+                                    <span>Album: <strong className="text-[var(--text-secondary)] font-medium">{album}</strong></span>
+                                    {customFolder && (
+                                      <span className="text-[#1DB954] font-medium">• 📁 {customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0]}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Cột phải: Thời lượng, Lyrics, Trạng thái */}
+                              <div className="flex items-center gap-3 shrink-0">
+                                <div className="text-right tabular-nums text-[10.5px]">
+                                  <div className="text-[var(--text-primary)] font-medium">
+                                    {formatDuration(item.duration)}
+                                  </div>
+                                  {item.duration && (
+                                    <div className="text-[9px] text-[var(--text-muted)]">
+                                      {formatEstimatedSize(item.duration, preferredFormat)}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Badge Lời bài hát */}
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setLyricsEditingItem(item)}
+                                    className={`text-[9.5px] px-2 py-0.5 rounded border transition-colors cursor-pointer flex items-center gap-1 ${
+                                      item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics
+                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium'
+                                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                                    }`}
+                                    title="Bấm để xem hoặc sửa lời bài hát (.lrc)"
+                                  >
+                                    <span>{item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics ? 'Có .lrc' : 'Chưa có lời'}</span>
+                                    <Edit3 size={9} className="opacity-70" />
+                                  </button>
+                                </div>
+
+                                {/* Trạng thái đã tải */}
+                                <div>
+                                  {item.isAlreadyDownloaded ? (
+                                    item.fileMissing ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
+                                        Mất file
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium">
+                                        Đã có
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium">
+                                      Chưa tải
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* View Mode 2: Bảng danh sách truyền thống (Table Content) */
+              <div className="max-h-[520px] overflow-auto">
+                <table className="w-full text-left text-[11px] border-collapse">
                 <thead className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-subtle)] shadow-xs">
                   <tr className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] select-none">
                     <th className="py-2.5 pl-3 pr-1 w-10 text-center">
@@ -1561,6 +1911,7 @@ export const YoutubeMusicPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
 
             {/* Pagination Controls */}
             {previewData && previewData.items.length > 0 && (
