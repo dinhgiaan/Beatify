@@ -83,6 +83,29 @@ describe('API routes validation', () => {
     const json = (await res.json()) as { error: string };
     expect(json.error).toBe('INVALID_ID');
   });
+
+  it('chấp nhận query param ?token= thay cho ?t=', async () => {
+    const res = await app.request('/covers/invalid-id?token=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: {} as unknown as R2Bucket,
+    });
+    // Trả 400 (do invalid id) chứng tỏ đã vượt qua lớp xác thực 401 token thành công
+    expect(res.status).toBe(400);
+  });
+
+  it('hỗ trợ alias /api/stream/:id và /api/covers/:albumId', async () => {
+    const resStream = await app.request('/api/stream/invalid-id?t=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: {} as unknown as R2Bucket,
+    });
+    expect(resStream.status).toBe(400);
+
+    const resCover = await app.request('/api/covers/invalid-id?t=secret123', {}, {
+      API_TOKEN: 'secret123',
+      MUSIC_BUCKET: {} as unknown as R2Bucket,
+    });
+    expect(resCover.status).toBe(400);
+  });
 });
 
 describe('Track Edit, Delete & Sync API', () => {

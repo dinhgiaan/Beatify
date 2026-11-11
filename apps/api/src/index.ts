@@ -23,14 +23,14 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('*', async (c, next) => {
   const expectedToken = c.env.API_TOKEN;
 
-  // Lấy token từ header Authorization (chuẩn cho /api/*) hoặc query param ?t= (cho stream/covers)
+  // Lấy token từ header Authorization (chuẩn cho /api/*) hoặc query param ?t= / ?token= (cho stream/covers)
   const authHeader = c.req.header('Authorization');
   let token: string | undefined;
 
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.slice(7).trim();
   } else {
-    token = c.req.query('t');
+    token = c.req.query('t') || c.req.query('token');
   }
 
   const isValid = await verifyToken(token, expectedToken);
@@ -211,9 +211,11 @@ const handleStream = async (c: Context<{ Bindings: Env }>) => {
 
 app.get('/stream/:id', handleStream);
 app.on('HEAD', '/stream/:id', handleStream);
+app.get('/api/stream/:id', handleStream);
+app.on('HEAD', '/api/stream/:id', handleStream);
 
-// Endpoint: GET /covers/:albumId - Phục vụ ảnh bìa album
-app.get('/covers/:albumId', async (c) => {
+// Endpoint: GET /covers/:albumId & /api/covers/:albumId - Phục vụ ảnh bìa album
+const handleCover = async (c: Context<{ Bindings: Env }>) => {
   const albumId = c.req.param('albumId');
   if (!albumId || !isValidAlbumId(albumId)) {
     return c.json(
@@ -255,7 +257,10 @@ app.get('/covers/:albumId', async (c) => {
       ETag: cover.etag,
     },
   });
-});
+};
+
+app.get('/covers/:albumId', handleCover);
+app.get('/api/covers/:albumId', handleCover);
 
 // Endpoint: PATCH /api/tracks/:id - Sửa metadata và lời bài hát từ mobile hoặc web
 app.patch('/api/tracks/:id', async (c) => {

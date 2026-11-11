@@ -17,7 +17,7 @@ import {
   DEFAULT_RECENT_LIMIT,
   type RecentTracksData,
 } from '../services/recent/recentTracksStorage';
-import { useLibrary } from './LibraryContext';
+import { useLibrary, resolveTrackUrls } from './LibraryContext';
 import { useOffline } from './OfflineContext';
 
 export interface PlayerContextValue {
@@ -62,7 +62,7 @@ export interface PlayerContextValue {
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const { tracks, setTracks, originalTracks, setOriginalTracks } = useLibrary();
+  const { tracks, setTracks, originalTracks, setOriginalTracks, serverUrl, serverToken } = useLibrary();
   const { getOfflineAudioUri } = useOffline();
 
   const [playerState, setPlayerState] = useState<PlayerState>({
@@ -222,11 +222,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             file: localAudio,
           };
         }
-        return t;
+        return resolveTrackUrls(t, serverUrl, serverToken);
       });
       await playerService.playQueue(offlineAwareTracks, startIndex);
     },
-    [tracks, currentTrackIndex, getOfflineAudioUri]
+    [tracks, currentTrackIndex, getOfflineAudioUri, serverUrl, serverToken]
   );
 
   const togglePlay = useCallback(async () => {

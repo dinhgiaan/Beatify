@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Linking, Vibration, Alert } from 'react-native';
 import {
@@ -49,6 +49,69 @@ const CONFIG_FILE = `${FileSystem.documentDirectory || ''}beatify_server_config.
 const USER_STATE_FILE = `${FileSystem.documentDirectory || ''}beatify_user_state.json`;
 const LIBRARY_CACHE_FILE = `${FileSystem.documentDirectory || ''}beatify_library_cache.json`;
 
+/**
+ * Chuẩn hoá đường dẫn phát âm thanh (file) và ảnh bìa (cover) thành URL Cloudflare Worker đầy đủ
+ */
+export function resolveTrackUrls(track: Track, serverUrl: string, serverToken: string): Track {
+  const cleanUrl = (serverUrl || '').trim().replace(/\/+$/, '');
+  const cleanToken = (serverToken || '').trim();
+  const tokenParam = cleanToken ? `?t=${encodeURIComponent(cleanToken)}` : '';
+
+  let file = track.file;
+  if (file && (file.startsWith('http://') || file.startsWith('https://'))) {
+    if (file.includes('/stream/') && cleanUrl) {
+      file = `${cleanUrl}/stream/${track.id}${tokenParam}`;
+    }
+  } else if (file && !file.startsWith('file://')) {
+    file = cleanUrl ? `${cleanUrl}/stream/${track.id}${tokenParam}` : file;
+  }
+
+  let cover = track.cover;
+  const match = cover?.match(/[0-9a-fA-F]{12}/);
+  const coverId = match ? match[0] : (track.albumId || track.id);
+
+  if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
+    if (cover.includes('/covers/') && cleanUrl && coverId) {
+      cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+    }
+  } else if (cover && !cover.startsWith('file://')) {
+    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}` : cover;
+  } else if (!cover && coverId && cleanUrl) {
+    cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+  }
+
+  return {
+    ...track,
+    file,
+    cover,
+  };
+}
+
+/**
+ * Chuẩn hoá ảnh bìa album thành URL Cloudflare Worker đầy đủ
+ */
+export function resolveAlbumUrls(album: Album, serverUrl: string, serverToken: string): Album {
+  const cleanUrl = (serverUrl || '').trim().replace(/\/+$/, '');
+  const cleanToken = (serverToken || '').trim();
+  const tokenParam = cleanToken ? `?t=${encodeURIComponent(cleanToken)}` : '';
+
+  let cover = album.cover;
+  if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
+    if (cover.includes('/covers/') && cleanUrl) {
+      cover = `${cleanUrl}/covers/${album.id}${tokenParam}`;
+    }
+  } else if (cover && !cover.startsWith('file://')) {
+    cover = cleanUrl ? `${cleanUrl}/covers/${album.id}${tokenParam}` : cover;
+  } else if (!cover && cleanUrl) {
+    cover = `${cleanUrl}/covers/${album.id}${tokenParam}`;
+  }
+
+  return {
+    ...album,
+    cover,
+  };
+}
+
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [originalTracks, setOriginalTracks] = useState<Track[]>([]);
@@ -72,6 +135,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [currentEtag, setCurrentEtag] = useState<string | null>(null);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const isSyncingRef = useRef(false);
 
   const saveLibraryCache = async (payload: {
     etag: string | null;
@@ -100,6 +164,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       silent: boolean;
       force: boolean;
     }) => {
+      if (isSyncingRef.current) {
+        console.log('[LibraryContext] Bỏ qua yêu cầu đồng bộ trùng lặp');
+        return;
+      }
+      isSyncingRef.current = true;
       const { url, token, etag, silent, force } = params;
       setIsSyncing(true);
       if (!silent) setSyncStatus('Đang kiểm tra bài mới từ Cloudflare R2...');
@@ -127,12 +196,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             // Bỏ qua lỗi cập nhật timestamp cache
           }
         } else if (result.data) {
-          const balanced = interleaveTracksByArtist(result.data.tracks);
+          const resolvedTracks = result.data.tracks.map((t) => resolveTrackUrls(t, url, token));
+          const resolvedAlbums = (result.data.albums || []).map((a) => resolveAlbumUrls(a, url, token));
+          const balanced = interleaveTracksByArtist(resolvedTracks);
+
           setTracks(balanced);
           setOriginalTracks(balanced);
-          setAlbums(result.data.albums || []);
+          setAlbums(resolvedAlbums);
           setCurrentEtag(result.etag || null);
-          setSyncStatus(`Đã đồng bộ ${result.data.tracks.length} bài hát từ Cloudflare!`);
+          setSyncStatus(`Đã đồng bộ ${balanced.length} bài hát từ Cloudflare!`);
 
           await saveLibraryCache({
             etag: result.etag || null,
@@ -141,53 +213,39 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
               version: result.data.version,
               generatedAt: result.data.generatedAt,
               tracks: balanced,
-              albums: result.data.albums || [],
+              albums: resolvedAlbums,
             },
           });
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        setLastSyncError(msg);
-        setSyncStatus(`Lỗi đồng bộ: ${msg}`);
-        if (!silent) {
-          Alert.alert('Lỗi đồng bộ Cloudflare', msg);
+        const lower = msg.toLowerCase();
+        // Bỏ qua lỗi huỷ mạng (cancelled/abort) khi chuyển màn hình hoặc quét QR để không hiện thông báo giả
+        const isCancelled = lower.includes('cancelled') || lower.includes('abort') || lower.includes('cancel');
+
+        if (!isCancelled) {
+          setLastSyncError(msg);
+          setSyncStatus(`Lỗi đồng bộ: ${msg}`);
+          if (!silent) {
+            Alert.alert('Lỗi đồng bộ Cloudflare', msg);
+          }
         }
       } finally {
         setIsSyncing(false);
+        isSyncingRef.current = false;
       }
     },
     []
   );
 
-  // 1. Tự động nạp bộ nhớ đệm thư viện từ beatify_library_cache.json (Zero Flash) & cấu hình server
+  // 1. Tự động nạp cấu hình server & bộ nhớ đệm thư viện từ beatify_library_cache.json (Zero Flash)
   useEffect(() => {
     async function loadSavedData() {
       let loadedEtag: string | null = null;
       let loadedUrl: string | null = null;
       let loadedToken: string | null = null;
 
-      // Nạp cache thư viện trước tiên
-      try {
-        const cacheInfo = await FileSystem.getInfoAsync(LIBRARY_CACHE_FILE);
-        if (cacheInfo.exists) {
-          const raw = await FileSystem.readAsStringAsync(LIBRARY_CACHE_FILE);
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.data && Array.isArray(parsed.data.tracks)) {
-            setTracks(parsed.data.tracks);
-            setOriginalTracks(parsed.data.tracks);
-            setAlbums(parsed.data.albums || []);
-            if (parsed.etag) {
-              loadedEtag = parsed.etag;
-              setCurrentEtag(parsed.etag);
-            }
-            if (parsed.lastSyncTime) setLastSyncTime(parsed.lastSyncTime);
-          }
-        }
-      } catch (err) {
-        console.warn('Lỗi nạp cache thư viện:', err);
-      }
-
-      // Nạp cấu hình server (URL từ file, Token từ Keychain)
+      // Nạp cấu hình server trước (URL từ file, Token từ Keychain)
       try {
         const info = await FileSystem.getInfoAsync(CONFIG_FILE);
         if (info.exists) {
@@ -207,9 +265,39 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         console.warn('Lỗi đọc cấu hình server đã lưu:', err);
       }
 
+      const activeUrl = loadedUrl || process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787';
+      const activeToken = loadedToken ?? process.env.EXPO_PUBLIC_API_TOKEN ?? '';
+
+      // Nạp cache thư viện và chuẩn hoá URL cho player & cover
+      try {
+        const cacheInfo = await FileSystem.getInfoAsync(LIBRARY_CACHE_FILE);
+        if (cacheInfo.exists) {
+          const raw = await FileSystem.readAsStringAsync(LIBRARY_CACHE_FILE);
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.data && Array.isArray(parsed.data.tracks)) {
+            const resolvedCachedTracks = parsed.data.tracks.map((t: Track) =>
+              resolveTrackUrls(t, activeUrl, activeToken)
+            );
+            const resolvedCachedAlbums = (parsed.data.albums || []).map((a: Album) =>
+              resolveAlbumUrls(a, activeUrl, activeToken)
+            );
+            setTracks(resolvedCachedTracks);
+            setOriginalTracks(resolvedCachedTracks);
+            setAlbums(resolvedCachedAlbums);
+            if (parsed.etag) {
+              loadedEtag = parsed.etag;
+              setCurrentEtag(parsed.etag);
+            }
+            if (parsed.lastSyncTime) setLastSyncTime(parsed.lastSyncTime);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi nạp cache thư viện:', err);
+      }
+
       // Kích hoạt đồng bộ ngầm ETag nếu có URL
-      const targetUrl = (loadedUrl || process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8787').trim().replace(/\/+$/, '');
-      const targetToken = (loadedToken ?? process.env.EXPO_PUBLIC_API_TOKEN ?? '').trim();
+      const targetUrl = activeUrl.trim().replace(/\/+$/, '');
+      const targetToken = activeToken.trim();
       if (targetUrl) {
         syncLibraryInternal({
           url: targetUrl,
@@ -223,6 +311,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
     loadSavedData();
   }, [syncLibraryInternal]);
+
+  // Cập nhật lại đường dẫn stream URL và ảnh bìa khi người dùng đổi serverUrl hoặc serverToken
+  useEffect(() => {
+    if (serverUrl) {
+      setTracks((prev) => prev.map((t) => resolveTrackUrls(t, serverUrl, serverToken)));
+      setOriginalTracks((prev) => prev.map((t) => resolveTrackUrls(t, serverUrl, serverToken)));
+      setAlbums((prev) => prev.map((a) => resolveAlbumUrls(a, serverUrl, serverToken)));
+    }
+  }, [serverUrl, serverToken]);
 
   // 2. Tự động nạp UserState (Playlists & Favorites) từ local cache và đồng bộ từ server
   useEffect(() => {
@@ -340,21 +437,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
               `Đã nhận cấu hình máy chủ từ mã QR của Beatify Dashboard:\n\nServer: ${cleanUrl}\n\nĐang tự động đồng bộ thư viện nhạc...`
             );
 
-            // Tự động tải thư viện ngay
-            try {
-              setIsSyncing(true);
-              setSyncStatus('Đang tải danh sách bài hát...');
-              const client = new MusicApiClient({ baseUrl: cleanUrl, token: cleanToken });
-              const lib = await client.fetchLibrary();
-              setTracks(lib.tracks);
-              setOriginalTracks(lib.tracks);
-              setAlbums(lib.albums || []);
-              setSyncStatus(`Đã đồng bộ ${lib.tracks.length} bài hát từ Cloudflare!`);
-            } catch (syncErr) {
-              setSyncStatus(`Lỗi tải nhạc: ${String(syncErr)}`);
-            } finally {
-              setIsSyncing(false);
-            }
+            // Tự động đồng bộ toàn bộ thư viện và chuẩn hoá URL cho player & ảnh bìa
+            await syncLibraryInternal({
+              url: cleanUrl,
+              token: cleanToken,
+              etag: null,
+              silent: false,
+              force: true,
+            });
           }
         }
       } catch (err) {
@@ -370,7 +460,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [syncLibraryInternal]);
 
   // 5. Cập nhật UserState (lưu local + đồng bộ Cloudflare R2)
   const updateUserState = useCallback(async (updater: (prev: UserState) => UserState) => {

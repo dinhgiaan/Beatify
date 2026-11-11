@@ -81,19 +81,44 @@ export class RntpPlayerService implements IPlayerService {
 
   async playQueue(tracks: Track[], startIndex = 0): Promise<void> {
     await this.setup();
-    this.currentTracks = tracks;
 
-    const mediaItems = tracks.map((track) => ({
+    // Lọc các bài hát có URI phát hợp lệ (http://, https://, hoặc file://) để bảo vệ 100% không bị crash native AVPlayer
+    const validTracks = tracks.filter((t) => {
+      const hasValidUri = Boolean(
+        t.file &&
+          (t.file.startsWith('http://') || t.file.startsWith('https://') || t.file.startsWith('file://'))
+      );
+      if (!hasValidUri) {
+        console.warn(`[RNTP] Bỏ qua bài "${t.title}" (${t.id}) do URL không hợp lệ: "${t.file}"`);
+      }
+      return hasValidUri;
+    });
+
+    if (validTracks.length === 0) {
+      console.warn('[RNTP] Không có bài hát nào có URL phát hợp lệ trong hàng đợi');
+      return;
+    }
+
+    this.currentTracks = validTracks;
+
+    const mediaItems = validTracks.map((track) => ({
       mediaId: track.id,
-      url: track.file, // Ở Phase 0 spike dùng URL stream hoặc sample public MP3
+      url: track.file,
       title: track.title,
       artist: track.artist,
       albumTitle: track.album,
       duration: track.duration,
-      artworkUrl: track.cover,
+      artworkUrl:
+        track.cover &&
+        (track.cover.startsWith('http://') ||
+          track.cover.startsWith('https://') ||
+          track.cover.startsWith('file://'))
+          ? track.cover
+          : undefined,
     }));
 
-    TrackPlayer.setMediaItems(mediaItems, startIndex);
+    const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
+    TrackPlayer.setMediaItems(mediaItems, safeIndex);
     TrackPlayer.play();
     this.notifyListeners();
   }
