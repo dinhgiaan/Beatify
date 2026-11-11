@@ -102,15 +102,20 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO
 
-          # Gói .app thành .ipa
+          # Gói .app thành .ipa chuẩn thương hiệu Beatify
           APP_PATH=$(ls -d build/Build/Products/${CONFIG}-iphoneos/*.app | head -n 1)
           echo "Đã build: $APP_PATH"
           rm -rf Payload && mkdir Payload
           cp -R "$APP_PATH" Payload/
-          zip -qr "app-${APP_VARIANT}.ipa" Payload
+          if [ "$APP_VARIANT" = "development" ]; then
+            IPA_FILE="Beatify-Dev.ipa"
+          else
+            IPA_FILE="Beatify.ipa"
+          fi
+          zip -qr "$IPA_FILE" Payload
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ipa-${{ inputs.variant }}
-          path: apps/mobile/app-${{ inputs.variant }}.ipa
+          name: ${{ inputs.variant == 'development' && 'Beatify-iOS-Dev' || 'Beatify-iOS-Release' }}
+          path: apps/mobile/${{ inputs.variant == 'development' && 'Beatify-Dev.ipa' || 'Beatify.ipa' }}
           retention-days: 14
