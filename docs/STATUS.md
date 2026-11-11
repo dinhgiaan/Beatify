@@ -9,7 +9,10 @@
 4. **Hồ sơ cá nhân & Cài đặt:** Xóa dòng chữ placeholder thừa thãi ở bio người dùng; chuyển phần "Dung lượng nhạc ngoại tuyến (offline)" vào bên trong nhóm "Cài đặt kỹ thuật & máy chủ" (Accordion).
 5. **Ảnh bìa thu nhỏ (Artwork Thumbnail):** Hiển thị ảnh bìa trực quan trong Danh sách chờ (Queue list), danh sách Bài hát yêu thích (Favorites) và Chi tiết tuyển tập (Collection details).
 6. **Tiêu đề màn hình tinh gọn:** Loại bỏ tiêu đề lớn trùng lặp với thanh floating tab bar ở các tab Thư viện, Tìm kiếm và Vừa nghe; thay bằng brand badge BEATIFY nhỏ gọn, giải phóng không gian màn hình.
-7. **Toàn bộ monorepo:** 252/252 tests passed 100%, typecheck sạch (5/5 packages), ESLint 0 lỗi. Không thay đổi native dependency (không cần build lại .ipa).
+7. **Xử lý lời bài hát & Giới hạn Playlist:**
+   - App Mobile: Icon micro (mic) tự động disable (mờ 35%) khi bài hát không có lời; bấm vào hiển thị dialog nhẹ nổi và tự biến mất sau 2s (hoặc bấm nút đóng ✕). Khi mở lời bài hát dạng text không có mốc thời gian, hiển thị rõ nhãn "Lyric không đồng bộ timeline".
+   - Web Dashboard: Nâng giới hạn phân tích link và job tải playlist YouTube lên tới 1000 bài (tối ưu tốc độ phản hồi 1-2s, hỗ trợ trọn vẹn playlist lớn 250+ bài).
+8. **Toàn bộ monorepo:** 252/252 tests passed 100%, typecheck sạch (5/5 packages), ESLint 0 lỗi. Không thay đổi native dependency (không cần build lại .ipa).
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
