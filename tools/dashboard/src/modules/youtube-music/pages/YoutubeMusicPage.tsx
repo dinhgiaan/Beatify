@@ -1217,11 +1217,10 @@ export const YoutubeMusicPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setViewMode('artist')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${
-                      viewMode === 'artist'
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${viewMode === 'artist'
                         ? 'bg-[#1DB954]/15 text-[#1DB954] font-semibold border border-[#1DB954]/30'
                         : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
+                      }`}
                     title="Hiển thị theo từng khung riêng biệt của từng Nghệ sĩ kèm ảnh đại diện"
                   >
                     <Users size={12} />
@@ -1230,11 +1229,10 @@ export const YoutubeMusicPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setViewMode('table')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${
-                      viewMode === 'table'
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10.5px] font-medium transition-colors cursor-pointer ${viewMode === 'table'
                         ? 'bg-[#1DB954]/15 text-[#1DB954] font-semibold border border-[#1DB954]/30'
                         : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
+                      }`}
                     title="Hiển thị dạng bảng danh sách truyền thống"
                   >
                     <List size={12} />
@@ -1440,15 +1438,14 @@ export const YoutubeMusicPage: React.FC = () => {
                             <div
                               key={item.id}
                               onClick={() => !item.isUnavailable && toggleSelectItem(item.id)}
-                              className={`px-4 py-2.5 flex items-center justify-between gap-3 text-[11px] transition-colors group ${
-                                item.isUnavailable
+                              className={`px-4 py-2.5 flex items-center justify-between gap-3 text-[11px] transition-colors group ${item.isUnavailable
                                   ? 'opacity-40 bg-rose-950/10 cursor-not-allowed'
                                   : !isSelected
                                     ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)] cursor-pointer'
                                     : idx % 2 === 1
                                       ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)] cursor-pointer'
                                       : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] cursor-pointer'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div onClick={(e) => e.stopPropagation()}>
@@ -1522,818 +1519,815 @@ export const YoutubeMusicPage: React.FC = () => {
                                       <ExternalLink size={10} />
                                     </a>
                                   </div>
-                                  <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5 flex-wrap">
-                                    <span>Album: <strong className="text-[var(--text-secondary)] font-medium">{album}</strong></span>
-                                    {customFolder && (
-                                      <span className="text-[#1DB954] font-medium">• 📁 {customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0]}</span>
-                                    )}
-                                    {item.isDuplicateSong && (
-                                      <span
-                                        className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
-                                        title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
+                                    <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5 flex-wrap">
+                                      <span>Album: <strong className="text-[var(--text-secondary)] font-medium">{album}</strong></span>
+                                      {customFolder && (
+                                        <span className="text-[#1DB954] font-medium">• 📁 {customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0]}</span>
+                                      )}
+                                      {item.isDuplicateSong && (
+                                        <span
+                                          className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
+                                          title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
+                                        >
+                                          ⚠️ Cùng bài #{item.duplicateOfIndex}
+                                        </span>
+                                      )}
+                                      {item.isUnavailable && (
+                                        <span
+                                          className="text-[9px] px-1.5 py-0.2 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium cursor-help"
+                                          title={item.unavailableReason || 'Video này bị đặt riêng tư (Private) hoặc bị chặn trên YouTube nên không thể tải về.'}
+                                        >
+                                          ⛔ Không tải được
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Cột phải: Thời lượng, Lyrics, Trạng thái */}
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right tabular-nums text-[10.5px]">
+                                    <div className="text-[var(--text-primary)] font-medium">
+                                      {formatDuration(item.duration)}
+                                    </div>
+                                    {item.fileSizeBytes && item.isAlreadyDownloaded ? (
+                                      <div
+                                        className="text-[9px] font-medium text-emerald-400"
+                                        title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
                                       >
-                                        ⚠️ Cùng bài #{item.duplicateOfIndex}
+                                        {formatExactSize(item.fileSizeBytes)}
+                                      </div>
+                                    ) : item.duration ? (
+                                      <div
+                                        className="text-[9px] text-[var(--text-muted)]"
+                                        title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
+                                      >
+                                        {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
+                                      </div>
+                                    ) : null}
+                                  </div>
+
+                                  {/* Badge Lời bài hát */}
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setLyricsEditingItem(item)}
+                                      className={`text-[9.5px] px-2 py-0.5 rounded border transition-colors cursor-pointer flex items-center gap-1 ${item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics
+                                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium'
+                                          : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                                        }`}
+                                      title="Bấm để xem hoặc sửa lời bài hát (.lrc)"
+                                    >
+                                      <span>{item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics ? 'Có .lrc' : 'Chưa có lời'}</span>
+                                      <Edit3 size={9} className="opacity-70" />
+                                    </button>
+                                  </div>
+
+                                  {/* Trạng thái đã tải */}
+                                  <div>
+                                    {item.isUnavailable ? (
+                                      <span
+                                        className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium"
+                                        title={item.unavailableReason || 'Video đã bị xóa hoặc đặt chế độ riêng tư trên YouTube'}
+                                      >
+                                        🚫 Bị ẩn/xóa
                                       </span>
-                                    )}
-                                    {item.isUnavailable && (
-                                      <span
-                                        className="text-[9px] px-1.5 py-0.2 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium cursor-help"
-                                        title={item.unavailableReason || 'Video này bị đặt riêng tư (Private) hoặc bị chặn trên YouTube nên không thể tải về.'}
-                                      >
-                                        ⛔ Không tải được
+                                    ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                                        Đang tải...
+                                      </span>
+                                    ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
+                                      item.fileMissing ? (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
+                                          Mất file
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium inline-flex items-center gap-1">
+                                          <span className="text-emerald-400 font-bold">✓</span> Đã có
+                                        </span>
+                                      )
+                                    ) : (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium">
+                                        Chưa tải
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               </div>
+                              );
+                        })}
+                            </div>
+                    </div>
+                      );
+                })}
+                    </div>
+                  ) : (
+                /* View Mode 2: Bảng danh sách truyền thống (Table Content) */
+                <div className="max-h-[520px] overflow-auto">
+                  <table className="w-full text-left text-[11px] border-collapse">
+                    <thead className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-subtle)] shadow-xs">
+                      <tr className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] select-none">
+                        <th className="py-2.5 pl-3 pr-1 w-10 text-center">
+                          <Checkbox
+                            checked={
+                              previewData.items.length > 0 &&
+                              selectedIds.size === previewData.items.length
+                            }
+                            onChange={toggleSelectAll}
+                            title="Chọn / Bỏ chọn tất cả"
+                          />
+                        </th>
+                        <th className="py-2.5 px-1 w-10 text-center text-[var(--text-muted)]">#</th>
+                        <th className="py-2.5 px-3 min-w-[240px]">Bài hát &amp; Nghệ sĩ</th>
+                        <th className="py-2.5 px-3 w-36 lg:w-44">Album</th>
+                        <th className="py-2.5 px-3 w-40 lg:w-48 whitespace-nowrap">Thư mục lưu</th>
+                        <th className="py-2.5 px-3 w-28 text-right whitespace-nowrap">Thời lượng</th>
+                        <th className="py-2.5 px-2 w-24 text-center whitespace-nowrap">Độ tin cậy</th>
+                        <th className="py-2.5 pr-4 pl-2 w-44 lg:w-52 text-right whitespace-nowrap">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {currentItems.map((item, index) => {
+                        const isSelected = selectedIds.has(item.id);
+                        const globalIndex = startIndex + index + 1;
+                        const override = itemOverrides[item.url] || itemOverrides[item.id];
+                        const title = override?.cleanTitle || item.cleanTitle;
+                        const artist = override?.artist || item.artist;
+                        const album = override?.album || item.album || 'Singles';
+                        const customFolder = customFolderMap[item.url] || customFolderMap[item.id];
 
-                              {/* Cột phải: Thời lượng, Lyrics, Trạng thái */}
-                              <div className="flex items-center gap-3 shrink-0">
-                                <div className="text-right tabular-nums text-[10.5px]">
-                                  <div className="text-[var(--text-primary)] font-medium">
-                                    {formatDuration(item.duration)}
-                                  </div>
-                                  {item.fileSizeBytes && item.isAlreadyDownloaded ? (
-                                    <div
-                                      className="text-[9px] font-medium text-emerald-400"
-                                      title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
-                                    >
-                                      {formatExactSize(item.fileSizeBytes)}
-                                    </div>
-                                  ) : item.duration ? (
-                                    <div
-                                      className="text-[9px] text-[var(--text-muted)]"
-                                      title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
-                                    >
-                                      {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
-                                    </div>
-                                  ) : null}
-                                </div>
-
-                                {/* Badge Lời bài hát */}
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={() => setLyricsEditingItem(item)}
-                                    className={`text-[9.5px] px-2 py-0.5 rounded border transition-colors cursor-pointer flex items-center gap-1 ${
-                                      item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics
-                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium'
-                                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => !item.isUnavailable && toggleSelectItem(item.id)}
+                            className={`transition-colors group ${item.isUnavailable
+                                ? 'opacity-40 bg-rose-950/10 cursor-not-allowed'
+                                : !isSelected
+                                  ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)] cursor-pointer'
+                                  : index % 2 === 1
+                                    ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)] cursor-pointer'
+                                    : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] cursor-pointer'
+                              }`}
+                          >
+                            <td
+                              className="py-2 pl-3 pr-1 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={item.isUnavailable}
+                                onChange={() => !item.isUnavailable && toggleSelectItem(item.id)}
+                              />
+                            </td>
+                            <td className="py-2 px-1 text-center text-[var(--text-muted)] text-[10.5px] tabular-nums font-medium">
+                              {globalIndex}
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {/* Thumbnail with Click to Zoom */}
+                                <div
+                                  onClick={(e) => {
+                                    if (item.thumbnailUrl) {
+                                      e.stopPropagation();
+                                      setViewingCover({
+                                        url: item.thumbnailUrl,
+                                        title,
+                                        artist,
+                                      });
+                                    }
+                                  }}
+                                  className={`w-9 h-9 rounded-lg border border-[var(--border)] overflow-hidden shrink-0 flex items-center justify-center bg-black/40 text-[var(--text-muted)] ${item.thumbnailUrl
+                                      ? 'cursor-pointer hover:opacity-85 hover:ring-1 hover:ring-[#1DB954]'
+                                      : ''
                                     }`}
-                                    title="Bấm để xem hoặc sửa lời bài hát (.lrc)"
-                                  >
-                                    <span>{item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' || itemOverrides[item.url]?.customLyrics || itemOverrides[item.id]?.customLyrics ? 'Có .lrc' : 'Chưa có lời'}</span>
-                                    <Edit3 size={9} className="opacity-70" />
-                                  </button>
-                                </div>
-
-                                {/* Trạng thái đã tải */}
-                                <div>
-                                  {item.isUnavailable ? (
-                                    <span
-                                      className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium"
-                                      title={item.unavailableReason || 'Video đã bị xóa hoặc đặt chế độ riêng tư trên YouTube'}
-                                    >
-                                      🚫 Bị ẩn/xóa
-                                    </span>
-                                  ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
-                                      Đang tải...
-                                    </span>
-                                  ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
-                                    item.fileMissing ? (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
-                                        Mất file
-                                      </span>
-                                    ) : (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium inline-flex items-center gap-1">
-                                        <span className="text-emerald-400 font-bold">✓</span> Đã có
-                                      </span>
-                                    )
+                                  title={item.thumbnailUrl ? 'Bấm để phóng to xem ảnh bìa gốc' : undefined}
+                                >
+                                  {item.thumbnailUrl ? (
+                                    <img
+                                      src={item.thumbnailUrl}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
                                   ) : (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium">
-                                      Chưa tải
-                                    </span>
+                                    <Music size={13} />
                                   )}
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* View Mode 2: Bảng danh sách truyền thống (Table Content) */
-              <div className="max-h-[520px] overflow-auto">
-                <table className="w-full text-left text-[11px] border-collapse">
-                <thead className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-subtle)] shadow-xs">
-                  <tr className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] select-none">
-                    <th className="py-2.5 pl-3 pr-1 w-10 text-center">
-                      <Checkbox
-                        checked={
-                          previewData.items.length > 0 &&
-                          selectedIds.size === previewData.items.length
-                        }
-                        onChange={toggleSelectAll}
-                        title="Chọn / Bỏ chọn tất cả"
-                      />
-                    </th>
-                    <th className="py-2.5 px-1 w-10 text-center text-[var(--text-muted)]">#</th>
-                    <th className="py-2.5 px-3 min-w-[240px]">Bài hát &amp; Nghệ sĩ</th>
-                    <th className="py-2.5 px-3 w-36 lg:w-44">Album</th>
-                    <th className="py-2.5 px-3 w-40 lg:w-48 whitespace-nowrap">Thư mục lưu</th>
-                    <th className="py-2.5 px-3 w-28 text-right whitespace-nowrap">Thời lượng</th>
-                    <th className="py-2.5 px-2 w-24 text-center whitespace-nowrap">Độ tin cậy</th>
-                    <th className="py-2.5 pr-4 pl-2 w-44 lg:w-52 text-right whitespace-nowrap">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {currentItems.map((item, index) => {
-                    const isSelected = selectedIds.has(item.id);
-                    const globalIndex = startIndex + index + 1;
-                    const override = itemOverrides[item.url] || itemOverrides[item.id];
-                    const title = override?.cleanTitle || item.cleanTitle;
-                    const artist = override?.artist || item.artist;
-                    const album = override?.album || item.album || 'Singles';
-                    const customFolder = customFolderMap[item.url] || customFolderMap[item.id];
 
-                    return (
-                      <tr
-                        key={item.id}
-                        onClick={() => !item.isUnavailable && toggleSelectItem(item.id)}
-                        className={`transition-colors group ${
-                          item.isUnavailable
-                            ? 'opacity-40 bg-rose-950/10 cursor-not-allowed'
-                            : !isSelected
-                              ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)] cursor-pointer'
-                              : index % 2 === 1
-                                ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)] cursor-pointer'
-                                : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] cursor-pointer'
-                        }`}
-                      >
-                        <td
-                          className="py-2 pl-3 pr-1 text-center"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            disabled={item.isUnavailable}
-                            onChange={() => !item.isUnavailable && toggleSelectItem(item.id)}
-                          />
-                        </td>
-                        <td className="py-2 px-1 text-center text-[var(--text-muted)] text-[10.5px] tabular-nums font-medium">
-                          {globalIndex}
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Thumbnail with Click to Zoom */}
-                            <div
-                              onClick={(e) => {
-                                if (item.thumbnailUrl) {
-                                  e.stopPropagation();
-                                  setViewingCover({
-                                    url: item.thumbnailUrl,
-                                    title,
-                                    artist,
-                                  });
-                                }
-                              }}
-                              className={`w-9 h-9 rounded-lg border border-[var(--border)] overflow-hidden shrink-0 flex items-center justify-center bg-black/40 text-[var(--text-muted)] ${
-                                item.thumbnailUrl
-                                  ? 'cursor-pointer hover:opacity-85 hover:ring-1 hover:ring-[#1DB954]'
-                                  : ''
-                              }`}
-                              title={item.thumbnailUrl ? 'Bấm để phóng to xem ảnh bìa gốc' : undefined}
-                            >
-                              {item.thumbnailUrl ? (
-                                <img
-                                  src={item.thumbnailUrl}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <Music size={13} />
-                              )}
-                            </div>
-
-                            {/* Title & Artist with Inline Edit */}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-[12px] text-[var(--text-primary)] truncate">
-                                  {title}
-                                </span>
-                                {override && (
-                                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-medium shrink-0">
-                                    Đã sửa
-                                  </span>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingItem(item);
-                                  }}
-                                  className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer"
-                                  title="Chỉnh sửa Tên bài hát, Nghệ sĩ hoặc Album"
-                                >
-                                  <Edit3 size={11} />
-                                </button>
-                                <a
-                                  href={item.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer inline-flex items-center"
-                                  title="Mở nghe trên YouTube (Tab mới)"
-                                >
-                                  <ExternalLink size={10} />
-                                </a>
-                              </div>
-                              <div className="text-[10.5px] text-[var(--text-muted)] truncate mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                <span>{artist || 'Nghệ sĩ chưa rõ'}</span>
-                                {item.isDuplicateSong && (
-                                  <span
-                                    className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
-                                    title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
-                                  >
-                                    ⚠️ Cùng bài #{item.duplicateOfIndex}
-                                  </span>
-                                )}
-                              </div>
-                              {item.rawTitle !== title && (
-                                <div className="text-[9.5px] text-[var(--text-muted)]/70 truncate">
-                                  Gốc: {item.rawTitle}
+                                {/* Title & Artist with Inline Edit */}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold text-[12px] text-[var(--text-primary)] truncate">
+                                      {title}
+                                    </span>
+                                    {override && (
+                                      <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-medium shrink-0">
+                                        Đã sửa
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingItem(item);
+                                      }}
+                                      className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer"
+                                      title="Chỉnh sửa Tên bài hát, Nghệ sĩ hoặc Album"
+                                    >
+                                      <Edit3 size={11} />
+                                    </button>
+                                    <a
+                                      href={item.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-0.5 rounded text-[var(--text-muted)] hover:text-[#1DB954] transition-colors opacity-60 group-hover:opacity-100 cursor-pointer inline-flex items-center"
+                                      title="Mở nghe trên YouTube (Tab mới)"
+                                    >
+                                      <ExternalLink size={10} />
+                                    </a>
+                                  </div>
+                                    <div className="text-[10.5px] text-[var(--text-muted)] truncate mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      <span>{artist || 'Nghệ sĩ chưa rõ'}</span>
+                                      {item.isDuplicateSong && (
+                                        <span
+                                          className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
+                                          title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
+                                        >
+                                          ⚠️ Cùng bài #{item.duplicateOfIndex}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {item.rawTitle !== title && (
+                                      <div className="text-[9.5px] text-[var(--text-muted)]/70 truncate">
+                                        Gốc: {item.rawTitle}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2 px-3 text-[var(--text-secondary)] text-[10.5px]">
-                          <span className="truncate block max-w-[140px]" title={album}>
-                            {album}
-                          </span>
-                        </td>
-                        <td
-                          className="py-2 px-3 text-[10.5px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {customFolder ? (
-                            <div className="flex items-center gap-1 min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFolderDialogTargetIds([item.id]);
-                                  setIsFolderDialogOpen(true);
-                                }}
-                                className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#1DB954]/40 bg-[#1DB954]/10 text-[#1DB954] font-medium max-w-[130px] truncate hover:opacity-90 transition-opacity cursor-pointer text-[10px]"
-                                title={`Đường dẫn lưu đã chọn: ${customFolder}\n(Bấm để đổi thư mục khác)`}
-                              >
-                                <FolderCheck size={11} className="shrink-0 text-[#1DB954]" />
-                                <span className="truncate">{customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0] || customFolder}</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomFolderMap((prev) => {
-                                    const next: Record<string, string> = {};
-                                    for (const [k, v] of Object.entries(prev)) {
-                                      if (k !== item.id && k !== item.url) {
-                                        next[k] = v;
-                                      }
-                                    }
-                                    return next;
-                                  });
-                                  toast.info('Đã khôi phục mặc định lưu theo nghệ sĩ');
-                                }}
-                                className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded hover:bg-[var(--bg-hover)] cursor-pointer"
-                                title="Xóa thư mục riêng (quay về mặc định theo nghệ sĩ)"
-                              >
-                                <X size={11} />
-                              </button>
-                            </div>
-                          ) : (() => {
-                            const matchedArtistFolder = getExistingArtistFolder(artist);
-                            if (matchedArtistFolder) {
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setCustomFolderMap((prev) => ({
-                                        ...prev,
-                                        [item.id]: matchedArtistFolder.folderPath,
-                                        [item.url]: matchedArtistFolder.folderPath,
-                                      }));
-                                      toast.success(`Đã chọn nhanh thư mục: ${matchedArtistFolder.folderPath}`);
-                                    }}
-                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-medium max-w-[145px] truncate transition-colors cursor-pointer text-[10px]"
-                                    title={`Nghệ sĩ "${matchedArtistFolder.artistName}" đã có sẵn thư mục trong thư viện máy tính!\nĐường dẫn: ${matchedArtistFolder.folderPath}\nBấm 1-click để chọn nhanh thư mục này.`}
-                                  >
-                                    <FolderCheck size={11} className="shrink-0 text-emerald-400" />
-                                    <span className="truncate">{matchedArtistFolder.artistName}</span>
-                                    <span className="text-[8.5px] px-1 rounded bg-emerald-500/20 text-emerald-300 font-semibold shrink-0">Có sẵn</span>
-                                  </button>
+                            </td>
+                            <td className="py-2 px-3 text-[var(--text-secondary)] text-[10.5px]">
+                              <span className="truncate block max-w-[140px]" title={album}>
+                                {album}
+                              </span>
+                            </td>
+                            <td
+                              className="py-2 px-3 text-[10.5px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {customFolder ? (
+                                <div className="flex items-center gap-1 min-w-0">
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setFolderDialogTargetIds([item.id]);
                                       setIsFolderDialogOpen(true);
                                     }}
-                                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 rounded hover:bg-[var(--bg-hover)] cursor-pointer"
-                                    title="Duyệt thư mục khác..."
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#1DB954]/40 bg-[#1DB954]/10 text-[#1DB954] font-medium max-w-[130px] truncate hover:opacity-90 transition-opacity cursor-pointer text-[10px]"
+                                    title={`Đường dẫn lưu đã chọn: ${customFolder}\n(Bấm để đổi thư mục khác)`}
                                   >
-                                    <Folder size={11} />
+                                    <FolderCheck size={11} className="shrink-0 text-[#1DB954]" />
+                                    <span className="truncate">{customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0] || customFolder}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCustomFolderMap((prev) => {
+                                        const next: Record<string, string> = {};
+                                        for (const [k, v] of Object.entries(prev)) {
+                                          if (k !== item.id && k !== item.url) {
+                                            next[k] = v;
+                                          }
+                                        }
+                                        return next;
+                                      });
+                                      toast.info('Đã khôi phục mặc định lưu theo nghệ sĩ');
+                                    }}
+                                    className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded hover:bg-[var(--bg-hover)] cursor-pointer"
+                                    title="Xóa thư mục riêng (quay về mặc định theo nghệ sĩ)"
+                                  >
+                                    <X size={11} />
                                   </button>
                                 </div>
-                              );
-                            }
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFolderDialogTargetIds([item.id]);
-                                  setIsFolderDialogOpen(true);
-                                }}
-                                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:underline truncate text-[10.5px] flex items-center gap-1 cursor-pointer"
-                                title="Bấm để đặt thư mục lưu riêng cho bài này"
-                              >
-                                <span className="truncate">Theo nghệ sĩ</span>
-                                <Folder size={10} className="shrink-0 opacity-40 hover:opacity-100" />
-                              </button>
-                            );
-                          })()}
-                        </td>
-                        <td className="py-2 px-3 text-right text-[10.5px] tabular-nums leading-tight whitespace-nowrap">
-                          <div className="text-[var(--text-primary)] font-medium">
-                            {formatDuration(item.duration)}
-                          </div>
-                          {item.fileSizeBytes && item.isAlreadyDownloaded ? (
-                            <div
-                              className="text-[9.5px] font-medium text-emerald-400"
-                              title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
-                            >
-                              {formatExactSize(item.fileSizeBytes)}
-                            </div>
-                          ) : item.duration ? (
-                            <div
-                              className="text-[9.5px] text-[var(--text-muted)]"
-                              title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
-                            >
-                              {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td
-                          className="py-2 px-2 text-center whitespace-nowrap"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {item.metadataConfidence === 'high' ? (
-                            <Badge variant="success" className="text-[9px] py-0 px-1.5">
-                              Cao
-                            </Badge>
-                          ) : (
-                            <Tooltip
-                              position="left"
-                              content={
-                                <div className="space-y-1 text-left max-w-[220px]">
-                                  <div className="font-semibold text-[10.5px] text-[var(--text-primary)]">
-                                    {item.metadataConfidence === 'medium'
-                                      ? 'Độ tin cậy vừa'
-                                      : 'Độ tin cậy thấp'}
-                                  </div>
-                                  <p className="text-[10px] text-[var(--text-muted)] m-0 leading-normal">
-                                    {item.metadataConfidenceReason ||
-                                      (item.metadataConfidence === 'medium'
-                                        ? 'Tiêu đề dùng dấu gạch đứng (|), có thể chứa thông tin phụ hoặc cần kiểm tra lại nghệ sĩ.'
-                                        : 'Tiêu đề không có dấu phân cách rõ ràng; tên kênh đăng video được dùng tạm làm tên nghệ sĩ.')}
-                                  </p>
-                                </div>
-                              }
-                            >
-                              <Badge
-                                variant={item.metadataConfidence === 'medium' ? 'warning' : 'danger'}
-                                className="text-[9px] py-0 px-1.5 cursor-help"
-                              >
-                                {item.metadataConfidence === 'medium' ? 'Vừa' : 'Thấp'}
-                              </Badge>
-                            </Tooltip>
-                          )}
-                        </td>
-                        <td className="py-2 pr-4 pl-2 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center justify-end gap-1 flex-nowrap">
-                            {/* 1. Download Status Badge */}
-                            {item.isUnavailable ? (
-                              <Tooltip
-                                position="bottom"
-                                align="end"
-                                content={
-                                  <div className="space-y-1 text-left max-w-[240px]">
-                                    <div className="font-semibold text-[12px] text-rose-400">
-                                      Video không khả dụng
+                              ) : (() => {
+                                const matchedArtistFolder = getExistingArtistFolder(artist);
+                                if (matchedArtistFolder) {
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setCustomFolderMap((prev) => ({
+                                            ...prev,
+                                            [item.id]: matchedArtistFolder.folderPath,
+                                            [item.url]: matchedArtistFolder.folderPath,
+                                          }));
+                                          toast.success(`Đã chọn nhanh thư mục: ${matchedArtistFolder.folderPath}`);
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-medium max-w-[145px] truncate transition-colors cursor-pointer text-[10px]"
+                                        title={`Nghệ sĩ "${matchedArtistFolder.artistName}" đã có sẵn thư mục trong thư viện máy tính!\nĐường dẫn: ${matchedArtistFolder.folderPath}\nBấm 1-click để chọn nhanh thư mục này.`}
+                                      >
+                                        <FolderCheck size={11} className="shrink-0 text-emerald-400" />
+                                        <span className="truncate">{matchedArtistFolder.artistName}</span>
+                                        <span className="text-[8.5px] px-1 rounded bg-emerald-500/20 text-emerald-300 font-semibold shrink-0">Có sẵn</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setFolderDialogTargetIds([item.id]);
+                                          setIsFolderDialogOpen(true);
+                                        }}
+                                        className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 rounded hover:bg-[var(--bg-hover)] cursor-pointer"
+                                        title="Duyệt thư mục khác..."
+                                      >
+                                        <Folder size={11} />
+                                      </button>
                                     </div>
-                                    <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
-                                      {item.unavailableReason || 'Video đã bị xóa hoặc chuyển sang chế độ riêng tư trên YouTube.'}
-                                    </p>
-                                  </div>
+                                  );
                                 }
-                              >
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0 cursor-help">
-                                  🚫 Bị ẩn/xóa
-                                </span>
-                              </Tooltip>
-                            ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
-                                Đang tải...
-                              </span>
-                            ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
-                              item.fileMissing ? (
-                                <Tooltip
-                                  position="bottom"
-                                  align="end"
-                                  content={
-                                    <div className="space-y-1 text-left max-w-[240px]">
-                                      <div className="font-semibold text-[12px] text-amber-300">
-                                        Tệp âm thanh bị mất
-                                      </div>
-                                      <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
-                                        Bài này từng tải nhưng file trên máy đã bị xóa hoặc đổi tên. Sẵn sàng tải lại!
-                                      </p>
-                                    </div>
-                                  }
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFolderDialogTargetIds([item.id]);
+                                      setIsFolderDialogOpen(true);
+                                    }}
+                                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:underline truncate text-[10.5px] flex items-center gap-1 cursor-pointer"
+                                    title="Bấm để đặt thư mục lưu riêng cho bài này"
+                                  >
+                                    <span className="truncate">Theo nghệ sĩ</span>
+                                    <Folder size={10} className="shrink-0 opacity-40 hover:opacity-100" />
+                                  </button>
+                                );
+                              })()}
+                            </td>
+                            <td className="py-2 px-3 text-right text-[10.5px] tabular-nums leading-tight whitespace-nowrap">
+                              <div className="text-[var(--text-primary)] font-medium">
+                                {formatDuration(item.duration)}
+                              </div>
+                              {item.fileSizeBytes && item.isAlreadyDownloaded ? (
+                                <div
+                                  className="text-[9.5px] font-medium text-emerald-400"
+                                  title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
                                 >
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium shrink-0 cursor-help">
-                                    Mất file
-                                  </span>
-                                </Tooltip>
+                                  {formatExactSize(item.fileSizeBytes)}
+                                </div>
+                              ) : item.duration ? (
+                                <div
+                                  className="text-[9.5px] text-[var(--text-muted)]"
+                                  title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
+                                >
+                                  {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td
+                              className="py-2 px-2 text-center whitespace-nowrap"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {item.metadataConfidence === 'high' ? (
+                                <Badge variant="success" className="text-[9px] py-0 px-1.5">
+                                  Cao
+                                </Badge>
                               ) : (
                                 <Tooltip
-                                  position="bottom"
-                                  align="end"
+                                  position="left"
                                   content={
-                                    <div className="space-y-1 text-left max-w-[240px]">
-                                      <div className="font-semibold text-[12px] text-emerald-400">
-                                        Đã có trong thư viện
+                                    <div className="space-y-1 text-left max-w-[220px]">
+                                      <div className="font-semibold text-[10.5px] text-[var(--text-primary)]">
+                                        {item.metadataConfidence === 'medium'
+                                          ? 'Độ tin cậy vừa'
+                                          : 'Độ tin cậy thấp'}
                                       </div>
-                                      <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
-                                        File đã có sẵn trong thư mục thư viện máy tính.
+                                      <p className="text-[10px] text-[var(--text-muted)] m-0 leading-normal">
+                                        {item.metadataConfidenceReason ||
+                                          (item.metadataConfidence === 'medium'
+                                            ? 'Tiêu đề dùng dấu gạch đứng (|), có thể chứa thông tin phụ hoặc cần kiểm tra lại nghệ sĩ.'
+                                            : 'Tiêu đề không có dấu phân cách rõ ràng; tên kênh đăng video được dùng tạm làm tên nghệ sĩ.')}
                                       </p>
                                     </div>
                                   }
                                 >
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0 cursor-help inline-flex items-center gap-1">
-                                    <span className="text-emerald-400 font-bold">✓</span> Đã có
-                                  </span>
+                                  <Badge
+                                    variant={item.metadataConfidence === 'medium' ? 'warning' : 'danger'}
+                                    className="text-[9px] py-0 px-1.5 cursor-help"
+                                  >
+                                    {item.metadataConfidence === 'medium' ? 'Vừa' : 'Thấp'}
+                                  </Badge>
                                 </Tooltip>
-                              )
-                            ) : (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium shrink-0">
-                                Chưa tải
-                              </span>
-                            )}
-
-                            {/* 2. Lyrics Status Badge with Click to View / Edit */}
-                            <Tooltip
-                              position="bottom"
-                              align="end"
-                              delay={50}
-                              content={
-                                <div className="space-y-1 text-left max-w-[250px]">
-                                  <div className="font-semibold text-[12px] text-[var(--text-primary)]">
-                                    {override?.customLyrics
-                                      ? 'Lời bài hát đã chỉnh sửa'
-                                      : item.lyricsSource === 'lrclib-synced'
-                                        ? 'Lời đồng bộ (.lrc) từ LrcLib'
-                                        : item.lyricsSource === 'yt-subs'
-                                          ? 'Lời đồng bộ (.lrc) từ CC YouTube'
-                                          : item.lyricsSource === 'lrclib-plain'
-                                            ? 'Lời dạng văn bản (Text)'
-                                            : item.lyricsSource === 'none'
-                                              ? 'Chưa có lời bài hát'
-                                              : 'Đang kiểm tra lời...'}
-                                  </div>
-                                  <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
-                                    Bấm vào đây để xem trực tiếp và chỉnh sửa lời bài hát trước khi tải.
-                                  </p>
-                                </div>
-                              }
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setLyricsEditingItem(item);
-                                }}
-                                className="cursor-pointer transition-transform hover:scale-105"
-                              >
-                                {override?.customLyrics ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium shrink-0">
-                                    .lrc (Đã sửa)
+                              )}
+                            </td>
+                            <td className="py-2 pr-4 pl-2 text-right whitespace-nowrap">
+                              <div className="inline-flex items-center justify-end gap-1 flex-nowrap">
+                                {/* 1. Download Status Badge */}
+                                {item.isUnavailable ? (
+                                  <Tooltip
+                                    position="bottom"
+                                    align="end"
+                                    content={
+                                      <div className="space-y-1 text-left max-w-[240px]">
+                                        <div className="font-semibold text-[12px] text-rose-400">
+                                          Video không khả dụng
+                                        </div>
+                                        <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                          {item.unavailableReason || 'Video đã bị xóa hoặc chuyển sang chế độ riêng tư trên YouTube.'}
+                                        </p>
+                                      </div>
+                                    }
+                                  >
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0 cursor-help">
+                                      🚫 Bị ẩn/xóa
+                                    </span>
+                                  </Tooltip>
+                                ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1 shrink-0">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                                    Đang tải...
                                   </span>
-                                ) : item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0">
-                                    .lrc
-                                  </span>
-                                ) : item.lyricsSource === 'lrclib-plain' ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25 font-medium shrink-0">
-                                    Text
-                                  </span>
-                                ) : item.lyricsSource === 'none' ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0">
-                                    Thiếu lời
-                                  </span>
+                                ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
+                                  item.fileMissing ? (
+                                    <Tooltip
+                                      position="bottom"
+                                      align="end"
+                                      content={
+                                        <div className="space-y-1 text-left max-w-[240px]">
+                                          <div className="font-semibold text-[12px] text-amber-300">
+                                            Tệp âm thanh bị mất
+                                          </div>
+                                          <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                            Bài này từng tải nhưng file trên máy đã bị xóa hoặc đổi tên. Sẵn sàng tải lại!
+                                          </p>
+                                        </div>
+                                      }
+                                    >
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium shrink-0 cursor-help">
+                                        Mất file
+                                      </span>
+                                    </Tooltip>
+                                  ) : (
+                                    <Tooltip
+                                      position="bottom"
+                                      align="end"
+                                      content={
+                                        <div className="space-y-1 text-left max-w-[240px]">
+                                          <div className="font-semibold text-[12px] text-emerald-400">
+                                            Đã có trong thư viện
+                                          </div>
+                                          <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                            File đã có sẵn trong thư mục thư viện máy tính.
+                                          </p>
+                                        </div>
+                                      }
+                                    >
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0 cursor-help inline-flex items-center gap-1">
+                                        <span className="text-emerald-400 font-bold">✓</span> Đã có
+                                      </span>
+                                    </Tooltip>
+                                  )
                                 ) : (
                                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium shrink-0">
-                                    Chờ quét
+                                    Chưa tải
                                   </span>
                                 )}
-                              </button>
-                            </Tooltip>
 
-                            {/* 3. Cover Art Status Badge with Click to Zoom */}
-                            <Tooltip
-                              position="bottom"
-                              align="end"
-                              delay={50}
-                              content={
-                                <div className="space-y-1 text-left max-w-[240px]">
-                                  <div className="font-semibold text-[12px] text-[var(--text-primary)]">
-                                    {item.hasCover || item.thumbnailUrl ? 'Có ảnh bìa (Bấm để phóng to)' : 'Chưa có ảnh bìa'}
-                                  </div>
-                                  <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
-                                    {item.hasCover || item.thumbnailUrl
-                                      ? 'Đã tìm thấy thumbnail chất lượng cao để làm ảnh bìa 1:1.'
-                                      : 'Video không có thumbnail hợp lệ hoặc không thể xử lý ảnh bìa.'}
-                                  </p>
-                                </div>
-                              }
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  if (item.thumbnailUrl) {
-                                    e.stopPropagation();
-                                    setViewingCover({
-                                      url: item.thumbnailUrl,
-                                      title,
-                                      artist,
-                                    });
+                                {/* 2. Lyrics Status Badge with Click to View / Edit */}
+                                <Tooltip
+                                  position="bottom"
+                                  align="end"
+                                  delay={50}
+                                  content={
+                                    <div className="space-y-1 text-left max-w-[250px]">
+                                      <div className="font-semibold text-[12px] text-[var(--text-primary)]">
+                                        {override?.customLyrics
+                                          ? 'Lời bài hát đã chỉnh sửa'
+                                          : item.lyricsSource === 'lrclib-synced'
+                                            ? 'Lời đồng bộ (.lrc) từ LrcLib'
+                                            : item.lyricsSource === 'yt-subs'
+                                              ? 'Lời đồng bộ (.lrc) từ CC YouTube'
+                                              : item.lyricsSource === 'lrclib-plain'
+                                                ? 'Lời dạng văn bản (Text)'
+                                                : item.lyricsSource === 'none'
+                                                  ? 'Chưa có lời bài hát'
+                                                  : 'Đang kiểm tra lời...'}
+                                      </div>
+                                      <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                        Bấm vào đây để xem trực tiếp và chỉnh sửa lời bài hát trước khi tải.
+                                      </p>
+                                    </div>
                                   }
-                                }}
-                                className={item.thumbnailUrl ? 'cursor-pointer transition-transform hover:scale-105' : ''}
-                              >
-                                {item.hasCover || item.thumbnailUrl ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0">
-                                    Có bìa
-                                  </span>
-                                ) : (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0">
-                                    Thiếu bìa
-                                  </span>
-                                )}
-                              </button>
-                            </Tooltip>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLyricsEditingItem(item);
+                                    }}
+                                    className="cursor-pointer transition-transform hover:scale-105"
+                                  >
+                                    {override?.customLyrics ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium shrink-0">
+                                        .lrc (Đã sửa)
+                                      </span>
+                                    ) : item.lyricsSource === 'lrclib-synced' || item.lyricsSource === 'yt-subs' ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0">
+                                        .lrc
+                                      </span>
+                                    ) : item.lyricsSource === 'lrclib-plain' ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25 font-medium shrink-0">
+                                        Text
+                                      </span>
+                                    ) : item.lyricsSource === 'none' ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0">
+                                        Thiếu lời
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)] font-medium shrink-0">
+                                        Chờ quét
+                                      </span>
+                                    )}
+                                  </button>
+                                </Tooltip>
+
+                                {/* 3. Cover Art Status Badge with Click to Zoom */}
+                                <Tooltip
+                                  position="bottom"
+                                  align="end"
+                                  delay={50}
+                                  content={
+                                    <div className="space-y-1 text-left max-w-[240px]">
+                                      <div className="font-semibold text-[12px] text-[var(--text-primary)]">
+                                        {item.hasCover || item.thumbnailUrl ? 'Có ảnh bìa (Bấm để phóng to)' : 'Chưa có ảnh bìa'}
+                                      </div>
+                                      <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                        {item.hasCover || item.thumbnailUrl
+                                          ? 'Đã tìm thấy thumbnail chất lượng cao để làm ảnh bìa 1:1.'
+                                          : 'Video không có thumbnail hợp lệ hoặc không thể xử lý ảnh bìa.'}
+                                      </p>
+                                    </div>
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      if (item.thumbnailUrl) {
+                                        e.stopPropagation();
+                                        setViewingCover({
+                                          url: item.thumbnailUrl,
+                                          title,
+                                          artist,
+                                        });
+                                      }
+                                    }}
+                                    className={item.thumbnailUrl ? 'cursor-pointer transition-transform hover:scale-105' : ''}
+                                  >
+                                    {item.hasCover || item.thumbnailUrl ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0">
+                                        Có bìa
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0">
+                                        Thiếu bìa
+                                      </span>
+                                    )}
+                                  </button>
+                                </Tooltip>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
           )}
 
-            {/* Pagination Controls */}
-            {previewData && previewData.items.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-[var(--border)] bg-[var(--bg-subtle)] flex flex-wrap items-center justify-between gap-3 text-[11px]">
-                {/* Left: Page Size Select & Item Range */}
-                <div className="flex items-center gap-2 text-[10.5px] text-[var(--text-muted)]">
-                  <span>Hiển thị</span>
-                  <Select
-                    selectSize="sm"
-                    value={String(pageSize)}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="h-6 text-[10.5px] py-0 px-2 bg-[var(--bg-surface)] font-medium"
-                  >
-                    <option value="25">25 bài / trang</option>
-                    <option value="50">50 bài / trang</option>
-                    <option value="100">100 bài / trang</option>
-                    <option value="200">200 bài / trang</option>
-                    <option value="300">300 bài / trang</option>
-                    <option value="500">500 bài / trang</option>
-                  </Select>
-                  <span className="tabular-nums">
-                    ({startIndex + 1} - {Math.min(endIndex, previewData.items.length)} / {previewData.items.length} bài)
-                  </span>
-                </div>
+                {/* Pagination Controls */}
+                {previewData && previewData.items.length > 0 && (
+                  <div className="px-4 py-2.5 border-t border-[var(--border)] bg-[var(--bg-subtle)] flex flex-wrap items-center justify-between gap-3 text-[11px]">
+                    {/* Left: Page Size Select & Item Range */}
+                    <div className="flex items-center gap-2 text-[10.5px] text-[var(--text-muted)]">
+                      <span>Hiển thị</span>
+                      <Select
+                        selectSize="sm"
+                        value={String(pageSize)}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="h-6 text-[10.5px] py-0 px-2 bg-[var(--bg-surface)] font-medium"
+                      >
+                        <option value="25">25 bài / trang</option>
+                        <option value="50">50 bài / trang</option>
+                        <option value="100">100 bài / trang</option>
+                        <option value="200">200 bài / trang</option>
+                        <option value="300">300 bài / trang</option>
+                        <option value="500">500 bài / trang</option>
+                      </Select>
+                      <span className="tabular-nums">
+                        ({startIndex + 1} - {Math.min(endIndex, previewData.items.length)} / {previewData.items.length} bài)
+                      </span>
+                    </div>
 
-                {/* Right: Icon Buttons (First, Prev, 1/4, Next, Last) */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage <= 1}
-                    title="Trang đầu"
-                    className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <ChevronsLeft size={13} />
-                  </button>
+                    {/* Right: Icon Buttons (First, Prev, 1/4, Next, Last) */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage <= 1}
+                        title="Trang đầu"
+                        className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        <ChevronsLeft size={13} />
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                    title="Trang trước"
-                    className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <ChevronLeft size={13} />
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        title="Trang trước"
+                        className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        <ChevronLeft size={13} />
+                      </button>
 
-                  <span className="px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-primary)] tabular-nums select-none">
-                    {currentPage} / {totalPages}
-                  </span>
+                      <span className="px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-primary)] tabular-nums select-none">
+                        {currentPage} / {totalPages}
+                      </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                    title="Trang sau"
-                    className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <ChevronRight size={13} />
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        title="Trang sau"
+                        className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        <ChevronRight size={13} />
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage >= totalPages}
-                    title="Trang cuối"
-                    className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <ChevronsRight size={13} />
-                  </button>
-                </div>
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage >= totalPages}
+                        title="Trang cuối"
+                        className="p-1 rounded border border-[var(--border)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        <ChevronsRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </AnimatePresence>
 
       {/* Edit Metadata Dialog */}
-      <MetadataEditDialog
-        isOpen={Boolean(editingItem)}
-        onClose={() => setEditingItem(null)}
-        item={editingItem}
-        currentOverrides={editingItem ? itemOverrides[editingItem.url] || itemOverrides[editingItem.id] : undefined}
-        onSave={(data) => {
-          if (!editingItem) return;
-          setItemOverrides((prev) => ({
-            ...prev,
-            [editingItem.url]: {
-              ...prev[editingItem.url],
-              ...data,
-            },
-            [editingItem.id]: {
-              ...prev[editingItem.id],
-              ...data,
-            },
-          }));
-          toast.success('Đã cập nhật siêu dữ liệu bài hát!');
-        }}
-      />
+        <MetadataEditDialog
+          isOpen={Boolean(editingItem)}
+          onClose={() => setEditingItem(null)}
+          item={editingItem}
+          currentOverrides={editingItem ? itemOverrides[editingItem.url] || itemOverrides[editingItem.id] : undefined}
+          onSave={(data) => {
+            if (!editingItem) return;
+            setItemOverrides((prev) => ({
+              ...prev,
+              [editingItem.url]: {
+                ...prev[editingItem.url],
+                ...data,
+              },
+              [editingItem.id]: {
+                ...prev[editingItem.id],
+                ...data,
+              },
+            }));
+            toast.success('Đã cập nhật siêu dữ liệu bài hát!');
+          }}
+        />
 
-      {/* Lyrics Editor Dialog */}
-      <LyricsEditorDialog
-        isOpen={Boolean(lyricsEditingItem)}
-        onClose={() => setLyricsEditingItem(null)}
-        item={lyricsEditingItem}
-        currentLyrics={
-          lyricsEditingItem
-            ? itemOverrides[lyricsEditingItem.url]?.customLyrics !== undefined
-              ? itemOverrides[lyricsEditingItem.url]?.customLyrics
-              : itemOverrides[lyricsEditingItem.id]?.customLyrics !== undefined
-                ? itemOverrides[lyricsEditingItem.id]?.customLyrics
-                : lyricsEditingItem.customLyrics
-            : undefined
-        }
-        initialSource={
-          lyricsEditingItem
-            ? itemOverrides[lyricsEditingItem.url]?.customLyrics !== undefined ||
-              itemOverrides[lyricsEditingItem.id]?.customLyrics !== undefined
-              ? 'custom'
-              : lyricsEditingItem.lyricsSource || undefined
-            : undefined
-        }
-        onSave={(text) => {
-          if (!lyricsEditingItem) return;
-          setItemOverrides((prev) => ({
-            ...prev,
-            [lyricsEditingItem.url]: {
-              ...prev[lyricsEditingItem.url],
-              customLyrics: text,
-            },
-            [lyricsEditingItem.id]: {
-              ...prev[lyricsEditingItem.id],
-              customLyrics: text,
-            },
-          }));
-          toast.success('Đã lưu lời bài hát tuỳ chỉnh!');
-        }}
-        onLyricsFetched={(lyrics, source) => {
-          if (!lyricsEditingItem) return;
-          setItemOverrides((prev) => ({
-            ...prev,
-            [lyricsEditingItem.url]: {
-              ...prev[lyricsEditingItem.url],
-              customLyrics: lyrics,
-            },
-            [lyricsEditingItem.id]: {
-              ...prev[lyricsEditingItem.id],
-              customLyrics: lyrics,
-            },
-          }));
-          setPreviewData((prev) =>
-            prev
-              ? {
+        {/* Lyrics Editor Dialog */}
+        <LyricsEditorDialog
+          isOpen={Boolean(lyricsEditingItem)}
+          onClose={() => setLyricsEditingItem(null)}
+          item={lyricsEditingItem}
+          currentLyrics={
+            lyricsEditingItem
+              ? itemOverrides[lyricsEditingItem.url]?.customLyrics !== undefined
+                ? itemOverrides[lyricsEditingItem.url]?.customLyrics
+                : itemOverrides[lyricsEditingItem.id]?.customLyrics !== undefined
+                  ? itemOverrides[lyricsEditingItem.id]?.customLyrics
+                  : lyricsEditingItem.customLyrics
+              : undefined
+          }
+          initialSource={
+            lyricsEditingItem
+              ? itemOverrides[lyricsEditingItem.url]?.customLyrics !== undefined ||
+                itemOverrides[lyricsEditingItem.id]?.customLyrics !== undefined
+                ? 'custom'
+                : lyricsEditingItem.lyricsSource || undefined
+              : undefined
+          }
+          onSave={(text) => {
+            if (!lyricsEditingItem) return;
+            setItemOverrides((prev) => ({
+              ...prev,
+              [lyricsEditingItem.url]: {
+                ...prev[lyricsEditingItem.url],
+                customLyrics: text,
+              },
+              [lyricsEditingItem.id]: {
+                ...prev[lyricsEditingItem.id],
+                customLyrics: text,
+              },
+            }));
+            toast.success('Đã lưu lời bài hát tuỳ chỉnh!');
+          }}
+          onLyricsFetched={(lyrics, source) => {
+            if (!lyricsEditingItem) return;
+            setItemOverrides((prev) => ({
+              ...prev,
+              [lyricsEditingItem.url]: {
+                ...prev[lyricsEditingItem.url],
+                customLyrics: lyrics,
+              },
+              [lyricsEditingItem.id]: {
+                ...prev[lyricsEditingItem.id],
+                customLyrics: lyrics,
+              },
+            }));
+            setPreviewData((prev) =>
+              prev
+                ? {
                   ...prev,
                   items: prev.items.map((it) =>
                     it.id === lyricsEditingItem.id || it.url === lyricsEditingItem.url
                       ? {
-                          ...it,
-                          customLyrics: lyrics,
-                          lyricsSource: (source as YoutubeMusicLyricsSource) || null,
-                        }
+                        ...it,
+                        customLyrics: lyrics,
+                        lyricsSource: (source as YoutubeMusicLyricsSource) || null,
+                      }
                       : it
                   ),
                 }
-              : null
-          );
-        }}
-      />
+                : null
+            );
+          }}
+        />
 
-      {/* Cover Full Viewer Dialog */}
-      <CoverViewerDialog
-        isOpen={Boolean(viewingCover)}
-        onClose={() => setViewingCover(null)}
-        imageUrl={viewingCover?.url}
-        title={viewingCover?.title}
-        artist={viewingCover?.artist}
-      />
+        {/* Cover Full Viewer Dialog */}
+        <CoverViewerDialog
+          isOpen={Boolean(viewingCover)}
+          onClose={() => setViewingCover(null)}
+          imageUrl={viewingCover?.url}
+          title={viewingCover?.title}
+          artist={viewingCover?.artist}
+        />
 
-      {/* Custom Folder Dialog */}
-      <CustomFolderDialog
-        isOpen={isFolderDialogOpen}
-        onClose={() => setIsFolderDialogOpen(false)}
-        selectedCount={folderDialogTargetIds.length}
-        folderHistory={config?.customFolderHistory || []}
-        suggestedFolder={
-          folderDialogTargetIds.length === 1
-            ? (() => {
+        {/* Custom Folder Dialog */}
+        <CustomFolderDialog
+          isOpen={isFolderDialogOpen}
+          onClose={() => setIsFolderDialogOpen(false)}
+          selectedCount={folderDialogTargetIds.length}
+          folderHistory={config?.customFolderHistory || []}
+          suggestedFolder={
+            folderDialogTargetIds.length === 1
+              ? (() => {
                 const target = previewData?.items.find((i) => i.id === folderDialogTargetIds[0]);
                 const match = getExistingArtistFolder(target?.artist);
                 return match?.folderPath;
               })()
-            : undefined
-        }
-        onApply={(folder) => {
-          setCustomFolderMap((prev) => {
-            const next = { ...prev };
-            folderDialogTargetIds.forEach((id) => {
-              next[id] = folder;
-              const matchedItem = previewData?.items.find((i) => i.id === id);
-              if (matchedItem?.url) {
-                next[matchedItem.url] = folder;
-              }
+              : undefined
+          }
+          onApply={(folder) => {
+            setCustomFolderMap((prev) => {
+              const next = { ...prev };
+              folderDialogTargetIds.forEach((id) => {
+                next[id] = folder;
+                const matchedItem = previewData?.items.find((i) => i.id === id);
+                if (matchedItem?.url) {
+                  next[matchedItem.url] = folder;
+                }
+              });
+              return next;
             });
-            return next;
-          });
-          toast.success(`Đã áp dụng thư mục cho ${folderDialogTargetIds.length} bài hát!`);
-        }}
-        onResetDefault={() => {
-          setCustomFolderMap((prev) => {
-            const idsToRemove = new Set(folderDialogTargetIds);
-            const next: Record<string, string> = {};
-            for (const [k, v] of Object.entries(prev)) {
-              if (!idsToRemove.has(k)) {
-                next[k] = v;
+            toast.success(`Đã áp dụng thư mục cho ${folderDialogTargetIds.length} bài hát!`);
+          }}
+          onResetDefault={() => {
+            setCustomFolderMap((prev) => {
+              const idsToRemove = new Set(folderDialogTargetIds);
+              const next: Record<string, string> = {};
+              for (const [k, v] of Object.entries(prev)) {
+                if (!idsToRemove.has(k)) {
+                  next[k] = v;
+                }
               }
-            }
-            return next;
-          });
-          toast.success('Đã đặt lại thư mục mặc định');
-        }}
-      />
+              return next;
+            });
+            toast.success('Đã đặt lại thư mục mặc định');
+          }}
+        />
     </div>
   );
 };
