@@ -194,7 +194,7 @@ export function LyricsModal({
         <View style={styles.headerWrap}>
           <ModalHeader
             title={track.title}
-            subtitle={`${track.artist}${isSynced ? ' • Synced Lyrics' : ''}`}
+            subtitle={track.artist}
             onClose={onClose}
             rightElement={
               <TouchableOpacity
@@ -416,10 +416,12 @@ const styles = StyleSheet.create({
   wordSung: {
     color: colors.textPrimary,
     fontWeight: fontWeights.extrabold,
+    opacity: 1,
   },
   wordUnsung: {
-    color: colors.textWhite45,
-    fontWeight: fontWeights.bold,
+    color: colors.white35,
+    fontWeight: fontWeights.medium,
+    opacity: 0.6,
   },
   plainLyricsBadge: {
     alignSelf: 'flex-start',

@@ -2,13 +2,13 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành toàn diện các tính năng mở rộng của Phase 4 cho Beatify Mobile & Sửa lỗi kết nối Cloudflare R2 / Phát nhạc trên iPhone:
-1. **Khắc phục lỗi văng app khi bấm phát nhạc (Crash iOS):** Chuẩn hoá `track.file` từ chuỗi tương đối (`music/<id>.m4a`) thành full streaming URL (`https://.../stream/<id>?t=<token>`) hỗ trợ Range 206, đồng thời thêm lớp phòng vệ chống crash trong `rntpPlayerService.ts`.
-2. **Khắc phục lỗi thiếu ảnh bìa:** Chuẩn hoá `track.cover` và `album.cover` thành URL Cloudflare Worker đầy đủ (`https://.../covers/<albumId>?t=<token>`).
-3. **Triển khai Cloudflare Worker & Cải tiến API:** Đã deploy Worker lên `https://beatify-api.beatify-kato.workers.dev`, hỗ trợ xác thực qua cả `?t=` và `?token=`, đăng ký alias `/api/stream/:id` và `/api/covers/:albumId`.
-4. **Giao diện Bottom Tab Bar Nổi (Floating Pill Capsule Dock):** Thiết kế lại thanh điều hướng đáy nổi cách màn hình theo phong cách Truecaller, với hiệu ứng active pill highlight và giữ icon Thư viện để mở Cài đặt ẩn.
-5. **Xử lý triệt để lỗi "cancelled":** Thêm khoá chống đồng bộ trùng lặp và bỏ qua lỗi mạng huỷ ngầm để không hiện popup gây phiền.
-Toàn bộ hệ thống 225/225 tests xanh 100%, TypeScript strict và ESLint sạch 100%. Sẵn sàng build lại `.ipa` để trải nghiệm trực tiếp trên iPhone.
+**Phase hiện tại:** Hoàn thành toàn diện 6 yêu cầu nâng cấp UI/UX, Lyrics Karaoke, Hồ sơ & Sửa lỗi tráo beat âm thanh:
+1. **Khắc phục lỗi tráo beat âm thanh và mất bài khi tải đa luồng từ YouTube:** Sửa `youtubeService.ts` tạo thư mục tạm độc lập (`uniqueSuffix` kết hợp timestamp, random salt và process PID). Ngăn chặn 100% tình trạng các luồng tải song song ghi đè vào cùng tệp tạm khiến bài hát này bị nhầm ruột âm thanh của bài khác.
+2. **UI/UX Now Playing - 4 nút chức năng Icon-only:** Chuyển 4 nút ("Lời nhạc", "Hàng đợi", "Tải về", "Hẹn giờ") thành icon hình tròn 48x48 chuẩn Apple HIG, loại bỏ hoàn toàn text. Bổ sung tính năng người dùng tự nhập số phút hẹn giờ tắt nhạc tùy ý (1-720 phút).
+3. **Lyrics Modal - Xóa "Synced Lyrics" & Cải tiến Karaoke Word Highlight:** Loại bỏ chuỗi " • Synced Lyrics" ở header. Bổ sung `progressTimer` 250ms trong `rntpPlayerService.ts` cập nhật vị trí thời gian thực liên tục 4 lần/giây, kích hoạt hiệu ứng karaoke tô sáng từng từ rực rỡ mượt mà.
+4. **Header Avatar & Profile UI:** Avatar trên Header Thư viện hiển thị avatar người dùng cài đặt. Tái cấu trúc `HiddenSettingsModal` đưa Hồ sơ & Thống kê ra ngoài làm giao diện chính; gom các mục kỹ thuật vào Accordion Thu gọn / Mở rộng (mặc định đóng) mang phong cách consumer app thực thụ.
+5. **Logic iOS Lock Screen Media Player:** Giải thích cơ chế `AVAudioSession` và `MPNowPlayingInfoCenter` trên iOS (hệ thống tự thu hồi sau vài phút dừng nhạc để tiết kiệm pin).
+6. **Toàn bộ monorepo:** 225/225 tests passed 100%, typecheck sạch.
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 

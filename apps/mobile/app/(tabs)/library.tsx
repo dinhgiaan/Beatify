@@ -822,6 +822,7 @@ export default function LibraryScreen() {
       {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */}
       <HiddenSettingsModal
         visible={hiddenSettingsVisible}
+        onProfileUpdated={(updated) => setUserProfile(updated)}
         onClose={() => {
           setHiddenSettingsVisible(false);
           statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});

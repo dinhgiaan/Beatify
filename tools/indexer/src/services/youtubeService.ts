@@ -498,7 +498,8 @@ export const YoutubeService = {
 
     onProgress?.(5, 'Đang chuẩn bị môi trường tải...');
 
-    const tempDir = path.join(process.cwd(), 'temp_youtube_' + Date.now().toString(36));
+    const uniqueSuffix = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}_${process.pid}`;
+    const tempDir = path.join(process.cwd(), `temp_youtube_${uniqueSuffix}`);
     await fsPromises.mkdir(tempDir, { recursive: true });
 
     try {

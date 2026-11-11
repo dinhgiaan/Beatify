@@ -7,6 +7,7 @@ import {
   FlatList,
   ScrollView,
   Modal,
+  TextInput,
   StyleSheet,
   Alert,
 } from 'react-native';
@@ -87,6 +88,7 @@ export function NowPlayingView() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
+  const [customMinutesInput, setCustomMinutesInput] = useState('');
 
   // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
   const artworkSize = Math.min(
@@ -419,51 +421,46 @@ export function NowPlayingView() {
           </TouchableOpacity>
         </View>
 
-        {/* Hàng nút tính năng phụ: Lời nhạc & Nút Đổi Hàng đợi / Ảnh bìa */}
+        {/* Hàng 4 nút tính năng phụ dạng icon tròn tối giản (Icon-only) */}
         <View style={styles.bottomButtonsRow}>
+          {/* Nút 1: Lời bài hát */}
           <TouchableOpacity
             style={[styles.bottomButton, lyricsModalVisible && styles.bottomButtonActive]}
             disabled={!currentTrack}
             onPress={() => setLyricsModalVisible(true)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="Mở lời bài hát"
           >
             <LyricsIcon
-              size={18}
-              color={currentTrack ? colors.primary : colors.textTertiary}
+              size={20}
+              color={lyricsModalVisible ? colors.primary : currentTrack ? colors.textPrimary : colors.textTertiary}
             />
-            <Text
-              style={[
-                styles.bottomButtonText,
-                currentTrack && styles.bottomButtonTextActive,
-              ]}
-            >
-              Lời nhạc
-            </Text>
           </TouchableOpacity>
 
-          {/* Bấm nút này đổi vùng ảnh bìa thành hàng đợi và ngược lại */}
+          {/* Nút 2: Hàng đợi / Ảnh bìa */}
           <TouchableOpacity
             style={[styles.bottomButton, showQueue && styles.bottomButtonActive]}
             onPress={() => setShowQueue(!showQueue)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel={showQueue ? 'Hiển thị ảnh bìa' : 'Hiển thị danh sách hàng đợi'}
+            accessibilityLabel={showQueue ? 'Hiển thị ảnh bìa' : `Hiển thị danh sách hàng đợi (${tracks.length} bài)`}
           >
             {showQueue ? (
-              <DiscIcon size={18} color={colors.primary} />
+              <DiscIcon size={20} color={colors.primary} />
             ) : (
-              <QueueIcon size={18} color={colors.primary} />
+              <QueueIcon size={20} color={colors.textPrimary} />
             )}
-            <Text style={[styles.bottomButtonText, styles.bottomButtonTextActive]}>
-              {showQueue ? 'Ảnh bìa' : `Hàng đợi (${tracks.length})`}
-            </Text>
           </TouchableOpacity>
 
-          {/* Nút Tải bài hát ngoại tuyến */}
+          {/* Nút 3: Tải bài hát ngoại tuyến */}
           <TouchableOpacity
-            style={styles.bottomButton}
+            style={[
+              styles.bottomButton,
+              Boolean(currentTrack && isTrackOffline(currentTrack.id)) && styles.bottomButtonActive,
+            ]}
             disabled={!currentTrack || Boolean(currentTrack && isDownloading[currentTrack.id])}
             onPress={async () => {
               if (currentTrack) {
@@ -475,34 +472,23 @@ export function NowPlayingView() {
               }
             }}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="Tải bài hát về máy"
           >
             <DownloadIcon
-              size={18}
+              size={20}
               color={
                 currentTrack && isTrackOffline(currentTrack.id)
                   ? colors.primary
                   : currentTrack
-                  ? colors.textSecondary
+                  ? colors.textPrimary
                   : colors.textTertiary
               }
             />
-            <Text
-              style={[
-                styles.bottomButtonText,
-                currentTrack && isTrackOffline(currentTrack.id) && { color: colors.primary },
-              ]}
-            >
-              {currentTrack && isDownloading[currentTrack.id]
-                ? 'Đang tải...'
-                : currentTrack && isTrackOffline(currentTrack.id)
-                ? 'Đã tải'
-                : 'Tải về'}
-            </Text>
           </TouchableOpacity>
 
-          {/* Nút Hẹn giờ tắt nhạc */}
+          {/* Nút 4: Hẹn giờ tắt nhạc */}
           <TouchableOpacity
             style={[
               styles.bottomButton,
@@ -510,23 +496,18 @@ export function NowPlayingView() {
             ]}
             onPress={() => setSleepTimerDialogVisible(true)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel="Hẹn giờ tắt nhạc"
+            accessibilityLabel={
+              sleepTimerRemainingSec !== null
+                ? `Hẹn giờ đang bật: còn ${formatTime(sleepTimerRemainingSec)}`
+                : 'Hẹn giờ tắt nhạc'
+            }
           >
             <ClockIcon
-              size={18}
-              color={sleepTimerRemainingSec !== null ? colors.primary : colors.textTertiary}
+              size={20}
+              color={sleepTimerRemainingSec !== null ? colors.primary : colors.textPrimary}
             />
-            <Text
-              style={[
-                styles.bottomButtonText,
-                sleepTimerRemainingSec !== null && styles.bottomButtonTextActive,
-              ]}
-            >
-              {sleepTimerRemainingSec !== null
-                ? formatTime(sleepTimerRemainingSec)
-                : 'Hẹn giờ'}
-            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -583,19 +564,50 @@ export function NowPlayingView() {
             </Text>
 
             <View style={styles.sleepTimerOptionsCol}>
-              {[15, 30, 45, 60].map((mins) => (
+              <View style={styles.sleepTimerGrid}>
+                {[15, 30, 45, 60].map((mins) => (
+                  <TouchableOpacity
+                    key={mins}
+                    style={styles.sleepTimerGridBtn}
+                    onPress={() => {
+                      setSleepTimer(mins);
+                      setSleepTimerDialogVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.sleepTimerOptionText}>{mins} phút</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Tùy chọn tự nhập số phút */}
+              <View style={styles.customTimerRow}>
+                <TextInput
+                  style={styles.customTimerInput}
+                  placeholder="Nhập số phút..."
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                  value={customMinutesInput}
+                  onChangeText={setCustomMinutesInput}
+                  maxLength={4}
+                />
                 <TouchableOpacity
-                  key={mins}
-                  style={styles.sleepTimerOptionBtn}
+                  style={styles.customTimerBtn}
                   onPress={() => {
-                    setSleepTimer(mins);
-                    setSleepTimerDialogVisible(false);
+                    const parsed = parseInt(customMinutesInput.trim(), 10);
+                    if (!isNaN(parsed) && parsed > 0 && parsed <= 720) {
+                      setSleepTimer(parsed);
+                      setCustomMinutesInput('');
+                      setSleepTimerDialogVisible(false);
+                    } else {
+                      Alert.alert('Không hợp lệ', 'Vui lòng nhập số phút từ 1 đến 720');
+                    }
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.sleepTimerOptionText}>{mins} phút</Text>
+                  <Text style={styles.customTimerBtnText}>Bắt đầu</Text>
                 </TouchableOpacity>
-              ))}
+              </View>
 
               {sleepTimerRemainingSec !== null && (
                 <TouchableOpacity
@@ -862,29 +874,30 @@ const styles = StyleSheet.create({
   bottomButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.xl,
     width: '100%',
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
   bottomButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.surfaceElevated,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    gap: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
   },
   bottomButtonActive: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceActive,
+    borderColor: colors.primary,
   },
   bottomButtonText: {
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.semibold,
-    color: colors.textTertiary,
+    display: 'none',
   },
   bottomButtonTextActive: {
-    color: colors.textPrimary,
+    display: 'none',
   },
   queueReorderGroup: {
     flexDirection: 'row',
@@ -937,8 +950,53 @@ const styles = StyleSheet.create({
   },
   sleepTimerOptionsCol: {
     width: '100%',
-    gap: spacing.xs,
+    gap: spacing.sm,
     marginBottom: spacing.md,
+  },
+  sleepTimerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    justifyContent: 'space-between',
+  },
+  sleepTimerGridBtn: {
+    width: '48%',
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  customTimerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  customTimerInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  customTimerBtn: {
+    backgroundColor: colors.primary,
+    height: 40,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  customTimerBtnText: {
+    color: colors.textDark,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
   },
   sleepTimerOptionBtn: {
     backgroundColor: colors.surface,

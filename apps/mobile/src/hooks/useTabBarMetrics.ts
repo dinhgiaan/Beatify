@@ -2,7 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlayer } from '../context';
 import { spacing } from '../theme';
 
-export const TAB_BAR_BASE_HEIGHT = 49;
+export const TAB_BAR_BASE_HEIGHT = 62;
 export const MINI_PLAYER_HEIGHT = 56;
 
 export interface TabBarMetrics {

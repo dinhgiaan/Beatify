@@ -19,6 +19,7 @@ export class RntpPlayerService implements IPlayerService {
   private listeners: Set<(state: PlayerState) => void> = new Set();
   private lastTrackEndTime: number | null = null;
   private gaplessDeltaMs: number | null = null;
+  private progressTimer: ReturnType<typeof setInterval> | null = null;
 
   async setup(): Promise<void> {
     if (this.isInitialized) return;
@@ -65,11 +66,21 @@ export class RntpPlayerService implements IPlayerService {
         this.notifyListeners();
       });
 
-      TrackPlayer.addEventListener(Event.IsPlayingChanged, () => {
+      TrackPlayer.addEventListener(Event.IsPlayingChanged, (event) => {
+        if (event.playing) {
+          this.startProgressTimer();
+        } else {
+          this.stopProgressTimer();
+        }
         this.notifyListeners();
       });
 
       TrackPlayer.addEventListener(Event.PlaybackStateChanged, () => {
+        if (TrackPlayer.isPlaying()) {
+          this.startProgressTimer();
+        } else {
+          this.stopProgressTimer();
+        }
         this.notifyListeners();
       });
 
@@ -121,6 +132,7 @@ export class RntpPlayerService implements IPlayerService {
     try {
       TrackPlayer.setMediaItems(mediaItems, safeIndex);
       TrackPlayer.play();
+      this.startProgressTimer();
     } catch (err) {
       console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
     }
@@ -131,6 +143,7 @@ export class RntpPlayerService implements IPlayerService {
     await this.setup();
     try {
       TrackPlayer.play();
+      this.startProgressTimer();
     } catch (err) {
       console.warn('[RNTP] Lỗi play():', err);
     }
@@ -141,6 +154,7 @@ export class RntpPlayerService implements IPlayerService {
     await this.setup();
     try {
       TrackPlayer.pause();
+      this.stopProgressTimer();
     } catch (err) {
       console.warn('[RNTP] Lỗi pause():', err);
     }
@@ -256,6 +270,20 @@ export class RntpPlayerService implements IPlayerService {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  private startProgressTimer(): void {
+    if (this.progressTimer) return;
+    this.progressTimer = setInterval(() => {
+      this.notifyListeners();
+    }, 250);
+  }
+
+  private stopProgressTimer(): void {
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
+    }
   }
 
   private notifyListeners(): void {

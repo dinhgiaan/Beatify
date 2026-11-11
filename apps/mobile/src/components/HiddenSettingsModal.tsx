@@ -39,9 +39,10 @@ import {
 interface HiddenSettingsModalProps {
   visible: boolean;
   onClose: () => void;
+  onProfileUpdated?: (profile: UserProfile) => void;
 }
 
-export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalProps) {
+export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: HiddenSettingsModalProps) {
   const insets = useSafeAreaInsets();
   const {
     tracks,
@@ -81,6 +82,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isDevSettingsOpen, setIsDevSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -157,8 +159,8 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
         {/* Header Modal */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Cài đặt ẩn & Kỹ thuật</Text>
-            <Text style={styles.headerSubtitle}>Beatify Engine • Quản trị hệ thống</Text>
+            <Text style={styles.headerTitle}>Hồ sơ cá nhân & Cài đặt</Text>
+            <Text style={styles.headerSubtitle}>Beatify Engine • Quản trị trải nghiệm</Text>
           </View>
           <TouchableOpacity
             style={styles.closeButton}
@@ -178,7 +180,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* THẺ HỒ SƠ NGƯỜI DÙNG & AVATAR */}
+          {/* THẺ HỒ SƠ NGƯỜI DÙNG & AVATAR NỔI BẬT */}
           <TouchableOpacity
             style={styles.profileHeaderCard}
             onPress={() => {
@@ -197,7 +199,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
                 />
               ) : (
                 <View style={styles.profileAvatarPlaceholder}>
-                  <ProfileIcon size={24} color={colors.primary} />
+                  <ProfileIcon size={28} color={colors.primary} />
                 </View>
               )}
             </View>
@@ -214,199 +216,19 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
             </View>
           </TouchableOpacity>
 
-          {/* PHẦN 1: THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
+          {/* MỤC 1: HỒ SƠ & THỐNG KÊ REPLAY DÀNH CHO USER */}
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>THÔNG TIN HỆ THỐNG & CHỨNG CHỈ</Text>
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Hạn chứng chỉ Sideload</Text>
-              <Text style={styles.valueHighlight} numberOfLines={2}>
-                {expirationDate || 'Không xác định'}
-              </Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Mã bản build (SHA)</Text>
-              <Text style={styles.valueCode}>{buildSha}</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Nền tảng mục tiêu</Text>
-              <Text style={styles.valueText}>iPhone 11 Pro Max (iOS 26+)</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Độ trễ chuyển bài (Gapless Δt)</Text>
-              <Text style={styles.valueText}>
-                {gaplessDeltaMs !== null ? `${gaplessDeltaMs} ms` : 'Chưa đo'}
-              </Text>
-            </View>
-          </View>
-
-          {/* PHẦN 2: ĐỒNG BỘ NGẦM ETAG & BỘ NHỚ ĐỆM */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>ĐỒNG BỘ NGẦM ETAG & BỘ NHỚ ĐỆM</Text>
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Đồng bộ lần cuối</Text>
-              <Text style={styles.valueText}>{formatDateTime(lastSyncTime)}</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>ETag thư viện R2</Text>
-              <Text style={styles.valueCode} numberOfLines={1}>
-                {currentEtag || 'Chưa nhận'}
-              </Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Trạng thái ghi đĩa atomic</Text>
-              <Text style={styles.valueText}>{atomicWriteBranch}</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Khôi phục file hỏng</Text>
-              <Text style={styles.valueText}>{recoveryStatus}</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Hàng đợi ghi đĩa</Text>
-              <Text style={styles.valueText} numberOfLines={1}>
-                {writeQueueStatus}
-              </Text>
-            </View>
-
-            {lastMoveError && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.rowItem}>
-                  <Text style={[styles.label, { color: colors.danger }]}>Lỗi di chuyển file</Text>
-                  <Text style={[styles.valueText, { color: colors.danger }]} numberOfLines={2}>
-                    {lastMoveError}
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {lastSyncError && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.rowItem}>
-                  <Text style={[styles.label, { color: colors.danger }]}>Lỗi đồng bộ gần nhất</Text>
-                  <Text style={[styles.valueText, { color: colors.danger }]} numberOfLines={2}>
-                    {lastSyncError}
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {syncStatus && (
-              <View style={styles.statusBox}>
-                <Text style={styles.statusText}>{syncStatus}</Text>
-              </View>
-            )}
-
-            {/* Cụm nút thao tác đồng bộ */}
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={[styles.primaryActionBtn, isSyncing && styles.btnDisabled]}
-                onPress={handleSyncNow}
-                disabled={isSyncing}
-                activeOpacity={0.7}
-              >
-                {isSyncing ? (
-                  <ActivityIndicator size="small" color={colors.textDark} />
-                ) : (
-                  <Text style={styles.primaryActionBtnText}>Kiểm tra bài mới (ETag)</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryActionBtn}
-                onPress={handleClearCache}
-                disabled={isSyncing}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.secondaryActionBtnText}>Xóa Cache & Tải lại</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* PHẦN 3: CẤU HÌNH MÁY CHỦ (ZERO-CONFIG) */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>CẤU HÌNH MÁY CHỦ CLOUDFLARE</Text>
+            <Text style={styles.sectionHeader}>THỐNG KÊ NGHE NHẠC & REPLAY</Text>
             <Text style={styles.sectionDesc}>
-              App tự động nạp cấu hình khi quét mã QR từ Web Dashboard (beatify://connect). Bạn cũng có thể xem hoặc chỉnh sửa thủ công dưới đây:
-            </Text>
-
-            <Text style={styles.inputLabel}>Địa chỉ Cloudflare Worker (Server URL)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={inputUrl}
-              onChangeText={setInputUrl}
-              placeholder="https://beatify-api.worker.dev"
-              placeholderTextColor={colors.textTertiary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-
-            <View style={styles.tokenLabelRow}>
-              <Text style={styles.inputLabel}>Khóa truy cập bảo mật (API Token)</Text>
-              <TouchableOpacity onPress={() => setShowToken((prev) => !prev)}>
-                <Text style={styles.toggleTokenText}>{showToken ? 'Ẩn' : 'Hiện'}</Text>
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.textInput}
-              value={inputToken}
-              onChangeText={setInputToken}
-              placeholder="Nhập token bảo mật..."
-              placeholderTextColor={colors.textTertiary}
-              secureTextEntry={!showToken}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <Text style={[styles.sectionDesc, { marginTop: spacing.xxs, color: colors.primary }]}>
-              🔐 Token được mã hóa phần cứng và lưu an toàn trong iOS Keychain (Apple Secure Enclave).
-            </Text>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
-              onPress={handleSaveConfig}
-              disabled={isSavingConfig}
-              activeOpacity={0.7}
-            >
-              <CheckIcon size={18} color={colors.textDark} />
-              <Text style={styles.saveBtnText}>Lưu cấu hình máy chủ</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* PHẦN 4: HỒ SƠ & THỐNG KÊ NGHE NHẠC */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>HỒ SƠ & THỐNG KÊ REPLAY</Text>
-            <Text style={styles.sectionDesc}>
-              Xem phân tích thời gian nghe, các bài hát và nghệ sĩ được nghe nhiều nhất, danh hiệu và Replay cá nhân.
+              Khám phá phân tích thời gian nghe, các bài hát và nghệ sĩ được nghe nhiều nhất, danh hiệu và Replay cá nhân của bạn.
             </Text>
 
             <TouchableOpacity
               style={styles.profileBtn}
-              onPress={() => setProfileModalVisible(true)}
+              onPress={() => {
+                Vibration.vibrate(10);
+                setProfileModalVisible(true);
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.profileBtnLeft}>
@@ -414,7 +236,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
                   <ProfileIcon size={20} color={colors.primary} />
                 </View>
                 <View>
-                  <Text style={styles.profileBtnTitle}>Mở Hồ sơ & Thống kê</Text>
+                  <Text style={styles.profileBtnTitle}>Mở Hồ sơ & Thống kê Replay</Text>
                   <Text style={styles.profileBtnSubtitle}>
                     {tracks.length} bài hát trong thư viện
                   </Text>
@@ -424,58 +246,7 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
             </TouchableOpacity>
           </View>
 
-          {/* PHẦN 5: TÙY CHỌN NGHE GẦN ĐÂY */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
-            <Text style={styles.sectionDesc}>
-              Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây. Chọn số lượng bài tối đa được lưu lại:
-            </Text>
-
-            <View style={styles.pillRow}>
-              {([10, 20, 30, 40, 50] as const).map((limitOption) => {
-                const isActive = recentLimit === limitOption;
-                return (
-                  <TouchableOpacity
-                    key={limitOption}
-                    style={[styles.pillBtn, isActive && styles.pillBtnActive]}
-                    onPress={() => {
-                      Vibration.vibrate(10);
-                      setRecentLimit(limitOption);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
-                      {limitOption}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.secondaryActionBtn, { marginTop: spacing.md }]}
-              onPress={() => {
-                Vibration.vibrate(10);
-                Alert.alert(
-                  'Xóa lịch sử nghe gần đây?',
-                  'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
-                  [
-                    { text: 'Hủy', style: 'cancel' },
-                    {
-                      text: 'Xóa ngay',
-                      style: 'destructive',
-                      onPress: () => clearRecentTracks(),
-                    },
-                  ]
-                );
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.secondaryActionBtnText}>Xóa toàn bộ lịch sử nghe</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* PHẦN 6: QUẢN LÝ DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE) */}
+          {/* MỤC 2: QUẢN LÝ DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE) */}
           <View style={styles.sectionCard}>
             <View style={styles.mysteryTitleRow}>
               <DownloadIcon size={20} color={colors.primary} />
@@ -539,37 +310,301 @@ export function HiddenSettingsModal({ visible, onClose }: HiddenSettingsModalPro
             </View>
           </View>
 
-          {/* PHẦN 5: HÀNG CHỜ BÍ MẬT (CUSTOM AUDIO URL) */}
+          {/* MỤC 3: TÙY CHỌN NGHE GẦN ĐÂY */}
           <View style={styles.sectionCard}>
-            <View style={styles.mysteryTitleRow}>
-              <MysteryIcon size={20} color={colors.warning} />
-              <Text style={[styles.sectionHeader, { color: colors.warning, marginBottom: 0 }]}>
-                HÀNG PHÁT BÍ MẬT (STREAM URL)
-              </Text>
-            </View>
+            <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
             <Text style={styles.sectionDesc}>
-              Dán liên kết âm thanh trực tiếp (MP3, AAC, FLAC) để stream bài hát tức thì mà không cần upload lên R2:
+              Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây. Chọn số lượng bài tối đa được lưu lại:
             </Text>
 
-            <TextInput
-              style={styles.textInput}
-              value={customAudioUrl}
-              onChangeText={setCustomAudioUrl}
-              placeholder="https://example.com/audio.mp3"
-              placeholderTextColor={colors.textTertiary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
+            <View style={styles.pillRow}>
+              {([10, 20, 30, 40, 50] as const).map((limitOption) => {
+                const isActive = recentLimit === limitOption;
+                return (
+                  <TouchableOpacity
+                    key={limitOption}
+                    style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                    onPress={() => {
+                      Vibration.vibrate(10);
+                      setRecentLimit(limitOption);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                      {limitOption}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
             <TouchableOpacity
-              style={styles.mysteryAddBtn}
-              onPress={handleAddCustomAudio}
+              style={[styles.secondaryActionBtn, { marginTop: spacing.md }]}
+              onPress={() => {
+                Vibration.vibrate(10);
+                Alert.alert(
+                  'Xóa lịch sử nghe gần đây?',
+                  'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
+                  [
+                    { text: 'Hủy', style: 'cancel' },
+                    {
+                      text: 'Xóa ngay',
+                      style: 'destructive',
+                      onPress: () => clearRecentTracks(),
+                    },
+                  ]
+                );
+              }}
               activeOpacity={0.7}
             >
-              <Text style={styles.mysteryAddBtnText}>+ Thêm vào hàng phát</Text>
+              <Text style={styles.secondaryActionBtnText}>Xóa toàn bộ lịch sử nghe</Text>
             </TouchableOpacity>
           </View>
+
+          {/* NÚT BẤM MỞ RỘNG/THU GỌN CÀI ĐẶT KỸ THUẬT DÀNH CHO DEVELOPER (ACCORDION) */}
+          <TouchableOpacity
+            style={styles.devAccordionToggle}
+            onPress={() => {
+              Vibration.vibrate(10);
+              setIsDevSettingsOpen(!isDevSettingsOpen);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.devAccordionLeft}>
+              <Text style={styles.devAccordionIcon}>⚙️</Text>
+              <View>
+                <Text style={styles.devAccordionTitle}>Cài đặt kỹ thuật & Hệ thống</Text>
+                <Text style={styles.devAccordionSubtitle}>
+                  {isDevSettingsOpen
+                    ? 'Chạm để thu gọn bảng điều khiển kỹ thuật'
+                    : 'Cloudflare Worker, ETag, Chứng chỉ Sideload...'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.devAccordionChevron}>
+              {isDevSettingsOpen ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* CÁC PHẦN KỸ THUẬT (MẶC ĐỊNH THU GỌN ĐỂ TRẢI NGHIỆM THUẦN TÚY CONSUMER APP) */}
+          {isDevSettingsOpen && (
+            <>
+              {/* PHẦN KỸ THUẬT 1: THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionHeader}>THÔNG TIN HỆ THỐNG & CHỨNG CHỈ</Text>
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Hạn chứng chỉ Sideload</Text>
+                  <Text style={styles.valueHighlight} numberOfLines={2}>
+                    {expirationDate || 'Không xác định'}
+                  </Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Mã bản build (SHA)</Text>
+                  <Text style={styles.valueCode}>{buildSha}</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Nền tảng mục tiêu</Text>
+                  <Text style={styles.valueText}>iPhone 11 Pro Max (iOS 26+)</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Độ trễ chuyển bài (Gapless Δt)</Text>
+                  <Text style={styles.valueText}>
+                    {gaplessDeltaMs !== null ? `${gaplessDeltaMs} ms` : 'Chưa đo'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* PHẦN KỸ THUẬT 2: ĐỒNG BỘ NGẦM ETAG & BỘ NHỚ ĐỆM */}
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionHeader}>ĐỒNG BỘ NGẦM ETAG & BỘ NHỚ ĐỆM</Text>
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Đồng bộ lần cuối</Text>
+                  <Text style={styles.valueText}>{formatDateTime(lastSyncTime)}</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>ETag thư viện R2</Text>
+                  <Text style={styles.valueCode} numberOfLines={1}>
+                    {currentEtag || 'Chưa nhận'}
+                  </Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Trạng thái ghi đĩa atomic</Text>
+                  <Text style={styles.valueText}>{atomicWriteBranch}</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Khôi phục file hỏng</Text>
+                  <Text style={styles.valueText}>{recoveryStatus}</Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Hàng đợi ghi đĩa</Text>
+                  <Text style={styles.valueText} numberOfLines={1}>
+                    {writeQueueStatus}
+                  </Text>
+                </View>
+
+                {lastMoveError && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.rowItem}>
+                      <Text style={[styles.label, { color: colors.danger }]}>Lỗi di chuyển file</Text>
+                      <Text style={[styles.valueText, { color: colors.danger }]} numberOfLines={2}>
+                        {lastMoveError}
+                      </Text>
+                    </View>
+                  </>
+                )}
+
+                {lastSyncError && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.rowItem}>
+                      <Text style={[styles.label, { color: colors.danger }]}>Lỗi đồng bộ gần nhất</Text>
+                      <Text style={[styles.valueText, { color: colors.danger }]} numberOfLines={2}>
+                        {lastSyncError}
+                      </Text>
+                    </View>
+                  </>
+                )}
+
+                {syncStatus && (
+                  <View style={styles.statusBox}>
+                    <Text style={styles.statusText}>{syncStatus}</Text>
+                  </View>
+                )}
+
+                {/* Cụm nút thao tác đồng bộ */}
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[styles.primaryActionBtn, isSyncing && styles.btnDisabled]}
+                    onPress={handleSyncNow}
+                    disabled={isSyncing}
+                    activeOpacity={0.7}
+                  >
+                    {isSyncing ? (
+                      <ActivityIndicator size="small" color={colors.textDark} />
+                    ) : (
+                      <Text style={styles.primaryActionBtnText}>Kiểm tra bài mới (ETag)</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.secondaryActionBtn}
+                    onPress={handleClearCache}
+                    disabled={isSyncing}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.secondaryActionBtnText}>Xóa Cache & Tải lại</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* PHẦN KỸ THUẬT 3: CẤU HÌNH MÁY CHỦ CLOUDFLARE */}
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionHeader}>CẤU HÌNH MÁY CHỦ CLOUDFLARE</Text>
+                <Text style={styles.sectionDesc}>
+                  App tự động nạp cấu hình khi quét mã QR từ Web Dashboard (beatify://connect). Bạn cũng có thể xem hoặc chỉnh sửa thủ công dưới đây:
+                </Text>
+
+                <Text style={styles.inputLabel}>Địa chỉ Cloudflare Worker (Server URL)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={inputUrl}
+                  onChangeText={setInputUrl}
+                  placeholder="https://beatify-api.worker.dev"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+
+                <View style={styles.tokenLabelRow}>
+                  <Text style={styles.inputLabel}>Khóa truy cập bảo mật (API Token)</Text>
+                  <TouchableOpacity onPress={() => setShowToken((prev) => !prev)}>
+                    <Text style={styles.toggleTokenText}>{showToken ? 'Ẩn' : 'Hiện'}</Text>
+                  </TouchableOpacity>
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={inputToken}
+                  onChangeText={setInputToken}
+                  placeholder="Nhập token bảo mật..."
+                  placeholderTextColor={colors.textTertiary}
+                  secureTextEntry={!showToken}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={[styles.sectionDesc, { marginTop: spacing.xxs, color: colors.primary }]}>
+                  🔐 Token được mã hóa phần cứng và lưu an toàn trong iOS Keychain (Apple Secure Enclave).
+                </Text>
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
+                  onPress={handleSaveConfig}
+                  disabled={isSavingConfig}
+                  activeOpacity={0.7}
+                >
+                  <CheckIcon size={18} color={colors.textDark} />
+                  <Text style={styles.saveBtnText}>Lưu cấu hình máy chủ</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* PHẦN KỸ THUẬT 4: HÀNG CHỜ BÍ MẬT (STREAM URL) */}
+              <View style={styles.sectionCard}>
+                <View style={styles.mysteryTitleRow}>
+                  <MysteryIcon size={20} color={colors.warning} />
+                  <Text style={[styles.sectionHeader, { color: colors.warning, marginBottom: 0 }]}>
+                    HÀNG PHÁT BÍ MẬT (STREAM URL)
+                  </Text>
+                </View>
+                <Text style={styles.sectionDesc}>
+                  Dán liên kết âm thanh trực tiếp (MP3, AAC, FLAC) để stream bài hát tức thì mà không cần upload lên R2:
+                </Text>
+
+                <TextInput
+                  style={styles.textInput}
+                  value={customAudioUrl}
+                  onChangeText={setCustomAudioUrl}
+                  placeholder="https://example.com/audio.mp3"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+
+                <TouchableOpacity
+                  style={styles.mysteryAddBtn}
+                  onPress={handleAddCustomAudio}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.mysteryAddBtnText}>+ Thêm vào hàng phát</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </ScrollView>
 
         {/* Modal Hồ sơ thống kê (ProfileModal) */}
@@ -920,5 +955,41 @@ const styles = StyleSheet.create({
   pillBtnTextActive: {
     color: colors.textDark,
     fontWeight: fontWeights.bold,
+  },
+  devAccordionToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
+  },
+  devAccordionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  devAccordionIcon: {
+    fontSize: 22,
+  },
+  devAccordionTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+  },
+  devAccordionSubtitle: {
+    color: colors.textTertiary,
+    fontSize: fontSizes.caption,
+    marginTop: 2,
+  },
+  devAccordionChevron: {
+    color: colors.primary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+    marginLeft: spacing.sm,
   },
 });
