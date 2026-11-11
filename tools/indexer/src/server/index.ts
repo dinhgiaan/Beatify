@@ -660,7 +660,7 @@ app.post('/local-api/tracks/:id/cover', async (c) => {
   // 1. Xóa file ảnh bìa cũ nếu đã có trước đó
   const oldCoverFile = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
   if (existsSync(oldCoverFile)) {
-    await fs.unlink(oldCoverFile).catch(() => {});
+    await fs.unlink(oldCoverFile).catch(() => { });
   }
   cachedCovers.delete(albumId);
 
@@ -689,7 +689,7 @@ app.delete('/local-api/tracks/:id/cover', async (c) => {
   const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
   const oldCoverFile = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
   if (existsSync(oldCoverFile)) {
-    await fs.unlink(oldCoverFile).catch(() => {});
+    await fs.unlink(oldCoverFile).catch(() => { });
   }
 
   cachedCovers.delete(albumId);
@@ -731,7 +731,7 @@ app.post('/local-api/tracks/:id/lyrics', async (c) => {
 
   if (!lyrics) {
     if (existsSync(lrcFile)) {
-      await fs.unlink(lrcFile).catch(() => {});
+      await fs.unlink(lrcFile).catch(() => { });
     }
     const scanned = cachedScannedTracks.find(t => t.track.id === trackId);
     if (scanned) scanned.track.lyrics = undefined;
@@ -927,8 +927,8 @@ const handleImportInspect = async (c: Context) => {
   const files: File[] = Array.isArray(rawFiles)
     ? rawFiles.filter((f): f is File => f instanceof File)
     : rawFiles instanceof File
-    ? [rawFiles]
-    : [];
+      ? [rawFiles]
+      : [];
 
   if (files.length === 0) {
     return c.json({ status: 400, error: 'Không tìm thấy file tải lên' }, 400);
@@ -1148,7 +1148,7 @@ const handleImportConfirm = async (c: Context) => {
   try {
     const remaining = await fs.readdir(TEMP_IMPORT_DIR);
     for (const r of remaining) {
-      await fs.unlink(path.join(TEMP_IMPORT_DIR, r)).catch(() => {});
+      await fs.unlink(path.join(TEMP_IMPORT_DIR, r)).catch(() => { });
     }
   } catch {
     // bỏ qua
@@ -1975,7 +1975,7 @@ async function cleanPurgeTrackResources(
   // 1. Dọn dẹp file lời bài hát cục bộ nếu có
   const localLrc = path.join(LYRICS_DIR, `${id}.lrc`);
   if (existsSync(localLrc)) {
-    await fs.unlink(localLrc).catch(() => {});
+    await fs.unlink(localLrc).catch(() => { });
   }
 
   // 2. Kiểm tra và dọn dẹp ảnh bìa album nếu không còn bài hát nào khác dùng chung
@@ -1987,7 +1987,7 @@ async function cleanPurgeTrackResources(
     if (!albumStillInUse) {
       const coverPath = path.join(CUSTOM_COVERS_DIR, `${targetAlbumId}.jpg`);
       if (existsSync(coverPath)) {
-        await fs.unlink(coverPath).catch(() => {});
+        await fs.unlink(coverPath).catch(() => { });
       }
       cachedCovers.delete(targetAlbumId);
     }
@@ -2007,11 +2007,11 @@ async function cleanPurgeTrackResources(
       }
 
       // Xóa lời trên R2 nếu có
-      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `lyrics/${id}.lrc` })).catch(() => {});
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `lyrics/${id}.lrc` })).catch(() => { });
 
       // Xóa ảnh bìa trên R2 nếu album không còn bài nào khác
       if (targetAlbumId && !albumStillInUse) {
-        await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `covers/${targetAlbumId}.jpg` })).catch(() => {});
+        await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: `covers/${targetAlbumId}.jpg` })).catch(() => { });
       }
     } catch (e) {
       console.warn(`Lỗi xóa file trên R2 khi purge (${id}):`, e);
@@ -2701,7 +2701,7 @@ app.get('/api/jobs/:id/events', async (c) => {
     await stream.writeSSE({ data: JSON.stringify({ type: 'connected', jobId }) });
 
     const onEvent = (event: JobEvent) => {
-      stream.writeSSE({ data: JSON.stringify(event) }).catch(() => {});
+      stream.writeSSE({ data: JSON.stringify(event) }).catch(() => { });
     };
 
     youtubeJobRunner.on(`job:${jobId}`, onEvent);
@@ -2807,10 +2807,10 @@ app.get('/api/youtube-music/downloads/:id/stream', async (c) => {
     ext === '.m4a'
       ? 'audio/mp4'
       : ext === '.flac'
-      ? 'audio/flac'
-      : ext === '.opus'
-      ? 'audio/ogg'
-      : 'audio/mpeg';
+        ? 'audio/flac'
+        : ext === '.opus'
+          ? 'audio/ogg'
+          : 'audio/mpeg';
 
   const range = c.req.header('range');
   if (range) {
@@ -3000,7 +3000,7 @@ app.delete('/api/youtube-music/downloads/:id', async (c) => {
     const normalizedAudioPath = audioPath ? path.resolve(audioPath).toLowerCase() : null;
 
     const deleted = await youtubeJobRunner.deleteDownloadSync(id, { deleteFiles, deleteR2 });
-    
+
     // Đồng bộ dọn dẹp triệt để khỏi RAM cache theo cả id và đường dẫn tệp
     cachedScannedTracks = cachedScannedTracks.filter((t) => {
       if (t.track.id === id) return false;
@@ -3169,7 +3169,7 @@ app.get('/local-api/state', async (c) => {
       });
       state = await uploader.getUserState();
       if (state) {
-        await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8').catch(() => {});
+        await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8').catch(() => { });
       }
     } catch (err) {
       console.warn('[state] Lỗi đọc state từ R2:', err);
@@ -3226,7 +3226,7 @@ app.put('/local-api/state', async (c) => {
   }
 
   // 1. Lưu local cache
-  await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(parsed.data, null, 2), 'utf-8').catch(() => {});
+  await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(parsed.data, null, 2), 'utf-8').catch(() => { });
 
   // 2. Lưu lên R2 nếu đã cấu hình
   const localConfig = loadLocalConfig();
