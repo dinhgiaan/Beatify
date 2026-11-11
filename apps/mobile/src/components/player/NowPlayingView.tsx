@@ -229,32 +229,33 @@ export function NowPlayingView() {
             />
           ) : (
             <Animated.View
-              style={[
-                styles.artworkContainer,
-                {
-                  width: artworkSize,
-                  height: artworkSize,
-                  transform: [{ scale: artworkScale }],
-                },
+          style = {
+            [
+            styles.artworkContainer,
+            {
+              width: artworkSize,
+              height: artworkSize,
+              transform: [{ scale: artworkScale }],
+            },
               ]}
             >
-              {currentTrack?.cover ? (
-                <Image
-                  source={{ uri: currentTrack.cover }}
-                  style={styles.artworkImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.artworkPlaceholder}>
-                  <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
-                  <Text style={styles.artworkEmptyText}>
-                    {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
-                  </Text>
-                </View>
-              )}
-            </Animated.View>
-          )
-        ) : (
+            { currentTrack?.cover ? (
+            <Image
+              source={{ uri: currentTrack.cover }}
+              style={styles.artworkImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.artworkPlaceholder}>
+              <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
+              <Text style={styles.artworkEmptyText}>
+                {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+              </Text>
+            </View>
+          )}
+      </Animated.View>
+      )
+      ) : (
       <View
         style={[
           styles.queuePanelContainer,
@@ -298,8 +299,8 @@ export function NowPlayingView() {
                   {isCurrent ? (
                     < EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
                   ) : (
-                  <Text style={styles.queueIndexText}>{index + 1}</Text>
-                      )}
+                    <Text style={styles.queueIndexText}>{index + 1}</Text>
+                  )}
                 </View>
 
                 <View style={styles.queueItemInfo}>
@@ -597,30 +598,30 @@ export function NowPlayingView() {
       </View>
     </ScrollView>
 
-      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */}
-      <LyricsModal
-        visible={lyricsModalVisible}
-        track={currentTrack}
-        currentTimeSec={positionSec}
-        onClose={() => setLyricsModalVisible(false)}
-        onSeek={(seconds) => {
-          seekTo(seconds);
-        }}
-        onOpenEditLyrics={() => {
-          setLyricsModalVisible(false);
-          setEditModalVisible(true);
-        }}
-        onFetchLyrics={handleFetchLyrics}
-      />
+      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */ }
+  <LyricsModal
+    visible={lyricsModalVisible}
+    track={currentTrack}
+    currentTimeSec={positionSec}
+    onClose={() => setLyricsModalVisible(false)}
+    onSeek={(seconds) => {
+      seekTo(seconds);
+    }}
+    onOpenEditLyrics={() => {
+      setLyricsModalVisible(false);
+      setEditModalVisible(true);
+    }}
+    onFetchLyrics={handleFetchLyrics}
+  />
 
-      {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */}
-      <EditTrackModal
-        visible={editModalVisible}
-        track={currentTrack}
-        onClose={() => setEditModalVisible(false)}
-        onSave={saveTrack}
-        onFetchLyrics={handleFetchLyrics}
-      />
+  {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */ }
+  <EditTrackModal
+    visible={editModalVisible}
+    track={currentTrack}
+    onClose={() => setEditModalVisible(false)}
+    onSave={saveTrack}
+    onFetchLyrics={handleFetchLyrics}
+  />
 
   {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */ }
   <Modal
@@ -710,7 +711,7 @@ export function NowPlayingView() {
     </TouchableOpacity>
   </Modal>
 
-  {/* Modal Cài đặt Lặp lại bài hát (Loop Count Modal) */}
+  {/* Modal Cài đặt Lặp lại bài hát (Loop Count Modal) */ }
   <Modal
     visible={loopModalVisible}
     transparent={true}
@@ -728,8 +729,8 @@ export function NowPlayingView() {
           {customLoopRemaining !== null
             ? `Đang lặp: còn ${customLoopRemaining} lần phát nữa`
             : repeatMode === 'track'
-            ? 'Đang lặp vô hạn bài hát hiện tại'
-            : 'Chọn số lần lặp hoặc tự nhập theo ý bạn'}
+              ? 'Đang lặp vô hạn bài hát hiện tại'
+              : 'Chọn số lần lặp hoặc tự nhập theo ý bạn'}
         </Text>
 
         <View style={styles.sleepTimerOptionsCol}>

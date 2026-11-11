@@ -177,7 +177,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             setCustomLoopTarget(null);
             setCustomLoopRemaining(null);
             setRepeatMode('off');
-            playerService.setRepeatMode('off').catch(() => {});
+            playerService.setRepeatMode('off').catch(() => { });
           }
         }
       }
@@ -213,7 +213,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const currentId = state.activeTrackId;
         setRecentTracksData((prev) => {
           const updated = addTrackToRecentList(currentId, prev);
-          saveRecentTracks(updated).catch(() => {});
+          saveRecentTracks(updated).catch(() => { });
           return updated;
         });
       }
@@ -377,7 +377,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     Vibration.vibrate(12);
     setIsVinylMode((prev) => {
       const nextVal = !prev;
-      saveVinylModePreference(nextVal).catch(() => {});
+      saveVinylModePreference(nextVal).catch(() => { });
       return nextVal;
     });
   }, []);
@@ -516,7 +516,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (sleepTimerRemainingSec === null) return;
 
     if (sleepTimerRemainingSec <= 0) {
-      playerService.pause().catch(() => {});
+      playerService.pause().catch(() => { });
       setSleepTimerMinutes(null);
       setSleepTimerRemainingSec(null);
       Vibration.vibrate([0, 100, 50, 100]);
@@ -526,7 +526,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(() => {
       setSleepTimerRemainingSec((prev) => {
         if (prev === null || prev <= 1) {
-          playerService.pause().catch(() => {});
+          playerService.pause().catch(() => { });
           setSleepTimerMinutes(null);
           Vibration.vibrate([0, 100, 50, 100]);
           return null;
@@ -560,7 +560,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     Vibration.vibrate(10);
     setRecentTracksData((prev) => {
       const updated = updateRecentLimit(limit, prev);
-      saveRecentTracks(updated).catch(() => {});
+      saveRecentTracks(updated).catch(() => { });
       return updated;
     });
   }, []);
@@ -570,7 +570,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     Vibration.vibrate(10);
     setRecentTracksData((prev) => {
       const updated = { ...prev, trackIds: [] };
-      saveRecentTracks(updated).catch(() => {});
+      saveRecentTracks(updated).catch(() => { });
       return updated;
     });
   }, []);
