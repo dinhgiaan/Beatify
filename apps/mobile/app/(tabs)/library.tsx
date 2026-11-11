@@ -153,6 +153,57 @@ export default function LibraryScreen() {
 
   // Hiệu ứng mờ dần / hiện dần (Fade Transition) khi đổi phân đoạn thư viện
   const contentFadeAnim = useRef(new Animated.Value(1)).current;
+
+
+  // State bộ lọc thể loại & tag thông minh (Filter Pills)
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+
+  // Top bài hát nghe nhiều nhất
+  const [topTrackIds, setTopTrackIds] = useState<string[]>([]);
+  useEffect(() => {
+    statsStorage.getReplayReport().then((rep) => {
+      if (rep?.allTime?.topTracks) {
+        setTopTrackIds(rep.allTime.topTracks.map((t: { trackId: string }) => t.trackId));
+      }
+    }).catch(() => { });
+  }, [tracks]);
+
+  // Indicator animated slide chuyển động mượt mà cho thanh filter pills
+  const pillIndicatorLeft = useRef(new Animated.Value(0)).current;
+  const pillIndicatorWidth = useRef(new Animated.Value(0)).current;
+  const pillLayouts = useRef<{ [id: string]: { x: number; width: number } }>({});
+  const [hasIndicatorLayout, setHasIndicatorLayout] = useState(false);
+
+  const updatePillIndicator = (targetId: string, animated = true) => {
+    const layout = pillLayouts.current[targetId];
+    if (layout && layout.width > 0) {
+      if (!animated) {
+        pillIndicatorLeft.setValue(layout.x);
+        pillIndicatorWidth.setValue(layout.width);
+        setHasIndicatorLayout(true);
+      } else {
+        setHasIndicatorLayout(true);
+        Animated.parallel([
+          Animated.spring(pillIndicatorLeft, {
+            toValue: layout.x,
+            useNativeDriver: false,
+            friction: 9,
+            tension: 70,
+          }),
+          Animated.spring(pillIndicatorWidth, {
+            toValue: layout.width,
+            useNativeDriver: false,
+            friction: 9,
+            tension: 70,
+          }),
+        ]).start();
+      }
+    }
+  };
+
+  useEffect(() => {
+    updatePillIndicator(activeFilter, hasIndicatorLayout);
+  }, [activeFilter, hasIndicatorLayout]);
   useEffect(() => {
     contentFadeAnim.setValue(0.5);
     Animated.timing(contentFadeAnim, {
@@ -181,8 +232,6 @@ export default function LibraryScreen() {
     type: 'album',
   });
 
-  // State bộ lọc thể loại & tag thông minh (Filter Pills)
-  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   // Hiệu ứng xoay tròn khi đang đồng bộ R2
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -220,12 +269,13 @@ export default function LibraryScreen() {
   const filterOptions = useMemo(() => {
     const list: Array<{ id: string; label: string }> = [
       { id: 'all', label: 'Tất cả' },
-      { id: 'favorites', label: 'Yêu thích ❤️' },
+      { id: 'favorites', label: 'Yêu thích' },
+      { id: 'top_played', label: 'Nghe nhiều nhất' },
     ];
 
     const hasOffline = (tracks || []).some((t) => isTrackOffline(t.id));
     if (hasOffline) {
-      list.push({ id: 'offline', label: 'Đã tải ⬇️' });
+      list.push({ id: 'offline', label: 'Đã tải' });
     }
 
     const hasSingles = (tracks || []).some(
@@ -254,6 +304,15 @@ export default function LibraryScreen() {
     if (activeFilter === 'favorites') {
       return tracks.filter((t) => userState.favoriteIds.includes(t.id));
     }
+    if (activeFilter === 'top_played') {
+      if (topTrackIds.length === 0) return tracks;
+      const rankMap = new Map<string, number>();
+      topTrackIds.forEach((id, idx) => rankMap.set(id, idx));
+      const listened = tracks.filter((t) => rankMap.has(t.id));
+      listened.sort((a, b) => (rankMap.get(a.id) ?? 9999) - (rankMap.get(b.id) ?? 9999));
+      const rest = tracks.filter((t) => !rankMap.has(t.id));
+      return [...listened, ...rest];
+    }
     if (activeFilter === 'offline') {
       return tracks.filter((t) => isTrackOffline(t.id));
     }
@@ -267,12 +326,8 @@ export default function LibraryScreen() {
       return tracks.filter((t) => (t.genre || '').toLowerCase() === g);
     }
     return tracks;
-  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline]);
+  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
 
-  // Tính tổng thời lượng của danh sách đang hiển thị
-  const totalDurationSec = useMemo(() => {
-    return filteredTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
-  }, [filteredTracks]);
 
   // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
   const artistGroups = useMemo(() => {
@@ -614,21 +669,42 @@ export default function LibraryScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* 2. Dải Filter Tags ngang hàng (Tất cả, Yêu thích, Thể loại...) */}
+          {/* 2. Dải Filter Tags ngang hàng (Tất cả, Yêu thích, Nghe nhiều nhất...) */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterPillsScroll}
             style={styles.filterScrollView}
           >
+            {/* Lớp nền viên thuốc động lướt mượt mà giữa các filter tags */}
+            {hasIndicatorLayout && (
+              <Animated.View
+                style={[
+                  styles.filterPillActiveIndicator,
+                  {
+                    left: pillIndicatorLeft,
+                    width: pillIndicatorWidth,
+                  },
+                ]}
+                pointerEvents="none"
+              />
+            )}
+
             {filterOptions.map((filter) => {
               const isSelected = activeFilter === filter.id;
               return (
                 <TouchableOpacity
                   key={filter.id}
+                  onLayout={(e) => {
+                    const { x, width } = e.nativeEvent.layout;
+                    pillLayouts.current[filter.id] = { x, width };
+                    if (filter.id === activeFilter) {
+                      updatePillIndicator(filter.id, hasIndicatorLayout);
+                    }
+                  }}
                   style={[
                     styles.filterPill,
-                    isSelected && styles.filterPillActive,
+                    isSelected ? styles.filterPillSelected : styles.filterPillUnselected,
                   ]}
                   onPress={() => {
                     Vibration.vibrate(8);
@@ -661,14 +737,6 @@ export default function LibraryScreen() {
               <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
             </Animated.View>
           </TouchableOpacity>
-        </View>
-
-        {/* Thông tin số lượng bài hát và trạng thái lọc */}
-        <View style={styles.headerStatsRow}>
-          <Text style={styles.headerStatsText}>
-            {filteredTracks.length} bài hát{totalDurationSec > 0 ? ` • ${formatTime(totalDurationSec)}` : ''}
-            {activeFilter !== 'all' ? ` (${filterOptions.find((f) => f.id === activeFilter)?.label})` : ''}
-          </Text>
         </View>
 
         {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
@@ -1123,13 +1191,28 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 2,
   },
+  filterPillActiveIndicator: {
+    position: 'absolute',
+    top: 2,
+    bottom: 2,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    zIndex: 1,
+  },
   filterPill: {
     paddingHorizontal: 13,
     paddingVertical: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
+    zIndex: 2,
+  },
+  filterPillUnselected: {
+    backgroundColor: colors.surfaceElevated,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterPillSelected: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
   },
   filterPillActive: {
     backgroundColor: colors.primary,
@@ -1256,28 +1339,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.surfaceElevated,
     borderRadius: radius.pill,
-    padding: 3,
+    padding: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   segmentPillIndicator: {
     position: 'absolute',
-    top: 3,
-    bottom: 3,
-    left: 3,
+    top: 4,
+    bottom: 4,
+    left: 4,
     backgroundColor: colors.surfaceActive,
     borderRadius: radius.pill,
   },
   segmentButton: {
     flex: 1,
-    paddingVertical: spacing.xs,
+    paddingVertical: 9,
     alignItems: 'center',
     borderRadius: radius.pill,
     zIndex: 1,
     backgroundColor: 'transparent',
   },
   segmentText: {
-    fontSize: fontSizes.caption,
+    fontSize: 13,
     fontWeight: fontWeights.medium,
     color: colors.textTertiary,
   },

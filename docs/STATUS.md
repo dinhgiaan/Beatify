@@ -420,6 +420,21 @@
 - [x] Kiểm thử toàn diện: 58/58 unit tests mobile passed, 206/206 tests toàn workspace passed 100%, 0 lỗi TypeScript, 0 lỗi lint.
 
 ## Thiết kế lại Pha 6: Tính năng phụ & Tinh chỉnh trải nghiệm hoàn tất
+- [x] Nâng cấp Tab "Trang chủ" (`app/(tabs)/library.tsx`):
+  - Bỏ icon trái tim ở header tag Yêu thích, thêm tag "Nghe nhiều nhất" (`top_played`) liên kết với `statsStorage.getReplayReport()`.
+  - Hiệu ứng chuyển động Active Indicator mượt mà cho hàng filter tags (Animated Spring Left & Width theo layout động).
+  - Loại bỏ dòng text thống kê dư thừa (`... bài hát (Yêu thích <3)`).
+  - Tăng độ cao `paddingVertical` và kích thước bấm cho 3 nút phân đoạn ("Bài hát", "Album", "Nghệ sĩ").
+- [x] Tái thiết kế Tab "Vừa nghe" (`app/(tabs)/recent.tsx`):
+  - Xóa bỏ tag "Lịch sử phát", tiêu đề lớn phong cách Apple Music/Spotify.
+  - Thẻ Hero Card nổi bật cho bài hát nghe gần đây nhất kèm nút Quick Play/Pause và thả tim.
+  - Hàng nút tác vụ nhanh: "Phát tất cả" & "Phát ngẫu nhiên" (`smartShuffle`).
+  - Danh sách bài hát trước đó đánh số thứ tự gọn gàng, trạng thái phát và Empty State cao cấp.
+- [x] Tái thiết kế Tab "Tìm kiếm" (`app/(tabs)/search.tsx`):
+  - Xóa bỏ dòng chữ thô kệch cũ, thay bằng tiêu đề tinh tế "Tìm kiếm bài hát" và hướng dẫn rõ ràng.
+  - Tích hợp Lịch sử tìm kiếm gần đây (`searchHistoryStorage`): ghi nhớ các bài đã tìm kiếm vào `beatify_search_history.json`, hỗ trợ phát ngay, xóa từng mục hoặc xóa toàn bộ lịch sử.
+- [x] Đơn giản hóa mục Chuyển bài thông minh trong Hồ sơ cá nhân (`src/components/HiddenSettingsModal.tsx`):
+  - Rút gọn toàn bộ tiêu đề và nhãn mô tả, loại bỏ tràn viền, súc tích và thân thiện.
 - [x] Đổi thứ tự bài hát trong Hàng đợi (Reorder Queue `moveQueueItem`):
   - Tích hợp cụm nút di chuyển bài lên `↑` và xuống `↓` trong Panel Hàng đợi của Now Playing.
   - Tính toán và cập nhật an toàn `currentTrackIndex` khi thay đổi vị trí bài hát.

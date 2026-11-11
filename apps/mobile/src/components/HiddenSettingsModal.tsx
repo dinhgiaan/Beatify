@@ -377,20 +377,20 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
           {/* CHUYỂN BÀI THÔNG MINH (SMART TRANSITION & HARMONIC MIX) */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionHeader, { flex: 1, marginBottom: 0 }]}>Chuyển bài thông minh</Text>
               <View style={styles.streetBadge}>
-                <Text style={styles.streetBadgeText}>DJ ENGINE</Text>
+                <Text style={styles.streetBadgeText}>DJ AUTO</Text>
               </View>
-              <Text style={styles.sectionHeader}>CHUYỂN BÀI THÔNG MINH (SMART TRANSITION)</Text>
             </View>
             <Text style={styles.sectionDesc}>
-              Tự động phân tích BPM, khóa Camelot, và điểm Outro/Intro để phối chuyển bài mượt mà theo đường cong Equal-Power, bảo toàn ReplayGain:
+              Tự động hòa âm và chuyển bài mượt mà giữa các bài hát.
             </Text>
 
             {/* BẬT / TẮT CHÍNH */}
             <View style={styles.rowItem}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Kích hoạt Smart Transition</Text>
-                <Text style={styles.subLabel}>Mặc định bật, fade theo thời gian thực (wall-clock)</Text>
+                <Text style={styles.label}>Kích hoạt chuyển bài</Text>
+                <Text style={styles.subLabel}>Tự động fade giữa bài cũ và bài mới</Text>
               </View>
               <TouchableOpacity
                 style={[styles.vinylToggleSwitch, transitionSettings.enabled && styles.vinylToggleSwitchActive]}
@@ -405,8 +405,8 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             {transitionSettings.enabled && (
               <>
                 <View style={{ marginTop: 12, marginBottom: 6 }}>
-                  <Text style={styles.label}>Thời lượng chuyển bài mục tiêu</Text>
-                  <Text style={styles.subLabel}>Tự động co giãn dựa theo độ tương thích BPM & Camelot Key</Text>
+                  <Text style={styles.label}>Thời gian chuyển bài</Text>
+                  <Text style={styles.subLabel}>Tự động điều chỉnh theo nhịp điệu bài hát</Text>
                 </View>
                 <View style={styles.pillRow}>
                   {([2, 3, 4, 5, 6, 8] as const).map((dur) => {
@@ -429,9 +429,9 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
                 {/* CHẾ ĐỘ AN TOÀN (SAFE MODE) */}
                 <View style={[styles.rowItem, { marginTop: 12 }]}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={styles.label}>Chế độ an toàn (Safe Mode)</Text>
+                    <Text style={styles.label}>Chế độ an toàn</Text>
                     <Text style={styles.subLabel}>
-                      Chỉ nhảy vào bài mới tại Intro Cue Point, không fade volume qua JS (phòng khi màn hình khóa)
+                      Giữ ổn định khi nghe trên màn hình khóa
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -453,7 +453,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             >
               <Text style={{ fontSize: 16 }}>🎛️</Text>
               <Text style={styles.logLaunchBtnText}>
-                Xem Nhật ký chuyển bài (Transition Log)
+                Xem nhật ký chuyển bài
               </Text>
             </TouchableOpacity>
           </View>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,12 +26,21 @@ import {
   SearchIcon,
   CloseIcon,
   DiscIcon,
+  ClockRewindIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
+import {
+  loadSearchHistory,
+  saveSearchHistory,
+  clearSearchHistory,
+  addTrackToSearchHistory,
+  removeTrackFromSearchHistory,
+  type SearchHistoryData,
+} from '../../src/services/search/searchHistoryStorage';
 
 /**
- * Màn hình Tìm kiếm tức thì (Thiết kế lại Pha 3)
+ * Màn hình Tìm kiếm tức thì & Lịch sử tìm kiếm
  * Hỗ trợ tìm kiếm không dấu tiếng Việt theo Tên bài hát, Ca sĩ, Album.
  */
 export default function SearchScreen() {
@@ -41,6 +50,28 @@ export default function SearchScreen() {
   const { contentPaddingBottom } = useTabBarMetrics();
 
   const [query, setQuery] = useState('');
+  const [historyData, setHistoryData] = useState<SearchHistoryData>({ trackIds: [] });
+
+  // Nạp lịch sử tìm kiếm từ ổ đĩa khi mở màn hình
+  useEffect(() => {
+    loadSearchHistory().then((data) => {
+      setHistoryData(data);
+    });
+  }, []);
+
+  // Danh sách các Track tương ứng với các ID trong lịch sử
+  const historyTracks = useMemo(() => {
+    if (!historyData.trackIds || historyData.trackIds.length === 0) return [];
+    const trackMap = new Map<string, Track>();
+    tracks.forEach((t) => trackMap.set(t.id, t));
+
+    const result: Track[] = [];
+    historyData.trackIds.forEach((id) => {
+      const t = trackMap.get(id);
+      if (t) result.push(t);
+    });
+    return result;
+  }, [historyData.trackIds, tracks]);
 
   // Lọc bài hát theo từ khóa tìm kiếm (bỏ dấu tiếng Việt qua normalizeText)
   const filteredTracks = useMemo(() => {
@@ -56,13 +87,24 @@ export default function SearchScreen() {
     });
   }, [tracks, query]);
 
-  const handleTrackPress = (item: Track) => {
+  // Lưu bài hát vào lịch sử tìm kiếm
+  const recordToHistory = useCallback((trackId: string) => {
+    setHistoryData((prev) => {
+      const next = addTrackToSearchHistory(trackId, prev);
+      saveSearchHistory(next);
+      return next;
+    });
+  }, []);
+
+  const handleTrackPress = (item: Track, queueContext: Track[]) => {
     Vibration.vibrate(10);
+    recordToHistory(item.id);
+
     if (currentTrack?.id === item.id) {
       togglePlay();
     } else {
-      const idx = filteredTracks.findIndex((t) => t.id === item.id);
-      playQueue(filteredTracks, idx >= 0 ? idx : 0);
+      const idx = queueContext.findIndex((t) => t.id === item.id);
+      playQueue(queueContext, idx >= 0 ? idx : 0);
     }
   };
 
@@ -70,13 +112,29 @@ export default function SearchScreen() {
     setQuery('');
   };
 
+  const handleClearAllHistory = () => {
+    Vibration.vibrate(10);
+    setHistoryData({ trackIds: [] });
+    clearSearchHistory();
+  };
+
+  const handleRemoveHistoryItem = (trackId: string) => {
+    Vibration.vibrate(5);
+    setHistoryData((prev) => {
+      const next = removeTrackFromSearchHistory(trackId, prev);
+      saveSearchHistory(next);
+      return next;
+    });
+  };
+
+  // Render mục kết quả tìm kiếm
   const renderTrackItem = ({ item }: { item: Track }) => {
     const isCurrent = currentTrack?.id === item.id;
 
     return (
       <TouchableOpacity
         style={[styles.trackItem, isCurrent && styles.trackItemActive]}
-        onPress={() => handleTrackPress(item)}
+        onPress={() => handleTrackPress(item, filteredTracks)}
         activeOpacity={0.7}
       >
         <View style={styles.coverWrapper}>
@@ -114,6 +172,59 @@ export default function SearchScreen() {
     );
   };
 
+  // Render mục trong danh sách Lịch sử tìm kiếm gần đây
+  const renderHistoryItem = ({ item }: { item: Track }) => {
+    const isCurrent = currentTrack?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.trackItem, isCurrent && styles.trackItemActive]}
+        onPress={() => handleTrackPress(item, historyTracks)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.historyClockWrapper}>
+          <ClockRewindIcon size={16} color={colors.textTertiary} />
+        </View>
+
+        <View style={styles.coverWrapper}>
+          {item.cover ? (
+            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.coverPlaceholder}>
+              <DiscIcon size={18} color={colors.borderLight} />
+            </View>
+          )}
+          {isCurrent && (
+            <View style={styles.playingOverlay}>
+              <EqualizerIndicator isPlaying={playerState.isPlaying} size={14} color={colors.primary} />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.infoWrapper}>
+          <Text
+            style={[styles.titleText, isCurrent && styles.titleActive]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.title}
+          </Text>
+          <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
+            {item.artist}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.historyRemoveBtn}
+          onPress={() => handleRemoveHistoryItem(item.id)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <CloseIcon size={13} color={colors.textTertiary} />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header & Thanh tìm kiếm */}
@@ -122,7 +233,7 @@ export default function SearchScreen() {
           <SearchIcon size={18} color={colors.textTertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Bài hát, ca sĩ, album..."
+            placeholder="Bài hát, nghệ sĩ, album..."
             placeholderTextColor={colors.textPlaceholder}
             value={query}
             onChangeText={setQuery}
@@ -146,19 +257,50 @@ export default function SearchScreen() {
 
       {/* Nội dung kết quả tìm kiếm */}
       {query.trim().length === 0 ? (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={styles.emptyPromptContainer}>
-            <SearchIcon size={56} color={colors.borderLight} />
-            <Text style={styles.emptyPromptTitle}>Khám phá kho âm nhạc</Text>
-            <Text style={styles.emptyPromptSubtitle}>
-              Gõ tên bài hát hoặc ca sĩ có dấu hoặc không dấu tiếng Việt.
-            </Text>
+        historyTracks.length > 0 ? (
+          <View style={styles.historyContainer}>
+            <View style={styles.historyHeaderRow}>
+              <Text style={styles.historyHeaderTitle}>Tìm kiếm gần đây</Text>
+              <TouchableOpacity
+                onPress={handleClearAllHistory}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.historyClearAllText}>Xóa tất cả</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={historyTracks}
+              keyExtractor={(item) => `hist-${item.id}`}
+              renderItem={renderHistoryItem}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: contentPaddingBottom },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            />
           </View>
-        </TouchableWithoutFeedback>
+        ) : (
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.emptyPromptContainer}>
+              <View style={styles.emptyPromptIconCircle}>
+                <SearchIcon size={34} color={colors.textTertiary} />
+              </View>
+              <Text style={styles.emptyPromptTitle}>Tìm kiếm bài hát</Text>
+              <Text style={styles.emptyPromptSubtitle}>
+                Tìm nhanh theo tên bài hát, nghệ sĩ hoặc album trong thư viện của bạn.
+              </Text>
+            </View>
+          </TouchableWithoutFeedback>
+        )
       ) : filteredTracks.length === 0 ? (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.emptyPromptContainer}>
-            <DiscIcon size={56} color={colors.borderLight} />
+            <View style={styles.emptyPromptIconCircle}>
+              <DiscIcon size={34} color={colors.textTertiary} />
+            </View>
             <Text style={styles.emptyPromptTitle}>Không tìm thấy bài hát</Text>
             <Text style={styles.emptyPromptSubtitle}>
               Không có kết quả nào khớp với &quot;{query}&quot;. Thử tìm với từ khóa khác.
@@ -176,6 +318,7 @@ export default function SearchScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -191,12 +334,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: fontSizes.headline,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
   },
   searchBar: {
     flexDirection: 'row',
@@ -223,9 +360,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  historyContainer: {
+    flex: 1,
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  historyHeaderTitle: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  historyClearAllText: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+    color: colors.textTertiary,
+  },
+  historyClockWrapper: {
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyRemoveBtn: {
+    padding: 6,
+    marginLeft: spacing.xs,
+  },
   listContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
   trackItem: {
     flexDirection: 'row',
@@ -233,14 +402,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.md,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   trackItemActive: {
     backgroundColor: colors.surfaceElevated,
   },
   coverWrapper: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: radius.sm,
     overflow: 'hidden',
     backgroundColor: colors.surface,
@@ -295,12 +464,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
+    paddingBottom: 60,
+  },
+  emptyPromptIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   emptyPromptTitle: {
-    fontSize: fontSizes.subheading,
-    fontWeight: fontWeights.semibold,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
+    fontSize: fontSizes.title,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   emptyPromptSubtitle: {
@@ -308,5 +488,6 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: spacing.xs,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });
