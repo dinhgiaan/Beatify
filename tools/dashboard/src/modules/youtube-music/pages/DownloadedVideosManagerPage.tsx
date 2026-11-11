@@ -876,7 +876,7 @@ export const DownloadedVideosManagerPage: React.FC<{
                       <span>Đồng bộ xóa tệp này trên Cloudflare R2 (khỏi app mobile)</span>
                     </label>
                     <div className="text-[10.5px] text-zinc-400 pl-5 break-all">
-                      Key R2: music/{itemToDelete.relativeFilePath ? itemToDelete.relativeFilePath.split(/[/\\]/).pop() : itemToDelete.id}
+                      Đồng bộ xóa: music/{itemToDelete.trackId ? `${itemToDelete.trackId}.*` : (itemToDelete.relativeFilePath ? itemToDelete.relativeFilePath.split(/[/\\]/).pop() : itemToDelete.id)} &amp; cập nhật library.json
                     </div>
                   </div>
                 )}

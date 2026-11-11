@@ -12,7 +12,7 @@ import { buildLibrary } from './libraryBuilder';
 import { R2Uploader } from './r2Uploader';
 import { getOverrides, applyOverridesToScanned, purgeFromTrash } from './overridesManager';
 import { PathSanitizer } from './pathSanitizer';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import type {
   YoutubeMusicJobPayload,
   YoutubeMusicDownloadRecord,
@@ -897,6 +897,15 @@ class YoutubeJobRunner extends EventEmitter {
       ? audioPath.replace(path.extname(audioPath), '.lrc')
       : null;
 
+    let resolvedTrackId = item.trackId;
+    if (!resolvedTrackId && audioPath && existsSync(audioPath)) {
+      try {
+        resolvedTrackId = await calculateTrackId(audioPath);
+      } catch {
+        // bỏ qua
+      }
+    }
+
     // 1. Xóa trên Cloudflare R2 nếu được yêu cầu
     if (options.deleteR2) {
       const config = loadConfig();
@@ -910,26 +919,70 @@ class YoutubeJobRunner extends EventEmitter {
           },
         });
 
-        // Xóa audio object trên R2
+        // 1.1 Xóa file âm thanh trên R2 (khớp trackId hoặc tên tệp)
+        try {
+          const res = await s3.send(new ListObjectsV2Command({ Bucket: config.R2_BUCKET, Prefix: 'music/' }));
+          if (res.Contents) {
+            const baseName = item.relativeFilePath ? path.basename(item.relativeFilePath).toLowerCase() : null;
+            for (const obj of res.Contents) {
+              if (!obj.Key) continue;
+              const keyLower = obj.Key.toLowerCase();
+              let matched = false;
+              if (resolvedTrackId && keyLower.includes(resolvedTrackId.toLowerCase())) {
+                matched = true;
+              }
+              if (baseName && keyLower.endsWith(`/${baseName}`)) {
+                matched = true;
+              }
+              if (matched) {
+                await s3.send(new DeleteObjectCommand({ Bucket: config.R2_BUCKET, Key: obj.Key })).catch(() => {});
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Lỗi quét đối tượng music/ trên R2 khi xóa:', e);
+        }
+
+        // 1.2 Xóa file lyrics trên R2 nếu có
+        if (resolvedTrackId) {
+          await s3.send(new DeleteObjectCommand({ Bucket: config.R2_BUCKET, Key: `lyrics/${resolvedTrackId}.lrc` })).catch(() => {});
+        }
         if (item.relativeFilePath) {
-          const baseName = path.basename(item.relativeFilePath);
-          await s3
-            .send(
-              new DeleteObjectCommand({
-                Bucket: config.R2_BUCKET,
-                Key: `music/${baseName}`,
-              })
-            )
-            .catch(() => {});
+          const lrcBaseName = path.basename(item.relativeFilePath).replace(path.extname(item.relativeFilePath), '.lrc');
+          await s3.send(new DeleteObjectCommand({ Bucket: config.R2_BUCKET, Key: `lyrics/${lrcBaseName}` })).catch(() => {});
+        }
+
+        // 1.3 Cập nhật lại library.json trên Cloudflare R2 để app iPhone đồng bộ ngay lập tức
+        try {
+          const local = loadLocalConfig();
+          const sourceDir = path.resolve(local.MUSIC_SOURCE_DIR);
+          if (existsSync(sourceDir)) {
+            const allFiles = await findAudioFiles(sourceDir);
+            const rawTracks: ScannedTrack[] = [];
+            for (const f of allFiles) {
+              // Bỏ qua chính file đang bị xóa nếu nó vẫn còn trên đĩa
+              if (audioPath && path.resolve(f).toLowerCase() === path.resolve(audioPath).toLowerCase()) {
+                continue;
+              }
+              const t = await scanAudioFile(f);
+              if (t) rawTracks.push(t);
+            }
+            const overrides = await getOverrides();
+            const activeTracks = applyOverridesToScanned(rawTracks, overrides);
+            const { library } = buildLibrary(activeTracks);
+            const uploader = new R2Uploader(config);
+            await uploader.uploadLibrary(library);
+          }
+        } catch (libErr) {
+          console.warn('Lỗi re-upload library.json lên R2 sau khi xóa:', libErr);
         }
       }
     }
 
     // Luôn đánh dấu purged trong overrides để scanner, library và status không bao giờ tính lại bài này
-    if (audioPath && existsSync(audioPath)) {
+    if (resolvedTrackId) {
       try {
-        const trackId = await calculateTrackId(audioPath);
-        await purgeFromTrash(trackId);
+        await purgeFromTrash(resolvedTrackId);
       } catch {
         // bỏ qua
       }
@@ -961,7 +1014,7 @@ class YoutubeJobRunner extends EventEmitter {
         const normRoot = path.resolve(item.libraryRootPath).toLowerCase();
         const normTrack = path.resolve(trackDir).toLowerCase();
         if (normTrack !== normRoot) {
-          const extraFiles = ['info.txt', 'desktop.ini', 'folder.jpg'];
+          const extraFiles = ['info.txt', 'desktop.ini', 'folder.jpg', '.DS_Store', 'cover.jpg'];
           for (const extra of extraFiles) {
             const extraPath = path.join(trackDir, extra);
             if (existsSync(extraPath)) {
@@ -971,6 +1024,9 @@ class YoutubeJobRunner extends EventEmitter {
               await fs.unlink(extraPath).catch(() => {});
             }
           }
+
+          // Dọn dẹp thư mục rỗng: Xóa thư mục chứa bài hát và các thư mục cha rỗng (không vượt quá root)
+          await this.cleanEmptyDirectories(trackDir, item.libraryRootPath);
         }
       }
     }
@@ -979,6 +1035,30 @@ class YoutubeJobRunner extends EventEmitter {
     const filtered = list.filter((r) => r.id !== id);
     await this.saveDownloads(filtered);
     return true;
+  }
+
+  // Dọn dẹp an toàn các thư mục rỗng từ startDir ngược lên đến rootDir (tuyệt đối không xóa rootDir)
+  private async cleanEmptyDirectories(startDir: string, rootDir: string): Promise<void> {
+    let current = path.resolve(startDir);
+    const stopRoot = path.resolve(rootDir);
+
+    while (current && current.toLowerCase() !== stopRoot.toLowerCase()) {
+      if (!current.toLowerCase().startsWith(stopRoot.toLowerCase())) {
+        break;
+      }
+      try {
+        const entries = await fs.readdir(current);
+        if (entries.length === 0) {
+          await fs.rmdir(current);
+          current = path.dirname(current);
+        } else {
+          // Thư mục vẫn còn chứa file hoặc thư mục con khác
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
   }
 }
 
