@@ -610,5 +610,43 @@ export function MoreHorizontalIcon({ size = 20, color = '#ffffff' }: IconProps) 
   );
 }
 
+// 40. Home Icon (Biểu tượng Trang chủ phong cách Spotify / Apple Music)
+export function HomeIcon({ size = 24, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5z"
+        stroke={color}
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// 41. Cloud Sync / Hot Reload R2 Icon (Biểu tượng xoay / đồng bộ đám mây)
+export function CloudSyncIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21.5 15a4.5 4.5 0 0 1-4.5 4.5H6.5A5.5 5.5 0 0 1 6 8.54 7 7 0 0 1 18.3 6.3 4.5 4.5 0 0 1 21.5 15z"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 11v6m0-6l-2 2m2-2l2 2"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+
 
 

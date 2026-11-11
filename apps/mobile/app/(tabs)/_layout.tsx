@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
 import {
-  LibraryIcon,
+  HomeIcon,
   SearchIcon,
   PlaylistIcon,
   ClockRewindIcon,
@@ -102,8 +102,8 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           const iconColor = isFocused ? colors.primary : 'rgba(255, 255, 255, 0.55)';
 
           if (route.name === 'library') {
-            label = 'Thư viện';
-            icon = <LibraryIcon size={19} color={iconColor} />;
+            label = 'Trang chủ';
+            icon = <HomeIcon size={19} color={iconColor} />;
           } else if (route.name === 'recent') {
             label = 'Vừa nghe';
             icon = <ClockRewindIcon size={19} color={iconColor} />;
@@ -156,7 +156,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="library"
         options={{
-          title: 'Thư viện',
+          title: 'Trang chủ',
         }}
       />
       <Tabs.Screen

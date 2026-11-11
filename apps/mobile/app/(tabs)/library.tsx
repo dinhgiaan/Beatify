@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   Image,
   RefreshControl,
@@ -41,6 +42,7 @@ import {
   MoreHorizontalIcon,
   PlayIcon,
   ShuffleIcon,
+  CloudSyncIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
@@ -179,10 +181,98 @@ export default function LibraryScreen() {
     type: 'album',
   });
 
-  // Tính tổng thời lượng toàn bộ thư viện
+  // State bộ lọc thể loại & tag thông minh (Filter Pills)
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+
+  // Hiệu ứng xoay tròn khi đang đồng bộ R2
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (isSyncing) {
+      const loop = Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      spinAnim.setValue(0);
+    }
+  }, [isSyncing, spinAnim]);
+
+  const spinInterpolate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const handleHotReload = async () => {
+    Vibration.vibrate(20);
+    try {
+      await syncLibrary({ force: true });
+    } catch {
+      // lỗi đã được xử lý trong context
+    }
+  };
+
+  // Danh sách các tag thể loại & bộ lọc ngang hàng với nút Profile
+  const filterOptions = useMemo(() => {
+    const list: Array<{ id: string; label: string }> = [
+      { id: 'all', label: 'Tất cả' },
+      { id: 'favorites', label: 'Yêu thích ❤️' },
+    ];
+
+    const hasOffline = (tracks || []).some((t) => isTrackOffline(t.id));
+    if (hasOffline) {
+      list.push({ id: 'offline', label: 'Đã tải ⬇️' });
+    }
+
+    const hasSingles = (tracks || []).some(
+      (t) => t.album && ['singles', 'single', 'đĩa đơn'].includes(t.album.trim().toLowerCase())
+    );
+    if (hasSingles) {
+      list.push({ id: 'singles', label: 'Singles' });
+    }
+
+    const genresSet = new Set<string>();
+    for (const t of tracks || []) {
+      if (t.genre && t.genre.trim()) {
+        genresSet.add(t.genre.trim());
+      }
+    }
+    for (const g of genresSet) {
+      list.push({ id: `genre_${g.toLowerCase()}`, label: g });
+    }
+
+    return list;
+  }, [tracks, isTrackOffline]);
+
+  // Lọc danh sách bài hát theo Tag đã chọn
+  const filteredTracks = useMemo(() => {
+    if (activeFilter === 'all') return tracks;
+    if (activeFilter === 'favorites') {
+      return tracks.filter((t) => userState.favoriteIds.includes(t.id));
+    }
+    if (activeFilter === 'offline') {
+      return tracks.filter((t) => isTrackOffline(t.id));
+    }
+    if (activeFilter === 'singles') {
+      return tracks.filter(
+        (t) => t.album && ['singles', 'single', 'đĩa đơn'].includes(t.album.trim().toLowerCase())
+      );
+    }
+    if (activeFilter.startsWith('genre_')) {
+      const g = activeFilter.replace('genre_', '').toLowerCase();
+      return tracks.filter((t) => (t.genre || '').toLowerCase() === g);
+    }
+    return tracks;
+  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline]);
+
+  // Tính tổng thời lượng của danh sách đang hiển thị
   const totalDurationSec = useMemo(() => {
-    return tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
-  }, [tracks]);
+    return filteredTracks.reduce((acc, t) => acc + (t.duration || 0), 0);
+  }, [filteredTracks]);
 
   // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
   const artistGroups = useMemo(() => {
@@ -328,25 +418,20 @@ export default function LibraryScreen() {
     await deleteTrack(trackId, handleTrackDeleted);
   };
 
-  const handleTitleLongPress = () => {
-    Vibration.vibrate(20);
-    setHiddenSettingsVisible(true);
-  };
-
   const handleShufflePlayAll = () => {
-    if (tracks.length === 0) return;
+    if (filteredTracks.length === 0) return;
     Vibration.vibrate(15);
-    const shuffled = smartShuffle(tracks);
+    const shuffled = smartShuffle(filteredTracks);
     setTracks(shuffled);
     setIsSmartShuffle(true);
     playQueue(shuffled, 0);
   };
 
   const handlePlayAll = () => {
-    if (tracks.length === 0) return;
+    if (filteredTracks.length === 0) return;
     Vibration.vibrate(15);
     setIsSmartShuffle(false);
-    playQueue(tracks, 0);
+    playQueue(filteredTracks, 0);
   };
 
   // Render mục Bài hát
@@ -510,40 +595,84 @@ export default function LibraryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Thư viện: Brand Badge & Thống kê (tinh gọn, không lặp lại tiêu đề tab) */}
+      {/* Header Trang chủ: Button Profile + Dải Filter Tags ngang hàng + Button Hot Reload R2 */}
       <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
+        <View style={styles.topHeaderRow}>
+          {/* 1. Button Profile tròn góc trái */}
           <TouchableOpacity
-            onLongPress={handleTitleLongPress}
-            delayLongPress={600}
-            activeOpacity={0.9}
-          >
-            <View style={styles.brandTag}>
-              <Text style={styles.brandTagText}>BEATIFY</Text>
-            </View>
-            <Text style={styles.headerStatsText}>
-              {tracks.length} bài hát • {formatTime(totalDurationSec)}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.avatarButton}
+            style={styles.profileButton}
             onPress={() => {
               Vibration.vibrate(10);
               statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
               setHiddenSettingsVisible(true);
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
             accessibilityLabel="Mở Cài đặt và Hồ sơ người dùng"
           >
-            <View style={styles.avatarWrapper}>
-              {renderUserAvatar(userProfile, 18)}
+            <View style={styles.profileAvatarWrapper}>
+              {renderUserAvatar(userProfile, 17)}
             </View>
+          </TouchableOpacity>
+
+          {/* 2. Dải Filter Tags ngang hàng (Tất cả, Yêu thích, Thể loại...) */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterPillsScroll}
+            style={styles.filterScrollView}
+          >
+            {filterOptions.map((filter) => {
+              const isSelected = activeFilter === filter.id;
+              return (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterPill,
+                    isSelected && styles.filterPillActive,
+                  ]}
+                  onPress={() => {
+                    Vibration.vibrate(8);
+                    setActiveFilter(filter.id);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillText,
+                      isSelected && styles.filterPillTextActive,
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* 3. Nút Hot Reload R2 tròn nhỏ ở góc phải */}
+          <TouchableOpacity
+            style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
+            onPress={handleHotReload}
+            activeOpacity={0.7}
+            disabled={isSyncing}
+            accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
+          >
+            <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
+              <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
+            </Animated.View>
           </TouchableOpacity>
         </View>
 
+        {/* Thông tin số lượng bài hát và trạng thái lọc */}
+        <View style={styles.headerStatsRow}>
+          <Text style={styles.headerStatsText}>
+            {filteredTracks.length} bài hát{totalDurationSec > 0 ? ` • ${formatTime(totalDurationSec)}` : ''}
+            {activeFilter !== 'all' ? ` (${filterOptions.find((f) => f.id === activeFilter)?.label})` : ''}
+          </Text>
+        </View>
+
         {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
-        {tracks.length > 0 && (
+        {filteredTracks.length > 0 && (
           <View style={styles.quickActionsRow}>
             <TouchableOpacity
               style={styles.shufflePlayButton}
@@ -639,7 +768,7 @@ export default function LibraryScreen() {
         {activeSegment === 'songs' ? (
           <FlatList
             key="flatlist-songs"
-            data={tracks}
+            data={filteredTracks}
             keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
             renderItem={renderTrackItem}
             contentContainerStyle={[
@@ -655,13 +784,33 @@ export default function LibraryScreen() {
               />
             }
             ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <DiscIcon size={48} color={colors.borderLight} />
-                <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
-                <Text style={styles.emptySubText}>
-                  Kéo xuống để đồng bộ bài hát từ Cloudflare R2 hoặc dùng Web Dashboard để nhập nhạc.
-                </Text>
-              </View>
+              tracks.length > 0 ? (
+                <View style={styles.emptyContainer}>
+                  <DiscIcon size={44} color={colors.borderLight} />
+                  <Text style={styles.emptyText}>Chưa có bài hát trong mục này</Text>
+                  <Text style={styles.emptySubText}>
+                    Không tìm thấy bài hát nào thuộc bộ lọc "{filterOptions.find((f) => f.id === activeFilter)?.label}".
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.resetFilterButton}
+                    onPress={() => {
+                      Vibration.vibrate(8);
+                      setActiveFilter('all');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.resetFilterButtonText}>Xem tất cả bài hát</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <DiscIcon size={48} color={colors.borderLight} />
+                  <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
+                  <Text style={styles.emptySubText}>
+                    Kéo xuống hoặc bấm nút Cloud trên thanh tiêu đề để đồng bộ bài hát từ Cloudflare R2.
+                  </Text>
+                </View>
+              )
             }
           />
         ) : activeSegment === 'albums' ? (
@@ -942,8 +1091,76 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  profileButton: {
+    padding: 2,
+  },
+  profileAvatarWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterScrollView: {
+    flex: 1,
+  },
+  filterPillsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  filterPill: {
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
+  },
+  filterPillTextActive: {
+    color: '#000000',
+    fontWeight: fontWeights.bold,
+  },
+  hotReloadButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hotReloadButtonSyncing: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+  },
+  headerStatsRow: {
+    paddingVertical: 4,
+    marginBottom: spacing.xs,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -1000,6 +1217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    marginTop: 4,
     marginBottom: spacing.md,
   },
   shufflePlayButton: {
@@ -1450,5 +1668,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     marginTop: 2,
+  },
+  resetFilterButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  resetFilterButtonText: {
+    color: colors.primary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
   },
 });
