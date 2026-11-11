@@ -30,6 +30,13 @@ export interface ReplayStats {
   topArtists: Array<{ artist: string; count: number; minutes: number }>;
 }
 
+export interface StreetRank {
+  title: string;
+  level: number;
+  badge: string;
+  description: string;
+}
+
 export interface Milestone {
   id: string;
   title: string;
@@ -48,6 +55,7 @@ export interface FullReplayReport {
   firstTrackEver: { title: string; artist: string; playedAt: string } | null;
   mostPlayedTrackEver: { title: string; artist: string; count: number } | null;
   milestones: Milestone[];
+  streetRank: StreetRank;
 }
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
@@ -154,6 +162,39 @@ export function computeReplayStats(
   };
 }
 
+export function computeStreetRank(totalPlays: number, totalMinutes: number): StreetRank {
+  if (totalPlays >= 500 || totalMinutes >= 3000) {
+    return {
+      title: 'Hip-hop Legend',
+      level: 4,
+      badge: '👑',
+      description: 'Huyền thoại đường phố tối thượng',
+    };
+  }
+  if (totalPlays >= 200 || totalMinutes >= 1200) {
+    return {
+      title: 'Underground King',
+      level: 3,
+      badge: '🔥',
+      description: 'Thủ lĩnh giới underground',
+    };
+  }
+  if (totalPlays >= 50 || totalMinutes >= 300) {
+    return {
+      title: 'Beatmaker',
+      level: 2,
+      badge: '🎧',
+      description: 'Nhà sản xuất âm hưởng tài hoa',
+    };
+  }
+  return {
+    title: 'Rookie Rhymer',
+    level: 1,
+    badge: '🎤',
+    description: 'Tân binh khởi đầu hành trình',
+  };
+}
+
 /**
  * Tính các cột mốc kỷ niệm & thành tựu
  */
@@ -166,15 +207,15 @@ export function calculateMilestones(records: ListeningRecord[]): Milestone[] {
   return [
     {
       id: 'first_song',
-      title: 'Khởi đầu hành trình',
-      desc: 'Phát bài hát đầu tiên trên Beatify',
+      title: 'Drop the Needle',
+      desc: 'Thả kim đĩa than — Phát bài hát đầu tiên trên Beatify',
       achieved: totalPlays >= 1,
       icon: '🎵',
     },
     {
       id: 'night_owl',
-      title: 'Cú đêm âm nhạc',
-      desc: 'Tận hưởng âm nhạc trong khung giờ đêm khuya (0h - 5h sáng)',
+      title: 'Midnight Cypher',
+      desc: 'Cháy cùng âm nhạc lúc nửa đêm (0h - 5h sáng)',
       achieved: records.some((r) => {
         const hour = new Date(r.timestamp).getHours();
         return hour >= 0 && hour < 5;
@@ -183,29 +224,29 @@ export function calculateMilestones(records: ListeningRecord[]): Milestone[] {
     },
     {
       id: 'plays_50',
-      title: 'Tâm hồn âm nhạc',
-      desc: 'Đạt mốc 50 lượt nghe nhạc',
+      title: 'Heavy Rotation',
+      desc: 'Phát nhạc không ngừng — Đạt mốc 50 lượt nghe',
       achieved: totalPlays >= 50,
       icon: '⭐',
     },
     {
       id: 'minutes_300',
-      title: 'Chuyên gia thư giãn',
-      desc: 'Dành hơn 300 phút cùng giai điệu',
+      title: 'Flow State',
+      desc: 'Hòa mình vào dòng chảy nhịp điệu hơn 300 phút',
       achieved: totalMinutes >= 300,
       icon: '⏱️',
     },
     {
       id: 'plays_200',
-      title: 'Nhạc sĩ đích thực',
-      desc: 'Đạt mốc 200 lượt nghe',
+      title: 'Boom Bap Master',
+      desc: 'Bậc thầy cảm thụ âm nhạc — Đạt mốc 200 lượt nghe',
       achieved: totalPlays >= 200,
       icon: '🏆',
     },
     {
       id: 'hours_20',
-      title: 'Kỷ niệm khó phai',
-      desc: 'Dành hơn 1.200 phút (20 giờ) nghe nhạc',
+      title: 'Crate Digger',
+      desc: 'Thợ săn đĩa cổ thụ — Dành hơn 20 giờ (1.200 phút) nghe nhạc',
       achieved: totalMinutes >= 1200,
       icon: '🌟',
     },
@@ -257,6 +298,7 @@ export function computeFullReplay(
   }
 
   const milestones = calculateMilestones(records);
+  const streetRank = computeStreetRank(allTime.totalPlays, allTime.totalMinutes);
 
   return {
     profile,
@@ -267,5 +309,6 @@ export function computeFullReplay(
     firstTrackEver,
     mostPlayedTrackEver,
     milestones,
+    streetRank,
   };
 }

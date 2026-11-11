@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
-import type { Track, UpdateTrack, UserProfile } from '@music-app/shared';
+import { smartShuffle, type Track, type UpdateTrack, type UserProfile } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import {
@@ -39,6 +39,8 @@ import {
   TrophyIcon,
   MoonIcon,
   MoreHorizontalIcon,
+  PlayIcon,
+  ShuffleIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
@@ -102,6 +104,7 @@ export default function LibraryScreen() {
   }, [navigation]);
   const {
     tracks,
+    setTracks,
     albums,
     userState,
     updateUserState,
@@ -119,6 +122,8 @@ export default function LibraryScreen() {
     skipToTrack,
     playQueue,
     togglePlay,
+    setIsSmartShuffle,
+    clearRecentTracks,
     handleTrackDeleted,
   } = usePlayer();
 
@@ -328,6 +333,22 @@ export default function LibraryScreen() {
     setHiddenSettingsVisible(true);
   };
 
+  const handleShufflePlayAll = () => {
+    if (tracks.length === 0) return;
+    Vibration.vibrate(15);
+    const shuffled = smartShuffle(tracks);
+    setTracks(shuffled);
+    setIsSmartShuffle(true);
+    playQueue(shuffled, 0);
+  };
+
+  const handlePlayAll = () => {
+    if (tracks.length === 0) return;
+    Vibration.vibrate(15);
+    setIsSmartShuffle(false);
+    playQueue(tracks, 0);
+  };
+
   // Render mục Bài hát
   const renderTrackItem = ({ item }: { item: Track }) => {
     const isCurrent = currentTrack?.id === item.id;
@@ -519,6 +540,29 @@ export default function LibraryScreen() {
         <Text style={styles.headerStatsText}>
           {tracks.length} bài hát • {formatTime(totalDurationSec)}
         </Text>
+
+        {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
+        {tracks.length > 0 && (
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              style={styles.shufflePlayButton}
+              onPress={handleShufflePlayAll}
+              activeOpacity={0.8}
+            >
+              <ShuffleIcon size={17} color="#000000" />
+              <Text style={styles.shufflePlayButtonText}>Phát ngẫu nhiên</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.playAllButton}
+              onPress={handlePlayAll}
+              activeOpacity={0.7}
+            >
+              <PlayIcon size={15} color={colors.textPrimary} />
+              <Text style={styles.playAllButtonText}>Phát tất cả</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Thanh chọn phân đoạn Segmented Control với hiệu ứng trượt mượt mà (Smooth Sliding Active Pill) */}
         <View
@@ -933,7 +977,45 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.caption,
     color: colors.textTertiary,
     marginTop: 2,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  shufflePlayButton: {
+    flex: 1.15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+  },
+  shufflePlayButtonText: {
+    color: '#000000',
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+  },
+  playAllButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+  },
+  playAllButtonText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.semibold,
   },
   segmentContainer: {
     flexDirection: 'row',

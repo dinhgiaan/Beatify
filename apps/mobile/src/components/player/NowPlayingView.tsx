@@ -45,6 +45,8 @@ import { formatTime } from '../../utils/formatTime';
 import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
 import { EqualizerIndicator } from './EqualizerIndicator';
+import { VinylRecordView } from './VinylRecordView';
+import { BassWaveformVisualizer } from './BassWaveformVisualizer';
 import { useOffline } from '../../context';
 
 /**
@@ -83,6 +85,8 @@ export function NowPlayingView() {
     moveQueueItem,
     sleepTimerRemainingSec,
     setSleepTimer,
+    isVinylMode,
+    toggleVinylMode,
   } = usePlayer();
 
   const { userState, toggleFavorite, fetchLyrics, saveTrack } = useLibrary();
@@ -193,7 +197,20 @@ export function NowPlayingView() {
           )}
         </View>
 
-        <View style={styles.headerButton} />
+        {/* Nút bật/tắt Chế độ Đĩa Than Vinyl */}
+        <TouchableOpacity
+          style={[styles.turntableToggleBtn, isVinylMode && styles.turntableToggleBtnActive]}
+          onPress={toggleVinylMode}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Chuyển chế độ Đĩa Than Vinyl"
+        >
+          <DiscIcon size={14} color={isVinylMode ? '#000000' : colors.primary} />
+          <Text style={[styles.turntableToggleText, isVinylMode && styles.turntableToggleTextActive]}>
+            {isVinylMode ? 'VINYL' : 'BÌA'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Nội dung cuộn an toàn phòng vệ (ScrollView) không bao giờ bị cắt trên màn hình nhỏ */}
@@ -202,34 +219,42 @@ export function NowPlayingView() {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* VÙNG CHUYỂN ĐỔI: Ảnh bìa HOẶC Danh sách hàng đợi phát inline */}
+        {/* VÙNG CHUYỂN ĐỔI: Ảnh bìa vuông HOẶC Đĩa Than Vinyl HOẶC Hàng đợi phát */}
         {!showQueue ? (
+          isVinylMode ? (
+            <VinylRecordView
+              coverUri={currentTrack?.cover}
+              isPlaying={playerState.isPlaying}
+              size={Math.min(artworkSize, 305)}
+            />
+          ) : (
             <Animated.View
-            style={[
-              styles.artworkContainer,
-              {
-                width: artworkSize,
-                height: artworkSize,
-                transform: [{ scale: artworkScale }],
-              },
-            ]}
-          >
-            {currentTrack?.cover ? (
-              <Image
-                source={{ uri: currentTrack.cover }}
-                style={styles.artworkImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.artworkPlaceholder}>
-                <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
-                <Text style={styles.artworkEmptyText}>
-                  {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
-                </Text>
-              </View>
-            )}
-          </Animated.View>
-      ) : (
+              style={[
+                styles.artworkContainer,
+                {
+                  width: artworkSize,
+                  height: artworkSize,
+                  transform: [{ scale: artworkScale }],
+                },
+              ]}
+            >
+              {currentTrack?.cover ? (
+                <Image
+                  source={{ uri: currentTrack.cover }}
+                  style={styles.artworkImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.artworkPlaceholder}>
+                  <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
+                  <Text style={styles.artworkEmptyText}>
+                    {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+                  </Text>
+                </View>
+              )}
+            </Animated.View>
+          )
+        ) : (
       <View
         style={[
           styles.queuePanelContainer,
@@ -368,6 +393,9 @@ export function NowPlayingView() {
           </Animated.View>
         </TouchableOpacity>
       </View>
+
+      {/* Cụm Equalizer Sóng Nhạc Dày Đậm (Bass Waveform Visualizer LED Stereo VU Meter) */}
+      <BassWaveformVisualizer isPlaying={playerState.isPlaying} height={28} />
 
       {/* Thanh tua tiến trình nhạc (Scrubber) với vùng chạm 44pt chuẩn iOS HIG */}
       <View style={styles.scrubberContainer}>
@@ -819,6 +847,30 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  turntableToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  turntableToggleBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  turntableToggleText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
+  },
+  turntableToggleTextActive: {
+    color: '#000000',
   },
   headerTitleContainer: {
     alignItems: 'center',

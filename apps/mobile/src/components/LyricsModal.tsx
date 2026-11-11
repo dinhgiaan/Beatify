@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
+  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
 import { parseLrc, findActiveLrcIndex, formatLrcSpacing, type LrcLine } from '@music-app/shared';
 import { EditIcon, LyricsIcon } from './icons/SvgIcons';
 import { ModalHeader } from './ModalHeader';
+import { LyricPosterModal } from './player/LyricPosterModal';
 import {
   colors,
   spacing,
@@ -49,6 +51,8 @@ export function LyricsModal({
 }: LyricsModalProps) {
   const [rawLyrics, setRawLyrics] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [posterModalVisible, setPosterModalVisible] = useState(false);
+  const [selectedLyricForPoster, setSelectedLyricForPoster] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const userScrolledRef = useRef(false);
   const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -206,17 +210,33 @@ export function LyricsModal({
             subtitle={track.artist}
             onClose={onClose}
             rightElement={
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={() => onOpenEditLyrics(track)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                accessibilityRole="button"
-                accessibilityLabel="Chỉnh sửa lời bài hát"
-              >
-                <EditIcon size={13} color={colors.primary} />
-                <Text style={styles.editText}>Edit</Text>
-              </TouchableOpacity>
+              <View style={styles.headerRightActions}>
+                <TouchableOpacity
+                  style={styles.posterActionBtn}
+                  onPress={() => {
+                    Vibration.vibrate(10);
+                    const currentLine = lrcLines[activeIndex]?.text || rawLyrics?.split('\n')[0] || '';
+                    setSelectedLyricForPoster(currentLine);
+                    setPosterModalVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                >
+                  <Text style={styles.posterActionBtnText}>Poster ✦</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => onOpenEditLyrics(track)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Chỉnh sửa lời bài hát"
+                >
+                  <EditIcon size={13} color={colors.primary} />
+                  <Text style={styles.editText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
         </View>
@@ -274,6 +294,11 @@ export function LyricsModal({
                     if (onSeek) onSeek(line.time);
                     userScrolledRef.current = false;
                   }}
+                  onLongPress={() => {
+                    Vibration.vibrate(20);
+                    setSelectedLyricForPoster(line.text);
+                    setPosterModalVisible(true);
+                  }}
                 >
                   {renderLineContent(line, idx, isActive)}
                 </TouchableOpacity>
@@ -297,6 +322,12 @@ export function LyricsModal({
             <View style={{ height: 120 }} />
           </ScrollView>
         )}
+        <LyricPosterModal
+          visible={posterModalVisible}
+          onClose={() => setPosterModalVisible(false)}
+          initialLyricText={selectedLyricForPoster}
+          track={track}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -321,6 +352,24 @@ const styles = StyleSheet.create({
   headerWrap: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xs,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  posterActionBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  posterActionBtnText: {
+    color: '#ffffff',
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
   },
   editBtn: {
     flexDirection: 'row',

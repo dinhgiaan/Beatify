@@ -21,6 +21,7 @@ import {
   PauseIcon,
   NextIcon,
   DiscIcon,
+  ShuffleIcon,
 } from '../icons/SvgIcons';
 import { EqualizerIndicator } from './EqualizerIndicator';
 import { MINI_PLAYER_HEIGHT } from '../../hooks/useTabBarMetrics';
@@ -44,7 +45,14 @@ export function MiniProgressBar() {
  */
 export function MiniPlayer() {
   const router = useRouter();
-  const { currentTrack, playerState, togglePlay, next } = usePlayer();
+  const {
+    currentTrack,
+    playerState,
+    togglePlay,
+    next,
+    isSmartShuffle,
+    toggleSmartShuffle,
+  } = usePlayer();
 
   const playScale = useRef(new Animated.Value(1)).current;
   const onPlayPressIn = () => {
@@ -123,8 +131,25 @@ export function MiniPlayer() {
           </View>
         </View>
 
-        {/* Cụm nút điều khiển: Play/Pause và Next */}
+        {/* Cụm nút điều khiển: Shuffle, Play/Pause và Next */}
         <View style={styles.controlsRow}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              toggleSmartShuffle();
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={isSmartShuffle ? 'Đang bật xáo trộn thông minh' : 'Bật xáo trộn thông minh'}
+          >
+            <ShuffleIcon
+              size={17}
+              color={isSmartShuffle ? colors.primary : colors.textTertiary}
+            />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.controlButton}
             onPress={handleTogglePlay}

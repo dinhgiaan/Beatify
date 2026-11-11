@@ -82,6 +82,8 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
     recentLimit,
     setRecentLimit,
     clearRecentTracks,
+    isVinylMode,
+    toggleVinylMode,
   } = usePlayer();
 
   const { offlineTracks, totalSizeBytes, clearAllOffline } = useOffline();
@@ -244,6 +246,24 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
               </Text>
             </View>
 
+            {/* Cấp bậc Hip-hop đường phố (Street Rank Badge) */}
+            {replayReport?.streetRank && (
+              <View style={styles.streetRankBanner}>
+                <View style={styles.streetRankIconBox}>
+                  <Text style={styles.streetRankEmoji}>{replayReport.streetRank.badge}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.streetRankTitleRow}>
+                    <Text style={styles.streetRankTitle}>{replayReport.streetRank.title}</Text>
+                    <View style={styles.streetRankLevelBadge}>
+                      <Text style={styles.streetRankLevelText}>LV.{replayReport.streetRank.level}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.streetRankDesc}>{replayReport.streetRank.description}</Text>
+                </View>
+              </View>
+            )}
+
             {/* Grid 4 chỉ số thống kê nổi bật */}
             <View style={styles.statsGrid}>
               <View style={styles.statTile}>
@@ -382,6 +402,33 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
                   </Text>
                 </TouchableOpacity>
               )}
+            </View>
+          </View>
+
+          {/* MỤC 3: TRẢI NGHIỆM PHÁT NHẠC (TURNTABLE VINYL & VISUALIZER) */}
+          <View style={styles.sectionCard}>
+            <View style={styles.mysteryTitleRow}>
+              <DiscIcon size={20} color={colors.primary} />
+              <Text style={[styles.sectionHeader, { color: colors.primary, marginBottom: 0 }]}>
+                TRẢI NGHIỆM PHÁT NHẠC (TURNTABLE VINYL)
+              </Text>
+            </View>
+            <Text style={styles.sectionDesc}>
+              Bật chế độ Đĩa Than Vinyl 360° với cần kim tonearm và hiệu ứng xoay 33⅓ RPM trên màn hình đang phát (Now Playing):
+            </Text>
+
+            <View style={styles.rowItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Chế độ Đĩa Than Vinyl</Text>
+                <Text style={styles.subLabel}>Tự động đồng bộ và lưu trữ trạng thái</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.vinylToggleSwitch, isVinylMode && styles.vinylToggleSwitchActive]}
+                onPress={toggleVinylMode}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.switchThumb, isVinylMode && styles.switchThumbActive]} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -1193,5 +1240,82 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: fontSizes.captionLarge,
     fontWeight: fontWeights.semibold,
+  },
+  streetRankBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(29, 185, 84, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(29, 185, 84, 0.25)',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  streetRankIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(29, 185, 84, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streetRankEmoji: {
+    fontSize: 22,
+  },
+  streetRankTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  streetRankTitle: {
+    color: colors.primary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+  },
+  streetRankLevelBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.xs,
+  },
+  streetRankLevelText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: fontWeights.bold,
+  },
+  streetRankDesc: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    marginTop: 2,
+  },
+  subLabel: {
+    color: colors.textTertiary,
+    fontSize: fontSizes.caption,
+    marginTop: 2,
+  },
+  vinylToggleSwitch: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  vinylToggleSwitchActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  switchThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.textSecondary,
+  },
+  switchThumbActive: {
+    backgroundColor: '#ffffff',
+    alignSelf: 'flex-end',
   },
 });

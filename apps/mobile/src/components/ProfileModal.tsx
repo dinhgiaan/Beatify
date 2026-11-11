@@ -422,6 +422,20 @@ export function ProfileModal({
               </View>
             )}
 
+            {/* Cấp bậc Hip-hop đường phố (Street Rank) */}
+            {report.streetRank && (
+              <View style={styles.streetRankRow}>
+                <View style={styles.streetRankPill}>
+                  <Text style={styles.streetRankEmoji}>{report.streetRank.badge}</Text>
+                  <Text style={styles.streetRankTitle}>{report.streetRank.title}</Text>
+                  <View style={styles.streetRankLvl}>
+                    <Text style={styles.streetRankLvlText}>LV.{report.streetRank.level}</Text>
+                  </View>
+                </View>
+                <Text style={styles.streetRankSub}>{report.streetRank.description}</Text>
+              </View>
+            )}
+
             {/* Chỉ số nhanh bộ sưu tập */}
             <View style={styles.quickStatsRow}>
               <View style={styles.quickStatBox}>
@@ -948,6 +962,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#777777',
     marginLeft: 6,
+  },
+  streetRankRow: {
+    backgroundColor: '#181818',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(29, 185, 84, 0.25)',
+    gap: 4,
+  },
+  streetRankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  streetRankEmoji: {
+    fontSize: 18,
+  },
+  streetRankTitle: {
+    color: '#1DB954',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  streetRankLvl: {
+    backgroundColor: '#1DB954',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  streetRankLvlText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  streetRankSub: {
+    color: '#888888',
+    fontSize: 12,
   },
   quickStatsRow: {
     flexDirection: 'row',

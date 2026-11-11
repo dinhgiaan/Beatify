@@ -17,6 +17,10 @@ import {
   DEFAULT_RECENT_LIMIT,
   type RecentTracksData,
 } from '../services/recent/recentTracksStorage';
+import {
+  loadVinylModePreference,
+  saveVinylModePreference,
+} from '../services/player/turntablePreferences';
 import { useLibrary, resolveTrackUrls } from './LibraryContext';
 import { useOffline } from './OfflineContext';
 
@@ -46,6 +50,8 @@ export interface PlayerContextValue {
   customLoopTarget: number | null;
   customLoopRemaining: number | null;
   setCustomLoopCount: (count: number | null) => Promise<void>;
+  isVinylMode: boolean;
+  toggleVinylMode: () => void;
   toggleSmartShuffle: () => Promise<void>;
   applySortMode: (mode: TrackSortMode) => void;
   addCustomTrack: (url: string) => Promise<void>;
@@ -85,6 +91,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastLoopPosRef = useRef<number>(0);
   const lastLoopTrackIdRef = useRef<string | null>(null);
   const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
+  const [isVinylMode, setIsVinylMode] = useState<boolean>(false);
   const [sortMode, setSortMode] = useState<TrackSortMode>('smart');
 
   // Thống kê & Ghi đĩa atomic
@@ -108,11 +115,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const currentTrackingTrackIdRef = useRef<string | null>(null);
   const maxListenedSecRef = useRef<number>(0);
 
-  // Nạp danh sách bài nghe gần đây từ đĩa khi khởi động
+  // Nạp danh sách bài nghe gần đây và cấu hình turntable từ đĩa khi khởi động
   useEffect(() => {
     loadRecentTracks().then((data) => {
       setRecentTracksData(data);
     });
+    loadVinylModePreference().then(setIsVinylMode);
   }, []);
 
   // 1. Khởi tạo player service và đăng ký listener ĐÚNG MỘT LẦN (State ổn định, không re-render theo tick tiến trình)
@@ -365,6 +373,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const toggleVinylMode = useCallback(() => {
+    Vibration.vibrate(12);
+    setIsVinylMode((prev) => {
+      const nextVal = !prev;
+      saveVinylModePreference(nextVal).catch(() => {});
+      return nextVal;
+    });
+  }, []);
+
   const toggleSmartShuffle = useCallback(async () => {
     Vibration.vibrate(10);
     if (tracks.length === 0) return;
@@ -600,6 +617,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         customLoopTarget,
         customLoopRemaining,
         setCustomLoopCount,
+        isVinylMode,
+        toggleVinylMode,
         toggleSmartShuffle,
         applySortMode,
         addCustomTrack,

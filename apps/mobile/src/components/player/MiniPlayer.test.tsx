@@ -18,6 +18,7 @@ vi.mock('expo-router', () => ({
 
 const mockTogglePlay = vi.fn();
 const mockNext = vi.fn();
+const mockToggleSmartShuffle = vi.fn();
 const mockUsePlayer = vi.fn();
 
 vi.mock('../../context', () => ({
@@ -72,6 +73,7 @@ vi.mock('../icons/SvgIcons', () => ({
   PauseIcon: () => null,
   NextIcon: () => null,
   DiscIcon: () => null,
+  ShuffleIcon: () => null,
 }));
 
 import { MiniPlayer } from './MiniPlayer';
@@ -142,12 +144,14 @@ describe('MiniPlayer Component', () => {
       playerState: { isPlaying: false },
       togglePlay: mockTogglePlay,
       next: mockNext,
+      isSmartShuffle: false,
+      toggleSmartShuffle: mockToggleSmartShuffle,
     });
 
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const playButton = controlsRow?.props.children[0];
+    const playButton = controlsRow?.props.children[1];
 
     const stopPropagation = vi.fn();
     playButton.props.onPress({ stopPropagation });
@@ -166,17 +170,45 @@ describe('MiniPlayer Component', () => {
       playerState: { isPlaying: false },
       togglePlay: mockTogglePlay,
       next: mockNext,
+      isSmartShuffle: false,
+      toggleSmartShuffle: mockToggleSmartShuffle,
     });
 
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const nextButton = controlsRow?.props.children[1];
+    const nextButton = controlsRow?.props.children[2];
 
     const stopPropagation = vi.fn();
     nextButton.props.onPress({ stopPropagation });
 
     expect(stopPropagation).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('nhấn nút Shuffle kích hoạt toggleSmartShuffle', () => {
+    mockUsePlayer.mockReturnValue({
+      currentTrack: {
+        id: 'track_1',
+        title: 'Lối Nhỏ',
+        artist: 'Đen Vâu',
+      },
+      playerState: { isPlaying: false },
+      togglePlay: mockTogglePlay,
+      next: mockNext,
+      isSmartShuffle: false,
+      toggleSmartShuffle: mockToggleSmartShuffle,
+    });
+
+    const element = MiniPlayer();
+    const contentRow = element?.props.children[1];
+    const controlsRow = contentRow?.props.children[2];
+    const shuffleButton = controlsRow?.props.children[0];
+
+    const stopPropagation = vi.fn();
+    shuffleButton.props.onPress({ stopPropagation });
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockToggleSmartShuffle).toHaveBeenCalledTimes(1);
   });
 });
