@@ -3,6 +3,7 @@ import { findAudioFiles, scanAudioFile, calculateTrackId } from './services/scan
 import { buildLibrary } from './services/libraryBuilder';
 import { R2Uploader } from './services/r2Uploader';
 import { analyzeAudioFile } from './services/audioAnalysisService';
+import { youtubeJobRunner } from './services/youtubeJobRunner';
 
 async function main() {
   const command = process.argv[2] || 'help';
@@ -104,6 +105,18 @@ Cách dùng:
     // 3. Upload library.json cuối cùng
     console.log(`📋 Đang tải library.json lên R2...`);
     await uploader.uploadLibrary(library);
+
+    // Đồng bộ trạng thái đã upload sang lịch sử tải YouTube Music
+    try {
+      const uploadedTrackIds = new Set(library.tracks.map((t) => t.id));
+      const syncedCount = await youtubeJobRunner.syncUploadedTrackIds(uploadedTrackIds);
+      if (syncedCount > 0) {
+        console.log(`✨ Đã đồng bộ trạng thái "Đã lên Cloud" cho ${syncedCount} bài hát trong lịch sử tải.`);
+      }
+    } catch {
+      // bỏ qua nếu lỗi cập nhật lịch sử tải
+    }
+
     console.log(`\n🎉 ĐỒNG BỘ THÀNH CÔNG! Thư viện đã sẵn sàng trên Cloudflare R2.`);
   } else {
     console.error(`❌ Lệnh không hợp lệ: ${command}. Chạy 'pnpm indexer help' để xem hướng dẫn.`);

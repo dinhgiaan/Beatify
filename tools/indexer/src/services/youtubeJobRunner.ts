@@ -633,6 +633,102 @@ class YoutubeJobRunner extends EventEmitter {
     return updated;
   }
 
+  /**
+   * Đồng bộ trạng thái "Đã lên Cloud" theo danh sách trackId đã upload lên R2 (dùng khi chạy pnpm indexer sync)
+   */
+  async syncUploadedTrackIds(trackIds: Set<string>): Promise<number> {
+    const list = await this.getDownloads(2000);
+    let changed = false;
+    let count = 0;
+
+    for (const item of list) {
+      let tid = item.trackId;
+      if (!tid && item.relativeFilePath && item.libraryRootPath) {
+        const cleanRelative = item.relativeFilePath.replace(/^[/\\]+/, '');
+        const fullAudioPath = path.resolve(item.libraryRootPath, cleanRelative);
+        if (existsSync(fullAudioPath)) {
+          try {
+            tid = await calculateTrackId(fullAudioPath);
+            item.trackId = tid;
+            changed = true;
+          } catch {
+            // bỏ qua lỗi băm SHA-1
+          }
+        }
+      }
+
+      if (tid && trackIds.has(tid)) {
+        if (!item.uploadedToR2) {
+          item.uploadedToR2 = true;
+          item.updatedAt = new Date().toISOString();
+          changed = true;
+          count++;
+        }
+      }
+    }
+
+    if (changed) {
+      await this.saveDownloads(list);
+    }
+    return count;
+  }
+
+  /**
+   * Tự động kiểm tra và đồng bộ trạng thái R2 cho các bài tải về dựa trên danh sách key thực tế trên R2
+   */
+  async syncWithR2Keys(r2UploadedKeys: Set<string>): Promise<number> {
+    if (!r2UploadedKeys || r2UploadedKeys.size === 0) return 0;
+    const list = await this.getDownloads(2000);
+    let changed = false;
+    let count = 0;
+
+    for (const item of list) {
+      let tid = item.trackId;
+      const cleanRelative = item.relativeFilePath ? item.relativeFilePath.replace(/^[/\\]+/, '') : '';
+      const fullAudioPath = cleanRelative && item.libraryRootPath
+        ? path.resolve(item.libraryRootPath, cleanRelative)
+        : null;
+
+      if (!tid && fullAudioPath && existsSync(fullAudioPath)) {
+        try {
+          tid = await calculateTrackId(fullAudioPath);
+          item.trackId = tid;
+          changed = true;
+        } catch {
+          // bỏ qua lỗi băm SHA-1
+        }
+      }
+
+      if (item.relativeFilePath) {
+        const ext = path.extname(item.relativeFilePath).toLowerCase();
+        const r2Key = tid ? `music/${tid}${ext}` : null;
+        const baseName = path.basename(item.relativeFilePath).toLowerCase();
+
+        let isUploaded = false;
+        if (r2Key && r2UploadedKeys.has(r2Key)) {
+          isUploaded = true;
+        } else if (
+          r2UploadedKeys.has(item.relativeFilePath) ||
+          Array.from(r2UploadedKeys).some((k) => k.toLowerCase().endsWith(baseName))
+        ) {
+          isUploaded = true;
+        }
+
+        if (isUploaded && !item.uploadedToR2) {
+          item.uploadedToR2 = true;
+          item.updatedAt = new Date().toISOString();
+          changed = true;
+          count++;
+        }
+      }
+    }
+
+    if (changed) {
+      await this.saveDownloads(list);
+    }
+    return count;
+  }
+
   async getDownloadAudioPath(id: string): Promise<string | null> {
     const list = await this.getDownloads(1000);
     const item = list.find((r) => r.id === id);

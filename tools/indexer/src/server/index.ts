@@ -2702,7 +2702,24 @@ app.get('/api/youtube-music/downloads', async (c) => {
   try {
     const queryLimit = c.req.query('limit');
     const limit = queryLimit ? parseInt(queryLimit, 10) : 500;
-    const downloads = await youtubeJobRunner.getDownloads(limit);
+    let downloads = await youtubeJobRunner.getDownloads(limit);
+
+    // Tự động đối chiếu với Cloudflare R2 nếu có bài chưa được gắn trạng thái đã upload
+    const hasUncheckedTracks = downloads.some((d) => !d.uploadedToR2 || !d.trackId);
+    if (hasUncheckedTracks) {
+      try {
+        const r2Keys = await getR2TrackKeys();
+        if (r2Keys.size > 0) {
+          const syncedCount = await youtubeJobRunner.syncWithR2Keys(r2Keys);
+          if (syncedCount > 0) {
+            downloads = await youtubeJobRunner.getDownloads(limit);
+          }
+        }
+      } catch {
+        // bỏ qua nếu lỗi mạng hoặc không kết nối được R2 tạm thời
+      }
+    }
+
     return c.json({ status: 'success', data: downloads });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
