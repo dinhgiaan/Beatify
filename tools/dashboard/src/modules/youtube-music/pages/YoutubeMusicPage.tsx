@@ -211,6 +211,8 @@ export const YoutubeMusicPage: React.FC = () => {
 
   // Active Job State
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [liveCompletedIds, setLiveCompletedIds] = useState<Set<string>>(new Set());
+  const [liveActiveIds, setLiveActiveIds] = useState<Set<string>>(new Set());
   const [jobProgress, setJobProgress] = useState<{
     percent: number;
     message: string;
@@ -292,9 +294,21 @@ export const YoutubeMusicPage: React.FC = () => {
       status: event.status,
     });
 
+    if (event.completedItemIds && event.completedItemIds.length > 0) {
+      setLiveCompletedIds((prev) => {
+        const next = new Set(prev);
+        event.completedItemIds?.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+    if (event.activeItemIds) {
+      setLiveActiveIds(new Set(event.activeItemIds));
+    }
+
     if (event.status === 'completed') {
       toast.success('Đã tải hoàn tất toàn bộ danh sách bài hát!');
       setActiveJobId(null);
+      setLiveActiveIds(new Set());
       // Cập nhật trạng thái xem trước sang "Đã tải"
       setPreviewData((prev) => {
         if (!prev) return prev;
@@ -320,9 +334,11 @@ export const YoutubeMusicPage: React.FC = () => {
     } else if (event.status === 'failed') {
       toast.error(`Tiến trình tải thất bại: ${event.error?.detail || 'Lỗi không xác định'}`);
       setActiveJobId(null);
+      setLiveActiveIds(new Set());
     } else if (event.status === 'stopped') {
       toast.info('Tiến trình tải đã được dừng.');
       setActiveJobId(null);
+      setLiveActiveIds(new Set());
     }
   });
 
@@ -1487,14 +1503,19 @@ export const YoutubeMusicPage: React.FC = () => {
                                     >
                                       🚫 Bị ẩn/xóa
                                     </span>
-                                  ) : item.isAlreadyDownloaded ? (
+                                  ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                                      Đang tải...
+                                    </span>
+                                  ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
                                     item.fileMissing ? (
                                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
                                         Mất file
                                       </span>
                                     ) : (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium">
-                                        Đã có
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium inline-flex items-center gap-1">
+                                        <span className="text-emerald-400 font-bold">✓</span> Đã có
                                       </span>
                                     )
                                   ) : (
@@ -1817,7 +1838,12 @@ export const YoutubeMusicPage: React.FC = () => {
                                   🚫 Bị ẩn/xóa
                                 </span>
                               </Tooltip>
-                            ) : item.isAlreadyDownloaded ? (
+                            ) : (liveActiveIds.has(item.id) || liveActiveIds.has(item.url)) ? (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 font-medium animate-pulse inline-flex items-center gap-1 shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                                Đang tải...
+                              </span>
+                            ) : (liveCompletedIds.has(item.id) || liveCompletedIds.has(item.url) || item.isAlreadyDownloaded) ? (
                               item.fileMissing ? (
                                 <Tooltip
                                   position="bottom"
@@ -1852,8 +1878,8 @@ export const YoutubeMusicPage: React.FC = () => {
                                     </div>
                                   }
                                 >
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0 cursor-help">
-                                    Đã có
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium shrink-0 cursor-help inline-flex items-center gap-1">
+                                    <span className="text-emerald-400 font-bold">✓</span> Đã có
                                   </span>
                                 </Tooltip>
                               )

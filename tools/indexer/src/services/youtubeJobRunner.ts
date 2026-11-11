@@ -34,8 +34,41 @@ const STATE_DIR = path.resolve(
 const DOWNLOADS_FILE = path.join(STATE_DIR, 'youtube_downloads.json');
 const CONFIG_FILE = path.join(STATE_DIR, 'youtube_config.json');
 
+async function safeAtomicWrite(targetPath: string, content: string): Promise<void> {
+  const dir = path.dirname(targetPath);
+  if (!existsSync(dir)) {
+    await fs.mkdir(dir, { recursive: true });
+  }
+  const tempPath = `${targetPath}.tmp.${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  await fs.writeFile(tempPath, content, 'utf-8');
+
+  let renamed = false;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    try {
+      await fs.rename(tempPath, targetPath);
+      renamed = true;
+      break;
+    } catch (err: unknown) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, attempt * 50));
+    }
+  }
+
+  if (!renamed) {
+    try {
+      await fs.copyFile(tempPath, targetPath);
+      await fs.unlink(tempPath).catch(() => {});
+    } catch (copyErr) {
+      await fs.unlink(tempPath).catch(() => {});
+      throw lastErr || copyErr;
+    }
+  }
+}
+
 class YoutubeJobRunner extends EventEmitter {
   private activeJobs = new Map<string, { stopRequested: boolean }>();
+  private saveQueue: Promise<void> = Promise.resolve();
 
   constructor() {
     super();
@@ -120,21 +153,30 @@ class YoutubeJobRunner extends EventEmitter {
   }
 
   private async saveDownloads(list: YoutubeMusicDownloadRecord[]): Promise<void> {
-    await this.ensureStateDir();
-    const tempFile = `${DOWNLOADS_FILE}.tmp.${Date.now()}`;
-    await fs.writeFile(tempFile, JSON.stringify(list, null, 2), 'utf-8');
-    await fs.rename(tempFile, DOWNLOADS_FILE);
+    this.saveQueue = this.saveQueue
+      .then(async () => {
+        await this.ensureStateDir();
+        await safeAtomicWrite(DOWNLOADS_FILE, JSON.stringify(list, null, 2));
+      })
+      .catch((err) => {
+        console.warn('[YoutubeJobRunner] Lỗi lưu downloads.json:', err);
+      });
+    return this.saveQueue;
   }
 
   async addOrUpdateDownload(record: YoutubeMusicDownloadRecord): Promise<void> {
-    const list = await this.getDownloads(1000);
-    const idx = list.findIndex((r) => r.id === record.id);
-    if (idx >= 0) {
-      list[idx] = { ...list[idx], ...record, updatedAt: new Date().toISOString() };
-    } else {
-      list.unshift(record);
+    try {
+      const list = await this.getDownloads(1000);
+      const idx = list.findIndex((r) => r.id === record.id);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...record, updatedAt: new Date().toISOString() };
+      } else {
+        list.unshift(record);
+      }
+      await this.saveDownloads(list);
+    } catch (err) {
+      console.warn('[YoutubeJobRunner] Không thể lưu bản ghi download:', err);
     }
-    await this.saveDownloads(list);
   }
 
   async deleteDownload(id: string, deleteFiles = false): Promise<boolean> {
@@ -374,6 +416,8 @@ class YoutubeJobRunner extends EventEmitter {
     // Worker pool xử lý song song với concurrency cấu hình được
     let currentIndex = 0;
     const workerCount = Math.min(concurrency, total);
+    const completedItemIds = new Set<string>();
+    const activeItemIds = new Set<string>();
 
     const workers = Array.from({ length: workerCount }, async () => {
       while (currentIndex < urls.length) {
@@ -433,6 +477,8 @@ class YoutubeJobRunner extends EventEmitter {
           const absPath = path.resolve(existingCompleted.libraryRootPath || targetDir, existingCompleted.relativeFilePath);
           if (existsSync(absPath)) {
             completed++;
+            completedItemIds.add(url);
+            if (override?.id) completedItemIds.add(override.id);
             record.status = 'completed';
             record.title = existingCompleted.title;
             record.artist = existingCompleted.artist;
@@ -446,12 +492,14 @@ class YoutubeJobRunner extends EventEmitter {
             record.lyricsSource = existingCompleted.lyricsSource;
             record.fileSizeBytes = existingCompleted.fileSizeBytes;
             record.fileExists = true;
-            await this.addOrUpdateDownload(record);
+            await this.addOrUpdateDownload(record).catch(() => {});
             continue;
           }
         }
 
-        await this.addOrUpdateDownload(record);
+        activeItemIds.add(url);
+        if (override?.id) activeItemIds.add(override.id);
+        await this.addOrUpdateDownload(record).catch(() => {});
 
         try {
           this.emitEvent(jobId, {
@@ -463,6 +511,8 @@ class YoutubeJobRunner extends EventEmitter {
               percentage: Math.round((completed / total) * 100),
               message: `Đang tải (${i + 1}/${total}): ${override?.cleanTitle || url}`,
             },
+            completedItemIds: Array.from(completedItemIds),
+            activeItemIds: Array.from(activeItemIds),
           });
 
           // Tải bài hát bằng YoutubeService
@@ -492,6 +542,8 @@ class YoutubeJobRunner extends EventEmitter {
                   percentage: overallPct,
                   message: `${stage} (${i + 1}/${total})`,
                 },
+                completedItemIds: Array.from(completedItemIds),
+                activeItemIds: Array.from(activeItemIds),
               });
             },
           });
@@ -517,36 +569,49 @@ class YoutubeJobRunner extends EventEmitter {
           record.loudnessLufs = res.loudnessLufs;
           record.replayGain = res.replayGain;
 
-          await this.addOrUpdateDownload(record);
           completed++;
+          completedItemIds.add(url);
+          if (override?.id) completedItemIds.add(override.id);
+          activeItemIds.delete(url);
+          if (override?.id) activeItemIds.delete(override.id);
+
+          await this.addOrUpdateDownload(record).catch(() => {});
         } catch (err: unknown) {
           failed++;
+          activeItemIds.delete(url);
+          if (override?.id) activeItemIds.delete(override.id);
           record.status = 'failed';
           record.errorMessage = err instanceof Error ? err.message : String(err);
-          await this.addOrUpdateDownload(record);
+          await this.addOrUpdateDownload(record).catch(() => {});
         }
       }
     });
 
-    await Promise.all(workers);
+    try {
+      await Promise.all(workers);
+    } catch (err) {
+      console.warn('[YoutubeJobRunner] Lỗi trong luồng workers:', err);
+    } finally {
+      const isStopped = activeJob?.stopRequested;
+      const finalStatus: JobStatus = isStopped ? 'stopped' : failed === total ? 'failed' : 'completed';
 
-    const isStopped = activeJob?.stopRequested;
-    const finalStatus: JobStatus = isStopped ? 'stopped' : failed === total ? 'failed' : 'completed';
+      this.emitEvent(jobId, {
+        jobId,
+        status: finalStatus,
+        progress: {
+          current: completed + failed,
+          total,
+          percentage: 100,
+          message: isStopped
+            ? 'Tiến trình đã dừng lại'
+            : `Hoàn tất tải ${completed}/${total} bài hát${failed > 0 ? ` (${failed} bài lỗi)` : ''}`,
+        },
+        completedItemIds: Array.from(completedItemIds),
+        activeItemIds: [],
+      });
 
-    this.emitEvent(jobId, {
-      jobId,
-      status: finalStatus,
-      progress: {
-        current: completed + failed,
-        total,
-        percentage: 100,
-        message: isStopped
-          ? 'Tiến trình đã dừng lại'
-          : `Hoàn tất tải ${completed}/${total} bài hát${failed > 0 ? ` (${failed} bài lỗi)` : ''}`,
-      },
-    });
-
-    this.activeJobs.delete(jobId);
+      this.activeJobs.delete(jobId);
+    }
   }
 
   // 5. Lyrics & File Actions
