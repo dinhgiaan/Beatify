@@ -4,7 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import { spawn, execFileSync, exec } from 'child_process';
-import { YoutubeService } from './youtubeService';
+import { YoutubeService, type YoutubePreviewEntry } from './youtubeService';
 import { LyricsService } from './lyricsService';
 import { loadConfig, loadLocalConfig } from '../config';
 import { findAudioFiles, scanAudioFile, calculateTrackId } from './scanner';
@@ -181,75 +181,105 @@ class YoutubeJobRunner extends EventEmitter {
       if (d.sourceUrl) existingMap.set(d.sourceUrl, d);
     }
 
+    const entriesToProcess: YoutubePreviewEntry[] = [];
+
     for (const url of urls) {
-      if (allItems.length >= maxItems) break;
+      if (entriesToProcess.length >= maxItems) break;
       const res = await YoutubeService.previewUrl(url, maxItems);
       if (res.isPlaylist) {
         isPlaylist = true;
         playlistTitle = res.playlistTitle;
       }
       for (const entry of res.entries) {
-        if (allItems.length >= maxItems) break;
-        // Tự động tìm kiếm lời đồng bộ: Chỉ tìm trước cho bài đơn hoặc 5 bài đầu tiên của playlist để tốc độ phản hồi nhanh tức thì (dưới 2s)
-        let lyricsSource: 'lrclib-synced' | 'lrclib-plain' | 'yt-subs' | 'none' = 'none';
-        let foundLyricsText = '';
+        if (entriesToProcess.length >= maxItems) break;
+        entriesToProcess.push(entry);
+      }
+    }
 
-        if (!isPlaylist || allItems.length < 5) {
+    // Tra cứu lời đồng bộ từ LRCLIB song song cho TOÀN BỘ bài hát (batch 10 bài/lần)
+    // Đối với bài đơn (single): có thử thêm YouTube CC nếu LRCLIB chưa có.
+    // Đối với playlist lớn: ưu tiên LRCLIB HTTP tốc độ cao (~100ms) để phản hồi tức thì cho cả 250+ bài.
+    const lyricsResults = new Map<string, { source: 'lrclib-synced' | 'lrclib-plain' | 'yt-subs' | 'none'; text: string }>();
+    const chunkSize = 10;
+    for (let i = 0; i < entriesToProcess.length; i += chunkSize) {
+      const chunk = entriesToProcess.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(async (entry) => {
+          let source: 'lrclib-synced' | 'lrclib-plain' | 'yt-subs' | 'none' = 'none';
+          let text = '';
           try {
-            const lrc = await LyricsService.fetchLyrics(
+            // Thử 1: Title + Artist
+            let lrc = await LyricsService.fetchLyrics(
               entry.cleaned.title,
               entry.cleaned.artist,
               entry.duration
             );
-            if (lrc?.syncedLyrics) {
-              lyricsSource = 'lrclib-synced';
-              foundLyricsText = lrc.syncedLyrics;
-            } else if (lrc?.plainLyrics) {
-              lyricsSource = 'lrclib-plain';
-              foundLyricsText = lrc.plainLyrics;
+
+            // Thử 2: Đảo ngược Artist + Title nếu chưa ra
+            if ((!lrc || lrc.source === 'none') && entry.cleaned.artist && entry.cleaned.title) {
+              const flipped = await LyricsService.fetchLyrics(
+                entry.cleaned.artist,
+                entry.cleaned.title,
+                entry.duration
+              );
+              if (flipped && flipped.source !== 'none') {
+                lrc = flipped;
+              }
             }
 
-            // Nếu LRCLIB không có lời đồng bộ, kiểm tra phụ đề CC chính thức của video YouTube
-            if (lyricsSource !== 'lrclib-synced') {
+            if (lrc?.syncedLyrics) {
+              source = 'lrclib-synced';
+              text = lrc.syncedLyrics;
+            } else if (lrc?.plainLyrics) {
+              source = 'lrclib-plain';
+              text = lrc.plainLyrics;
+            }
+
+            // Với bài đơn hoặc danh sách ngắn (dưới 5 bài), thử thêm phụ đề YouTube CC
+            if (source !== 'lrclib-synced' && entriesToProcess.length <= 5) {
               const ytSub = await LyricsService.extractYouTubeSubtitles(entry.url);
               if (ytSub?.syncedLyrics) {
-                lyricsSource = 'yt-subs';
-                foundLyricsText = ytSub.syncedLyrics;
-              } else if (!foundLyricsText && ytSub?.plainLyrics) {
-                lyricsSource = 'yt-subs';
-                foundLyricsText = ytSub.plainLyrics;
+                source = 'yt-subs';
+                text = ytSub.syncedLyrics;
+              } else if (!text && ytSub?.plainLyrics) {
+                source = 'yt-subs';
+                text = ytSub.plainLyrics;
               }
             }
           } catch {
-            // Bỏ qua lỗi tìm lời khi xem trước
+            // Bỏ qua lỗi tra cứu lời
           }
-        }
+          lyricsResults.set(entry.id, { source, text });
+        })
+      );
+    }
 
-        const matched = existingMap.get(entry.id) || existingMap.get(entry.url);
-        const isAlreadyDownloaded = Boolean(matched);
-        const fileMissing = matched ? (matched.fileExists === false) : false;
+    for (const entry of entriesToProcess) {
+      const matched = existingMap.get(entry.id) || existingMap.get(entry.url);
+      const isAlreadyDownloaded = Boolean(matched);
+      const fileMissing = matched ? (matched.fileExists === false) : false;
+      const lrcInfo = lyricsResults.get(entry.id);
 
-        allItems.push({
-          id: entry.id,
-          url: entry.url,
-          rawTitle: entry.originalTitle,
-          cleanTitle: entry.cleaned.title,
-          artist: entry.cleaned.artist,
-          album: entry.cleaned.album || 'Singles',
-          year: entry.year,
-          duration: entry.duration,
-          thumbnailUrl: entry.thumbnailUrl,
-          channelUrl: entry.channelUrl,
-          metadataConfidence: entry.cleaned.confidence,
-          metadataConfidenceReason: entry.cleaned.confidenceReason,
-          metadataSource: entry.cleaned.source,
-          isAlreadyDownloaded,
-          fileMissing,
-          lyricsSource,
-          customLyrics: foundLyricsText || undefined,
-          hasCover: Boolean(entry.thumbnailUrl),
-        });
-      }
+      allItems.push({
+        id: entry.id,
+        url: entry.url,
+        rawTitle: entry.originalTitle,
+        cleanTitle: entry.cleaned.title,
+        artist: entry.cleaned.artist,
+        album: entry.cleaned.album || 'Singles',
+        year: entry.year,
+        duration: entry.duration,
+        thumbnailUrl: entry.thumbnailUrl,
+        channelUrl: entry.channelUrl,
+        metadataConfidence: entry.cleaned.confidence,
+        metadataConfidenceReason: entry.cleaned.confidenceReason,
+        metadataSource: entry.cleaned.source,
+        isAlreadyDownloaded,
+        fileMissing,
+        lyricsSource: lrcInfo?.source || 'none',
+        customLyrics: lrcInfo?.text || undefined,
+        hasCover: Boolean(entry.thumbnailUrl),
+      });
     }
 
     return {
