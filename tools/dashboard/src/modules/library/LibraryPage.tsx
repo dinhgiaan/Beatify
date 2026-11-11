@@ -34,6 +34,7 @@ import { Dialog } from '../../ui/organisms/Dialog';
 import { ConfirmDialog } from '../../ui/molecules/ConfirmDialog';
 import { requestApi } from '../../core/api-client';
 import { ArtistHoverCard } from '../artists/components/ArtistHoverCard';
+import { normalizeText } from '@music-app/shared';
 import type { PlayingTrack } from '../../app/Layout';
 
 interface TrackItem {
@@ -53,7 +54,14 @@ interface TrackItem {
 }
 
 type SortField = 'default' | 'title' | 'artist' | 'album' | 'duration';
-export type QuickFilter = 'all' | 'missing_lyrics' | 'missing_cover' | 'missing_any' | 'unsynced' | 'missing_file';
+export type QuickFilter =
+  | 'all'
+  | 'synced'
+  | 'unsynced'
+  | 'missing_lyrics'
+  | 'missing_cover'
+  | 'missing_any'
+  | 'missing_file';
 
 export const LibraryPage: React.FC<{
   onPlayTrack?: (track: PlayingTrack, newQueue?: PlayingTrack[]) => void;
@@ -64,7 +72,6 @@ export const LibraryPage: React.FC<{
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
-  const [syncFilter, setSyncFilter] = useState<'all' | 'unsynced' | 'synced'>('all');
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortField>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -76,7 +83,7 @@ export const LibraryPage: React.FC<{
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, quickFilter, syncFilter, formatFilter]);
+  }, [searchTerm, quickFilter, formatFilter]);
 
   // Selection state for batch operations
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
@@ -255,44 +262,45 @@ export const LibraryPage: React.FC<{
   // Lọc và sắp xếp bài hát
   const filteredTracks = useMemo(() => {
     let list = tracks.filter((t) => {
-      // 1. Lọc theo Smart Filter
+      // 1. Lọc theo Quick Filter
+      if (quickFilter === 'synced' && !t.isSynced) return false;
+      if (quickFilter === 'unsynced' && t.isSynced) return false;
       if (quickFilter === 'missing_lyrics' && t.hasLyrics) return false;
       if (quickFilter === 'missing_cover' && t.hasCover) return false;
       if (quickFilter === 'missing_any' && t.hasLyrics && t.hasCover) return false;
-      if (quickFilter === 'unsynced' && t.isSynced) return false;
       if (quickFilter === 'missing_file' && t.fileExists !== false) return false;
 
-      // 2. Lọc theo Sync filter cũ (nếu có bấm)
-      if (syncFilter === 'unsynced' && t.isSynced) return false;
-      if (syncFilter === 'synced' && !t.isSynced) return false;
-
-      // 3. Lọc theo Format
+      // 2. Lọc theo Format
       const fmt = getTrackFormat(t);
       if (formatFilter !== 'all' && fmt !== formatFilter) return false;
 
-      // 4. Tìm kiếm từ khóa
-      if (!searchTerm) return true;
-      const s = searchTerm.toLowerCase();
-      return (
-        t.title.toLowerCase().includes(s) ||
-        t.artist.toLowerCase().includes(s) ||
-        t.album.toLowerCase().includes(s)
-      );
+      // 3. Tìm kiếm từ khóa (bỏ dấu tiếng Việt, không phân biệt hoa thường)
+      if (searchTerm.trim()) {
+        const query = normalizeText(searchTerm);
+        const matchTitle = normalizeText(t.title || '').includes(query);
+        const matchArtist = normalizeText(t.artist || '').includes(query);
+        const matchAlbum = normalizeText(t.album || '').includes(query);
+        if (!matchTitle && !matchArtist && !matchAlbum) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     if (sortBy !== 'default') {
       list = [...list].sort((a, b) => {
         let cmp = 0;
-        if (sortBy === 'title') cmp = a.title.localeCompare(b.title);
-        else if (sortBy === 'artist') cmp = a.artist.localeCompare(b.artist);
-        else if (sortBy === 'album') cmp = a.album.localeCompare(b.album);
+        if (sortBy === 'title') cmp = (a.title || '').localeCompare(b.title || '');
+        else if (sortBy === 'artist') cmp = (a.artist || '').localeCompare(b.artist || '');
+        else if (sortBy === 'album') cmp = (a.album || '').localeCompare(b.album || '');
         else if (sortBy === 'duration') cmp = (a.duration || 0) - (b.duration || 0);
         return sortOrder === 'asc' ? cmp : -cmp;
       });
     }
 
     return list;
-  }, [tracks, searchTerm, syncFilter, formatFilter, sortBy, sortOrder]);
+  }, [tracks, searchTerm, quickFilter, formatFilter, sortBy, sortOrder]);
 
   // Phân trang danh sách bài hát
   const totalPages = Math.ceil(filteredTracks.length / pageSize) || 1;
@@ -441,7 +449,15 @@ export const LibraryPage: React.FC<{
 
       {/* 4 Thẻ KPI thống kê thư viện nhanh (Hero Metrics) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl border border-white/[0.08] bg-[var(--bg-surface)] shadow-xs relative overflow-hidden group">
+        <div
+          onClick={() => setQuickFilter('all')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${
+            quickFilter === 'all'
+              ? 'border-[#1DB954]/40 bg-[#1DB954]/10 shadow-[0_0_20px_rgba(29,185,84,0.12)] ring-1 ring-[#1DB954]/30'
+              : 'border-white/[0.08] bg-[var(--bg-surface)] hover:border-[#1DB954]/30'
+          }`}
+          title="Bấm để hiển thị toàn bộ bài hát"
+        >
           <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <Music size={44} className="text-[#1DB954]" />
           </div>
@@ -458,12 +474,13 @@ export const LibraryPage: React.FC<{
         </div>
 
         <div
-          onClick={() => setSyncFilter(syncFilter === 'synced' ? 'all' : 'synced')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${syncFilter === 'synced'
-              ? 'border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+          onClick={() => setQuickFilter(quickFilter === 'synced' ? 'all' : 'synced')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${
+            quickFilter === 'synced'
+              ? 'border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.12)] ring-1 ring-emerald-500/30'
               : 'border-white/[0.08] bg-[var(--bg-surface)] hover:border-emerald-500/30'
-            }`}
-          title="Bấm để lọc bài đã upload lên R2"
+          }`}
+          title="Bấm để lọc bài đã upload lên R2 (bấm lại để bỏ chọn)"
         >
           <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <Cloud size={44} className="text-emerald-400" />
@@ -483,12 +500,13 @@ export const LibraryPage: React.FC<{
         </div>
 
         <div
-          onClick={() => setSyncFilter(syncFilter === 'unsynced' ? 'all' : 'unsynced')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${syncFilter === 'unsynced'
-              ? 'border-amber-500/40 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.12)]'
+          onClick={() => setQuickFilter(quickFilter === 'unsynced' ? 'all' : 'unsynced')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs relative overflow-hidden group ${
+            quickFilter === 'unsynced'
+              ? 'border-amber-500/40 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.12)] ring-1 ring-amber-500/30'
               : 'border-white/[0.08] bg-[var(--bg-surface)] hover:border-amber-500/30'
-            }`}
-          title="Bấm để lọc bài chưa upload lên R2"
+          }`}
+          title="Bấm để lọc bài chưa upload lên R2 (bấm lại để bỏ chọn)"
         >
           <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <CloudOff size={44} className="text-amber-400" />
@@ -620,7 +638,35 @@ export const LibraryPage: React.FC<{
 
           <button
             type="button"
-            onClick={() => setQuickFilter('missing_lyrics')}
+            onClick={() => setQuickFilter(quickFilter === 'synced' ? 'all' : 'synced')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'synced'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-emerald-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <Cloud size={12} className="text-emerald-400" />
+            <span>Đã upload R2</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({syncedCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter(quickFilter === 'unsynced' ? 'all' : 'unsynced')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              quickFilter === 'unsynced'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/35 shadow-xs'
+                : 'text-zinc-400 hover:text-amber-400 bg-black/20 hover:bg-black/30'
+            }`}
+          >
+            <CloudOff size={12} className="text-amber-400" />
+            <span>Chưa upload R2</span>
+            <span className="text-[10.5px] opacity-75 font-mono">({unsyncedCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter(quickFilter === 'missing_lyrics' ? 'all' : 'missing_lyrics')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               quickFilter === 'missing_lyrics'
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/35 shadow-xs'
@@ -634,7 +680,7 @@ export const LibraryPage: React.FC<{
 
           <button
             type="button"
-            onClick={() => setQuickFilter('missing_cover')}
+            onClick={() => setQuickFilter(quickFilter === 'missing_cover' ? 'all' : 'missing_cover')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               quickFilter === 'missing_cover'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/35 shadow-xs'
@@ -648,7 +694,7 @@ export const LibraryPage: React.FC<{
 
           <button
             type="button"
-            onClick={() => setQuickFilter('missing_any')}
+            onClick={() => setQuickFilter(quickFilter === 'missing_any' ? 'all' : 'missing_any')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               quickFilter === 'missing_any'
                 ? 'bg-orange-500/20 text-orange-300 border border-orange-500/35 shadow-xs'
@@ -660,24 +706,10 @@ export const LibraryPage: React.FC<{
             <span className="text-[10.5px] opacity-75 font-mono">({missingAnyCount})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setQuickFilter('unsynced')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-              quickFilter === 'unsynced'
-                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/35 shadow-xs'
-                : 'text-zinc-400 hover:text-sky-400 bg-black/20 hover:bg-black/30'
-            }`}
-          >
-            <CloudOff size={12} className="text-sky-400" />
-            <span>Chưa upload R2</span>
-            <span className="text-[10.5px] opacity-75 font-mono">({unsyncedCount})</span>
-          </button>
-
           {missingFilesCount > 0 && (
             <button
               type="button"
-              onClick={() => setQuickFilter('missing_file')}
+              onClick={() => setQuickFilter(quickFilter === 'missing_file' ? 'all' : 'missing_file')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 quickFilter === 'missing_file'
                   ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50 shadow-xs'
@@ -691,7 +723,7 @@ export const LibraryPage: React.FC<{
         </div>
 
         {/* Thanh kết quả tìm kiếm / bộ lọc đang kích hoạt */}
-        {(searchTerm || quickFilter !== 'all' || syncFilter !== 'all' || formatFilter !== 'all') && (
+        {(searchTerm || quickFilter !== 'all' || formatFilter !== 'all') && (
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
             <span className="text-[var(--text-secondary)]">
               Tìm thấy <strong className="text-[var(--text-primary)] font-bold">{filteredTracks.length}</strong> bài hát phù hợp
@@ -701,7 +733,6 @@ export const LibraryPage: React.FC<{
               onClick={() => {
                 setSearchTerm('');
                 setQuickFilter('all');
-                setSyncFilter('all');
                 setFormatFilter('all');
               }}
               className="text-[#1DB954] hover:underline font-medium cursor-pointer"
