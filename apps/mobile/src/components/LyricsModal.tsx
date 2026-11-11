@@ -288,7 +288,8 @@ export function LyricsModal({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.plainLyricsBadge}>
-              <Text style={styles.plainLyricsBadgeText}>Lời bài hát (văn bản thường)</Text>
+              <View style={styles.plainLyricsBadgeDot} />
+              <Text style={styles.plainLyricsBadgeText}>Lyric không đồng bộ timeline</Text>
             </View>
             <Text style={styles.plainLyricsText}>{rawLyrics}</Text>
             <View style={{ height: 120 }} />
@@ -444,19 +445,29 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
   plainLyricsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 5,
     borderRadius: radius.pill,
     marginBottom: spacing.lg,
   },
+  plainLyricsBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#f59e0b',
+    marginRight: 6,
+  },
   plainLyricsBadgeText: {
-    color: colors.primary,
+    color: '#fbbf24',
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.semibold,
+    letterSpacing: 0.2,
   },
   plainLyricsContent: {
     paddingHorizontal: spacing.xxl,

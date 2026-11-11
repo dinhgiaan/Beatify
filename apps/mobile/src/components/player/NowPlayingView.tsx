@@ -34,6 +34,7 @@ import {
   RepeatOneIcon,
   HeartIcon,
   LyricsIcon,
+  CloseIcon,
   QueueIcon,
   ChevronDownIcon,
   DiscIcon,
@@ -101,6 +102,100 @@ export function NowPlayingView() {
   const [customMinutesInput, setCustomMinutesInput] = useState('');
   const [loopModalVisible, setLoopModalVisible] = useState(false);
   const [customLoopInput, setCustomLoopInput] = useState('');
+
+  // Trạng thái kiểm tra và thông báo khi bài hát không có lời
+  const [lyricsContent, setLyricsContent] = useState<string | null | undefined>(undefined);
+  const [noLyricsToastVisible, setNoLyricsToastVisible] = useState(false);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastFadeAnim = useRef(new Animated.Value(0)).current;
+  const toastTranslateAnim = useRef(new Animated.Value(8)).current;
+
+  // Tự động kiểm tra lời bài hát cho bài hiện tại (cả offline và online)
+  useEffect(() => {
+    let active = true;
+    if (!currentTrack) {
+      setLyricsContent(null);
+      return;
+    }
+
+    // 1. Kiểm tra offline trước (nhanh 1ms)
+    getOfflineLyrics(currentTrack.id)
+      .then((offLrc) => {
+        if (!active) return;
+        if (offLrc && offLrc.trim().length > 0) {
+          setLyricsContent(offLrc);
+          return;
+        }
+
+        // 2. Kiểm tra từ Cloudflare R2 qua Worker
+        fetchLyrics(currentTrack.id)
+          .then((remoteLrc) => {
+            if (!active) return;
+            setLyricsContent(remoteLrc && remoteLrc.trim().length > 0 ? remoteLrc : null);
+          })
+          .catch(() => {
+            if (!active) return;
+            setLyricsContent(null);
+          });
+      })
+      .catch(() => {
+        if (!active) return;
+        setLyricsContent(null);
+      });
+
+    return () => {
+      active = false;
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+    };
+  }, [currentTrack?.id, getOfflineLyrics, fetchLyrics]);
+
+  const hasLyrics = Boolean(
+    (lyricsContent && lyricsContent.trim().length > 0) ||
+    Boolean(currentTrack?.lyrics?.file)
+  );
+
+  const hideNoLyricsDialog = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    Animated.parallel([
+      Animated.timing(toastFadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
+      Animated.timing(toastTranslateAnim, { toValue: 8, duration: 160, useNativeDriver: true }),
+    ]).start(() => {
+      setNoLyricsToastVisible(false);
+    });
+  };
+
+  const showNoLyricsDialog = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setNoLyricsToastVisible(true);
+    toastFadeAnim.setValue(0);
+    toastTranslateAnim.setValue(8);
+    Animated.parallel([
+      Animated.timing(toastFadeAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(toastTranslateAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start();
+
+    // Tự động biến mất sau đúng 2 giây
+    toastTimeoutRef.current = setTimeout(() => {
+      hideNoLyricsDialog();
+    }, 2000);
+  };
+
+  const handleLyricsPress = () => {
+    if (!currentTrack) return;
+    if (!hasLyrics) {
+      showNoLyricsDialog();
+      return;
+    }
+    setLyricsModalVisible(true);
+  };
 
   // 1. Animation "Thở" cho ảnh bìa (Artwork Breath Scale) chuẩn Apple Music
   const artworkScale = useRef(new Animated.Value(playerState.isPlaying ? 1.0 : 0.88)).current;
@@ -524,17 +619,27 @@ export function NowPlayingView() {
         <View style={styles.bottomButtonsRow}>
           {/* Nút 1: Lời bài hát */}
           <TouchableOpacity
-            style={[styles.bottomButton, lyricsModalVisible && styles.bottomButtonActive]}
+            style={[
+              styles.bottomButton,
+              lyricsModalVisible && styles.bottomButtonActive,
+              !hasLyrics && styles.bottomButtonDisabled,
+            ]}
             disabled={!currentTrack}
-            onPress={() => setLyricsModalVisible(true)}
+            onPress={handleLyricsPress}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel="Mở lời bài hát"
+            accessibilityLabel={hasLyrics ? 'Mở lời bài hát' : 'Bài hát chưa có lời (Bấm để xem thông báo)'}
           >
             <LyricsIcon
               size={20}
-              color={lyricsModalVisible ? colors.primary : currentTrack ? colors.textPrimary : colors.textTertiary}
+              color={
+                lyricsModalVisible
+                  ? colors.primary
+                  : hasLyrics
+                    ? colors.textPrimary
+                    : colors.textTertiary
+              }
             />
           </TouchableOpacity>
 
@@ -632,7 +737,12 @@ export function NowPlayingView() {
         visible={editModalVisible}
         track={currentTrack}
         onClose={() => setEditModalVisible(false)}
-        onSave={saveTrack}
+        onSave={async (id, updates) => {
+          await saveTrack(id, updates);
+          if (updates.lyrics !== undefined) {
+            setLyricsContent(updates.lyrics.trim().length > 0 ? updates.lyrics : null);
+          }
+        }}
         onFetchLyrics={handleFetchLyrics}
       />
 
@@ -840,6 +950,37 @@ export function NowPlayingView() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Dialog nhẹ khi bài hát không có lời - Tự biến mất sau 2s hoặc tự bấm nút tắt */}
+      {noLyricsToastVisible && (
+        <Animated.View
+          style={[
+            styles.noLyricsToast,
+            {
+              bottom: insets.bottom + 85,
+              opacity: toastFadeAnim,
+              transform: [{ translateY: toastTranslateAnim }],
+            },
+          ]}
+        >
+          <View style={styles.noLyricsToastContent}>
+            <View style={styles.noLyricsIconWrap}>
+              <LyricsIcon size={14} color={colors.textSecondary} />
+            </View>
+            <Text style={styles.noLyricsToastText}>Bài hát này chưa có lời</Text>
+          </View>
+          <TouchableOpacity
+            onPress={hideNoLyricsDialog}
+            style={styles.noLyricsCloseBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Đóng thông báo"
+          >
+            <CloseIcon size={12} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View >
   );
 }
@@ -1149,6 +1290,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  bottomButtonDisabled: {
+    opacity: 0.35,
+  },
   bottomButtonText: {
     display: 'none',
   },
@@ -1308,5 +1452,53 @@ const styles = StyleSheet.create({
   loopOptionActiveText: {
     color: colors.primary,
     fontWeight: fontWeights.bold,
+  },
+  noLyricsToast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(26, 29, 36, 0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 8,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+    borderRadius: radius.pill,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 9999,
+    maxWidth: '85%',
+  },
+  noLyricsToastContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+  },
+  noLyricsIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noLyricsToastText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.medium,
+    marginRight: spacing.md,
+  },
+  noLyricsCloseBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
