@@ -103,7 +103,7 @@ Cách dùng:
     console.log(`✅ Đã tải xong ảnh bìa.`);
 
     // 3. Upload library.json cuối cùng
-    console.log(`📋 Đang tải library.json lên R2...`);
+    console.log(`📋 Đang kiểm tra đối chiếu và tải library.json lên R2...`);
     await uploader.uploadLibrary(library);
 
     // Đồng bộ trạng thái đã upload sang lịch sử tải YouTube Music

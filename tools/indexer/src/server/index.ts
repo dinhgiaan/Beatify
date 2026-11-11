@@ -1334,12 +1334,21 @@ app.post('/local-api/sync', async (c) => {
 
     currentSyncProgress = {
       active: true,
-      step: 'Đang cập nhật chỉ mục library.json lên R2...',
+      step: 'Đang kiểm tra đối chiếu tệp thực tế và cập nhật library.json lên R2...',
       current: totalSteps,
       total: totalSteps,
       percent: 95,
       error: null,
     };
+
+    // Reconciliation Guard: Đảm bảo library.tracks CHỈ chứa các bài thực sự có file âm thanh trên R2
+    const validTracks = library.tracks.filter((t) => existingR2Keys.has(t.file));
+    if (validTracks.length !== library.tracks.length) {
+      console.warn(`[Sync Guard] Đã loại bỏ ${library.tracks.length - validTracks.length} bài hát không tồn tại file trên R2 khỏi library.json`);
+      library.tracks = validTracks;
+      const validAlbumIds = new Set(validTracks.map((t) => t.albumId).filter(Boolean));
+      library.albums = library.albums.filter((a) => validAlbumIds.has(a.id));
+    }
 
     await uploader.uploadLibrary(library);
 
