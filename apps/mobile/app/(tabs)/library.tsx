@@ -575,369 +575,369 @@ export default function LibraryScreen() {
         </View>
       </View>
 
-        {/* Nội dung danh sách theo phân đoạn đã chọn (chuyển cảnh fade mượt mà) */ }
-        < Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
-      {activeSegment === 'songs' ? (
-        <FlatList
-          key="flatlist-songs"
-          data={tracks}
-          keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
-          renderItem={renderTrackItem}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: contentPaddingBottom },
-          ]}
-          ListHeaderComponent={
-            recentTracks.length > 0 ? (
-              <View style={styles.recentSection}>
-                <View style={styles.recentHeaderRow}>
-                  <Text style={styles.recentSectionTitle}>VỪA NGHE GẦN ĐÂY</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Vibration.vibrate(10);
-                      setSelectedCollection({
-                        visible: true,
-                        title: 'Nghe gần đây',
-                        subtitle: `${recentTracks.length} bài hát`,
-                        tracks: recentTracks,
-                        type: 'recently_played',
-                      });
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={styles.recentSeeAllText}>
-                      Xem tất cả ({recentTracks.length})
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <FlatList
-                  data={recentTracks}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item) => `recent-${item.id}`}
-                  contentContainerStyle={styles.recentHorizontalList}
-                  renderItem={({ item }) => (
+      {/* Nội dung danh sách theo phân đoạn đã chọn (chuyển cảnh fade mượt mà) */}
+      < Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
+        {activeSegment === 'songs' ? (
+          <FlatList
+            key="flatlist-songs"
+            data={tracks}
+            keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
+            renderItem={renderTrackItem}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
+            ListHeaderComponent={
+              recentTracks.length > 0 ? (
+                <View style={styles.recentSection}>
+                  <View style={styles.recentHeaderRow}>
+                    <Text style={styles.recentSectionTitle}>VỪA NGHE GẦN ĐÂY</Text>
                     <TouchableOpacity
-                      style={styles.recentCard}
                       onPress={() => {
                         Vibration.vibrate(10);
-                        const idx = recentTracks.findIndex((t) => t.id === item.id);
-                        playQueue(recentTracks, idx >= 0 ? idx : 0);
+                        setSelectedCollection({
+                          visible: true,
+                          title: 'Nghe gần đây',
+                          subtitle: `${recentTracks.length} bài hát`,
+                          tracks: recentTracks,
+                          type: 'recently_played',
+                        });
                       }}
-                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <View style={styles.recentCoverBox}>
-                        {item.cover ? (
-                          <Image
-                            source={{ uri: item.cover }}
-                            style={styles.recentCoverImage}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <DiscIcon size={32} color={colors.borderLight} />
-                        )}
-                      </View>
-                      <Text style={styles.recentTrackTitle} numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.recentTrackArtist} numberOfLines={1}>
-                        {item.artist || 'Chưa rõ nghệ sĩ'}
+                      <Text style={styles.recentSeeAllText}>
+                        Xem tất cả ({recentTracks.length})
                       </Text>
                     </TouchableOpacity>
-                  )}
-                />
-                <Text style={[styles.recentSectionTitle, { marginTop: spacing.md }]}>
-                  TẤT CẢ BÀI HÁT ({tracks.length})
-                </Text>
-              </View>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isSyncing}
-              onRefresh={syncLibrary}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
-              <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
-              <Text style={styles.emptySubText}>
-                Kéo xuống để đồng bộ bài hát từ Cloudflare R2 hoặc dùng Web Dashboard để nhập nhạc.
-              </Text>
-            </View>
-          }
-        />
-      ) : activeSegment === 'albums' ? (
-        <FlatList
-          key="flatlist-albums"
-          data={realAlbums}
-          keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
-          renderItem={renderAlbumItem}
-          numColumns={2}
-          columnWrapperStyle={styles.albumColumnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: contentPaddingBottom },
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
-              <Text style={styles.emptyText}>Chưa có Album nào</Text>
-            </View>
-          }
-        />
-      ) : (
-        <FlatList
-          key="flatlist-artists"
-          data={artistGroups}
-          keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
-          renderItem={renderArtistItem}
-          numColumns={2}
-          columnWrapperStyle={styles.artistColumnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: contentPaddingBottom },
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
-              <Text style={styles.emptyText}>Chưa có Nghệ sĩ nào</Text>
-            </View>
-          }
-        />
-      )}
-    </Animated.View>
+                  </View>
 
-      {/* Action Sheet Menu '...' cho bài hát */ }
-  <Modal
-    visible={actionSheetVisible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={() => setActionSheetVisible(false)}
-  >
-    <TouchableOpacity
-      style={styles.modalBackdrop}
-      activeOpacity={1}
-      onPress={() => setActionSheetVisible(false)}
-    >
-      <View style={styles.sheetContainer}>
-        {selectedTrackForMenu && (
-          <>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle} numberOfLines={1}>
-                {selectedTrackForMenu.title}
-              </Text>
-              <Text style={styles.sheetSubtitle} numberOfLines={1}>
-                {selectedTrackForMenu.artist}
-              </Text>
-            </View>
-
-            {/* Nút Thả tim */}
-            <TouchableOpacity
-              style={styles.sheetActionBtn}
-              onPress={handleMenuFavorite}
-              activeOpacity={0.7}
-            >
-              <HeartIcon
-                size={20}
-                color={
-                  userState.favoriteIds.includes(selectedTrackForMenu.id)
-                    ? colors.primary
-                    : colors.textSecondary
-                }
-                fill={
-                  userState.favoriteIds.includes(selectedTrackForMenu.id)
-                    ? colors.primary
-                    : 'none'
-                }
-              />
-              <Text style={styles.sheetActionText}>
-                {userState.favoriteIds.includes(selectedTrackForMenu.id)
-                  ? 'Xóa khỏi danh sách yêu thích'
-                  : 'Thêm vào danh sách yêu thích'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Nút Thêm vào Playlist */}
-            <TouchableOpacity
-              style={styles.sheetActionBtn}
-              onPress={handleOpenAddToPlaylist}
-              activeOpacity={0.7}
-            >
-              <PlaylistIcon size={20} color={colors.textPrimary} />
-              <Text style={styles.sheetActionText}>Thêm vào danh sách phát...</Text>
-            </TouchableOpacity>
-
-            {/* Nút Tải bài hát về máy (Offline) */}
-            <TouchableOpacity
-              style={styles.sheetActionBtn}
-              onPress={async () => {
-                if (selectedTrackForMenu) {
-                  setActionSheetVisible(false);
-                  if (isTrackOffline(selectedTrackForMenu.id)) {
-                    Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
-                  } else {
-                    await downloadTrack(selectedTrackForMenu);
-                  }
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <DownloadIcon
-                size={20}
-                color={
-                  isTrackOffline(selectedTrackForMenu.id)
-                    ? colors.primary
-                    : colors.textPrimary
-                }
-              />
-              <Text
-                style={[
-                  styles.sheetActionText,
-                  isTrackOffline(selectedTrackForMenu.id) && { color: colors.primary },
-                ]}
-              >
-                {isDownloading[selectedTrackForMenu.id]
-                  ? 'Đang tải về máy...'
-                  : isTrackOffline(selectedTrackForMenu.id)
-                    ? 'Đã tải về máy (Offline)'
-                    : 'Tải bài hát về máy (Offline)'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Nút Chỉnh sửa */}
-            <TouchableOpacity
-              style={styles.sheetActionBtn}
-              onPress={handleMenuEdit}
-              activeOpacity={0.7}
-            >
-              <EditIcon size={20} color={colors.textPrimary} />
-              <Text style={styles.sheetActionText}>Chỉnh sửa thông tin bài hát</Text>
-            </TouchableOpacity>
-
-            {/* Nút Xóa bài */}
-            <TouchableOpacity
-              style={styles.sheetActionBtn}
-              onPress={handleMenuDelete}
-              activeOpacity={0.7}
-            >
-              <TrashIcon size={20} color={colors.dangerLight} />
-              <Text style={[styles.sheetActionText, styles.sheetActionDeleteText]}>
-                Xóa bài hát khỏi thư viện
-              </Text>
-            </TouchableOpacity>
-
-            {/* Nút Đóng */}
-            <TouchableOpacity
-              style={styles.sheetCancelBtn}
-              onPress={() => setActionSheetVisible(false)}
-              activeOpacity={0.8}
-            >
-              <CloseIcon size={18} color={colors.textSecondary} />
-              <Text style={styles.sheetCancelBtnText}>Đóng</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </TouchableOpacity>
-  </Modal>
-
-  {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */ }
-  <EditTrackModal
-    visible={editModalVisible}
-    track={editingTrack}
-    onClose={() => setEditModalVisible(false)}
-    onSave={handleSaveTrack}
-    onDelete={handleDeleteFromModal}
-    onFetchLyrics={fetchLyrics}
-  />
-
-  {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */ }
-  <HiddenSettingsModal
-    visible={hiddenSettingsVisible}
-    onProfileUpdated={(updated) => setUserProfile(updated)}
-    onClose={() => {
-      setHiddenSettingsVisible(false);
-      statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-    }}
-  />
-
-  {/* Modal Chi tiết Album / Nghệ sĩ */ }
-  <CollectionDetailModal
-    visible={selectedCollection.visible}
-    onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
-    title={selectedCollection.title}
-    subtitle={selectedCollection.subtitle}
-    coverUrl={selectedCollection.coverUrl}
-    tracks={selectedCollection.tracks}
-    type={selectedCollection.type}
-    onClearRecentTracks={clearRecentTracks}
-  />
-
-  {/* Modal Chọn danh sách phát để thêm bài */ }
-  <Modal
-    visible={addToPlaylistModalVisible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={() => setAddToPlaylistModalVisible(false)}
-  >
-    <TouchableOpacity
-      style={styles.modalBackdrop}
-      activeOpacity={1}
-      onPress={() => setAddToPlaylistModalVisible(false)}
-    >
-      <View style={styles.playlistPickerCard} onStartShouldSetResponder={() => true}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>Thêm vào playlist</Text>
-          <Text style={styles.sheetSubtitle}>
-            {selectedTrackForMenu ? selectedTrackForMenu.title : ''}
-          </Text>
-        </View>
-
-        {userState.playlists.length === 0 ? (
-          <View style={styles.emptyPlaylistPicker}>
-            <Text style={styles.emptyPlaylistText}>
-              Bạn chưa có danh sách phát nào. Hãy chuyển qua Tab Playlist để tạo mới.
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={userState.playlists}
-            keyExtractor={(item) => item.id}
-            style={styles.playlistPickerList}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.playlistPickerItem}
-                onPress={() => handleSelectPlaylistToAdd(item.id)}
-                activeOpacity={0.7}
-              >
-                <PlaylistIcon size={20} color={colors.primary} />
-                <View style={styles.playlistPickerInfo}>
-                  <Text style={styles.playlistPickerName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.playlistPickerCount}>
-                    {item.trackIds.length} bài hát
+                  <FlatList
+                    data={recentTracks}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item) => `recent-${item.id}`}
+                    contentContainerStyle={styles.recentHorizontalList}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.recentCard}
+                        onPress={() => {
+                          Vibration.vibrate(10);
+                          const idx = recentTracks.findIndex((t) => t.id === item.id);
+                          playQueue(recentTracks, idx >= 0 ? idx : 0);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.recentCoverBox}>
+                          {item.cover ? (
+                            <Image
+                              source={{ uri: item.cover }}
+                              style={styles.recentCoverImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <DiscIcon size={32} color={colors.borderLight} />
+                          )}
+                        </View>
+                        <Text style={styles.recentTrackTitle} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={styles.recentTrackArtist} numberOfLines={1}>
+                          {item.artist || 'Chưa rõ nghệ sĩ'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                  <Text style={[styles.recentSectionTitle, { marginTop: spacing.md }]}>
+                    TẤT CẢ BÀI HÁT ({tracks.length})
                   </Text>
                 </View>
-              </TouchableOpacity>
-            )}
+              ) : null
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={isSyncing}
+                onRefresh={syncLibrary}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <DiscIcon size={48} color={colors.borderLight} />
+                <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
+                <Text style={styles.emptySubText}>
+                  Kéo xuống để đồng bộ bài hát từ Cloudflare R2 hoặc dùng Web Dashboard để nhập nhạc.
+                </Text>
+              </View>
+            }
+          />
+        ) : activeSegment === 'albums' ? (
+          <FlatList
+            key="flatlist-albums"
+            data={realAlbums}
+            keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
+            renderItem={renderAlbumItem}
+            numColumns={2}
+            columnWrapperStyle={styles.albumColumnWrapper}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <DiscIcon size={48} color={colors.borderLight} />
+                <Text style={styles.emptyText}>Chưa có Album nào</Text>
+              </View>
+            }
+          />
+        ) : (
+          <FlatList
+            key="flatlist-artists"
+            data={artistGroups}
+            keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
+            renderItem={renderArtistItem}
+            numColumns={2}
+            columnWrapperStyle={styles.artistColumnWrapper}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <DiscIcon size={48} color={colors.borderLight} />
+                <Text style={styles.emptyText}>Chưa có Nghệ sĩ nào</Text>
+              </View>
+            }
           />
         )}
+      </Animated.View>
 
+      {/* Action Sheet Menu '...' cho bài hát */}
+      <Modal
+        visible={actionSheetVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setActionSheetVisible(false)}
+      >
         <TouchableOpacity
-          style={styles.sheetCancelBtn}
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setActionSheetVisible(false)}
+        >
+          <View style={styles.sheetContainer}>
+            {selectedTrackForMenu && (
+              <>
+                <View style={styles.sheetHeader}>
+                  <Text style={styles.sheetTitle} numberOfLines={1}>
+                    {selectedTrackForMenu.title}
+                  </Text>
+                  <Text style={styles.sheetSubtitle} numberOfLines={1}>
+                    {selectedTrackForMenu.artist}
+                  </Text>
+                </View>
+
+                {/* Nút Thả tim */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={handleMenuFavorite}
+                  activeOpacity={0.7}
+                >
+                  <HeartIcon
+                    size={20}
+                    color={
+                      userState.favoriteIds.includes(selectedTrackForMenu.id)
+                        ? colors.primary
+                        : colors.textSecondary
+                    }
+                    fill={
+                      userState.favoriteIds.includes(selectedTrackForMenu.id)
+                        ? colors.primary
+                        : 'none'
+                    }
+                  />
+                  <Text style={styles.sheetActionText}>
+                    {userState.favoriteIds.includes(selectedTrackForMenu.id)
+                      ? 'Xóa khỏi danh sách yêu thích'
+                      : 'Thêm vào danh sách yêu thích'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Nút Thêm vào Playlist */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={handleOpenAddToPlaylist}
+                  activeOpacity={0.7}
+                >
+                  <PlaylistIcon size={20} color={colors.textPrimary} />
+                  <Text style={styles.sheetActionText}>Thêm vào danh sách phát...</Text>
+                </TouchableOpacity>
+
+                {/* Nút Tải bài hát về máy (Offline) */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={async () => {
+                    if (selectedTrackForMenu) {
+                      setActionSheetVisible(false);
+                      if (isTrackOffline(selectedTrackForMenu.id)) {
+                        Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
+                      } else {
+                        await downloadTrack(selectedTrackForMenu);
+                      }
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <DownloadIcon
+                    size={20}
+                    color={
+                      isTrackOffline(selectedTrackForMenu.id)
+                        ? colors.primary
+                        : colors.textPrimary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.sheetActionText,
+                      isTrackOffline(selectedTrackForMenu.id) && { color: colors.primary },
+                    ]}
+                  >
+                    {isDownloading[selectedTrackForMenu.id]
+                      ? 'Đang tải về máy...'
+                      : isTrackOffline(selectedTrackForMenu.id)
+                        ? 'Đã tải về máy (Offline)'
+                        : 'Tải bài hát về máy (Offline)'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Nút Chỉnh sửa */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={handleMenuEdit}
+                  activeOpacity={0.7}
+                >
+                  <EditIcon size={20} color={colors.textPrimary} />
+                  <Text style={styles.sheetActionText}>Chỉnh sửa thông tin bài hát</Text>
+                </TouchableOpacity>
+
+                {/* Nút Xóa bài */}
+                <TouchableOpacity
+                  style={styles.sheetActionBtn}
+                  onPress={handleMenuDelete}
+                  activeOpacity={0.7}
+                >
+                  <TrashIcon size={20} color={colors.dangerLight} />
+                  <Text style={[styles.sheetActionText, styles.sheetActionDeleteText]}>
+                    Xóa bài hát khỏi thư viện
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Nút Đóng */}
+                <TouchableOpacity
+                  style={styles.sheetCancelBtn}
+                  onPress={() => setActionSheetVisible(false)}
+                  activeOpacity={0.8}
+                >
+                  <CloseIcon size={18} color={colors.textSecondary} />
+                  <Text style={styles.sheetCancelBtnText}>Đóng</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */}
+      <EditTrackModal
+        visible={editModalVisible}
+        track={editingTrack}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleSaveTrack}
+        onDelete={handleDeleteFromModal}
+        onFetchLyrics={fetchLyrics}
+      />
+
+      {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */}
+      <HiddenSettingsModal
+        visible={hiddenSettingsVisible}
+        onProfileUpdated={(updated) => setUserProfile(updated)}
+        onClose={() => {
+          setHiddenSettingsVisible(false);
+          statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+        }}
+      />
+
+      {/* Modal Chi tiết Album / Nghệ sĩ */}
+      <CollectionDetailModal
+        visible={selectedCollection.visible}
+        onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
+        title={selectedCollection.title}
+        subtitle={selectedCollection.subtitle}
+        coverUrl={selectedCollection.coverUrl}
+        tracks={selectedCollection.tracks}
+        type={selectedCollection.type}
+        onClearRecentTracks={clearRecentTracks}
+      />
+
+      {/* Modal Chọn danh sách phát để thêm bài */}
+      <Modal
+        visible={addToPlaylistModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAddToPlaylistModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
           onPress={() => setAddToPlaylistModalVisible(false)}
         >
-          <Text style={styles.sheetCancelBtnText}>Hủy</Text>
+          <View style={styles.playlistPickerCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Thêm vào playlist</Text>
+              <Text style={styles.sheetSubtitle}>
+                {selectedTrackForMenu ? selectedTrackForMenu.title : ''}
+              </Text>
+            </View>
+
+            {userState.playlists.length === 0 ? (
+              <View style={styles.emptyPlaylistPicker}>
+                <Text style={styles.emptyPlaylistText}>
+                  Bạn chưa có danh sách phát nào. Hãy chuyển qua Tab Playlist để tạo mới.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={userState.playlists}
+                keyExtractor={(item) => item.id}
+                style={styles.playlistPickerList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.playlistPickerItem}
+                    onPress={() => handleSelectPlaylistToAdd(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    <PlaylistIcon size={20} color={colors.primary} />
+                    <View style={styles.playlistPickerInfo}>
+                      <Text style={styles.playlistPickerName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.playlistPickerCount}>
+                        {item.trackIds.length} bài hát
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.sheetCancelBtn}
+              onPress={() => setAddToPlaylistModalVisible(false)}
+            >
+              <Text style={styles.sheetCancelBtnText}>Hủy</Text>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </Modal>
+      </Modal>
     </View >
   );
 }

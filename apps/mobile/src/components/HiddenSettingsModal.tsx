@@ -86,7 +86,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
 
   useEffect(() => {
     if (visible) {
-      statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
+      statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
     }
   }, [visible]);
 
