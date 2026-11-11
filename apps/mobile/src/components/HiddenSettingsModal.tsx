@@ -614,7 +614,10 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
           visible={profileModalVisible}
           onClose={() => setProfileModalVisible(false)}
           totalLibraryTracksCount={tracks.length}
-          onProfileUpdated={(updated) => setUserProfile(updated)}
+          onProfileUpdated={(updated) => {
+            setUserProfile(updated);
+            onProfileUpdated?.(updated);
+          }}
         />
 
         {/* Modal Quản lý nhạc đã tải về máy (OfflineDownloadsModal) */}

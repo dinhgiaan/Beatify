@@ -11,9 +11,7 @@ import {
 } from '../../src/components/icons/SvgIcons';
 import {
   colors,
-  fontSizes,
   fontWeights,
-  spacing,
   radius,
 } from '../../src/theme';
 

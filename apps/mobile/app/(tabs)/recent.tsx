@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -24,10 +24,7 @@ import {
 import {
   ClockRewindIcon,
   DiscIcon,
-  PlayIcon,
-  PauseIcon,
   HeartIcon,
-  MoreHorizontalIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
@@ -39,7 +36,6 @@ export default function RecentScreen() {
   const {
     recentTracks,
     clearRecentTracks,
-    skipToTrack,
     currentTrack,
     playerState,
     playQueue,
@@ -75,7 +71,7 @@ export default function RecentScreen() {
     playQueue(recentTracks, trackIndex >= 0 ? trackIndex : 0);
   };
 
-  const renderTrackItem = ({ item, index }: { item: Track; index: number }) => {
+  const renderTrackItem = ({ item }: { item: Track }) => {
     const isPlayingCurrent = currentTrack?.id === item.id;
     const isFav = userState?.favoriteIds?.includes(item.id);
 

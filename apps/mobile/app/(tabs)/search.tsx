@@ -24,8 +24,6 @@ import {
   SearchIcon,
   CloseIcon,
   DiscIcon,
-  PlayIcon,
-  PauseIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';

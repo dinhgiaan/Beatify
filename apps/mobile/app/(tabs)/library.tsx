@@ -26,8 +26,6 @@ import {
 } from '../../src/theme';
 import {
   DiscIcon,
-  PlayIcon,
-  PauseIcon,
   HeartIcon,
   EditIcon,
   TrashIcon,

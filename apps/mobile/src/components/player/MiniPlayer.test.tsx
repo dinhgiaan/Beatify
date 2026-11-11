@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
 vi.mock('react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react')>();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     useRef: vi.fn((val) => ({ current: val })),
