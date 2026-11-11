@@ -231,615 +231,615 @@ export function NowPlayingView() {
             />
           ) : (
             <Animated.View
-          style = {
-            [
-            styles.artworkContainer,
-            {
-              width: artworkSize,
-              height: artworkSize,
-              transform: [{ scale: artworkScale }],
-            },
-              ]}
+              style={
+                [
+                  styles.artworkContainer,
+                  {
+                    width: artworkSize,
+                    height: artworkSize,
+                    transform: [{ scale: artworkScale }],
+                  },
+                ]}
             >
-            { currentTrack?.cover ? (
-            <Image
-              source={{ uri: currentTrack.cover }}
-              style={styles.artworkImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.artworkPlaceholder}>
-              <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
-              <Text style={styles.artworkEmptyText}>
-                {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
-              </Text>
-            </View>
-          )}
-      </Animated.View>
-      )
-      ) : (
-      <View
-        style={[
-          styles.queuePanelContainer,
-          { width: artworkSize, height: artworkSize },
-        ]}
-      >
-        <View style={styles.queuePanelHeader}>
-          <Text style={styles.queuePanelTitle}>
-            DANH SÁCH CHỜ ({tracks.length})
-          </Text>
-          <TouchableOpacity
-            onPress={() => setShowQueue(false)}
-            style={styles.queueBackBtn}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel="Quay lại ảnh bìa"
+              {currentTrack?.cover ? (
+                <Image
+                  source={{ uri: currentTrack.cover }}
+                  style={styles.artworkImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.artworkPlaceholder}>
+                  <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
+                  <Text style={styles.artworkEmptyText}>
+                    {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+                  </Text>
+                </View>
+              )}
+            </Animated.View>
+          )
+        ) : (
+          <View
+            style={[
+              styles.queuePanelContainer,
+              { width: artworkSize, height: artworkSize },
+            ]}
           >
-            <DiscIcon size={16} color={colors.primary} />
-            <Text style={styles.queueBackBtnText}>Xem bìa</Text>
+            <View style={styles.queuePanelHeader}>
+              <Text style={styles.queuePanelTitle}>
+                DANH SÁCH CHỜ ({tracks.length})
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowQueue(false)}
+                style={styles.queueBackBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Quay lại ảnh bìa"
+              >
+                <DiscIcon size={16} color={colors.primary} />
+                <Text style={styles.queueBackBtnText}>Xem bìa</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={tracks}
+              keyExtractor={(item, idx) => `${item.id}-${idx}`}
+              contentContainerStyle={styles.queueListInner}
+              showsVerticalScrollIndicator={true}
+              renderItem={({ item, index }) => {
+                const isCurrent = currentTrackIndex === index;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.queueItem,
+                      isCurrent && styles.queueItemActive,
+                    ]}
+                    onPress={() => handleSelectQueueItem(index)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.queueItemIndex}>
+                      {isCurrent ? (
+                    <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
+                      ) : (
+                        <Text style={styles.queueIndexText}>{index + 1}</Text>
+                      )}
+                    </View>
+
+                    {/* Ảnh bìa bài hát trong hàng đợi */}
+                    <View style={styles.queueCoverWrapper}>
+                      {item.cover ? (
+                        <Image source={{ uri: item.cover }} style={styles.queueCoverImg} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.queueCoverPlaceholder}>
+                          <DiscIcon size={16} color={colors.textTertiary} />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.queueItemInfo}>
+                      <Text
+                        style={[
+                          styles.queueItemTitle,
+                          isCurrent && styles.queueItemTitleActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text style={styles.queueItemArtist} numberOfLines={1}>
+                        {item.artist}
+                      </Text>
+                    </View>
+
+                    {/* Cụm nút di chuyển bài lên / xuống */}
+                    <View style={styles.queueReorderGroup}>
+                      {index > 0 && (
+                        <TouchableOpacity
+                          style={styles.reorderBtn}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            moveQueueItem(index, index - 1);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Di chuyển bài lên"
+                        >
+                          <Text style={styles.reorderBtnText}>↑</Text>
+                        </TouchableOpacity>
+                      )}
+                      {index < tracks.length - 1 && (
+                        <TouchableOpacity
+                          style={styles.reorderBtn}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            moveQueueItem(index, index + 1);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Di chuyển bài xuống"
+                        >
+                          <Text style={styles.reorderBtnText}>↓</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Nút xóa bài khỏi hàng đợi */}
+                    <TouchableOpacity
+                      style={styles.queueRemoveBtn}
+                      onPress={(e) => handleRemoveQueueItem(e, index)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Xóa ${item.title} khỏi hàng đợi`}
+                    >
+                      <TrashIcon size={16} color={colors.dangerLight} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        )}
+
+        {/* Thông tin bài hát + Nút Tim */}
+        <View style={styles.trackInfoRow}>
+          <View style={styles.trackInfoTextCol}>
+            <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+              {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
+            </Text>
+            <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
+              {currentTrack ? currentTrack.artist : 'Chọn một bài hát để bắt đầu nghe'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleToggleFavorite}
+            style={styles.heartButton}
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Bỏ thích bài hát' : 'Thêm vào yêu thích'}
+          >
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <HeartIcon
+                size={24}
+                color={isFavorite ? colors.primary : colors.textSecondary}
+                fill={isFavorite ? colors.primary : 'none'}
+              />
+            </Animated.View>
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={tracks}
-          keyExtractor={(item, idx) => `${item.id}-${idx}`}
-          contentContainerStyle={styles.queueListInner}
-          showsVerticalScrollIndicator={true}
-          renderItem={({ item, index }) => {
-            const isCurrent = currentTrackIndex === index;
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.queueItem,
-                  isCurrent && styles.queueItemActive,
-                ]}
-                onPress={() => handleSelectQueueItem(index)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.queueItemIndex}>
-                  {isCurrent ? (
-                    <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
-                  ) : (
-                    <Text style={styles.queueIndexText}>{index + 1}</Text>
-                  )}
-                </View>
+        {/* Cụm Equalizer Sóng Nhạc Dày Đậm (Bass Waveform Visualizer LED Stereo VU Meter) */}
+        <BassWaveformVisualizer isPlaying={playerState.isPlaying} height={28} />
 
-                {/* Ảnh bìa bài hát trong hàng đợi */}
-                <View style={styles.queueCoverWrapper}>
-                  {item.cover ? (
-                    <Image source={{ uri: item.cover }} style={styles.queueCoverImg} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.queueCoverPlaceholder}>
-                      <DiscIcon size={16} color={colors.textTertiary} />
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.queueItemInfo}>
-                  <Text
-                    style={[
-                      styles.queueItemTitle,
-                      isCurrent && styles.queueItemTitleActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text style={styles.queueItemArtist} numberOfLines={1}>
-                    {item.artist}
-                  </Text>
-                </View>
-
-                {/* Cụm nút di chuyển bài lên / xuống */}
-                <View style={styles.queueReorderGroup}>
-                  {index > 0 && (
-                    <TouchableOpacity
-                      style={styles.reorderBtn}
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        moveQueueItem(index, index - 1);
-                      }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Di chuyển bài lên"
-                    >
-                      <Text style={styles.reorderBtnText}>↑</Text>
-                    </TouchableOpacity>
-                  )}
-                  {index < tracks.length - 1 && (
-                    <TouchableOpacity
-                      style={styles.reorderBtn}
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        moveQueueItem(index, index + 1);
-                      }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Di chuyển bài xuống"
-                    >
-                      <Text style={styles.reorderBtnText}>↓</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Nút xóa bài khỏi hàng đợi */}
-                <TouchableOpacity
-                  style={styles.queueRemoveBtn}
-                  onPress={(e) => handleRemoveQueueItem(e, index)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Xóa ${item.title} khỏi hàng đợi`}
-                >
-                  <TrashIcon size={16} color={colors.dangerLight} />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-        )}
-
-      {/* Thông tin bài hát + Nút Tim */}
-      <View style={styles.trackInfoRow}>
-        <View style={styles.trackInfoTextCol}>
-          <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
-            {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
-          </Text>
-          <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
-            {currentTrack ? currentTrack.artist : 'Chọn một bài hát để bắt đầu nghe'}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={handleToggleFavorite}
-          style={styles.heartButton}
-          activeOpacity={0.8}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite ? 'Bỏ thích bài hát' : 'Thêm vào yêu thích'}
-        >
-          <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-            <HeartIcon
-              size={24}
-              color={isFavorite ? colors.primary : colors.textSecondary}
-              fill={isFavorite ? colors.primary : 'none'}
-            />
-          </Animated.View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Cụm Equalizer Sóng Nhạc Dày Đậm (Bass Waveform Visualizer LED Stereo VU Meter) */}
-      <BassWaveformVisualizer isPlaying={playerState.isPlaying} height={28} />
-
-      {/* Thanh tua tiến trình nhạc (Scrubber) với vùng chạm 44pt chuẩn iOS HIG */}
-      <View style={styles.scrubberContainer}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.scrubberTouchable}
-          onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
-          onPress={(e) => handleSeekPress(e.nativeEvent.locationX)}
-          accessibilityRole="adjustable"
-          accessibilityLabel="Thanh tua tiến trình bài hát"
-        >
-          <View style={styles.scrubberTrack}>
-            <View style={[styles.scrubberFill, { width: `${progressPercent}%` }]} />
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.timeRow}>
-          <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
-          <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
-        </View>
-      </View>
-
-      {/* Cụm điều khiển chính: Shuffle, Prev, Play/Pause, Next, Repeat */}
-      <View style={styles.controlsRow}>
-        <TouchableOpacity
-          style={styles.auxControlButton}
-          onPress={toggleSmartShuffle}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={isSmartShuffle ? 'Tắt trộn bài' : 'Bật trộn bài'}
-        >
-          <ShuffleIcon
-            size={22}
-            color={isSmartShuffle ? colors.primary : colors.textTertiary}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={previous}
-          disabled={tracks.length === 0}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Bài trước"
-        >
-          <PrevIcon size={28} color={colors.textPrimary} />
-        </TouchableOpacity>
-
-        {/* Nút Play/Pause tròn to nổi bật 64x64 nảy vật lý đàn hồi */}
-        <TouchableOpacity
-          style={styles.mainPlayButton}
-          onPress={togglePlay}
-          onPressIn={onPlayPressIn}
-          onPressOut={onPlayPressOut}
-          disabled={tracks.length === 0 && !playerState.isPlaying}
-          activeOpacity={0.9}
-          accessibilityRole="button"
-          accessibilityLabel={playerState.isPlaying ? 'Tạm dừng' : 'Phát'}
-        >
-          <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
-            {playerState.isPlaying ? (
-              <PauseIcon size={30} color={colors.textDark} />
-            ) : (
-              <PlayIcon size={30} color={colors.textDark} />
-            )}
-          </Animated.View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={next}
-          disabled={tracks.length === 0}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Bài tiếp theo"
-        >
-          <NextIcon size={28} color={colors.textPrimary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.auxControlButton}
-          onPress={cycleRepeat}
-          onLongPress={() => {
-            Vibration.vibrate(15);
-            setLoopModalVisible(true);
-          }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Đổi chế độ lặp lại (Nhấn giữ để chọn số lần lặp)"
-        >
-          {repeatMode === 'track' ? (
-            <RepeatOneIcon size={22} color={colors.primary} />
-          ) : (
-            <RepeatIcon
-              size={22}
-              color={repeatMode !== 'off' ? colors.primary : colors.textTertiary}
-            />
-          )}
-          {customLoopRemaining !== null && (
-            <View style={styles.loopBadge}>
-              <Text style={styles.loopBadgeText}>{customLoopRemaining}x</Text>
+        {/* Thanh tua tiến trình nhạc (Scrubber) với vùng chạm 44pt chuẩn iOS HIG */}
+        <View style={styles.scrubberContainer}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.scrubberTouchable}
+            onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+            onPress={(e) => handleSeekPress(e.nativeEvent.locationX)}
+            accessibilityRole="adjustable"
+            accessibilityLabel="Thanh tua tiến trình bài hát"
+          >
+            <View style={styles.scrubberTrack}>
+              <View style={[styles.scrubberFill, { width: `${progressPercent}%` }]} />
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
 
-      {/* Hàng 4 nút tính năng phụ dạng icon tròn tối giản (Icon-only) */}
-      <View style={styles.bottomButtonsRow}>
-        {/* Nút 1: Lời bài hát */}
-        <TouchableOpacity
-          style={[styles.bottomButton, lyricsModalVisible && styles.bottomButtonActive]}
-          disabled={!currentTrack}
-          onPress={() => setLyricsModalVisible(true)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Mở lời bài hát"
-        >
-          <LyricsIcon
-            size={20}
-            color={lyricsModalVisible ? colors.primary : currentTrack ? colors.textPrimary : colors.textTertiary}
-          />
-        </TouchableOpacity>
-
-        {/* Nút 2: Hàng đợi / Ảnh bìa */}
-        <TouchableOpacity
-          style={[styles.bottomButton, showQueue && styles.bottomButtonActive]}
-          onPress={() => setShowQueue(!showQueue)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel={showQueue ? 'Hiển thị ảnh bìa' : `Hiển thị danh sách hàng đợi (${tracks.length} bài)`}
-        >
-          {showQueue ? (
-            <DiscIcon size={20} color={colors.primary} />
-          ) : (
-            <QueueIcon size={20} color={colors.textPrimary} />
-          )}
-        </TouchableOpacity>
-
-        {/* Nút 3: Tải bài hát ngoại tuyến */}
-        <TouchableOpacity
-          style={[
-            styles.bottomButton,
-            Boolean(currentTrack && isTrackOffline(currentTrack.id)) && styles.bottomButtonActive,
-          ]}
-          disabled={!currentTrack || Boolean(currentTrack && isDownloading[currentTrack.id])}
-          onPress={async () => {
-            if (currentTrack) {
-              if (isTrackOffline(currentTrack.id)) {
-                Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
-              } else {
-                await downloadTrack(currentTrack);
-              }
-            }
-          }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Tải bài hát về máy"
-        >
-          <DownloadIcon
-            size={20}
-            color={
-              currentTrack && isTrackOffline(currentTrack.id)
-                ? colors.primary
-                : currentTrack
-                  ? colors.textPrimary
-                  : colors.textTertiary
-            }
-          />
-        </TouchableOpacity>
-
-        {/* Nút 4: Hẹn giờ tắt nhạc */}
-        <TouchableOpacity
-          style={[
-            styles.bottomButton,
-            sleepTimerRemainingSec !== null && styles.bottomButtonActive,
-          ]}
-          onPress={() => setSleepTimerDialogVisible(true)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel={
-            sleepTimerRemainingSec !== null
-              ? `Hẹn giờ đang bật: còn ${formatTime(sleepTimerRemainingSec)}`
-              : 'Hẹn giờ tắt nhạc'
-          }
-        >
-          <ClockIcon
-            size={20}
-            color={sleepTimerRemainingSec !== null ? colors.primary : colors.textPrimary}
-          />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-
-      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */ }
-  <LyricsModal
-    visible={lyricsModalVisible}
-    track={currentTrack}
-    currentTimeSec={positionSec}
-    onClose={() => setLyricsModalVisible(false)}
-    onSeek={(seconds) => {
-      seekTo(seconds);
-    }}
-    onOpenEditLyrics={() => {
-      setLyricsModalVisible(false);
-      setEditModalVisible(true);
-    }}
-    onFetchLyrics={handleFetchLyrics}
-  />
-
-  {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */ }
-  <EditTrackModal
-    visible={editModalVisible}
-    track={currentTrack}
-    onClose={() => setEditModalVisible(false)}
-    onSave={saveTrack}
-    onFetchLyrics={handleFetchLyrics}
-  />
-
-  {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */ }
-  <Modal
-    visible={sleepTimerDialogVisible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={() => setSleepTimerDialogVisible(false)}
-  >
-    <TouchableOpacity
-      style={styles.modalOverlay}
-      activeOpacity={1}
-      onPress={() => setSleepTimerDialogVisible(false)}
-    >
-      <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
-        <Text style={styles.sleepTimerTitle}>Hẹn giờ tắt nhạc</Text>
-        <Text style={styles.sleepTimerSubtitle}>
-          Tự động tạm dừng phát nhạc khi hết thời gian hẹn
-        </Text>
-
-        <View style={styles.sleepTimerOptionsCol}>
-          <View style={styles.sleepTimerGrid}>
-            {[15, 30, 45, 60].map((mins) => (
-              <TouchableOpacity
-                key={mins}
-                style={styles.sleepTimerGridBtn}
-                onPress={() => {
-                  setSleepTimer(mins);
-                  setSleepTimerDialogVisible(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.sleepTimerOptionText}>{mins} phút</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
+            <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
           </View>
-
-          {/* Tùy chọn tự nhập số phút */}
-          <View style={styles.customTimerRow}>
-            <TextInput
-              style={styles.customTimerInput}
-              placeholder="Nhập số phút..."
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="numeric"
-              value={customMinutesInput}
-              onChangeText={setCustomMinutesInput}
-              maxLength={4}
-            />
-            <TouchableOpacity
-              style={styles.customTimerBtn}
-              onPress={() => {
-                const parsed = parseInt(customMinutesInput.trim(), 10);
-                if (!isNaN(parsed) && parsed > 0 && parsed <= 720) {
-                  setSleepTimer(parsed);
-                  setCustomMinutesInput('');
-                  setSleepTimerDialogVisible(false);
-                } else {
-                  Alert.alert('Không hợp lệ', 'Vui lòng nhập số phút từ 1 đến 720');
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.customTimerBtnText}>Bắt đầu</Text>
-            </TouchableOpacity>
-          </View>
-
-          {sleepTimerRemainingSec !== null && (
-            <TouchableOpacity
-              style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
-              onPress={() => {
-                setSleepTimer(null);
-                setSleepTimerDialogVisible(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.sleepTimerTurnOffText}>Tắt hẹn giờ</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
+        {/* Cụm điều khiển chính: Shuffle, Prev, Play/Pause, Next, Repeat */}
+        <View style={styles.controlsRow}>
+          <TouchableOpacity
+            style={styles.auxControlButton}
+            onPress={toggleSmartShuffle}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={isSmartShuffle ? 'Tắt trộn bài' : 'Bật trộn bài'}
+          >
+            <ShuffleIcon
+              size={22}
+              color={isSmartShuffle ? colors.primary : colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={previous}
+            disabled={tracks.length === 0}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Bài trước"
+          >
+            <PrevIcon size={28} color={colors.textPrimary} />
+          </TouchableOpacity>
+
+          {/* Nút Play/Pause tròn to nổi bật 64x64 nảy vật lý đàn hồi */}
+          <TouchableOpacity
+            style={styles.mainPlayButton}
+            onPress={togglePlay}
+            onPressIn={onPlayPressIn}
+            onPressOut={onPlayPressOut}
+            disabled={tracks.length === 0 && !playerState.isPlaying}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={playerState.isPlaying ? 'Tạm dừng' : 'Phát'}
+          >
+            <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
+              {playerState.isPlaying ? (
+                <PauseIcon size={30} color={colors.textDark} />
+              ) : (
+                <PlayIcon size={30} color={colors.textDark} />
+              )}
+            </Animated.View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={next}
+            disabled={tracks.length === 0}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Bài tiếp theo"
+          >
+            <NextIcon size={28} color={colors.textPrimary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.auxControlButton}
+            onPress={cycleRepeat}
+            onLongPress={() => {
+              Vibration.vibrate(15);
+              setLoopModalVisible(true);
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Đổi chế độ lặp lại (Nhấn giữ để chọn số lần lặp)"
+          >
+            {repeatMode === 'track' ? (
+              <RepeatOneIcon size={22} color={colors.primary} />
+            ) : (
+              <RepeatIcon
+                size={22}
+                color={repeatMode !== 'off' ? colors.primary : colors.textTertiary}
+              />
+            )}
+            {customLoopRemaining !== null && (
+              <View style={styles.loopBadge}>
+                <Text style={styles.loopBadgeText}>{customLoopRemaining}x</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Hàng 4 nút tính năng phụ dạng icon tròn tối giản (Icon-only) */}
+        <View style={styles.bottomButtonsRow}>
+          {/* Nút 1: Lời bài hát */}
+          <TouchableOpacity
+            style={[styles.bottomButton, lyricsModalVisible && styles.bottomButtonActive]}
+            disabled={!currentTrack}
+            onPress={() => setLyricsModalVisible(true)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Mở lời bài hát"
+          >
+            <LyricsIcon
+              size={20}
+              color={lyricsModalVisible ? colors.primary : currentTrack ? colors.textPrimary : colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          {/* Nút 2: Hàng đợi / Ảnh bìa */}
+          <TouchableOpacity
+            style={[styles.bottomButton, showQueue && styles.bottomButtonActive]}
+            onPress={() => setShowQueue(!showQueue)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={showQueue ? 'Hiển thị ảnh bìa' : `Hiển thị danh sách hàng đợi (${tracks.length} bài)`}
+          >
+            {showQueue ? (
+              <DiscIcon size={20} color={colors.primary} />
+            ) : (
+              <QueueIcon size={20} color={colors.textPrimary} />
+            )}
+          </TouchableOpacity>
+
+          {/* Nút 3: Tải bài hát ngoại tuyến */}
+          <TouchableOpacity
+            style={[
+              styles.bottomButton,
+              Boolean(currentTrack && isTrackOffline(currentTrack.id)) && styles.bottomButtonActive,
+            ]}
+            disabled={!currentTrack || Boolean(currentTrack && isDownloading[currentTrack.id])}
+            onPress={async () => {
+              if (currentTrack) {
+                if (isTrackOffline(currentTrack.id)) {
+                  Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
+                } else {
+                  await downloadTrack(currentTrack);
+                }
+              }
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Tải bài hát về máy"
+          >
+            <DownloadIcon
+              size={20}
+              color={
+                currentTrack && isTrackOffline(currentTrack.id)
+                  ? colors.primary
+                  : currentTrack
+                    ? colors.textPrimary
+                    : colors.textTertiary
+              }
+            />
+          </TouchableOpacity>
+
+          {/* Nút 4: Hẹn giờ tắt nhạc */}
+          <TouchableOpacity
+            style={[
+              styles.bottomButton,
+              sleepTimerRemainingSec !== null && styles.bottomButtonActive,
+            ]}
+            onPress={() => setSleepTimerDialogVisible(true)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              sleepTimerRemainingSec !== null
+                ? `Hẹn giờ đang bật: còn ${formatTime(sleepTimerRemainingSec)}`
+                : 'Hẹn giờ tắt nhạc'
+            }
+          >
+            <ClockIcon
+              size={20}
+              color={sleepTimerRemainingSec !== null ? colors.primary : colors.textPrimary}
+            />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */}
+      <LyricsModal
+        visible={lyricsModalVisible}
+        track={currentTrack}
+        currentTimeSec={positionSec}
+        onClose={() => setLyricsModalVisible(false)}
+        onSeek={(seconds) => {
+          seekTo(seconds);
+        }}
+        onOpenEditLyrics={() => {
+          setLyricsModalVisible(false);
+          setEditModalVisible(true);
+        }}
+        onFetchLyrics={handleFetchLyrics}
+      />
+
+      {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */}
+      <EditTrackModal
+        visible={editModalVisible}
+        track={currentTrack}
+        onClose={() => setEditModalVisible(false)}
+        onSave={saveTrack}
+        onFetchLyrics={handleFetchLyrics}
+      />
+
+      {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */}
+      <Modal
+        visible={sleepTimerDialogVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSleepTimerDialogVisible(false)}
+      >
         <TouchableOpacity
-          style={styles.sleepTimerCancelBtn}
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setSleepTimerDialogVisible(false)}
         >
-          <Text style={styles.sleepTimerCancelText}>Đóng</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </Modal>
+          <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sleepTimerTitle}>Hẹn giờ tắt nhạc</Text>
+            <Text style={styles.sleepTimerSubtitle}>
+              Tự động tạm dừng phát nhạc khi hết thời gian hẹn
+            </Text>
 
-  {/* Modal Cài đặt Lặp lại bài hát (Loop Count Modal) */ }
-  <Modal
-    visible={loopModalVisible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={() => setLoopModalVisible(false)}
-  >
-    <TouchableOpacity
-      style={styles.modalOverlay}
-      activeOpacity={1}
-      onPress={() => setLoopModalVisible(false)}
-    >
-      <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
-        <Text style={styles.sleepTimerTitle}>Lặp lại bài hát</Text>
-        <Text style={styles.sleepTimerSubtitle}>
-          {customLoopRemaining !== null
-            ? `Đang lặp: còn ${customLoopRemaining} lần phát nữa`
-            : repeatMode === 'track'
-              ? 'Đang lặp vô hạn bài hát hiện tại'
-              : 'Chọn số lần lặp hoặc tự nhập theo ý bạn'}
-        </Text>
+            <View style={styles.sleepTimerOptionsCol}>
+              <View style={styles.sleepTimerGrid}>
+                {[15, 30, 45, 60].map((mins) => (
+                  <TouchableOpacity
+                    key={mins}
+                    style={styles.sleepTimerGridBtn}
+                    onPress={() => {
+                      setSleepTimer(mins);
+                      setSleepTimerDialogVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.sleepTimerOptionText}>{mins} phút</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-        <View style={styles.sleepTimerOptionsCol}>
-          <View style={styles.sleepTimerGrid}>
-            {[
-              { label: 'Vô hạn', count: null, isInfinite: true },
-              { label: '2 lần', count: 2 },
-              { label: '3 lần', count: 3 },
-              { label: '5 lần', count: 5 },
-            ].map((item) => {
-              const isActive = item.isInfinite
-                ? repeatMode === 'track' && customLoopRemaining === null
-                : customLoopTarget === item.count;
-              return (
+              {/* Tùy chọn tự nhập số phút */}
+              <View style={styles.customTimerRow}>
+                <TextInput
+                  style={styles.customTimerInput}
+                  placeholder="Nhập số phút..."
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                  value={customMinutesInput}
+                  onChangeText={setCustomMinutesInput}
+                  maxLength={4}
+                />
                 <TouchableOpacity
-                  key={item.label}
-                  style={[styles.sleepTimerGridBtn, isActive && styles.loopOptionActive]}
+                  style={styles.customTimerBtn}
+                  onPress={() => {
+                    const parsed = parseInt(customMinutesInput.trim(), 10);
+                    if (!isNaN(parsed) && parsed > 0 && parsed <= 720) {
+                      setSleepTimer(parsed);
+                      setCustomMinutesInput('');
+                      setSleepTimerDialogVisible(false);
+                    } else {
+                      Alert.alert('Không hợp lệ', 'Vui lòng nhập số phút từ 1 đến 720');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.customTimerBtnText}>Bắt đầu</Text>
+                </TouchableOpacity>
+              </View>
+
+              {sleepTimerRemainingSec !== null && (
+                <TouchableOpacity
+                  style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
+                  onPress={() => {
+                    setSleepTimer(null);
+                    setSleepTimerDialogVisible(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sleepTimerTurnOffText}>Tắt hẹn giờ</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.sleepTimerCancelBtn}
+              onPress={() => setSleepTimerDialogVisible(false)}
+            >
+              <Text style={styles.sleepTimerCancelText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Cài đặt Lặp lại bài hát (Loop Count Modal) */}
+      <Modal
+        visible={loopModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLoopModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setLoopModalVisible(false)}
+        >
+          <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sleepTimerTitle}>Lặp lại bài hát</Text>
+            <Text style={styles.sleepTimerSubtitle}>
+              {customLoopRemaining !== null
+                ? `Đang lặp: còn ${customLoopRemaining} lần phát nữa`
+                : repeatMode === 'track'
+                  ? 'Đang lặp vô hạn bài hát hiện tại'
+                  : 'Chọn số lần lặp hoặc tự nhập theo ý bạn'}
+            </Text>
+
+            <View style={styles.sleepTimerOptionsCol}>
+              <View style={styles.sleepTimerGrid}>
+                {[
+                  { label: 'Vô hạn', count: null, isInfinite: true },
+                  { label: '2 lần', count: 2 },
+                  { label: '3 lần', count: 3 },
+                  { label: '5 lần', count: 5 },
+                ].map((item) => {
+                  const isActive = item.isInfinite
+                    ? repeatMode === 'track' && customLoopRemaining === null
+                    : customLoopTarget === item.count;
+                  return (
+                    <TouchableOpacity
+                      key={item.label}
+                      style={[styles.sleepTimerGridBtn, isActive && styles.loopOptionActive]}
+                      onPress={async () => {
+                        Vibration.vibrate(10);
+                        if (item.isInfinite) {
+                          await setCustomLoopCount(null);
+                          await cycleRepeat();
+                        } else if (item.count) {
+                          await setCustomLoopCount(item.count);
+                        }
+                        setLoopModalVisible(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.sleepTimerOptionText,
+                          isActive && styles.loopOptionActiveText,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Tùy chọn tự nhập số lần lặp */}
+              <View style={styles.customTimerRow}>
+                <TextInput
+                  style={styles.customTimerInput}
+                  placeholder="Nhập số lần lặp (VD: 10)..."
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                  value={customLoopInput}
+                  onChangeText={setCustomLoopInput}
+                  maxLength={3}
+                />
+                <TouchableOpacity
+                  style={styles.customTimerBtn}
                   onPress={async () => {
                     Vibration.vibrate(10);
-                    if (item.isInfinite) {
-                      await setCustomLoopCount(null);
-                      await cycleRepeat();
-                    } else if (item.count) {
-                      await setCustomLoopCount(item.count);
+                    const parsed = parseInt(customLoopInput.trim(), 10);
+                    if (!isNaN(parsed) && parsed > 0 && parsed <= 999) {
+                      await setCustomLoopCount(parsed);
+                      setCustomLoopInput('');
+                      setLoopModalVisible(false);
+                    } else {
+                      Alert.alert('Không hợp lệ', 'Vui lòng nhập số lần lặp từ 1 đến 999');
                     }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.customTimerBtnText}>Áp dụng</Text>
+                </TouchableOpacity>
+              </View>
+
+              {(repeatMode === 'track' || customLoopRemaining !== null) && (
+                <TouchableOpacity
+                  style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
+                  onPress={async () => {
+                    Vibration.vibrate(10);
+                    await setCustomLoopCount(null);
                     setLoopModalVisible(false);
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.sleepTimerOptionText,
-                      isActive && styles.loopOptionActiveText,
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
+                  <Text style={styles.sleepTimerTurnOffText}>Tắt lặp lại bài này</Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+              )}
+            </View>
 
-          {/* Tùy chọn tự nhập số lần lặp */}
-          <View style={styles.customTimerRow}>
-            <TextInput
-              style={styles.customTimerInput}
-              placeholder="Nhập số lần lặp (VD: 10)..."
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="numeric"
-              value={customLoopInput}
-              onChangeText={setCustomLoopInput}
-              maxLength={3}
-            />
             <TouchableOpacity
-              style={styles.customTimerBtn}
-              onPress={async () => {
-                Vibration.vibrate(10);
-                const parsed = parseInt(customLoopInput.trim(), 10);
-                if (!isNaN(parsed) && parsed > 0 && parsed <= 999) {
-                  await setCustomLoopCount(parsed);
-                  setCustomLoopInput('');
-                  setLoopModalVisible(false);
-                } else {
-                  Alert.alert('Không hợp lệ', 'Vui lòng nhập số lần lặp từ 1 đến 999');
-                }
-              }}
-              activeOpacity={0.7}
+              style={styles.sleepTimerCancelBtn}
+              onPress={() => setLoopModalVisible(false)}
             >
-              <Text style={styles.customTimerBtnText}>Áp dụng</Text>
+              <Text style={styles.sleepTimerCancelText}>Đóng</Text>
             </TouchableOpacity>
           </View>
-
-          {(repeatMode === 'track' || customLoopRemaining !== null) && (
-            <TouchableOpacity
-              style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
-              onPress={async () => {
-                Vibration.vibrate(10);
-                await setCustomLoopCount(null);
-                setLoopModalVisible(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.sleepTimerTurnOffText}>Tắt lặp lại bài này</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={styles.sleepTimerCancelBtn}
-          onPress={() => setLoopModalVisible(false)}
-        >
-          <Text style={styles.sleepTimerCancelText}>Đóng</Text>
         </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </Modal>
+      </Modal>
     </View >
   );
 }

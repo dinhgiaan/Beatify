@@ -306,32 +306,32 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             {/* Highlights: Top nghệ sĩ & Top bài hát */}
             {((replayReport?.allTime.topArtists && replayReport.allTime.topArtists.length > 0) ||
               (replayReport?.allTime.topTracks && replayReport.allTime.topTracks.length > 0)) && (
-              <View style={styles.topHighlightsBox}>
-                {replayReport?.allTime.topArtists?.[0] && (
-                  <View style={styles.highlightItem}>
-                    <Text style={styles.highlightLabel}>Nghệ sĩ nghe nhiều nhất</Text>
-                    <Text style={styles.highlightValue} numberOfLines={1}>
-                      👑 {replayReport.allTime.topArtists[0].artist}{' '}
-                      <Text style={styles.highlightCount}>
-                        ({replayReport.allTime.topArtists[0].count} lần)
+                <View style={styles.topHighlightsBox}>
+                  {replayReport?.allTime.topArtists?.[0] && (
+                    <View style={styles.highlightItem}>
+                      <Text style={styles.highlightLabel}>Nghệ sĩ nghe nhiều nhất</Text>
+                      <Text style={styles.highlightValue} numberOfLines={1}>
+                        👑 {replayReport.allTime.topArtists[0].artist}{' '}
+                        <Text style={styles.highlightCount}>
+                          ({replayReport.allTime.topArtists[0].count} lần)
+                        </Text>
                       </Text>
-                    </Text>
-                  </View>
-                )}
+                    </View>
+                  )}
 
-                {replayReport?.allTime.topTracks?.[0] && (
-                  <View style={[styles.highlightItem, { marginTop: spacing.xs }]}>
-                    <Text style={styles.highlightLabel}>Bài hát replay nhiều nhất</Text>
-                    <Text style={styles.highlightValue} numberOfLines={1}>
-                      🔥 {replayReport.allTime.topTracks[0].title}{' '}
-                      <Text style={styles.highlightCount}>
-                        ({replayReport.allTime.topTracks[0].count} lần)
+                  {replayReport?.allTime.topTracks?.[0] && (
+                    <View style={[styles.highlightItem, { marginTop: spacing.xs }]}>
+                      <Text style={styles.highlightLabel}>Bài hát replay nhiều nhất</Text>
+                      <Text style={styles.highlightValue} numberOfLines={1}>
+                        🔥 {replayReport.allTime.topTracks[0].title}{' '}
+                        <Text style={styles.highlightCount}>
+                          ({replayReport.allTime.topTracks[0].count} lần)
+                        </Text>
                       </Text>
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
+                    </View>
+                  )}
+                </View>
+              )}
 
             {/* Nút xem chi tiết cột mốc & chỉnh sửa */}
             <TouchableOpacity

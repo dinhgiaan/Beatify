@@ -76,7 +76,7 @@ export function BassWaveformVisualizer({
     return () => {
       loops.forEach((l) => l.stop());
     };
-  }, [isPlaying, anims, barCount]);
+}, [isPlaying, anims, barCount]);
 
   // Độ mờ đục (Opacity) phân lớp theo vị trí phổ âm thanh để tạo chiều sâu thị giác sang trọng
   const getBarOpacity = (index: number) => {
@@ -87,56 +87,56 @@ export function BassWaveformVisualizer({
 
   return (
     <View style={[styles.container, { height }]}>
-      <View style={styles.spectrumRow}>
-        {anims.map((anim, idx) => (
-          <View key={`spec-bar-${idx}`} style={[styles.barSlot, { height }]}>
-            <Animated.View
-              style={[
-                styles.barColumn,
-                {
-                  height,
-                  opacity: getBarOpacity(idx),
-                  transform: [{ scaleY: anim }],
-                },
-              ]}
+        <View style={styles.spectrumRow}>
+          {anims.map((anim, idx) => (
+              <View key={`spec-bar-${idx}`} style={[styles.barSlot, { height }]}>
+                <Animated.View
+                  style={[
+                    styles.barColumn,
+                    {
+                      height,
+                      opacity: getBarOpacity(idx),
+                      transform: [{ scaleY: anim }],
+                    },
+                  ]}
             />
-          </View>
+              </View>
         ))}
-      </View>
+            </View>
     </View>
-  );
+        );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 6,
+        const styles = StyleSheet.create({
+          container: {
+          width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 6,
   },
-  spectrumRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3.5,
-    width: '92%',
-    maxWidth: 320,
-    height: '100%',
+          spectrumRow: {
+          flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3.5,
+        width: '92%',
+        maxWidth: 320,
+        height: '100%',
   },
-  barSlot: {
-    flex: 1,
-    maxWidth: 4.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+        barSlot: {
+          flex: 1,
+        maxWidth: 4.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
   },
-  barColumn: {
-    width: '100%',
-    borderRadius: radius.pill,
-    backgroundColor: '#10B981', // Studio Emerald Green
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 4,
+        barColumn: {
+          width: '100%',
+        borderRadius: radius.pill,
+        backgroundColor: '#10B981', // Studio Emerald Green
+        shadowColor: '#10B981',
+        shadowOffset: {width: 0, height: 0 },
+        shadowOpacity: 0.45,
+        shadowRadius: 4,
   },
 });
