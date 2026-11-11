@@ -67,10 +67,14 @@ jobs:
             exit 1
           fi
           sudo xcode-select -s "$XCODE_APP/Contents/Developer"
-          xcodebuild -version
+          XCODE_VER=$(xcodebuild -version)
+          echo "$XCODE_VER"
           xcodebuild -showsdks | grep -i iphoneos
-          # Chặn nhầm sang Xcode khác 26.x
-          xcodebuild -version | head -n 1 | grep -q '^Xcode 26\.'
+          # Chặn nhầm sang Xcode khác 26.x (dùng biến để tránh lỗi Broken pipe khi pipe trực tiếp vào head)
+          if ! echo "$XCODE_VER" | grep -q '^Xcode 26\.'; then
+            echo "::error::Xcode không thuộc nhánh 26.x ($XCODE_VER)"
+            exit 1
+          fi
 
       # Cache kho tải của CocoaPods (không cache thư mục Pods vì prebuild đã tự chạy pod install)
       - name: Cache CocoaPods
