@@ -560,5 +560,54 @@ export function DownloadIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
+// 37. Camera Icon (Đổi ảnh đại diện từ iPhone - phong cách Apple SF Symbols)
+export function CameraIcon({ size = 24, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="13" r="4" stroke={color} strokeWidth="2" />
+    </Svg>
+  );
+}
+
+// 38. Clock Rewind / History Icon (Tab Vừa nghe gần đây - SF Symbols style)
+export function ClockRewindIcon({ size = 24, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 3v5h5M12 7v5l4 2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// 39. More Horizontal Icon (Nút 3 chấm thao tác bài hát - SF Symbols style)
+export function MoreHorizontalIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="1.8" fill={color} />
+      <Circle cx="19" cy="12" r="1.8" fill={color} />
+      <Circle cx="5" cy="12" r="1.8" fill={color} />
+    </Svg>
+  );
+}
+
 
 

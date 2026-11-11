@@ -7,6 +7,7 @@ import {
   LibraryIcon,
   SearchIcon,
   PlaylistIcon,
+  ClockRewindIcon,
 } from '../../src/components/icons/SvgIcons';
 import {
   colors,
@@ -28,7 +29,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
   const [tabWidth, setTabWidth] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const numTabs = state.routes.length || 3;
+  const numTabs = state.routes.length || 4;
 
   useEffect(() => {
     if (tabWidth > 0) {
@@ -46,22 +47,22 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
       {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
       <MiniPlayer />
 
-      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn (Floating Pill Capsule Dock) */}
+      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn chuẩn iOS 18 Glassmorphism */}
       <View
         style={[
           styles.floatingDock,
           {
-            marginBottom: Math.max(insets.bottom, 10),
+            marginBottom: Math.max(insets.bottom, 12),
           },
         ]}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
           if (w > 0) {
-            setTabWidth((w - spacing.xs * 2) / numTabs);
+            setTabWidth((w - 8) / numTabs);
           }
         }}
       >
-        {/* Lớp nền viên thuốc động lướt mượt mà giữa các tab (Smooth Sliding Active Pill) */}
+        {/* Lớp nền viên thuốc động lướt mượt mà giữa các tab (iOS 18 Active Glass Pill) */}
         {tabWidth > 0 && (
           <Animated.View
             style={[
@@ -100,17 +101,20 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
 
           let label = options.title ?? route.name;
           let icon = null;
-          const iconColor = isFocused ? colors.primary : colors.textTertiary;
+          const iconColor = isFocused ? colors.primary : 'rgba(255, 255, 255, 0.55)';
 
           if (route.name === 'library') {
             label = 'Thư viện';
-            icon = <LibraryIcon size={20} color={iconColor} />;
+            icon = <LibraryIcon size={19} color={iconColor} />;
+          } else if (route.name === 'recent') {
+            label = 'Vừa nghe';
+            icon = <ClockRewindIcon size={19} color={iconColor} />;
           } else if (route.name === 'search') {
             label = 'Tìm kiếm';
-            icon = <SearchIcon size={20} color={iconColor} />;
+            icon = <SearchIcon size={19} color={iconColor} />;
           } else if (route.name === 'playlists') {
             label = 'Playlist';
-            icon = <PlaylistIcon size={20} color={iconColor} />;
+            icon = <PlaylistIcon size={19} color={iconColor} />;
           }
 
           return (
@@ -130,7 +134,6 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: isFocused ? colors.textPrimary : colors.textTertiary },
                   isFocused && styles.tabLabelFocused,
                 ]}
               >
@@ -156,6 +159,12 @@ export default function TabsLayout() {
         name="library"
         options={{
           title: 'Thư viện',
+        }}
+      />
+      <Tabs.Screen
+        name="recent"
+        options={{
+          title: 'Vừa nghe',
         }}
       />
       <Tabs.Screen
@@ -185,52 +194,54 @@ const styles = StyleSheet.create({
   },
   floatingDock: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: 'rgba(28, 28, 30, 0.78)', // bg-[#1C1C1E]/78 Glassmorphism
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xxs,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: colors.surfaceHighlight,
+    borderColor: 'rgba(255, 255, 255, 0.12)', // border-white/10
     alignItems: 'center',
     justifyContent: 'center',
-    width: '86%',
-    maxWidth: 320,
+    width: '94%',
+    maxWidth: 380,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    elevation: 16,
   },
   activePillIndicator: {
     position: 'absolute',
-    top: spacing.xxs,
-    bottom: spacing.xxs,
-    left: spacing.xs,
-    backgroundColor: colors.surfaceActive,
+    top: 4,
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)', // bg-white/15 active pill
     borderRadius: radius.pill,
   },
   tabButton: {
     flex: 1,
-    height: 52,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     borderRadius: radius.pill,
     zIndex: 1,
     backgroundColor: 'transparent',
   },
   iconContainer: {
-    height: 22,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   tabLabel: {
-    fontSize: fontSizes.caption,
+    fontSize: 10.5,
     fontWeight: fontWeights.medium,
+    color: 'rgba(255, 255, 255, 0.55)',
     marginTop: 2,
   },
   tabLabelFocused: {
+    color: colors.primary,
     fontWeight: fontWeights.bold,
   },
 });

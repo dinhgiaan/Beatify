@@ -2,13 +2,14 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành toàn diện 6 yêu cầu nâng cấp UI/UX, Lyrics Karaoke, Hồ sơ & Sửa lỗi tráo beat âm thanh:
-1. **Khắc phục lỗi tráo beat âm thanh và mất bài khi tải đa luồng từ YouTube:** Sửa `youtubeService.ts` tạo thư mục tạm độc lập (`uniqueSuffix` kết hợp timestamp, random salt và process PID). Ngăn chặn 100% tình trạng các luồng tải song song ghi đè vào cùng tệp tạm khiến bài hát này bị nhầm ruột âm thanh của bài khác.
-2. **UI/UX Now Playing - 4 nút chức năng Icon-only:** Chuyển 4 nút ("Lời nhạc", "Hàng đợi", "Tải về", "Hẹn giờ") thành icon hình tròn 48x48 chuẩn Apple HIG, loại bỏ hoàn toàn text. Bổ sung tính năng người dùng tự nhập số phút hẹn giờ tắt nhạc tùy ý (1-720 phút).
-3. **Lyrics Modal - Xóa "Synced Lyrics" & Cải tiến Karaoke Word Highlight:** Loại bỏ chuỗi " • Synced Lyrics" ở header. Bổ sung `progressTimer` 250ms trong `rntpPlayerService.ts` cập nhật vị trí thời gian thực liên tục 4 lần/giây, kích hoạt hiệu ứng karaoke tô sáng từng từ rực rỡ mượt mà.
-4. **Header Avatar & Profile UI:** Avatar trên Header Thư viện hiển thị avatar người dùng cài đặt. Tái cấu trúc `HiddenSettingsModal` đưa Hồ sơ & Thống kê ra ngoài làm giao diện chính; gom các mục kỹ thuật vào Accordion Thu gọn / Mở rộng (mặc định đóng) mang phong cách consumer app thực thụ.
-5. **Logic iOS Lock Screen Media Player:** Giải thích cơ chế `AVAudioSession` và `MPNowPlayingInfoCenter` trên iOS (hệ thống tự thu hồi sau vài phút dừng nhạc để tiết kiệm pin).
-6. **Toàn bộ monorepo:** 225/225 tests passed 100%, typecheck sạch.
+**Phase hiện tại:** Hoàn thành toàn diện đợt cập nhật UI/UX iOS 18 Glassmorphism, Tab Vừa nghe riêng biệt & Tinh chỉnh Album/Nghệ sĩ:
+1. **Hồ sơ & Thống kê:** Định dạng ngày "Bắt đầu hành trình" theo tiếng Việt (`DD/MM/YYYY`). Đặt icon Edit ở góc trên cùng bên phải (`top-right`) của Profile Card và loại bỏ nút thừa. Cho phép người dùng để trống Bio hoàn toàn (không tự ý gán chuỗi fallback). Đổi nút chọn ảnh từ iPhone thành nút compact có icon máy ảnh (`CameraIcon`) + "Đổi ảnh".
+2. **Floating Tab Bar phong cách iOS 18 Glassmorphism:** Khung ngoài capsule bo tròn `rgba(28, 28, 30, 0.78)` (chuẩn `#1C1C1E`/78) viền `border-white/10` `rgba(255, 255, 255, 0.12)`. Tab active bọc trong khối pill kính sáng `rgba(255, 255, 255, 0.14)` với icon và chữ đổi màu accent. Đảm bảo khoảng cách an toàn với MiniPlayer và Home Indicator.
+3. **Tab riêng "Vừa nghe" (Recently Played):** Tách phần "Vừa nghe gần đây" thành Tab độc lập trên Floating Dock (`recent.tsx`) với đầy đủ lịch sử phát nhạc, nút xóa lịch sử, phát nhạc trực tiếp và đánh dấu yêu thích.
+4. **Lọc Album thực thụ:** Phân loại và loại bỏ các đĩa đơn (Singles / Single / bài hát đơn lẻ), chỉ hiển thị các Album thực sự (như album phòng thu, EP nhiều bài).
+5. **Mục Nghệ sĩ nghệ thuật cao (Modern Artist Grid):** Thiết kế lại giao diện Nghệ sĩ dạng lưới 2 cột sang trọng phong cách Apple Music Artist Profile. Chân dung nghệ sĩ tròn lớn 96x96 có viền phát sáng neon, hiệu ứng đổ bóng sâu và badge số lượng bài hát tinh tế.
+6. **Loại bỏ hoàn toàn icon emoji thô:** Thay thế các ký tự emoji (`⚙️`, `▲`, `▼`, `•••`, `🔐`) bằng hệ thống nhãn thông minh (Badges) và icon vector SVG SF Symbols (`MoreHorizontalIcon`, `CameraIcon`, `ClockRewindIcon`).
+7. **Toàn bộ monorepo:** 225/225 tests passed 100%, typecheck sạch.
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 

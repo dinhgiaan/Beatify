@@ -40,6 +40,7 @@ import {
   StarIcon,
   TrophyIcon,
   MoonIcon,
+  MoreHorizontalIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { statsStorage } from '../../src/services/stats/statsStorage';
@@ -189,6 +190,30 @@ export default function LibraryScreen() {
       cover: artistTracks.find((t) => t.cover)?.cover,
     }));
   }, [tracks]);
+
+  // Lọc chỉ những Album thực sự (loại bỏ Singles / Single / Đĩa đơn hoặc album chỉ có 1 bài trùng tên với bài hát)
+  const realAlbums = useMemo(() => {
+    return (albums || []).filter((album) => {
+      if (!album || !album.title) return false;
+      const t = album.title.trim().toLowerCase();
+      if (
+        t === 'singles' ||
+        t === 'single' ||
+        t === 'đĩa đơn' ||
+        t === 'unknown album' ||
+        t === 'chưa rõ album'
+      ) {
+        return false;
+      }
+      const albumTracks = (tracks || []).filter((track) =>
+        track.albumId && album.id ? track.albumId === album.id : track.album === album.title
+      );
+      if (albumTracks.length <= 1 && albumTracks[0]?.title.trim().toLowerCase() === t) {
+        return false;
+      }
+      return true;
+    });
+  }, [albums, tracks]);
 
   const handleTrackPress = (item: Track) => {
     if (currentTrack?.id === item.id) {
@@ -343,7 +368,7 @@ export default function LibraryScreen() {
           </Text>
         </View>
 
-        {/* Nút ba chấm (...) mở menu thao tác */}
+        {/* Nút ba chấm (...) mở menu thao tác chuẩn SF Symbols */}
         <TouchableOpacity
           style={styles.moreButton}
           onPress={(e) => handleOpenMenu(e, item)}
@@ -352,7 +377,7 @@ export default function LibraryScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
         >
-          <Text style={styles.moreButtonText}>•••</Text>
+          <MoreHorizontalIcon size={18} color={colors.textTertiary} />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -401,39 +426,41 @@ export default function LibraryScreen() {
     );
   };
 
-  // Render mục Nghệ sĩ
+  // Render mục Nghệ sĩ dạng thẻ nghệ thuật Grid 2 cột (Modern Artist Card)
   const renderArtistItem = ({ item }: { item: (typeof artistGroups)[0] }) => {
     return (
       <TouchableOpacity
-        style={styles.artistItem}
-        activeOpacity={0.7}
+        style={styles.artistCard}
+        activeOpacity={0.75}
         onPress={() => {
           Vibration.vibrate(10);
           setSelectedCollection({
             visible: true,
             title: item.artist,
-            subtitle: `${item.trackCount} bài hát trong thư viện`,
+            subtitle: `${item.trackCount} tác phẩm trong thư viện`,
             coverUrl: item.cover,
             tracks: item.tracks,
             type: 'artist',
           });
         }}
       >
-        <View style={styles.artistAvatarWrapper}>
+        <View style={styles.artistAvatarGlowRing}>
           {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+            <Image source={{ uri: item.cover }} style={styles.artistCardAvatar} resizeMode="cover" />
           ) : (
-            <View style={styles.coverPlaceholder}>
-              <DiscIcon size={24} color={colors.borderLight} />
+            <View style={styles.artistCardPlaceholder}>
+              <DiscIcon size={36} color={colors.borderLight} />
             </View>
           )}
         </View>
-        <View style={styles.artistInfoWrapper}>
-          <Text style={styles.artistNameText} numberOfLines={1}>
-            {item.artist}
-          </Text>
-          <Text style={styles.artistSubText} numberOfLines={1}>
-            {item.trackCount} bài hát
+
+        <Text style={styles.artistCardName} numberOfLines={1}>
+          {item.artist}
+        </Text>
+
+        <View style={styles.artistTrackBadge}>
+          <Text style={styles.artistTrackBadgeText}>
+            {item.trackCount} BÀI HÁT
           </Text>
         </View>
       </TouchableOpacity>
@@ -640,7 +667,7 @@ export default function LibraryScreen() {
       ) : activeSegment === 'albums' ? (
         <FlatList
           key="flatlist-albums"
-          data={albums}
+          data={realAlbums}
           keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
           renderItem={renderAlbumItem}
           numColumns={2}
@@ -662,6 +689,8 @@ export default function LibraryScreen() {
           data={artistGroups}
           keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
           renderItem={renderArtistItem}
+          numColumns={2}
+          columnWrapperStyle={styles.artistColumnWrapper}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: contentPaddingBottom },
@@ -1094,37 +1123,74 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  artistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.md,
-    marginBottom: spacing.xs,
+  artistColumnWrapper: {
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
-  artistAvatarWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  artistCard: {
+    flex: 1,
+    maxWidth: '48%',
+    backgroundColor: 'rgba(28, 28, 30, 0.72)',
+    borderRadius: radius.xl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  artistAvatarGlowRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
-    marginRight: spacing.md,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 2,
+    borderColor: 'rgba(29, 185, 84, 0.45)',
+    marginBottom: spacing.md,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  artistCardAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  artistCardPlaceholder: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.surfaceActive,
   },
-  artistInfoWrapper: {
-    flex: 1,
-  },
-  artistNameText: {
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.semibold,
+  artistCardName: {
     color: colors.textPrimary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
-  artistSubText: {
-    fontSize: fontSizes.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
+  artistTrackBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  artistTrackBadgeText: {
+    color: colors.primary,
+    fontSize: 9.5,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     paddingVertical: spacing.huge,

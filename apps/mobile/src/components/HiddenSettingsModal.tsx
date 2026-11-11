@@ -371,19 +371,21 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             activeOpacity={0.7}
           >
             <View style={styles.devAccordionLeft}>
-              <Text style={styles.devAccordionIcon}>⚙️</Text>
-              <View>
-                <Text style={styles.devAccordionTitle}>Cài đặt kỹ thuật & Hệ thống</Text>
+              <View style={styles.devTagBadge}>
+                <Text style={styles.devTagBadgeText}>HỆ THỐNG</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.devAccordionTitle}>Cài đặt kỹ thuật & Máy chủ</Text>
                 <Text style={styles.devAccordionSubtitle}>
-                  {isDevSettingsOpen
-                    ? 'Chạm để thu gọn bảng điều khiển kỹ thuật'
-                    : 'Cloudflare Worker, ETag, Chứng chỉ Sideload...'}
+                  Cloudflare Worker, ETag, Chứng chỉ Sideload
                 </Text>
               </View>
             </View>
-            <Text style={styles.devAccordionChevron}>
-              {isDevSettingsOpen ? '▲' : '▼'}
-            </Text>
+            <View style={[styles.statusToggleBadge, isDevSettingsOpen && styles.statusToggleBadgeActive]}>
+              <Text style={[styles.statusToggleBadgeText, isDevSettingsOpen && styles.statusToggleBadgeTextActive]}>
+                {isDevSettingsOpen ? 'Thu gọn' : 'Chi tiết'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* CÁC PHẦN KỸ THUẬT (MẶC ĐỊNH THU GỌN ĐỂ TRẢI NGHIỆM THUẦN TÚY CONSUMER APP) */}
@@ -558,7 +560,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
                 />
 
                 <Text style={[styles.sectionDesc, { marginTop: spacing.xxs, color: colors.primary }]}>
-                  🔐 Token được mã hóa phần cứng và lưu an toàn trong iOS Keychain (Apple Secure Enclave).
+                  Token được mã hóa phần cứng và lưu an toàn trong iOS Keychain (Apple Secure Enclave).
                 </Text>
 
                 <TouchableOpacity
@@ -970,11 +972,22 @@ const styles = StyleSheet.create({
   devAccordionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
     flex: 1,
   },
-  devAccordionIcon: {
-    fontSize: 22,
+  devTagBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  devTagBadgeText: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
   },
   devAccordionTitle: {
     color: colors.textPrimary,
@@ -986,10 +999,25 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.caption,
     marginTop: 2,
   },
-  devAccordionChevron: {
+  statusToggleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  statusToggleBadgeActive: {
+    backgroundColor: colors.primaryMuted,
+    borderColor: colors.primary,
+  },
+  statusToggleBadgeText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+  },
+  statusToggleBadgeTextActive: {
     color: colors.primary,
-    fontSize: fontSizes.subhead,
     fontWeight: fontWeights.bold,
-    marginLeft: spacing.sm,
   },
 });

@@ -37,7 +37,22 @@ import {
   CheckIcon,
   ProfileIcon,
   MysteryIcon,
+  CameraIcon,
 } from './icons/SvgIcons';
+
+function formatVietnameseDate(dateStr?: string | null): string {
+  if (!dateStr) return 'Gần đây';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 interface ProfileModalProps {
   visible: boolean;
@@ -180,7 +195,7 @@ export function ProfileModal({
   const handleSaveProfile = async () => {
     if (!report) return;
     const trimmedName = tempName.trim() || 'Người Yêu Nhạc';
-    const trimmedBio = tempBio.trim() || 'Bộ sưu tập âm nhạc cá nhân chất lượng cao trên Beatify';
+    const trimmedBio = tempBio.trim();
     const trimmedUri = tempAvatarUri.trim();
     const updated: UserProfile = {
       ...report.profile,
@@ -278,8 +293,9 @@ export function ProfileModal({
                   onPress={handlePickImage}
                   activeOpacity={0.8}
                 >
+                  <CameraIcon size={18} color={colors.textDark} />
                   <Text style={styles.pickImageBtnText}>
-                    {tempAvatarUri ? 'Đổi ảnh khác từ iPhone' : 'Chọn ảnh từ Thư viện iPhone'}
+                    {tempAvatarUri ? 'Đổi ảnh' : 'Chọn ảnh từ iPhone'}
                   </Text>
                 </TouchableOpacity>
 
@@ -352,6 +368,17 @@ export function ProfileModal({
               </View>
             ) : (
               <View style={styles.profileCard}>
+                {/* Nút icon Edit đặt ở top-right góc trên bên phải */}
+                <TouchableOpacity
+                  style={styles.profileTopRightEditBtn}
+                  onPress={handleStartEditing}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Chỉnh sửa hồ sơ cá nhân"
+                >
+                  <EditIcon size={16} color={colors.primary} />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.avatarBox}
                   onPress={handleStartEditing}
@@ -377,34 +404,20 @@ export function ProfileModal({
                 </TouchableOpacity>
 
                 <View style={styles.profileInfo}>
-                  <TouchableOpacity
-                    style={styles.nameDisplayRow}
-                    onPress={handleStartEditing}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.displayName} numberOfLines={1}>
-                      {report.profile.displayName}
-                    </Text>
-                    <View style={{ marginLeft: spacing.xs }}>
-                      <EditIcon size={14} color={colors.primary} />
-                    </View>
-                  </TouchableOpacity>
-                  <Text style={styles.bioText} numberOfLines={2}>
-                    {report.profile.bio}
+                  <Text style={styles.displayName} numberOfLines={1}>
+                    {report.profile.displayName}
                   </Text>
+                  {report.profile.bio ? (
+                    <Text style={styles.bioText} numberOfLines={2}>
+                      {report.profile.bio}
+                    </Text>
+                  ) : null}
                   <View style={styles.joinedDateRow}>
                     <ClockIcon size={13} color={colors.textTertiary} />
                     <Text style={styles.joinedDateText}>
-                      Bắt đầu hành trình: {report.profile.joinedDate}
+                      Bắt đầu hành trình: {formatVietnameseDate(report.profile.joinedDate)}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.editProfileTriggerBtn}
-                    onPress={handleStartEditing}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.editProfileTriggerText}>Chỉnh sửa hồ sơ & ảnh</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -685,14 +698,30 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   profileCard: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
     padding: 16,
+    paddingRight: 48,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#2a2a2a',
     marginBottom: 16,
+  },
+  profileTopRightEditBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#262626',
+    borderWidth: 1,
+    borderColor: '#383838',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   avatarBox: {
     width: 64,
@@ -770,17 +799,19 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
   },
   pickImageBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   pickImageBtnText: {
     color: colors.textDark,
-    fontSize: fontSizes.body,
+    fontSize: fontSizes.subhead,
     fontWeight: fontWeights.bold,
   },
   editInputLabel: {
