@@ -10,6 +10,7 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  Image,
 } from 'react-native';
 import type { Track, UserState, Playlist } from '@music-app/shared';
 import {
@@ -21,6 +22,7 @@ import {
   PauseIcon,
   TrashIcon,
   CheckIcon,
+  DiscIcon,
 } from './icons/SvgIcons';
 
 export interface PlaylistModalProps {
@@ -410,6 +412,17 @@ export function PlaylistModal({
                             )}
                           </TouchableOpacity>
 
+                          {/* Ảnh bìa bài hát trong Playlist */}
+                          <View style={styles.trackCoverWrapper}>
+                            {track.cover ? (
+                              <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+                            ) : (
+                              <View style={styles.trackCoverPlaceholder}>
+                                <DiscIcon size={16} color="#71717a" />
+                              </View>
+                            )}
+                          </View>
+
                           <View style={styles.trackInfo}>
                             <Text
                               style={[styles.trackTitle, isPlayingThis && styles.trackTitleActive]}
@@ -466,6 +479,17 @@ export function PlaylistModal({
                         <PlayIcon size={18} color="#ffffff" />
                       )}
                     </TouchableOpacity>
+
+                    {/* Ảnh bìa bài hát yêu thích */}
+                    <View style={styles.trackCoverWrapper}>
+                      {track.cover ? (
+                        <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.trackCoverPlaceholder}>
+                          <DiscIcon size={16} color="#71717a" />
+                        </View>
+                      )}
+                    </View>
 
                     <View style={styles.trackInfo}>
                       <Text
@@ -869,6 +893,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+  },
+  trackCoverWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#1f242d',
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackCoverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  trackCoverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trackInfo: {
     flex: 1,

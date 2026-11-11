@@ -5,8 +5,11 @@ import {
   smartShuffle,
   sortTracksByMode,
   type TrackSortMode,
+  type SmartTransitionSettings,
 } from '@music-app/shared';
 import { playerService } from '../services/player/rntpPlayerService';
+import { transitionManager } from '../services/player/transitionManager';
+import { loadTransitionSettings } from '../services/player/transitionPreferences';
 import type { PlayerState, RepeatMode } from '../services/player/types';
 import { statsStorage } from '../services/stats/statsStorage';
 import {
@@ -52,6 +55,8 @@ export interface PlayerContextValue {
   setCustomLoopCount: (count: number | null) => Promise<void>;
   isVinylMode: boolean;
   toggleVinylMode: () => void;
+  transitionSettings: SmartTransitionSettings;
+  updateTransitionSettings: (settings: Partial<SmartTransitionSettings>) => void;
   toggleSmartShuffle: () => Promise<void>;
   applySortMode: (mode: TrackSortMode) => void;
   addCustomTrack: (url: string) => Promise<void>;
@@ -92,6 +97,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastLoopTrackIdRef = useRef<string | null>(null);
   const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
   const [isVinylMode, setIsVinylMode] = useState<boolean>(false);
+  const [transitionSettings, setTransitionSettings] = useState<SmartTransitionSettings>({
+    enabled: true,
+    durationSec: 4,
+    safeMode: false,
+  });
   const [sortMode, setSortMode] = useState<TrackSortMode>('smart');
 
   // Thống kê & Ghi đĩa atomic
@@ -121,6 +131,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setRecentTracksData(data);
     });
     loadVinylModePreference().then(setIsVinylMode);
+    loadTransitionSettings().then(setTransitionSettings);
+  }, []);
+
+  const updateTransitionSettings = useCallback((newSettings: Partial<SmartTransitionSettings>) => {
+    transitionManager.updateSettings(newSettings);
+    setTransitionSettings((prev) => ({
+      ...prev,
+      ...newSettings,
+    }));
   }, []);
 
   // 1. Khởi tạo player service và đăng ký listener ĐÚNG MỘT LẦN (State ổn định, không re-render theo tick tiến trình)
@@ -619,6 +638,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setCustomLoopCount,
         isVinylMode,
         toggleVinylMode,
+        transitionSettings,
+        updateTransitionSettings,
         toggleSmartShuffle,
         applySortMode,
         addCustomTrack,

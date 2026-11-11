@@ -132,7 +132,9 @@ export default function RecentScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Vừa nghe</Text>
+            <View style={styles.brandTag}>
+              <Text style={styles.brandTagText}>LỊCH SỬ PHÁT</Text>
+            </View>
             <Text style={styles.headerSubtitle}>
               {recentTracks.length > 0
                 ? `${recentTracks.length} bài hát được nghe gần đây`
@@ -189,6 +191,22 @@ export default function RecentScreen() {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       paddingBottom: spacing.sm,
+    },
+    brandTag: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.xs,
+      borderWidth: 1,
+      borderColor: 'rgba(34, 197, 94, 0.3)',
+      marginBottom: 4,
+    },
+    brandTagText: {
+      fontSize: fontSizes.caption,
+      fontWeight: fontWeights.bold,
+      color: colors.primary,
+      letterSpacing: 1.5,
     },
     headerTitle: {
       fontSize: fontSizes.headline,

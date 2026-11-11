@@ -21,6 +21,10 @@ export const TrackSchema = z.object({
   loudnessLufs: z.number().optional(), // độ ồn tích hợp (LUFS)
   replayGain: z.number().optional(), // dB cần chỉnh (thường âm)
   lyrics: LyricsRefSchema.optional(), // Phase 4
+  bpm: z.number().positive().optional(), // Nhịp/phút (BPM), vd 128.5
+  key: z.string().optional(), // Mã Camelot, vd "8A", "11B"
+  introEnd: z.number().nonnegative().optional(), // Giây kết thúc intro dạo đầu (vào beat/vocal)
+  outroStart: z.number().nonnegative().optional(), // Giây bắt đầu outro kết bài (hạ năng lượng/fade)
 });
 export type Track = z.infer<typeof TrackSchema>;
 

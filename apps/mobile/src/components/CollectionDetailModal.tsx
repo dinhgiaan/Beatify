@@ -105,6 +105,17 @@ export function CollectionDetailModal({
           <Text style={styles.indexText}>{index + 1}</Text>
         )}
 
+        {/* Ảnh bìa bài hát */}
+        <View style={styles.trackCoverWrapper}>
+          {item.cover ? (
+            <Image source={{ uri: item.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+          ) : (
+            <View style={styles.trackCoverPlaceholder}>
+              <DiscIcon size={16} color={colors.textTertiary} />
+            </View>
+          )}
+        </View>
+
         <View style={styles.trackInfo}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text
@@ -425,6 +436,26 @@ const styles = StyleSheet.create({
   indexTextActive: {
     color: colors.primary,
     fontWeight: fontWeights.bold,
+  },
+  trackCoverWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.xs,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+    marginLeft: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackCoverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  trackCoverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trackInfo: {
     flex: 1,

@@ -149,38 +149,10 @@ export function LyricsModal({
       );
     }
 
-    // Tính toán tiến trình dòng hát hiện tại (0.0 -> 1.0)
-    const nextLine = lrcLines[idx + 1];
-    const nextTime = nextLine ? nextLine.time : line.time + 4.5;
-    const lineDuration = Math.max(0.5, nextTime - line.time);
-    const elapsed = Math.max(0, currentTimeSec - line.time);
-    const progressRatio = Math.min(1, Math.max(0, elapsed / lineDuration));
-
-    const tokens = line.text.split(/(\s+)/);
-    const nonSpaceTokens = tokens.filter((t) => t.trim().length > 0);
-    const totalWords = nonSpaceTokens.length;
-    // Điểm mốc chữ hiện tại đã được hát qua
-    const currentWordCutoff = Math.floor(progressRatio * (totalWords + 0.35));
-
-    let wordCounter = 0;
-
+    // Hiển thị trọn vẹn cả câu hát khi đang active (đồng bộ chuẩn Apple Music / Spotify)
     return (
       <Text style={styles.lyricTextActive}>
-        {tokens.map((token, tIdx) => {
-          if (!token.trim()) {
-            return <Text key={`space-${tIdx}`}>{token}</Text>;
-          }
-          const isSung = wordCounter <= currentWordCutoff;
-          wordCounter++;
-          return (
-            <Text
-              key={`w-${tIdx}`}
-              style={isSung ? styles.wordSung : styles.wordUnsung}
-            >
-              {token}
-            </Text>
-          );
-        })}
+        {line.text}
       </Text>
     );
   };
@@ -470,16 +442,6 @@ const styles = StyleSheet.create({
     textShadowColor: colors.white35,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 10,
-  },
-  wordSung: {
-    color: colors.textPrimary,
-    fontWeight: fontWeights.extrabold,
-    opacity: 1,
-  },
-  wordUnsung: {
-    color: colors.white35,
-    fontWeight: fontWeights.medium,
-    opacity: 0.6,
   },
   plainLyricsBadge: {
     alignSelf: 'flex-start',

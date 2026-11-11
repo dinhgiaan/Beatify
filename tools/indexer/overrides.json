@@ -37,7 +37,36 @@
       "album": "Singles",
       "year": 2020,
       "loudnessLufs": -9.78,
-      "replayGain": -8.22
+      "replayGain": -8.22,
+      "hidden": false,
+      "purged": false
+    },
+    "baa55f484230": {
+      "title": "Mất Kết Nối",
+      "artist": "Dương Domic",
+      "album": "Singles",
+      "year": 2024,
+      "loudnessLufs": -10.43,
+      "replayGain": -7.57
+    },
+    "cd448c4210da": {
+      "title": "Hạ Còn Vương Nắng",
+      "artist": "DatKaa",
+      "album": "Singles",
+      "year": 2021,
+      "loudnessLufs": -12.94,
+      "replayGain": -5.06,
+      "hidden": true,
+      "purged": true,
+      "purgedAt": "2026-11-11T03:35:32.360Z"
+    },
+    "275aaa2484eb": {
+      "title": "Souls",
+      "artist": "Datmaniac",
+      "album": "Singles",
+      "year": 2024,
+      "loudnessLufs": -13.52,
+      "replayGain": -4.48
     }
   },
   "artistAliases": {}

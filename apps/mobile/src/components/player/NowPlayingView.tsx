@@ -225,6 +225,8 @@ export function NowPlayingView() {
             <VinylRecordView
               coverUri={currentTrack?.cover}
               isPlaying={playerState.isPlaying}
+              positionSec={positionSec}
+              durationSec={durationSec}
               size={Math.min(artworkSize, 305)}
             />
           ) : (
@@ -297,9 +299,20 @@ export function NowPlayingView() {
               >
                 <View style={styles.queueItemIndex}>
                   {isCurrent ? (
-                    < EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
+                    <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
                   ) : (
                     <Text style={styles.queueIndexText}>{index + 1}</Text>
+                  )}
+                </View>
+
+                {/* Ảnh bìa bài hát trong hàng đợi */}
+                <View style={styles.queueCoverWrapper}>
+                  {item.cover ? (
+                    <Image source={{ uri: item.cover }} style={styles.queueCoverImg} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.queueCoverPlaceholder}>
+                      <DiscIcon size={16} color={colors.textTertiary} />
+                    </View>
                   )}
                 </View>
 
@@ -979,6 +992,25 @@ const styles = StyleSheet.create({
     width: 20,
     alignItems: 'center',
     marginRight: spacing.xs,
+  },
+  queueCoverWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.xs,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+    marginRight: spacing.sm,
+  },
+  queueCoverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  queueCoverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceElevated,
   },
   queueIndexText: {
     fontSize: fontSizes.caption,

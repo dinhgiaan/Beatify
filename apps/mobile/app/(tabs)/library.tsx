@@ -510,7 +510,7 @@ export default function LibraryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Thư viện: Tiêu đề + Nút Avatar/Cài đặt góc trên phải */}
+      {/* Header Thư viện: Brand Badge & Thống kê (tinh gọn, không lặp lại tiêu đề tab) */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <TouchableOpacity
@@ -518,7 +518,12 @@ export default function LibraryScreen() {
             delayLongPress={600}
             activeOpacity={0.9}
           >
-            <Text style={styles.headerTitle}>Thư viện</Text>
+            <View style={styles.brandTag}>
+              <Text style={styles.brandTagText}>BEATIFY</Text>
+            </View>
+            <Text style={styles.headerStatsText}>
+              {tracks.length} bài hát • {formatTime(totalDurationSec)}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -536,10 +541,6 @@ export default function LibraryScreen() {
             </View>
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.headerStatsText}>
-          {tracks.length} bài hát • {formatTime(totalDurationSec)}
-        </Text>
 
         {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
         {tracks.length > 0 && (
@@ -967,6 +968,22 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+  },
+  brandTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    marginBottom: 4,
+  },
+  brandTagText: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.primary,
+    letterSpacing: 1.5,
   },
   headerTitle: {
     fontSize: fontSizes.headline,

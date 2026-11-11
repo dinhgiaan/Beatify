@@ -118,8 +118,6 @@ export default function SearchScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header & Thanh tìm kiếm */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tìm kiếm</Text>
-
         <View style={styles.searchBar}>
           <SearchIcon size={18} color={colors.textTertiary} />
           <TextInput

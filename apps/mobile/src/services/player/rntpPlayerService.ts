@@ -7,6 +7,7 @@ import TrackPlayer, {
 import type { Track } from '@music-app/shared';
 import type { IPlayerService, PlayerState, RepeatMode } from './types';
 import { gainToVolume } from '../../utils/gainToVolume';
+import { transitionManager } from './transitionManager';
 
 /**
  * Hiện thực IPlayerService sử dụng @rntp/player v5
@@ -58,6 +59,7 @@ export class RntpPlayerService implements IPlayerService {
             const volume = gainToVolume(currentTrack.replayGain);
             TrackPlayer.setVolume(volume);
           }
+          transitionManager.updateQueue(this.currentTracks, event.item.mediaId);
         }
         this.notifyListeners();
       });
@@ -133,6 +135,7 @@ export class RntpPlayerService implements IPlayerService {
       TrackPlayer.setMediaItems(mediaItems, safeIndex);
       TrackPlayer.play();
       this.startProgressTimer();
+      transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
     } catch (err) {
       console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
     }
@@ -155,6 +158,7 @@ export class RntpPlayerService implements IPlayerService {
     try {
       TrackPlayer.pause();
       this.stopProgressTimer();
+      transitionManager.restoreBaseVolume('manual_pause');
     } catch (err) {
       console.warn('[RNTP] Lỗi pause():', err);
     }
@@ -165,6 +169,7 @@ export class RntpPlayerService implements IPlayerService {
     await this.setup();
     this.lastTrackEndTime = Date.now();
     try {
+      transitionManager.restoreBaseVolume('manual_next');
       TrackPlayer.skipToNext();
     } catch (err) {
       console.warn('Không thể chuyển bài tiếp:', err);
@@ -175,6 +180,7 @@ export class RntpPlayerService implements IPlayerService {
   async previous(): Promise<void> {
     await this.setup();
     try {
+      transitionManager.restoreBaseVolume('manual_previous');
       TrackPlayer.skipToPrevious();
     } catch (err) {
       console.warn('Không thể quay lại bài trước:', err);
@@ -200,6 +206,7 @@ export class RntpPlayerService implements IPlayerService {
   async seekTo(seconds: number): Promise<void> {
     await this.setup();
     try {
+      transitionManager.restoreBaseVolume('manual_seek');
       TrackPlayer.seekTo(seconds);
     } catch (err) {
       console.warn('Không thể tua nhạc:', err);
@@ -275,6 +282,10 @@ export class RntpPlayerService implements IPlayerService {
   private startProgressTimer(): void {
     if (this.progressTimer) return;
     this.progressTimer = setInterval(() => {
+      const state = this.getCurrentState();
+      if (state.isPlaying) {
+        transitionManager.onPlaybackProgress(state.positionSec, state.durationSec);
+      }
       this.notifyListeners();
     }, 250);
   }

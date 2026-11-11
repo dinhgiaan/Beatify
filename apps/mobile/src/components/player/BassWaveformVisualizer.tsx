@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { colors, radius } from '../../theme';
+import { radius } from '../../theme';
 
 interface BassWaveformVisualizerProps {
   isPlaying: boolean;
@@ -9,25 +9,26 @@ interface BassWaveformVisualizerProps {
 }
 
 /**
- * BassWaveformVisualizer: Cụm Stereo LED VU Meter / Bass Spectrum Visualizer dày dặn
- * Mô phỏng dải đèn nhảy nhịp điệu của các dòng đài cassette Boombox cổ điển và bàn mixer phòng thu Hip-hop.
- * Gồm các dải tần Sub-bass, 808 Kick, Mid-range và Treble nảy sống động ở 60fps.
+ * BassWaveformVisualizer: Cụm Audio Spectrum Visualizer phong cách Studio DAC & Mastering Equalizer
+ * - 24 cột sóng thanh mảnh, bo góc mềm mại, hiển thị dải phổ âm thanh từ Sub-bass (30Hz) đến Air/Highs (16kHz)
+ * - Tông màu xanh ngọc lục bảo Studio Emerald (#10B981) siêu sang trọng, thanh lịch
+ * - Hiệu ứng nảy hữu cơ (Organic Fluid Dynamic) theo đường cong tự nhiên khi phát nhạc, thu về trạng thái nghỉ tối giản khi tạm dừng
  */
 export function BassWaveformVisualizer({
   isPlaying,
-  barCount = 9,
+  barCount = 24,
   height = 36,
 }: BassWaveformVisualizerProps) {
   // Tạo mảng animation cho từng cột sóng
   const anims = useRef(
-    Array.from({ length: barCount }, () => new Animated.Value(0.2))
+    Array.from({ length: barCount }, () => new Animated.Value(0.12))
   ).current;
 
   useEffect(() => {
     if (!isPlaying) {
       anims.forEach((anim) => {
         Animated.timing(anim, {
-          toValue: 0.15,
+          toValue: 0.12,
           duration: 350,
           useNativeDriver: true,
         }).start();
@@ -35,14 +36,24 @@ export function BassWaveformVisualizer({
       return;
     }
 
-    // Các chu kỳ nhịp điệu khác nhau cho từng dải tần số bass -> treble
-    const durations = [320, 240, 410, 280, 190, 360, 220, 440, 260, 310, 200];
-    const maxScales = [0.95, 0.75, 1.0, 0.85, 0.9, 0.7, 0.95, 0.8, 1.0, 0.75, 0.85];
+    // Tần số dao động tự nhiên cho từng cột dựa theo phổ âm thanh thực tế:
+    // Cột thấp (Bass) nảy sâu và nhịp nhàng, cột giữa (Mid) nảy linh hoạt, cột cao (Treble) nháy nhanh
+    const baseDurations = [
+      480, 420, 360, 310, 260, 220, 190, 240, 280, 320, 250, 210,
+      180, 230, 290, 340, 270, 220, 190, 250, 310, 370, 430, 490,
+    ];
+
+    // Đường cong hình chuông (Bell Curve) cho biên độ tối đa:
+    // Năng lượng tập trung ở Sub-bass / Kick / Vocals và vuốt nhẹ về 2 đầu biên
+    const maxAmplitudes = [
+      0.45, 0.65, 0.85, 0.95, 1.0, 0.92, 0.88, 0.95, 0.82, 0.9, 0.96, 0.84,
+      0.89, 0.94, 0.85, 0.78, 0.92, 0.86, 0.75, 0.68, 0.6, 0.52, 0.45, 0.38,
+    ];
 
     const loops = anims.map((anim, idx) => {
-      const dur = durations[idx % durations.length] || 300;
-      const maxVal = maxScales[idx % maxScales.length] || 0.9;
-      const minVal = 0.18 + (idx % 3) * 0.05;
+      const dur = baseDurations[idx % baseDurations.length] || 280;
+      const maxVal = maxAmplitudes[idx % maxAmplitudes.length] || 0.85;
+      const minVal = 0.14 + (idx % 4) * 0.04;
 
       return Animated.loop(
         Animated.sequence([
@@ -53,7 +64,7 @@ export function BassWaveformVisualizer({
           }),
           Animated.timing(anim, {
             toValue: minVal,
-            duration: Math.round(dur * 0.9),
+            duration: Math.round(dur * 0.85),
             useNativeDriver: true,
           }),
         ])
@@ -65,41 +76,30 @@ export function BassWaveformVisualizer({
     return () => {
       loops.forEach((l) => l.stop());
     };
-  }, [isPlaying, anims]);
+  }, [isPlaying, anims, barCount]);
 
-  // Màu sắc phân tầng LED theo chiều cao:
-  // Cột ở giữa và 2 bên có sắc thái riêng biệt
-  const getBarColor = (index: number) => {
-    const center = Math.floor(barCount / 2);
-    const dist = Math.abs(index - center);
-    if (dist === 0) return '#10B981'; // Xanh ngọc neon
-    if (dist <= 2) return colors.primary; // Xanh Spotify
-    if (dist <= 3) return '#F59E0B'; // Vàng cam ấm
-    return '#EC4899'; // Hồng neon
+  // Độ mờ đục (Opacity) phân lớp theo vị trí phổ âm thanh để tạo chiều sâu thị giác sang trọng
+  const getBarOpacity = (index: number) => {
+    const center = barCount / 2;
+    const distance = Math.abs(index - center) / center;
+    return Math.max(0.65, 1.0 - distance * 0.35);
   };
 
   return (
     <View style={[styles.container, { height }]}>
-      <View style={styles.barsRow}>
+      <View style={styles.spectrumRow}>
         {anims.map((anim, idx) => (
-          <View key={`bar-${idx}`} style={[styles.barSlot, { height }]}>
+          <View key={`spec-bar-${idx}`} style={[styles.barSlot, { height }]}>
             <Animated.View
               style={[
                 styles.barColumn,
                 {
                   height,
-                  backgroundColor: getBarColor(idx),
-                  transform: [
-                    {
-                      scaleY: anim,
-                    },
-                  ],
+                  opacity: getBarOpacity(idx),
+                  transform: [{ scaleY: anim }],
                 },
               ]}
-            >
-              {/* Vạch đèn LED đỉnh (Peak Peak Indicator) */}
-              <View style={styles.peakLed} />
-            </Animated.View>
+            />
           </View>
         ))}
       </View>
@@ -112,36 +112,31 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 4,
+    marginVertical: 6,
   },
-  barsRow: {
+  spectrumRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    width: '80%',
+    gap: 3.5,
+    width: '92%',
+    maxWidth: 320,
+    height: '100%',
   },
   barSlot: {
     flex: 1,
-    maxWidth: 16,
+    maxWidth: 4.5,
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
   },
   barColumn: {
     width: '100%',
     borderRadius: radius.pill,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  peakLed: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    right: 2,
-    height: 3,
-    borderRadius: radius.xs,
-    backgroundColor: '#ffffff',
-    opacity: 0.85,
+    backgroundColor: '#10B981', // Studio Emerald Green
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 4,
   },
 });
-

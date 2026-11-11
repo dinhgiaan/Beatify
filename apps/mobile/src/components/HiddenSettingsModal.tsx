@@ -33,6 +33,7 @@ import { useLibrary, usePlayer, useOffline } from '../context';
 import { statsStorage } from '../services/stats/statsStorage';
 import { ProfileModal } from './ProfileModal';
 import { OfflineDownloadsModal } from './OfflineDownloadsModal';
+import { TransitionLogModal } from './TransitionLogModal';
 import { formatBytes } from '../services/offline/offlineStorage';
 import {
   CloseIcon,
@@ -84,6 +85,8 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
     clearRecentTracks,
     isVinylMode,
     toggleVinylMode,
+    transitionSettings,
+    updateTransitionSettings,
   } = usePlayer();
 
   const { offlineTracks, totalSizeBytes, clearAllOffline } = useOffline();
@@ -98,6 +101,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [replayReport, setReplayReport] = useState<FullReplayReport | null>(null);
   const [isDevSettingsOpen, setIsDevSettingsOpen] = useState(false);
+  const [transitionLogModalVisible, setTransitionLogModalVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -228,9 +232,11 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
               <Text style={styles.profileHeaderName} numberOfLines={1}>
                 {userProfile?.displayName || 'Người Yêu Nhạc'}
               </Text>
-              <Text style={styles.profileHeaderBio} numberOfLines={1}>
-                {userProfile?.bio || 'Chạm để sửa tên, ảnh đại diện & xem thống kê'}
-              </Text>
+              {Boolean(userProfile?.bio) && (
+                <Text style={styles.profileHeaderBio} numberOfLines={1}>
+                  {userProfile?.bio}
+                </Text>
+              )}
             </View>
             <View style={styles.profileEditBadge}>
               <EditIcon size={16} color={colors.primary} />
@@ -341,71 +347,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             </TouchableOpacity>
           </View>
 
-          {/* MỤC 2: QUẢN LÝ DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE) */}
-          <View style={styles.sectionCard}>
-            <View style={styles.mysteryTitleRow}>
-              <DownloadIcon size={20} color={colors.primary} />
-              <Text style={[styles.sectionHeader, { color: colors.primary, marginBottom: 0 }]}>
-                DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE)
-              </Text>
-            </View>
-            <Text style={styles.sectionDesc}>
-              Toàn bộ bài hát tải về được lưu trữ cục bộ an toàn trong thư mục tài liệu của app. Bạn có thể nghe bất cứ lúc nào mà không tốn dung lượng mạng:
-            </Text>
-
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Tổng dung lượng đã chiếm</Text>
-              <Text style={[styles.valueText, { color: colors.primary, fontWeight: fontWeights.bold }]}>
-                {formatBytes(totalSizeBytes)}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Số bài hát đã lưu trữ</Text>
-              <Text style={styles.valueText}>{offlineTracks.length} bài hát</Text>
-            </View>
-
-            <View style={[styles.actionRow, { marginTop: spacing.md }]}>
-              <TouchableOpacity
-                style={styles.primaryActionBtn}
-                onPress={() => {
-                  Vibration.vibrate(10);
-                  setOfflineModalVisible(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.primaryActionBtnText}>Quản lý bài đã tải</Text>
-              </TouchableOpacity>
-
-              {offlineTracks.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.secondaryActionBtn, { borderColor: colors.dangerBorder }]}
-                  onPress={() => {
-                    Vibration.vibrate(10);
-                    Alert.alert(
-                      'Xóa tất cả nhạc ngoại tuyến?',
-                      `Giải phóng toàn bộ ${formatBytes(totalSizeBytes)} bộ nhớ trên máy.`,
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        {
-                          text: 'Xóa sạch',
-                          style: 'destructive',
-                          onPress: () => clearAllOffline(),
-                        },
-                      ]
-                    );
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.secondaryActionBtnText, { color: colors.dangerLight }]}>
-                    Xóa tất cả
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* MỤC 3: TRẢI NGHIỆM PHÁT NHẠC (TURNTABLE VINYL & VISUALIZER) */}
+          {/* MỤC 2: TRẢI NGHIỆM PHÁT NHẠC (TURNTABLE VINYL & VISUALIZER) */}
           <View style={styles.sectionCard}>
             <View style={styles.mysteryTitleRow}>
               <DiscIcon size={20} color={colors.primary} />
@@ -432,6 +374,90 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             </View>
           </View>
 
+          {/* CHUYỂN BÀI THÔNG MINH (SMART TRANSITION & HARMONIC MIX) */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.streetBadge}>
+                <Text style={styles.streetBadgeText}>DJ ENGINE</Text>
+              </View>
+              <Text style={styles.sectionHeader}>CHUYỂN BÀI THÔNG MINH (SMART TRANSITION)</Text>
+            </View>
+            <Text style={styles.sectionDesc}>
+              Tự động phân tích BPM, khóa Camelot, và điểm Outro/Intro để phối chuyển bài mượt mà theo đường cong Equal-Power, bảo toàn ReplayGain:
+            </Text>
+
+            {/* BẬT / TẮT CHÍNH */}
+            <View style={styles.rowItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Kích hoạt Smart Transition</Text>
+                <Text style={styles.subLabel}>Mặc định bật, fade theo thời gian thực (wall-clock)</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.vinylToggleSwitch, transitionSettings.enabled && styles.vinylToggleSwitchActive]}
+                onPress={() => updateTransitionSettings({ enabled: !transitionSettings.enabled })}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.switchThumb, transitionSettings.enabled && styles.switchThumbActive]} />
+              </TouchableOpacity>
+            </View>
+
+            {/* THỜI LƯỢNG CHUYỂN BÀI (2s - 8s) */}
+            {transitionSettings.enabled && (
+              <>
+                <View style={{ marginTop: 12, marginBottom: 6 }}>
+                  <Text style={styles.label}>Thời lượng chuyển bài mục tiêu</Text>
+                  <Text style={styles.subLabel}>Tự động co giãn dựa theo độ tương thích BPM & Camelot Key</Text>
+                </View>
+                <View style={styles.pillRow}>
+                  {([2, 3, 4, 5, 6, 8] as const).map((dur) => {
+                    const isSelected = transitionSettings.durationSec === dur;
+                    return (
+                      <TouchableOpacity
+                        key={dur}
+                        style={[styles.pillBtn, isSelected && styles.pillBtnActive]}
+                        onPress={() => updateTransitionSettings({ durationSec: dur })}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.pillBtnText, isSelected && styles.pillBtnTextActive]}>
+                          {dur}s{dur === 4 ? ' ★' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* CHẾ ĐỘ AN TOÀN (SAFE MODE) */}
+                <View style={[styles.rowItem, { marginTop: 12 }]}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={styles.label}>Chế độ an toàn (Safe Mode)</Text>
+                    <Text style={styles.subLabel}>
+                      Chỉ nhảy vào bài mới tại Intro Cue Point, không fade volume qua JS (phòng khi màn hình khóa)
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.vinylToggleSwitch, transitionSettings.safeMode && styles.vinylToggleSwitchActive]}
+                    onPress={() => updateTransitionSettings({ safeMode: !transitionSettings.safeMode })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.switchThumb, transitionSettings.safeMode && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {/* NÚT MỞ NHẬT KÝ CHẨN ĐOÁN (TRANSITION LOG) */}
+            <TouchableOpacity
+              style={styles.logLaunchBtn}
+              onPress={() => setTransitionLogModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 16 }}>🎛️</Text>
+              <Text style={styles.logLaunchBtnText}>
+                Xem Nhật ký chuyển bài (Transition Log)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* NÚT BẤM MỞ RỘNG/THU GỌN CÀI ĐẶT KỸ THUẬT DÀNH CHO DEVELOPER (ACCORDION) */}
           <TouchableOpacity
             style={styles.devAccordionToggle}
@@ -445,7 +471,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
               <View style={{ flex: 1 }}>
                 <Text style={styles.devAccordionTitle}>Cài đặt kỹ thuật & Máy chủ</Text>
                 <Text style={styles.devAccordionSubtitle}>
-                  Lịch sử nghe, Cloudflare Worker, ETag, Sideload
+                  Nhạc offline, Lịch sử nghe, Cloudflare Worker, ETag, Sideload
                 </Text>
               </View>
             </View>
@@ -459,6 +485,70 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
           {/* CÁC PHẦN KỸ THUẬT (MẶC ĐỊNH THU GỌN VỚI HIỆU ỨNG ANIMATION CHUYỂN ĐỘNG MƯỢT MÀ) */}
           {isDevSettingsOpen && (
             <>
+              {/* QUẢN LÝ DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE) */}
+              <View style={styles.sectionCard}>
+                <View style={styles.mysteryTitleRow}>
+                  <DownloadIcon size={20} color={colors.primary} />
+                  <Text style={[styles.sectionHeader, { color: colors.primary, marginBottom: 0 }]}>
+                    DUNG LƯỢNG NHẠC NGOẠI TUYẾN (OFFLINE)
+                  </Text>
+                </View>
+                <Text style={styles.sectionDesc}>
+                  Toàn bộ bài hát tải về được lưu trữ cục bộ an toàn trong thư mục tài liệu của app. Bạn có thể nghe bất cứ lúc nào mà không tốn dung lượng mạng:
+                </Text>
+
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Tổng dung lượng đã chiếm</Text>
+                  <Text style={[styles.valueText, { color: colors.primary, fontWeight: fontWeights.bold }]}>
+                    {formatBytes(totalSizeBytes)}
+                  </Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.rowItem}>
+                  <Text style={styles.label}>Số bài hát đã lưu trữ</Text>
+                  <Text style={styles.valueText}>{offlineTracks.length} bài hát</Text>
+                </View>
+
+                <View style={[styles.actionRow, { marginTop: spacing.md }]}>
+                  <TouchableOpacity
+                    style={styles.primaryActionBtn}
+                    onPress={() => {
+                      Vibration.vibrate(10);
+                      setOfflineModalVisible(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.primaryActionBtnText}>Quản lý bài đã tải</Text>
+                  </TouchableOpacity>
+
+                  {offlineTracks.length > 0 && (
+                    <TouchableOpacity
+                      style={[styles.secondaryActionBtn, { borderColor: colors.dangerBorder }]}
+                      onPress={() => {
+                        Vibration.vibrate(10);
+                        Alert.alert(
+                          'Xóa tất cả nhạc ngoại tuyến?',
+                          `Giải phóng toàn bộ ${formatBytes(totalSizeBytes)} bộ nhớ trên máy.`,
+                          [
+                            { text: 'Hủy', style: 'cancel' },
+                            {
+                              text: 'Xóa sạch',
+                              style: 'destructive',
+                              onPress: () => clearAllOffline(),
+                            },
+                          ]
+                        );
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.secondaryActionBtnText, { color: colors.dangerLight }]}>
+                        Xóa tất cả
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
               {/* TÙY CHỌN NGHE GẦN ĐÂY (CHUYỂN VÀO PHẦN KỸ THUẬT & MÁY CHỦ) */}
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
@@ -742,6 +832,12 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
         <OfflineDownloadsModal
           visible={offlineModalVisible}
           onClose={() => setOfflineModalVisible(false)}
+        />
+
+        {/* Modal Xem Nhật ký chuyển bài (TransitionLogModal) */}
+        <TransitionLogModal
+          visible={transitionLogModalVisible}
+          onClose={() => setTransitionLogModalVisible(false)}
         />
       </View>
     </Modal>
@@ -1317,5 +1413,40 @@ const styles = StyleSheet.create({
   switchThumbActive: {
     backgroundColor: '#ffffff',
     alignSelf: 'flex-end',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  streetBadge: {
+    backgroundColor: '#064E3B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  streetBadgeText: {
+    color: '#34D399',
+    fontSize: 9,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
+  },
+  logLaunchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#161618',
+    borderColor: '#262626',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    marginTop: 14,
+  },
+  logLaunchBtnText: {
+    color: colors.primary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
   },
 });

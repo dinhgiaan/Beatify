@@ -1,7 +1,8 @@
 import { loadConfig } from './config';
-import { findAudioFiles, scanAudioFile } from './services/scanner';
+import { findAudioFiles, scanAudioFile, calculateTrackId } from './services/scanner';
 import { buildLibrary } from './services/libraryBuilder';
 import { R2Uploader } from './services/r2Uploader';
+import { analyzeAudioFile } from './services/audioAnalysisService';
 
 async function main() {
   const command = process.argv[2] || 'help';
@@ -12,6 +13,7 @@ async function main() {
     console.log(`
 Cách dùng:
   pnpm indexer scan         Quét thư mục nhạc và in danh sách bài hát
+  pnpm indexer analyze      Phân tích BPM, Camelot Key, Intro/Outro (chạy lại thư viện)
   pnpm indexer sync         Quét, tạo thư viện và đồng bộ lên Cloudflare R2
   pnpm indexer ui           Mở Web Dashboard quản lý trên trình duyệt
     `);
@@ -34,10 +36,38 @@ Cách dùng:
       const scanned = await scanAudioFile(f);
       if (scanned) {
         count++;
-        console.log(`  ${count}. [${scanned.track.artist}] ${scanned.track.title} (${scanned.track.duration}s)`);
+        const keyInfo = scanned.track.key ? ` | Key: ${scanned.track.key}` : '';
+        const bpmInfo = scanned.track.bpm ? ` | BPM: ${scanned.track.bpm}` : '';
+        console.log(`  ${count}. [${scanned.track.artist}] ${scanned.track.title} (${scanned.track.duration}s${bpmInfo}${keyInfo})`);
       }
     }
     console.log(`\n✅ Quét thành công ${count} bài hát.`);
+  } else if (command === 'analyze') {
+    console.log(`🔬 Đang quét và phân tích âm thanh thư mục: ${config.MUSIC_SOURCE_DIR}...`);
+    const files = await findAudioFiles(config.MUSIC_SOURCE_DIR);
+    console.log(`📁 Tìm thấy ${files.length} file âm thanh.`);
+
+    let successCount = 0;
+    let failedCount = 0;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!f) continue;
+      try {
+        const id = await calculateTrackId(f);
+        const res = await analyzeAudioFile(f, id, false);
+        if (res) {
+          successCount++;
+          console.log(`  [${i + 1}/${files.length}] ✅ ${id} -> BPM: ${res.bpm ?? 'N/A'}, Key: ${res.key ?? 'N/A'}, Intro: ${res.introEnd}s, Outro: ${res.outroStart}s`);
+        } else {
+          failedCount++;
+          console.log(`  [${i + 1}/${files.length}] ⚠️ ${id} -> Không trích xuất được thông tin, bỏ qua an toàn.`);
+        }
+      } catch (err) {
+        failedCount++;
+        console.warn(`  [${i + 1}/${files.length}] ❌ Lỗi phân tích "${f}":`, err);
+      }
+    }
+    console.log(`\n🎉 Hoàn thành phân tích: ${successCount} thành công, ${failedCount} bỏ qua.`);
   } else if (command === 'sync') {
     console.log(`🚀 Bắt đầu đồng bộ thư viện lên Cloudflare R2 (${config.R2_BUCKET})...`);
     const files = await findAudioFiles(config.MUSIC_SOURCE_DIR);

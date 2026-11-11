@@ -9,6 +9,21 @@ const mockPause = vi.fn().mockReturnValue(undefined);
 const mockSeekTo = vi.fn().mockReturnValue(undefined);
 const mockSetVolume = vi.fn().mockReturnValue(undefined);
 
+vi.mock('react-native', () => ({
+  AppState: {
+    currentState: 'active',
+    addEventListener: vi.fn().mockReturnValue({ remove: vi.fn() }),
+  },
+}));
+
+vi.mock('./transitionManager', () => ({
+  transitionManager: {
+    updateQueue: vi.fn(),
+    onPlaybackProgress: vi.fn(),
+    restoreBaseVolume: vi.fn(),
+  },
+}));
+
 vi.mock('@rntp/player', () => ({
   default: {
     setupPlayer: (...args: unknown[]) => mockSetupPlayer(...args),

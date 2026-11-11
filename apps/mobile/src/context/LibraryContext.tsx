@@ -305,7 +305,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
           etag: loadedEtag,
           silent: true,
           force: false,
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
 
@@ -423,7 +423,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             const cleanToken = decodeURIComponent(newToken).trim();
             setServerUrl(cleanUrl);
             setServerToken(cleanToken);
-            setSecureServerToken(cleanToken).catch(() => {});
+            setSecureServerToken(cleanToken).catch(() => { });
 
             // Lưu cấu hình serverUrl vào file (token bảo mật lưu trong iOS Keychain)
             FileSystem.writeAsStringAsync(
@@ -433,7 +433,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
             Vibration.vibrate([0, 80, 50, 80]);
             Alert.alert(
-              'Kết nối thành công! 🎉',
+              'Kết nối thành công!',
               `Đã nhận cấu hình máy chủ từ mã QR của Beatify Dashboard:\n\nServer: ${cleanUrl}\n\nĐang tự động đồng bộ thư viện nhạc...`
             );
 
@@ -536,8 +536,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       FileSystem.writeAsStringAsync(
         CONFIG_FILE,
         JSON.stringify({ serverUrl: cleanUrl })
-      ).catch(() => {});
-      setSecureServerToken(cleanToken).catch(() => {});
+      ).catch(() => { });
+      setSecureServerToken(cleanToken).catch(() => { });
 
       await syncLibraryInternal({
         url: cleanUrl,

@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import * as mm from 'music-metadata';
 import type { Track } from '@music-app/shared';
 import { normalizeText } from '@music-app/shared';
+import { analyzeAudioFile } from './audioAnalysisService';
 
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.m4a', '.flac', '.aac', '.ogg', '.wav']);
 
@@ -123,6 +124,19 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
         source: 'sidecar',
         reviewed: true,
       };
+    }
+
+    // Tự động phân tích BPM, Camelot Key, introEnd, outroStart (có bộ đệm cache)
+    try {
+      const analysis = await analyzeAudioFile(filePath, id);
+      if (analysis) {
+        track.bpm = analysis.bpm;
+        track.key = analysis.key;
+        track.introEnd = analysis.introEnd;
+        track.outroStart = analysis.outroStart;
+      }
+    } catch (analysisErr) {
+      console.warn(`[Scanner] Bỏ qua phân tích audio cho "${title}" (${id}):`, analysisErr);
     }
 
     return {
