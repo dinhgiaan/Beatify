@@ -328,8 +328,8 @@ export const LibraryPage: React.FC<{
         albumId: track.albumId,
         title: track.title,
         artist: track.artist,
-        fileUrl: `/local-api/tracks/${track.id}/stream`,
-        coverUrl: track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined,
+        fileUrl: `/local-api/stream/${track.id}`,
+        coverUrl: track.hasCover ? `/local-api/covers/${track.albumId || track.id}.jpg` : undefined,
       }));
 
     onPlayTrack?.(
@@ -338,8 +338,8 @@ export const LibraryPage: React.FC<{
         albumId: t.albumId,
         title: t.title,
         artist: t.artist,
-        fileUrl: `/local-api/tracks/${t.id}/stream`,
-        coverUrl: t.albumId ? `/local-api/covers/${t.albumId}.jpg` : undefined,
+        fileUrl: `/local-api/stream/${t.id}`,
+        coverUrl: t.hasCover ? `/local-api/covers/${t.albumId || t.id}.jpg` : undefined,
       },
       currentQueue
     );
@@ -890,14 +890,14 @@ export const LibraryPage: React.FC<{
                             title: t.title,
                             artist: t.artist,
                             fileUrl: `/local-api/stream/${t.id}`,
-                            coverUrl: `/local-api/covers/${t.albumId || t.id}.jpg`,
+                            coverUrl: t.hasCover ? `/local-api/covers/${t.albumId || t.id}.jpg` : undefined,
                           });
                         }
                       }}
                       className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0 flex items-center justify-center relative shadow-sm cursor-pointer group/thumb"
                     >
                       <Music size={16} className="text-zinc-600 shrink-0" />
-                      {(t.albumId || t.id) && (
+                      {t.hasCover && (t.albumId || t.id) && (
                         <img
                           src={`/local-api/covers/${t.albumId || t.id}.jpg`}
                           alt={t.title}

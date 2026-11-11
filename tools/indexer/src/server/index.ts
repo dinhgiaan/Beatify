@@ -375,7 +375,14 @@ app.get('/local-api/library', async (c) => {
     }
     const ext = path.extname(item.filePath).toUpperCase().replace('.', '') || 'OTHER';
     formatsCount[ext] = (formatsCount[ext] || 0) + 1;
-    const hasCover = Boolean(item.coverBuffer || (item.track.albumId && cachedCovers.has(item.track.albumId)));
+    const albumId = item.track.albumId;
+    const trackId = item.track.id;
+    const hasCover = Boolean(
+      item.coverBuffer ||
+      item.track.cover ||
+      (albumId && (cachedCovers.has(albumId) || existsSync(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`)))) ||
+      (trackId && (cachedCovers.has(trackId) || existsSync(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`))))
+    );
     if (hasCover) tracksWithCover++;
     totalDurationSec += item.track.duration;
     totalLocalSizeBytes += sizeBytes;
@@ -476,18 +483,45 @@ app.get('/local-api/tracks', async (c) => {
   const overrides = await getOverrides();
   cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
 
-  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR
+  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR và cachedCovers
   for (const item of cachedScannedTracks) {
     const albumId = item.track.albumId;
-    if (albumId && !cachedCovers.has(albumId)) {
-      const customPath = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
-      if (existsSync(customPath)) {
-        try {
-          const buf = await fs.readFile(customPath);
-          cachedCovers.set(albumId, buf);
-          item.coverBuffer = buf;
-        } catch {
-          // bỏ qua
+    const trackId = item.track.id;
+
+    if (albumId) {
+      if (cachedCovers.has(albumId)) {
+        item.coverBuffer = item.coverBuffer || cachedCovers.get(albumId);
+        item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
+      } else {
+        const customPath = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
+        if (existsSync(customPath)) {
+          try {
+            const buf = await fs.readFile(customPath);
+            cachedCovers.set(albumId, buf);
+            item.coverBuffer = buf;
+            item.track.cover = `covers/${albumId}.jpg`;
+          } catch {
+            // bỏ qua
+          }
+        }
+      }
+    }
+
+    if (trackId && !item.coverBuffer) {
+      if (cachedCovers.has(trackId)) {
+        item.coverBuffer = cachedCovers.get(trackId);
+        if (albumId) item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
+      } else {
+        const customPath = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
+        if (existsSync(customPath)) {
+          try {
+            const buf = await fs.readFile(customPath);
+            cachedCovers.set(trackId, buf);
+            item.coverBuffer = buf;
+            if (albumId) item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
+          } catch {
+            // bỏ qua
+          }
         }
       }
     }
@@ -498,6 +532,15 @@ app.get('/local-api/tracks', async (c) => {
   const tracks = cachedScannedTracks.map((item) => {
     const fileExists = existsSync(item.filePath);
     const ext = path.extname(item.filePath).replace('.', '').toLowerCase();
+    const albumId = item.track.albumId;
+    const trackId = item.track.id;
+    const hasCover = Boolean(
+      item.coverBuffer ||
+      item.track.cover ||
+      (albumId && (cachedCovers.has(albumId) || existsSync(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`)))) ||
+      (trackId && (cachedCovers.has(trackId) || existsSync(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`))))
+    );
+
     return {
       id: item.track.id,
       title: item.track.title,
@@ -506,7 +549,7 @@ app.get('/local-api/tracks', async (c) => {
       albumId: item.track.albumId,
       duration: item.track.duration,
       format: ext,
-      hasCover: !!(item.coverBuffer || item.track.cover),
+      hasCover,
       hasLyrics: !!item.track.lyrics,
       filePath: item.filePath,
       fileExists,
@@ -517,24 +560,66 @@ app.get('/local-api/tracks', async (c) => {
   return c.json({ status: 200, tracks });
 });
 
-// 3. API: Phát audio preview (hỗ trợ cả /local-api/audio/:id và /local-api/stream/:id)
-const streamHandler = (c: Context) => {
+// 3. API: Phát audio preview (hỗ trợ cả /local-api/stream/:id, /local-api/audio/:id, /local-api/tracks/:id/stream)
+const streamHandler = async (c: Context) => {
   const id = c.req.param('id');
-  const target = cachedScannedTracks.find((t) => t.track.id === id);
+  let target = cachedScannedTracks.find((t) => t.track.id === id);
+  if (!target || !target.filePath || !existsSync(target.filePath)) {
+    try {
+      const localConfig = loadLocalConfig();
+      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      const rawScanned = await scanFilesWithCache(files);
+      const overrides = await getOverrides();
+      cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
+      target = cachedScannedTracks.find((t) => t.track.id === id);
+    } catch {
+      // bỏ qua
+    }
+  }
+
   if (!target || !target.filePath || !existsSync(target.filePath)) {
     return c.text('Không tìm thấy tệp âm thanh trên ổ cứng', 404);
   }
 
   const stat = statSync(target.filePath);
-  const stream = createReadStream(target.filePath);
+  const fileSize = stat.size;
   const ext = path.extname(target.filePath).toLowerCase();
   const contentType =
-    ext === '.m4a' ? 'audio/mp4' : ext === '.flac' ? 'audio/flac' : 'audio/mpeg';
+    ext === '.m4a'
+      ? 'audio/mp4'
+      : ext === '.flac'
+      ? 'audio/flac'
+      : ext === '.opus'
+      ? 'audio/ogg'
+      : 'audio/mpeg';
 
+  const range = c.req.header('range');
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const startStr = parts[0] ?? '0';
+    const endStr = parts[1];
+    const start = parseInt(startStr, 10);
+    const end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+    const chunksize = end - start + 1;
+    const fileStream = createReadStream(target.filePath, { start, end });
+
+    return new Response(Readable.toWeb(fileStream) as ReadableStream, {
+      status: 206,
+      headers: {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize.toString(),
+        'Content-Type': contentType,
+      },
+    });
+  }
+
+  const stream = createReadStream(target.filePath);
   return new Response(Readable.toWeb(stream) as ReadableStream, {
+    status: 200,
     headers: {
+      'Content-Length': fileSize.toString(),
       'Content-Type': contentType,
-      'Content-Length': stat.size.toString(),
       'Accept-Ranges': 'bytes',
     },
   });
@@ -542,6 +627,8 @@ const streamHandler = (c: Context) => {
 
 app.get('/local-api/audio/:id', streamHandler);
 app.get('/local-api/stream/:id', streamHandler);
+app.get('/local-api/tracks/:id/stream', streamHandler);
+app.get('/local-api/tracks/:id/audio', streamHandler);
 
 // 4. API: Xem ảnh bìa album / bài hát (Hỗ trợ /local-api/cover/:id, /local-api/covers/:id, đuôi .jpg và fallback trích xuất ID3)
 const handleGetCover = async (c: Context) => {
