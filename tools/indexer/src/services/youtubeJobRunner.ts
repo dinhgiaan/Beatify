@@ -336,8 +336,8 @@ class YoutubeJobRunner extends EventEmitter {
       const key = `${normalizeText(item.artist || '').toLowerCase()}|${normalizeText(item.cleanTitle || '').toLowerCase()}`;
       if (!key || key === '|') return;
 
-      if (songKeyMap.has(key)) {
-        const firstIdx = songKeyMap.get(key)!;
+      const firstIdx = songKeyMap.get(key);
+      if (firstIdx !== undefined) {
         item.isDuplicateSong = true;
         item.duplicateOfIndex = firstIdx;
         item.duplicateReason = `Video này có cùng tên bài và ca sĩ với video ở vị trí #${firstIdx}. Khi tải về, Beatify sẽ gom thành 1 file chất lượng cao nhất để tránh trùng rác thư viện và tiết kiệm dung lượng iPhone & R2 (bản tải sau sẽ là bản lưu lại).`;
