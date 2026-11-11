@@ -23,7 +23,7 @@ import { Badge } from '../../ui/atoms/Controls';
 import { Dialog } from '../../ui/organisms/Dialog';
 import { ConfirmDialog } from '../../ui/molecules/ConfirmDialog';
 import { requestApi } from '../../core/api-client';
-import type { UserState, Playlist } from '@music-app/shared';
+import { normalizeText, type UserState, type Playlist } from '@music-app/shared';
 import type { PlayingTrack } from '../../app/Layout';
 
 interface TrackItem {
@@ -76,18 +76,34 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
   // Dialog xác nhận xóa playlist
   const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
 
-  // 1. Lấy UserState (Playlists & Favorites)
-  const { data: stateRes } = useQuery<{ data: UserState }>({
+  // 1. Lấy UserState (Playlists & Favorites) - hỗ trợ cả unwrap tự động của requestApi lẫn dạng lồng
+  const { data: rawState } = useQuery<UserState | { data: UserState }>({
     queryKey: ['user-state'],
-    queryFn: () => requestApi<{ data: UserState }>('/local-api/state'),
+    queryFn: () => requestApi<UserState | { data: UserState }>('/local-api/state'),
   });
 
-  const userState = stateRes?.data || {
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    playlists: [],
-    favoriteIds: [],
-  };
+  const userState: UserState = useMemo(() => {
+    if (!rawState) {
+      return {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        playlists: [],
+        favoriteIds: [],
+      };
+    }
+    if ('playlists' in rawState && Array.isArray(rawState.playlists)) {
+      return rawState;
+    }
+    if ('data' in rawState && rawState.data && 'playlists' in rawState.data) {
+      return rawState.data;
+    }
+    return {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      playlists: [],
+      favoriteIds: [],
+    };
+  }, [rawState]);
 
   // 2. Lấy danh sách tất cả bài hát trong thư viện (dùng chung queryKey 'local-tracks')
   const { data: tracksRes } = useQuery<{ tracks: TrackItem[] }>({
@@ -252,14 +268,16 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
   const candidateTracks = useMemo(() => {
     if (!activePlaylist) return [];
     const currentSet = new Set(activePlaylist.trackIds);
-    const q = trackSearchQuery.toLowerCase().trim();
+    if (!trackSearchQuery.trim()) {
+      return allTracks.filter((t) => !currentSet.has(t.id));
+    }
+    const q = normalizeText(trackSearchQuery);
     return allTracks.filter((t) => {
       if (currentSet.has(t.id)) return false;
-      if (!q) return true;
       return (
-        t.title.toLowerCase().includes(q) ||
-        t.artist.toLowerCase().includes(q) ||
-        t.album.toLowerCase().includes(q)
+        normalizeText(t.title).includes(q) ||
+        normalizeText(t.artist).includes(q) ||
+        normalizeText(t.album).includes(q)
       );
     });
   }, [allTracks, activePlaylist, trackSearchQuery]);
@@ -275,7 +293,7 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
         albumId: track.albumId,
         title: track.title,
         artist: track.artist,
-        coverUrl: track.hasCover ? `/local-api/covers/${track.albumId || track.id}` : undefined,
+        coverUrl: track.hasCover ? `/local-api/covers/${track.albumId || track.id}.jpg` : undefined,
         fileUrl: `/local-api/stream/${track.id}`,
       });
     }
