@@ -319,7 +319,12 @@ export const YoutubeMusicPage: React.FC = () => {
     }
 
     if (event.status === 'completed') {
-      toast.success('Đã tải hoàn tất toàn bộ danh sách bài hát!');
+      const dupCount = previewData?.items.filter(i => i.isDuplicateSong && selectedIds.has(i.id)).length || 0;
+      if (dupCount > 0) {
+        toast.success(`Đã tải hoàn tất! Các video cùng một bài hát đã được gom gọn thành 1 file chất lượng cao nhất.`);
+      } else {
+        toast.success('Đã tải hoàn tất toàn bộ danh sách bài hát!');
+      }
       setActiveJobId(null);
       setLiveActiveIds(new Set());
       // Cập nhật trạng thái xem trước sang "Đã tải"
@@ -1179,6 +1184,34 @@ export const YoutubeMusicPage: React.FC = () => {
                   {selectedIds.size}/{previewData.totalCount} đã chọn {selectedIds.size > 0 && totalSelectedEstimatedSize ? `(${totalSelectedEstimatedSize})` : ''}
                 </span>
 
+                {/* Badge thông báo bài trùng */}
+                {(() => {
+                  const dupCount = previewData.items.filter((i) => i.isDuplicateSong).length;
+                  if (dupCount === 0) return null;
+                  return (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium flex items-center gap-1 cursor-help shrink-0"
+                      title={`Trong playlist có ${dupCount} video khác link nhưng cùng một bài hát. Khi tải về, Beatify sẽ tự động gom thành 1 file duy nhất có chất lượng tốt nhất cho mỗi bài để tránh trùng rác và tiết kiệm bộ nhớ.`}
+                    >
+                      <span>⚠️ {dupCount} bài trùng (tự gom 1 file)</span>
+                    </span>
+                  );
+                })()}
+
+                {/* Badge thông báo bài bị ẩn/xóa */}
+                {(() => {
+                  const unavailCount = previewData.items.filter((i) => i.isUnavailable).length;
+                  if (unavailCount === 0) return null;
+                  return (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium flex items-center gap-1 cursor-help shrink-0"
+                      title={`Có ${unavailCount} video không thể tải do chủ kênh đặt Private hoặc bị chặn bản quyền trên YouTube (hệ thống đã tự động bỏ chọn).`}
+                    >
+                      <span>⛔ {unavailCount} bài bị ẩn/chặn</span>
+                    </span>
+                  );
+                })()}
+
                 {/* Chế độ hiển thị: Khung Nghệ Sĩ vs Bảng Phẳng */}
                 <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-0.5 ml-2">
                   <button
@@ -1489,10 +1522,26 @@ export const YoutubeMusicPage: React.FC = () => {
                                       <ExternalLink size={10} />
                                     </a>
                                   </div>
-                                  <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
+                                  <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5 flex-wrap">
                                     <span>Album: <strong className="text-[var(--text-secondary)] font-medium">{album}</strong></span>
                                     {customFolder && (
                                       <span className="text-[#1DB954] font-medium">• 📁 {customFolder.split(/[\\/]/).filter(Boolean).slice(-1)[0]}</span>
+                                    )}
+                                    {item.isDuplicateSong && (
+                                      <span
+                                        className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
+                                        title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
+                                      >
+                                        ⚠️ Cùng bài #{item.duplicateOfIndex}
+                                      </span>
+                                    )}
+                                    {item.isUnavailable && (
+                                      <span
+                                        className="text-[9px] px-1.5 py-0.2 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium cursor-help"
+                                        title={item.unavailableReason || 'Video này bị đặt riêng tư (Private) hoặc bị chặn trên YouTube nên không thể tải về.'}
+                                      >
+                                        ⛔ Không tải được
+                                      </span>
                                     )}
                                   </div>
                                 </div>
@@ -1708,8 +1757,16 @@ export const YoutubeMusicPage: React.FC = () => {
                                   <ExternalLink size={10} />
                                 </a>
                               </div>
-                              <div className="text-[10.5px] text-[var(--text-muted)] truncate mt-0.5">
-                                {artist || 'Nghệ sĩ chưa rõ'}
+                              <div className="text-[10.5px] text-[var(--text-muted)] truncate mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span>{artist || 'Nghệ sĩ chưa rõ'}</span>
+                                {item.isDuplicateSong && (
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.2 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium cursor-help"
+                                    title={item.duplicateReason || `Video này cùng tên bài & ca sĩ với bài ở vị trí #${item.duplicateOfIndex}. Khi tải về sẽ lưu chung 1 file duy nhất.`}
+                                  >
+                                    ⚠️ Cùng bài #{item.duplicateOfIndex}
+                                  </span>
+                                )}
                               </div>
                               {item.rawTitle !== title && (
                                 <div className="text-[9.5px] text-[var(--text-muted)]/70 truncate">

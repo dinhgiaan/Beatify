@@ -154,6 +154,9 @@ export const YoutubeMusicPreviewItemSchema = z.object({
   isUnavailable: z.boolean().optional(),
   unavailableReason: z.string().optional(),
   fileSizeBytes: z.number().optional(),
+  isDuplicateSong: z.boolean().optional(),
+  duplicateOfIndex: z.number().optional(),
+  duplicateReason: z.string().optional(),
 });
 export type YoutubeMusicPreviewItem = z.infer<typeof YoutubeMusicPreviewItemSchema>;
 

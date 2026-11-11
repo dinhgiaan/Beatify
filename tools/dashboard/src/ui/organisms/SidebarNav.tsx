@@ -350,7 +350,7 @@ export const SidebarNav: React.FC<{
               type="button"
               onClick={onOpenSyncModal}
               className="w-full flex items-center justify-between px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 text-[9.5px] text-amber-300 transition-colors cursor-pointer text-left"
-              title="Bấm để mở cửa sổ đồng bộ lên R2 ngay"
+              title={`Số lượng file nhạc vật lý thực tế trên ổ đĩa (${status?.unsyncedCount ?? 0} bài duy nhất) sẵn sàng đồng bộ lên Cloudflare R2.\nNếu ít hơn số video trong playlist YouTube, lý do là vì các video cùng một bài hát đã được tự động gom thành 1 file duy nhất có chất lượng cao nhất để tiết kiệm bộ nhớ.`}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />

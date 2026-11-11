@@ -329,6 +329,23 @@ class YoutubeJobRunner extends EventEmitter {
       });
     }
 
+    // Đánh dấu các video trùng lặp bài hát trong playlist (cùng Artist + Title)
+    const songKeyMap = new Map<string, number>();
+    allItems.forEach((item, idx) => {
+      if (item.isUnavailable) return;
+      const key = `${normalizeText(item.artist || '').toLowerCase()}|${normalizeText(item.cleanTitle || '').toLowerCase()}`;
+      if (!key || key === '|') return;
+
+      if (songKeyMap.has(key)) {
+        const firstIdx = songKeyMap.get(key)!;
+        item.isDuplicateSong = true;
+        item.duplicateOfIndex = firstIdx;
+        item.duplicateReason = `Video này có cùng tên bài và ca sĩ với video ở vị trí #${firstIdx}. Khi tải về, Beatify sẽ gom thành 1 file chất lượng cao nhất để tránh trùng rác thư viện và tiết kiệm dung lượng iPhone & R2 (bản tải sau sẽ là bản lưu lại).`;
+      } else {
+        songKeyMap.set(key, idx + 1);
+      }
+    });
+
     return {
       isPlaylist,
       playlistTitle,
