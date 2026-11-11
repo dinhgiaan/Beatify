@@ -146,7 +146,7 @@ async function getR2CoverKeys(forceRefresh = false): Promise<Set<string>> {
 
 let cachedStatusResponse: Record<string, unknown> | null = null;
 let lastStatusFetchTime = 0;
-const STATUS_CACHE_TTL_MS = 25000;
+const STATUS_CACHE_TTL_MS = 2000; // 2 giây: đảm bảo trạng thái hệ thống luôn phản ánh thời gian thực
 
 function invalidateStatusCache() {
   cachedStatusResponse = null;
@@ -157,7 +157,9 @@ function invalidateStatusCache() {
 
 async function getR2TrackKeys(forceRefresh = false): Promise<Set<string>> {
   const now = Date.now();
-  if (!forceRefresh && cachedR2TrackKeys.size > 0 && now - lastR2KeysFetchTime < 30000) {
+  if (forceRefresh) {
+    cachedR2TrackKeys.clear();
+  } else if (cachedR2TrackKeys.size > 0 && now - lastR2KeysFetchTime < 3000) {
     return cachedR2TrackKeys;
   }
   const localConfig = loadLocalConfig();
@@ -2701,17 +2703,18 @@ app.get('/api/jobs/:id/events', async (c) => {
 app.get('/api/youtube-music/downloads', async (c) => {
   try {
     const queryLimit = c.req.query('limit');
+    const isForce = c.req.query('force') === 'true';
     const limit = queryLimit ? parseInt(queryLimit, 10) : 500;
     let downloads = await youtubeJobRunner.getDownloads(limit);
 
-    // Tự động đối chiếu với Cloudflare R2 nếu có bài chưa được gắn trạng thái đã upload
-    const hasUncheckedTracks = downloads.some((d) => !d.uploadedToR2 || !d.trackId);
+    // Tự động đối chiếu với Cloudflare R2 nếu có bài chưa được gắn trạng thái đã upload hoặc khi người dùng yêu cầu force
+    const hasUncheckedTracks = isForce || downloads.some((d) => !d.uploadedToR2 || !d.trackId);
     if (hasUncheckedTracks) {
       try {
-        const r2Keys = await getR2TrackKeys();
+        const r2Keys = await getR2TrackKeys(isForce);
         if (r2Keys.size > 0) {
           const syncedCount = await youtubeJobRunner.syncWithR2Keys(r2Keys);
-          if (syncedCount > 0) {
+          if (syncedCount > 0 || isForce) {
             downloads = await youtubeJobRunner.getDownloads(limit);
           }
         }
@@ -2961,6 +2964,7 @@ app.post('/api/youtube-music/downloads/:id/upload-r2', async (c) => {
   const id = c.req.param('id');
   try {
     const item = await youtubeJobRunner.uploadDownloadToR2(id);
+    invalidateStatusCache();
     return c.json({ status: 'success', data: item });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

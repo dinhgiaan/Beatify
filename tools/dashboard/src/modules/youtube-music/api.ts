@@ -40,8 +40,10 @@ export async function stopDownloadJobApi(jobId: string): Promise<{ stopped: bool
   });
 }
 
-export async function fetchDownloadsHistoryApi(limit = 100): Promise<YoutubeMusicDownloadRecord[]> {
-  return requestApi<YoutubeMusicDownloadRecord[]>(`/api/youtube-music/downloads?limit=${limit}`);
+export async function fetchDownloadsHistoryApi(limit = 100, force = false): Promise<YoutubeMusicDownloadRecord[]> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (force) query.set('force', 'true');
+  return requestApi<YoutubeMusicDownloadRecord[]>(`/api/youtube-music/downloads?${query.toString()}`);
 }
 
 export async function deleteDownloadHistoryApi(id: string, deleteFiles = false): Promise<{ deleted: boolean }> {

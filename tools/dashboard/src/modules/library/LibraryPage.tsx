@@ -97,7 +97,8 @@ export const LibraryPage: React.FC<{
       const res = await requestApi<{ tracks: TrackItem[] }>('/local-api/tracks');
       return res.tracks || [];
     },
-    staleTime: 10000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const saveOverrideMutation = useMutation({

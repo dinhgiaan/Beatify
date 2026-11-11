@@ -69,7 +69,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const { data: status, refetch: refetchStatus, isFetching: isFetchingStatus } = useQuery<SystemStatus>({
     queryKey: ['system-status'],
     queryFn: () => requestApi<SystemStatus>('/local-api/status'),
-    staleTime: 15000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   // 2. Fetch Dependencies Status
@@ -81,7 +82,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   } = useQuery({
     queryKey: ['yt-deps'],
     queryFn: fetchDependenciesApi,
-    staleTime: 60000,
+    staleTime: 30000,
   });
 
   const isDepsLoading = isLoadingDeps || (!deps && isFetchingDeps);
@@ -95,7 +96,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   } = useQuery<YoutubeMusicDownloadRecord[]>({
     queryKey: ['yt-downloads'],
     queryFn: () => fetchDownloadsHistoryApi(),
-    staleTime: 15000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const isHistoryLoading = isLoadingHistory || (history.length === 0 && isFetchingHistory);
@@ -112,7 +114,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const res = await requestApi<{ tracks: Array<{ id: string; hasLyrics: boolean; hasCover: boolean; isSynced?: boolean }> }>('/local-api/tracks');
       return res.tracks || [];
     },
-    staleTime: 15000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const isTracksLoading = isLoadingTracks || (libraryTracks.length === 0 && isFetchingTracks);

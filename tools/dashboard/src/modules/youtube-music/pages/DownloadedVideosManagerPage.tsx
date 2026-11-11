@@ -84,11 +84,12 @@ export const DownloadedVideosManagerPage: React.FC<{
     source: string;
   } | null>(null);
 
-  // 1. Lấy danh sách video/bài hát đã tải
+  // 1. Lấy danh sách video/bài hát đã tải (tự động đồng bộ thời gian thực mỗi 3 giây)
   const { data: downloads = [], isLoading, refetch } = useQuery({
     queryKey: ['yt-downloads-manager'],
     queryFn: () => fetchDownloadsHistoryApi(500),
-    staleTime: 10000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   // 2. Mutation kiểm tra tệp đĩa & trạng thái R2 Cloud
@@ -97,6 +98,8 @@ export const DownloadedVideosManagerPage: React.FC<{
     onSuccess: (updatedList) => {
       queryClient.setQueryData(['yt-downloads-manager'], updatedList);
       queryClient.invalidateQueries({ queryKey: ['yt-downloads'] });
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
       toast.success(`Đã quét & kiểm tra ${updatedList.length} bài hát trên ổ cứng!`);
     },
     onError: (err: unknown) => {
