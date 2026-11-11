@@ -5,6 +5,8 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
   Image,
   StyleSheet,
   Vibration,
@@ -146,21 +148,25 @@ export default function SearchScreen() {
 
       {/* Nội dung kết quả tìm kiếm */}
       {query.trim().length === 0 ? (
-        <View style={styles.emptyPromptContainer}>
-          <SearchIcon size={56} color={colors.borderLight} />
-          <Text style={styles.emptyPromptTitle}>Khám phá kho âm nhạc</Text>
-          <Text style={styles.emptyPromptSubtitle}>
-            Gõ tên bài hát hoặc ca sĩ có dấu hoặc không dấu tiếng Việt.
-          </Text>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.emptyPromptContainer}>
+            <SearchIcon size={56} color={colors.borderLight} />
+            <Text style={styles.emptyPromptTitle}>Khám phá kho âm nhạc</Text>
+            <Text style={styles.emptyPromptSubtitle}>
+              Gõ tên bài hát hoặc ca sĩ có dấu hoặc không dấu tiếng Việt.
+            </Text>
+          </View>
+        </TouchableWithoutFeedback>
       ) : filteredTracks.length === 0 ? (
-        <View style={styles.emptyPromptContainer}>
-          <DiscIcon size={56} color={colors.borderLight} />
-          <Text style={styles.emptyPromptTitle}>Không tìm thấy bài hát</Text>
-          <Text style={styles.emptyPromptSubtitle}>
-            Không có kết quả nào khớp với &quot;{query}&quot;. Thử tìm với từ khóa khác.
-          </Text>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.emptyPromptContainer}>
+            <DiscIcon size={56} color={colors.borderLight} />
+            <Text style={styles.emptyPromptTitle}>Không tìm thấy bài hát</Text>
+            <Text style={styles.emptyPromptSubtitle}>
+              Không có kết quả nào khớp với &quot;{query}&quot;. Thử tìm với từ khóa khác.
+            </Text>
+          </View>
+        </TouchableWithoutFeedback>
       ) : (
         <FlatList
           data={filteredTracks}
@@ -171,6 +177,7 @@ export default function SearchScreen() {
             { paddingBottom: contentPaddingBottom },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         />
       )}
     </View>

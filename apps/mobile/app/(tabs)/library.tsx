@@ -120,8 +120,6 @@ export default function LibraryScreen() {
     playQueue,
     togglePlay,
     handleTrackDeleted,
-    recentTracks,
-    clearRecentTracks,
   } = usePlayer();
 
   const { isTrackOffline, downloadTrack, isDownloading } = useOffline();
@@ -201,7 +199,7 @@ export default function LibraryScreen() {
     }));
   }, [tracks]);
 
-  // Lọc chỉ những Album thực sự (loại bỏ Singles / Single / Đĩa đơn hoặc album chỉ có 1 bài trùng tên với bài hát)
+  // Lọc chỉ những Album thực sự (loại bỏ Singles / Single / Đĩa đơn hoặc album chỉ có 1 bài đơn lẻ)
   const realAlbums = useMemo(() => {
     return (albums || []).filter((album) => {
       if (!album || !album.title) return false;
@@ -218,7 +216,8 @@ export default function LibraryScreen() {
       const albumTracks = (tracks || []).filter((track) =>
         track.albumId && album.id ? track.albumId === album.id : track.album === album.title
       );
-      if (albumTracks.length <= 1 && albumTracks[0]?.title.trim().toLowerCase() === t) {
+      // Album thực thụ phải có từ 2 bài trở lên (1 bài là Single / đĩa đơn)
+      if (albumTracks.length <= 1) {
         return false;
       }
       return true;
@@ -369,22 +368,37 @@ export default function LibraryScreen() {
               <DownloadIcon size={11} color={colors.primary} />
             )}
           </View>
-          <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
-            {item.artist} {item.album ? `• ${item.album}` : ''}
-          </Text>
+          <View style={styles.artistSubRow}>
+            <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
+              {item.artist}
+              {item.album && !['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())
+                ? ` • ${item.album}`
+                : ''}
+            </Text>
+            {Boolean(item.album && ['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())) && (
+              <View style={styles.miniSingleBadge}>
+                <Text style={styles.miniSingleBadgeText}>Single</Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Nút ba chấm (...) mở menu thao tác chuẩn SF Symbols */}
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={(e) => handleOpenMenu(e, item)}
-          activeOpacity={0.6}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityRole="button"
-          accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
-        >
-          <MoreHorizontalIcon size={18} color={colors.textTertiary} />
-        </TouchableOpacity>
+        {/* Thời lượng bài hát + Nút ba chấm (...) mở menu */}
+        <View style={styles.rightActionCol}>
+          {item.duration > 0 && (
+            <Text style={styles.trackDurationText}>{formatTime(item.duration)}</Text>
+          )}
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={(e) => handleOpenMenu(e, item)}
+            activeOpacity={0.6}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
+          >
+            <MoreHorizontalIcon size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -554,7 +568,7 @@ export default function LibraryScreen() {
                 activeSegment === 'albums' && styles.segmentTextActive,
               ]}
             >
-              Album ({albums.length})
+              Album ({realAlbums.length})
             </Text>
           </TouchableOpacity>
 
@@ -587,76 +601,10 @@ export default function LibraryScreen() {
               styles.listContent,
               { paddingBottom: contentPaddingBottom },
             ]}
-            ListHeaderComponent={
-              recentTracks.length > 0 ? (
-                <View style={styles.recentSection}>
-                  <View style={styles.recentHeaderRow}>
-                    <Text style={styles.recentSectionTitle}>VỪA NGHE GẦN ĐÂY</Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        Vibration.vibrate(10);
-                        setSelectedCollection({
-                          visible: true,
-                          title: 'Nghe gần đây',
-                          subtitle: `${recentTracks.length} bài hát`,
-                          tracks: recentTracks,
-                          type: 'recently_played',
-                        });
-                      }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.recentSeeAllText}>
-                        Xem tất cả ({recentTracks.length})
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <FlatList
-                    data={recentTracks}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyExtractor={(item) => `recent-${item.id}`}
-                    contentContainerStyle={styles.recentHorizontalList}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.recentCard}
-                        onPress={() => {
-                          Vibration.vibrate(10);
-                          const idx = recentTracks.findIndex((t) => t.id === item.id);
-                          playQueue(recentTracks, idx >= 0 ? idx : 0);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.recentCoverBox}>
-                          {item.cover ? (
-                            <Image
-                              source={{ uri: item.cover }}
-                              style={styles.recentCoverImage}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <DiscIcon size={32} color={colors.borderLight} />
-                          )}
-                        </View>
-                        <Text style={styles.recentTrackTitle} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        <Text style={styles.recentTrackArtist} numberOfLines={1}>
-                          {item.artist || 'Chưa rõ nghệ sĩ'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                  <Text style={[styles.recentSectionTitle, { marginTop: spacing.md }]}>
-                    TẤT CẢ BÀI HÁT ({tracks.length})
-                  </Text>
-                </View>
-              ) : null
-            }
             refreshControl={
               <RefreshControl
                 refreshing={isSyncing}
-                onRefresh={syncLibrary}
+                onRefresh={() => syncLibrary({ silent: false, force: true })}
                 tintColor={colors.primary}
                 colors={[colors.primary]}
               />
@@ -1086,7 +1034,36 @@ const styles = StyleSheet.create({
   artistText: {
     fontSize: fontSizes.subhead,
     color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  artistSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 2,
+  },
+  miniSingleBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  miniSingleBadgeText: {
+    fontSize: 9.5,
+    fontWeight: fontWeights.medium,
+    color: 'rgba(255, 255, 255, 0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rightActionCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  trackDurationText: {
+    fontSize: fontSizes.caption,
+    color: colors.textTertiary,
+    fontVariant: ['tabular-nums'],
   },
   moreButton: {
     width: 36,

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Alert,
   Animated,
+  Vibration,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,6 +68,9 @@ export function NowPlayingView() {
     currentTrackIndex,
     playerState,
     repeatMode,
+    customLoopTarget,
+    customLoopRemaining,
+    setCustomLoopCount,
     isSmartShuffle,
     togglePlay,
     next,
@@ -91,6 +95,8 @@ export function NowPlayingView() {
   const [showQueue, setShowQueue] = useState(false);
   const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState('');
+  const [loopModalVisible, setLoopModalVisible] = useState(false);
+  const [customLoopInput, setCustomLoopInput] = useState('');
 
   // 1. Animation "Thở" cho ảnh bìa (Artwork Breath Scale) chuẩn Apple Music
   const artworkScale = useRef(new Animated.Value(playerState.isPlaying ? 1.0 : 0.88)).current;
@@ -145,6 +151,12 @@ export function NowPlayingView() {
       toggleFavorite(currentTrack.id);
     }
   };
+
+  const handleFetchLyrics = useCallback(async (id: string) => {
+    const offlineLrc = await getOfflineLyrics(id);
+    if (offlineLrc) return offlineLrc;
+    return await fetchLyrics(id);
+  }, [getOfflineLyrics, fetchLyrics]);
 
   const handleSelectQueueItem = (index: number) => {
     skipToTrack(index);
@@ -441,10 +453,14 @@ export function NowPlayingView() {
         <TouchableOpacity
           style={styles.auxControlButton}
           onPress={cycleRepeat}
+          onLongPress={() => {
+            Vibration.vibrate(15);
+            setLoopModalVisible(true);
+          }}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
-          accessibilityLabel="Đổi chế độ lặp lại"
+          accessibilityLabel="Đổi chế độ lặp lại (Nhấn giữ để chọn số lần lặp)"
         >
           {repeatMode === 'track' ? (
             <RepeatOneIcon size={22} color={colors.primary} />
@@ -453,6 +469,11 @@ export function NowPlayingView() {
               size={22}
               color={repeatMode !== 'off' ? colors.primary : colors.textTertiary}
             />
+          )}
+          {customLoopRemaining !== null && (
+            <View style={styles.loopBadge}>
+              <Text style={styles.loopBadgeText}>{customLoopRemaining}x</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -548,38 +569,30 @@ export function NowPlayingView() {
       </View>
     </ScrollView>
 
-      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */ }
-  <LyricsModal
-    visible={lyricsModalVisible}
-    track={currentTrack}
-    currentTimeSec={positionSec}
-    onClose={() => setLyricsModalVisible(false)}
-    onSeek={(seconds) => {
-      seekTo(seconds);
-    }}
-    onOpenEditLyrics={() => {
-      setLyricsModalVisible(false);
-      setEditModalVisible(true);
-    }}
-    onFetchLyrics={async (id) => {
-      const offlineLrc = await getOfflineLyrics(id);
-      if (offlineLrc) return offlineLrc;
-      return await fetchLyrics(id);
-    }}
-  />
+      {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */}
+      <LyricsModal
+        visible={lyricsModalVisible}
+        track={currentTrack}
+        currentTimeSec={positionSec}
+        onClose={() => setLyricsModalVisible(false)}
+        onSeek={(seconds) => {
+          seekTo(seconds);
+        }}
+        onOpenEditLyrics={() => {
+          setLyricsModalVisible(false);
+          setEditModalVisible(true);
+        }}
+        onFetchLyrics={handleFetchLyrics}
+      />
 
-  {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */ }
-  <EditTrackModal
-    visible={editModalVisible}
-    track={currentTrack}
-    onClose={() => setEditModalVisible(false)}
-    onSave={saveTrack}
-    onFetchLyrics={async (id) => {
-      const offlineLrc = await getOfflineLyrics(id);
-      if (offlineLrc) return offlineLrc;
-      return await fetchLyrics(id);
-    }}
-  />
+      {/* Modal Chỉnh sửa Lời bài hát & Metadata trực tiếp từ Now Playing */}
+      <EditTrackModal
+        visible={editModalVisible}
+        track={currentTrack}
+        onClose={() => setEditModalVisible(false)}
+        onSave={saveTrack}
+        onFetchLyrics={handleFetchLyrics}
+      />
 
   {/* Modal Hẹn giờ tắt nhạc (Sleep Timer Dialog) */ }
   <Modal
@@ -662,6 +675,123 @@ export function NowPlayingView() {
         <TouchableOpacity
           style={styles.sleepTimerCancelBtn}
           onPress={() => setSleepTimerDialogVisible(false)}
+        >
+          <Text style={styles.sleepTimerCancelText}>Đóng</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  </Modal>
+
+  {/* Modal Cài đặt Lặp lại bài hát (Loop Count Modal) */}
+  <Modal
+    visible={loopModalVisible}
+    transparent={true}
+    animationType="fade"
+    onRequestClose={() => setLoopModalVisible(false)}
+  >
+    <TouchableOpacity
+      style={styles.modalOverlay}
+      activeOpacity={1}
+      onPress={() => setLoopModalVisible(false)}
+    >
+      <View style={styles.sleepTimerCard} onStartShouldSetResponder={() => true}>
+        <Text style={styles.sleepTimerTitle}>Lặp lại bài hát</Text>
+        <Text style={styles.sleepTimerSubtitle}>
+          {customLoopRemaining !== null
+            ? `Đang lặp: còn ${customLoopRemaining} lần phát nữa`
+            : repeatMode === 'track'
+            ? 'Đang lặp vô hạn bài hát hiện tại'
+            : 'Chọn số lần lặp hoặc tự nhập theo ý bạn'}
+        </Text>
+
+        <View style={styles.sleepTimerOptionsCol}>
+          <View style={styles.sleepTimerGrid}>
+            {[
+              { label: 'Vô hạn', count: null, isInfinite: true },
+              { label: '2 lần', count: 2 },
+              { label: '3 lần', count: 3 },
+              { label: '5 lần', count: 5 },
+            ].map((item) => {
+              const isActive = item.isInfinite
+                ? repeatMode === 'track' && customLoopRemaining === null
+                : customLoopTarget === item.count;
+              return (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[styles.sleepTimerGridBtn, isActive && styles.loopOptionActive]}
+                  onPress={async () => {
+                    Vibration.vibrate(10);
+                    if (item.isInfinite) {
+                      await setCustomLoopCount(null);
+                      await cycleRepeat();
+                    } else if (item.count) {
+                      await setCustomLoopCount(item.count);
+                    }
+                    setLoopModalVisible(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.sleepTimerOptionText,
+                      isActive && styles.loopOptionActiveText,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Tùy chọn tự nhập số lần lặp */}
+          <View style={styles.customTimerRow}>
+            <TextInput
+              style={styles.customTimerInput}
+              placeholder="Nhập số lần lặp (VD: 10)..."
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numeric"
+              value={customLoopInput}
+              onChangeText={setCustomLoopInput}
+              maxLength={3}
+            />
+            <TouchableOpacity
+              style={styles.customTimerBtn}
+              onPress={async () => {
+                Vibration.vibrate(10);
+                const parsed = parseInt(customLoopInput.trim(), 10);
+                if (!isNaN(parsed) && parsed > 0 && parsed <= 999) {
+                  await setCustomLoopCount(parsed);
+                  setCustomLoopInput('');
+                  setLoopModalVisible(false);
+                } else {
+                  Alert.alert('Không hợp lệ', 'Vui lòng nhập số lần lặp từ 1 đến 999');
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.customTimerBtnText}>Áp dụng</Text>
+            </TouchableOpacity>
+          </View>
+
+          {(repeatMode === 'track' || customLoopRemaining !== null) && (
+            <TouchableOpacity
+              style={[styles.sleepTimerOptionBtn, styles.sleepTimerTurnOffBtn]}
+              onPress={async () => {
+                Vibration.vibrate(10);
+                await setCustomLoopCount(null);
+                setLoopModalVisible(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sleepTimerTurnOffText}>Tắt lặp lại bài này</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.sleepTimerCancelBtn}
+          onPress={() => setLoopModalVisible(false)}
         >
           <Text style={styles.sleepTimerCancelText}>Đóng</Text>
         </TouchableOpacity>
@@ -1068,5 +1198,30 @@ const styles = StyleSheet.create({
   sleepTimerCancelText: {
     color: colors.textTertiary,
     fontSize: fontSizes.subhead,
+  },
+  loopBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loopBadgeText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: fontWeights.bold,
+  },
+  loopOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryMuted,
+  },
+  loopOptionActiveText: {
+    color: colors.primary,
+    fontWeight: fontWeights.bold,
   },
 });

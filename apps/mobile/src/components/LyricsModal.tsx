@@ -53,14 +53,22 @@ export function LyricsModal({
   const userScrolledRef = useRef(false);
   const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lineYOffsets = useRef<{ [index: number]: number }>({});
+  const loadedTrackIdRef = useRef<string | null>(null);
+  const onFetchLyricsRef = useRef(onFetchLyrics);
+  onFetchLyricsRef.current = onFetchLyrics;
 
-  // Nạp lời bài hát khi mở modal hoặc đổi bài
+  // Nạp lời bài hát một lần duy nhất khi mở modal hoặc đổi bài (tránh loading lặp vô hạn)
   useEffect(() => {
     if (visible && track) {
+      if (loadedTrackIdRef.current === track.id && rawLyrics !== null) {
+        return;
+      }
       setIsLoading(true);
       userScrolledRef.current = false;
       lineYOffsets.current = {};
-      onFetchLyrics(track.id)
+      loadedTrackIdRef.current = track.id;
+
+      onFetchLyricsRef.current(track.id)
         .then((content) => {
           setRawLyrics(formatLrcSpacing(content));
         })
@@ -71,11 +79,8 @@ export function LyricsModal({
         .finally(() => {
           setIsLoading(false);
         });
-    } else {
-      setRawLyrics(null);
-      lineYOffsets.current = {};
     }
-  }, [visible, track, onFetchLyrics]);
+  }, [visible, track?.id, rawLyrics]);
 
   // Parse các dòng LRC (nếu có mốc thời gian)
   const lrcLines = useMemo<LrcLine[]>(() => {
@@ -91,15 +96,19 @@ export function LyricsModal({
     return findActiveLrcIndex(lrcLines, currentTimeSec);
   }, [isSynced, lrcLines, currentTimeSec]);
 
-  // Tự động cuộn theo dòng phát bám sát vị trí pixel thực tế của câu hát
+  // Tự động cuộn mượt mà chỉ khi đổi dòng câu hát (tránh giật màn hình ở mỗi tick thời gian)
+  const prevActiveIndexRef = useRef<number>(-1);
   useEffect(() => {
     if (visible && isSynced && activeIndex >= 0 && !userScrolledRef.current) {
-      const realY = lineYOffsets.current[activeIndex];
-      const targetY =
-        typeof realY === 'number'
-          ? Math.max(0, realY - 140)
-          : Math.max(0, activeIndex * DEFAULT_LINE_HEIGHT - 140);
-      scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      if (prevActiveIndexRef.current !== activeIndex) {
+        prevActiveIndexRef.current = activeIndex;
+        const realY = lineYOffsets.current[activeIndex];
+        const targetY =
+          typeof realY === 'number'
+            ? Math.max(0, realY - 140)
+            : Math.max(0, activeIndex * DEFAULT_LINE_HEIGHT - 140);
+        scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      }
     }
   }, [visible, isSynced, activeIndex]);
 

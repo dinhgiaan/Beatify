@@ -30,24 +30,24 @@ export function PauseIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 3. Next Icon (Bỏ qua bài kế tiếp - vector 2 mũi tên + thanh chặn)
+// 3. Next Icon (Bỏ qua bài kế tiếp - vector tam giác + thanh chặn chuẩn SF Symbols)
 export function NextIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M6 5.8a.8.8 0 0 0-1.24.67v11.06a.8.8 0 0 0 1.24.67l7.5-5.53a.8.8 0 0 0 0-1.34L6 5.8zM14.5 5.8a.8.8 0 0 0-1.24.67v11.06a.8.8 0 0 0 1.24.67l7.5-5.53a.8.8 0 0 0 0-1.34l-7.5-5.53z"
+        d="M5 4.5v15a1 1 0 0 0 1.55.83l10-7.5a1 1 0 0 0 0-1.66l-10-7.5A1 1 0 0 0 5 4.5zM18 4a1 1 0 0 1 1 1v14a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1z"
         fill={color}
       />
     </Svg>
   );
 }
 
-// 4. Prev Icon (Quay lại bài trước - vector 2 mũi tên + thanh chặn)
+// 4. Prev Icon (Phát lại từ đầu / Bài trước - vector thanh chặn + tam giác chuẩn SF Symbols)
 export function PrevIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M18 5.8a.8.8 0 0 1 1.24.67v11.06a.8.8 0 0 1-1.24.67l-7.5-5.53a.8.8 0 0 1 0-1.34l7.5-5.53zM9.5 5.8a.8.8 0 0 1 1.24.67v11.06a.8.8 0 0 1-1.24.67l-7.5-5.53a.8.8 0 0 1 0-1.34l7.5-5.53z"
+        d="M19 4.5v15a1 1 0 0 1-1.55.83l-10-7.5a1 1 0 0 1 0-1.66l10-7.5A1 1 0 0 1 19 4.5zM6 4a1 1 0 0 0-1 1v14a1 1 0 1 0 2 0V5a1 1 0 0 0-1-1z"
         fill={color}
       />
     </Svg>
@@ -421,22 +421,23 @@ export function QuestionIcon({ size = 20, color = '#b3b3b3' }: IconProps) {
   );
 }
 
-// 28. Lyrics Icon (Biểu tượng lời bài hát / micro / lời thoại chuẩn Apple Music)
+// 28. Lyrics Icon (Biểu tượng Cây Micro Karaoke chuẩn Apple Music)
 export function LyricsIcon({ size = 20, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"
         stroke={color}
-        strokeWidth="1.8"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M8 9h8M8 13h5"
+        d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"
         stroke={color}
-        strokeWidth="1.8"
+        strokeWidth="1.9"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );

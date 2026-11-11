@@ -11,9 +11,16 @@ import {
   Alert,
   Vibration,
   Image,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { UserProfile } from '@music-app/shared';
+import type { UserProfile, FullReplayReport } from '@music-app/shared';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import {
   colors,
   spacing,
@@ -34,6 +41,11 @@ import {
   CheckIcon,
   DownloadIcon,
   EditIcon,
+  FlameIcon,
+  MusicNoteIcon,
+  TrophyIcon,
+  HeadphonesIcon,
+  DiscIcon,
 } from './icons/SvgIcons';
 
 interface HiddenSettingsModalProps {
@@ -82,13 +94,21 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [replayReport, setReplayReport] = useState<FullReplayReport | null>(null);
   const [isDevSettingsOpen, setIsDevSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
       statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+      statsStorage.getReplayReport().then(setReplayReport).catch(() => { });
     }
   }, [visible]);
+
+  const toggleDevSettings = () => {
+    Vibration.vibrate(10);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsDevSettingsOpen((prev) => !prev);
+  };
 
   const buildSha = process.env.EXPO_PUBLIC_BUILD_SHA || 'dev-local';
 
@@ -160,7 +180,6 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
         <View style={styles.header}>
           <View>
             <Text style={styles.headerTitle}>Hồ sơ cá nhân & Cài đặt</Text>
-            <Text style={styles.headerSubtitle}>Beatify Engine • Quản trị trải nghiệm</Text>
           </View>
           <TouchableOpacity
             style={styles.closeButton}
@@ -216,32 +235,88 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             </View>
           </TouchableOpacity>
 
-          {/* MỤC 1: HỒ SƠ & THỐNG KÊ REPLAY DÀNH CHO USER */}
+          {/* MỤC 1: THỐNG KÊ NGHE NHẠC & REPLAY (HIỂN THỊ TRỰC TIẾP RA NGOÀI) */}
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>THỐNG KÊ NGHE NHẠC & REPLAY</Text>
-            <Text style={styles.sectionDesc}>
-              Khám phá phân tích thời gian nghe, các bài hát và nghệ sĩ được nghe nhiều nhất, danh hiệu và Replay cá nhân của bạn.
-            </Text>
+            <View style={styles.mysteryTitleRow}>
+              <TrophyIcon size={20} color={colors.primary} />
+              <Text style={[styles.sectionHeader, { color: colors.primary, marginBottom: 0 }]}>
+                THỐNG KÊ NGHE NHẠC & REPLAY
+              </Text>
+            </View>
 
+            {/* Grid 4 chỉ số thống kê nổi bật */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statTile}>
+                <HeadphonesIcon size={20} color={colors.primary} />
+                <Text style={styles.statTileValue}>
+                  {Math.round(replayReport?.allTime.totalMinutes || 0)}
+                </Text>
+                <Text style={styles.statTileLabel}>Phút nghe</Text>
+              </View>
+
+              <View style={styles.statTile}>
+                <MusicNoteIcon size={20} color={colors.primary} />
+                <Text style={styles.statTileValue}>
+                  {replayReport?.allTime.totalPlays || 0}
+                </Text>
+                <Text style={styles.statTileLabel}>Lượt nghe</Text>
+              </View>
+
+              <View style={styles.statTile}>
+                <FlameIcon size={20} color="#FF7A00" />
+                <Text style={styles.statTileValue}>
+                  {replayReport?.milestones.filter((m) => m.achieved).length || 0}
+                </Text>
+                <Text style={styles.statTileLabel}>Cột mốc đạt</Text>
+              </View>
+
+              <View style={styles.statTile}>
+                <DiscIcon size={20} color="#60A5FA" />
+                <Text style={styles.statTileValue}>{tracks.length}</Text>
+                <Text style={styles.statTileLabel}>Kho bài hát</Text>
+              </View>
+            </View>
+
+            {/* Highlights: Top nghệ sĩ & Top bài hát */}
+            {((replayReport?.allTime.topArtists && replayReport.allTime.topArtists.length > 0) ||
+              (replayReport?.allTime.topTracks && replayReport.allTime.topTracks.length > 0)) && (
+              <View style={styles.topHighlightsBox}>
+                {replayReport?.allTime.topArtists?.[0] && (
+                  <View style={styles.highlightItem}>
+                    <Text style={styles.highlightLabel}>Nghệ sĩ nghe nhiều nhất</Text>
+                    <Text style={styles.highlightValue} numberOfLines={1}>
+                      👑 {replayReport.allTime.topArtists[0].artist}{' '}
+                      <Text style={styles.highlightCount}>
+                        ({replayReport.allTime.topArtists[0].count} lần)
+                      </Text>
+                    </Text>
+                  </View>
+                )}
+
+                {replayReport?.allTime.topTracks?.[0] && (
+                  <View style={[styles.highlightItem, { marginTop: spacing.xs }]}>
+                    <Text style={styles.highlightLabel}>Bài hát replay nhiều nhất</Text>
+                    <Text style={styles.highlightValue} numberOfLines={1}>
+                      🔥 {replayReport.allTime.topTracks[0].title}{' '}
+                      <Text style={styles.highlightCount}>
+                        ({replayReport.allTime.topTracks[0].count} lần)
+                      </Text>
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Nút xem chi tiết cột mốc & chỉnh sửa */}
             <TouchableOpacity
-              style={styles.profileBtn}
+              style={styles.detailStatsBtn}
               onPress={() => {
                 Vibration.vibrate(10);
                 setProfileModalVisible(true);
               }}
               activeOpacity={0.7}
             >
-              <View style={styles.profileBtnLeft}>
-                <View style={styles.profileIconCircle}>
-                  <ProfileIcon size={20} color={colors.primary} />
-                </View>
-                <View>
-                  <Text style={styles.profileBtnTitle}>Mở Hồ sơ & Thống kê Replay</Text>
-                  <Text style={styles.profileBtnSubtitle}>
-                    {tracks.length} bài hát trong thư viện
-                  </Text>
-                </View>
-              </View>
+              <Text style={styles.detailStatsBtnText}>Xem chi tiết cột mốc & chỉnh sửa hồ sơ</Text>
               <Text style={styles.chevronText}>→</Text>
             </TouchableOpacity>
           </View>
@@ -310,64 +385,10 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             </View>
           </View>
 
-          {/* MỤC 3: TÙY CHỌN NGHE GẦN ĐÂY */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
-            <Text style={styles.sectionDesc}>
-              Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây. Chọn số lượng bài tối đa được lưu lại:
-            </Text>
-
-            <View style={styles.pillRow}>
-              {([10, 20, 30, 40, 50] as const).map((limitOption) => {
-                const isActive = recentLimit === limitOption;
-                return (
-                  <TouchableOpacity
-                    key={limitOption}
-                    style={[styles.pillBtn, isActive && styles.pillBtnActive]}
-                    onPress={() => {
-                      Vibration.vibrate(10);
-                      setRecentLimit(limitOption);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
-                      {limitOption}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.secondaryActionBtn, { marginTop: spacing.md }]}
-              onPress={() => {
-                Vibration.vibrate(10);
-                Alert.alert(
-                  'Xóa lịch sử nghe gần đây?',
-                  'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
-                  [
-                    { text: 'Hủy', style: 'cancel' },
-                    {
-                      text: 'Xóa ngay',
-                      style: 'destructive',
-                      onPress: () => clearRecentTracks(),
-                    },
-                  ]
-                );
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.secondaryActionBtnText}>Xóa toàn bộ lịch sử nghe</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* NÚT BẤM MỞ RỘNG/THU GỌN CÀI ĐẶT KỸ THUẬT DÀNH CHO DEVELOPER (ACCORDION) */}
           <TouchableOpacity
             style={styles.devAccordionToggle}
-            onPress={() => {
-              Vibration.vibrate(10);
-              setIsDevSettingsOpen(!isDevSettingsOpen);
-            }}
+            onPress={toggleDevSettings}
             activeOpacity={0.7}
           >
             <View style={styles.devAccordionLeft}>
@@ -377,7 +398,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
               <View style={{ flex: 1 }}>
                 <Text style={styles.devAccordionTitle}>Cài đặt kỹ thuật & Máy chủ</Text>
                 <Text style={styles.devAccordionSubtitle}>
-                  Cloudflare Worker, ETag, Chứng chỉ Sideload
+                  Lịch sử nghe, Cloudflare Worker, ETag, Sideload
                 </Text>
               </View>
             </View>
@@ -388,9 +409,59 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
             </View>
           </TouchableOpacity>
 
-          {/* CÁC PHẦN KỸ THUẬT (MẶC ĐỊNH THU GỌN ĐỂ TRẢI NGHIỆM THUẦN TÚY CONSUMER APP) */}
+          {/* CÁC PHẦN KỸ THUẬT (MẶC ĐỊNH THU GỌN VỚI HIỆU ỨNG ANIMATION CHUYỂN ĐỘNG MƯỢT MÀ) */}
           {isDevSettingsOpen && (
             <>
+              {/* TÙY CHỌN NGHE GẦN ĐÂY (CHUYỂN VÀO PHẦN KỸ THUẬT & MÁY CHỦ) */}
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionHeader}>NGHE GẦN ĐÂY (RECENTLY PLAYED)</Text>
+                <Text style={styles.sectionDesc}>
+                  Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây. Chọn số lượng bài tối đa được lưu lại:
+                </Text>
+
+                <View style={styles.pillRow}>
+                  {([10, 20, 30, 40, 50] as const).map((limitOption) => {
+                    const isActive = recentLimit === limitOption;
+                    return (
+                      <TouchableOpacity
+                        key={limitOption}
+                        style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                        onPress={() => {
+                          Vibration.vibrate(10);
+                          setRecentLimit(limitOption);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                          {limitOption}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.secondaryActionBtn, { marginTop: spacing.md }]}
+                  onPress={() => {
+                    Vibration.vibrate(10);
+                    Alert.alert(
+                      'Xóa lịch sử nghe gần đây?',
+                      'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        {
+                          text: 'Xóa ngay',
+                          style: 'destructive',
+                          onPress: () => clearRecentTracks(),
+                        },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.secondaryActionBtnText}>Xóa toàn bộ lịch sử nghe</Text>
+                </TouchableOpacity>
+              </View>
               {/* PHẦN KỸ THUẬT 1: THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionHeader}>THÔNG TIN HỆ THỐNG & CHỨNG CHỈ</Text>
@@ -1022,5 +1093,105 @@ const styles = StyleSheet.create({
   statusToggleBadgeTextActive: {
     color: colors.primary,
     fontWeight: fontWeights.bold,
+  },
+  personaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.25)',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  personaIconWrapper: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personaTitle: {
+    color: '#FFD700',
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+  },
+  personaDesc: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    marginTop: 1,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  statTile: {
+    width: '48.5%',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    gap: spacing.xxs,
+  },
+  statTileValue: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.title,
+    fontWeight: fontWeights.bold,
+    marginTop: spacing.xxs,
+  },
+  statTileLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+  },
+  topHighlightsBox: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: spacing.md,
+  },
+  highlightItem: {
+    gap: 2,
+  },
+  highlightLabel: {
+    color: colors.textTertiary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  highlightValue: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.bold,
+  },
+  highlightCount: {
+    color: colors.primary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.semibold,
+  },
+  detailStatsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceSecondary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  detailStatsBtnText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.semibold,
   },
 });

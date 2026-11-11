@@ -43,6 +43,9 @@ export interface PlayerContextValue {
   seekOffset: (secondsOffset: number) => Promise<void>;
   seekTo: (seconds: number) => Promise<void>;
   cycleRepeat: () => Promise<void>;
+  customLoopTarget: number | null;
+  customLoopRemaining: number | null;
+  setCustomLoopCount: (count: number | null) => Promise<void>;
   toggleSmartShuffle: () => Promise<void>;
   applySortMode: (mode: TrackSortMode) => void;
   addCustomTrack: (url: string) => Promise<void>;
@@ -76,6 +79,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+  const [customLoopTarget, setCustomLoopTarget] = useState<number | null>(null);
+  const [customLoopRemaining, setCustomLoopRemaining] = useState<number | null>(null);
+  const customLoopRemainingRef = useRef<number | null>(null);
+  const lastLoopPosRef = useRef<number>(0);
+  const lastLoopTrackIdRef = useRef<string | null>(null);
   const [isSmartShuffle, setIsSmartShuffle] = useState<boolean>(false);
   const [sortMode, setSortMode] = useState<TrackSortMode>('smart');
 
@@ -139,6 +147,35 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       // Theo dõi mốc 15s trực tiếp qua ref trong listener mà không gây re-render PlayerContext
       const pos = state.positionSec || 0;
+      const dur = state.durationSec || 0;
+
+      // Kiểm tra vòng lặp tùy chỉnh (Custom Loop Countdown)
+      if (
+        customLoopRemainingRef.current !== null &&
+        customLoopRemainingRef.current > 0 &&
+        state.activeTrackId &&
+        state.activeTrackId === lastLoopTrackIdRef.current &&
+        dur > 5
+      ) {
+        // Nếu bài hát trước đó ở gần cuối (> 75% duration hoặc > duration - 2.5s) và giờ nhảy về đầu (< 2.5s)
+        if (lastLoopPosRef.current >= Math.max(dur - 2.5, dur * 0.75) && pos < 2.5) {
+          const nextRemaining = customLoopRemainingRef.current - 1;
+          customLoopRemainingRef.current = nextRemaining;
+          setCustomLoopRemaining(nextRemaining);
+
+          if (nextRemaining <= 0) {
+            // Đã lặp đủ số lần yêu cầu: tắt repeat để chuyển bài khi kết thúc
+            customLoopRemainingRef.current = null;
+            setCustomLoopTarget(null);
+            setCustomLoopRemaining(null);
+            setRepeatMode('off');
+            playerService.setRepeatMode('off').catch(() => {});
+          }
+        }
+      }
+      lastLoopPosRef.current = pos;
+      lastLoopTrackIdRef.current = state.activeTrackId;
+
       if (state.activeTrackId !== currentTrackingTrackIdRef.current) {
         const prevTrackId = currentTrackingTrackIdRef.current;
         const prevListened = maxListenedSecRef.current;
@@ -244,26 +281,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const next = useCallback(async () => {
     Vibration.vibrate(10);
+    if (customLoopTarget !== null) {
+      setCustomLoopTarget(null);
+      setCustomLoopRemaining(null);
+      customLoopRemainingRef.current = null;
+    }
     if (tracks.length > 0) {
       await playerService.next();
     }
-  }, [tracks.length]);
+  }, [tracks.length, customLoopTarget]);
 
   const previous = useCallback(async () => {
     Vibration.vibrate(10);
+    if (customLoopTarget !== null) {
+      setCustomLoopTarget(null);
+      setCustomLoopRemaining(null);
+      customLoopRemainingRef.current = null;
+    }
     if (tracks.length > 0) {
       await playerService.previous();
     }
-  }, [tracks.length]);
+  }, [tracks.length, customLoopTarget]);
 
   const skipToTrack = useCallback(async (index: number) => {
     Vibration.vibrate(10);
+    if (customLoopTarget !== null) {
+      setCustomLoopTarget(null);
+      setCustomLoopRemaining(null);
+      customLoopRemainingRef.current = null;
+    }
     if (!playerState.activeTrackId) {
       await playQueue(tracks, index);
     } else {
       await playerService.skipToIndex(index);
     }
-  }, [playerState.activeTrackId, tracks, playQueue]);
+  }, [playerState.activeTrackId, tracks, playQueue, customLoopTarget]);
 
   const seekOffset = useCallback(async (secondsOffset: number) => {
     Vibration.vibrate(10);
@@ -282,11 +334,36 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const cycleRepeat = useCallback(async () => {
     Vibration.vibrate(10);
+    if (customLoopTarget !== null) {
+      setCustomLoopTarget(null);
+      setCustomLoopRemaining(null);
+      customLoopRemainingRef.current = null;
+      setRepeatMode('off');
+      await playerService.setRepeatMode('off');
+      return;
+    }
     const nextMode: RepeatMode =
       repeatMode === 'off' ? 'track' : repeatMode === 'track' ? 'queue' : 'off';
     setRepeatMode(nextMode);
     await playerService.setRepeatMode(nextMode);
-  }, [repeatMode]);
+  }, [repeatMode, customLoopTarget]);
+
+  const setCustomLoopCount = useCallback(async (count: number | null) => {
+    Vibration.vibrate(10);
+    if (count === null || count <= 0) {
+      setCustomLoopTarget(null);
+      setCustomLoopRemaining(null);
+      customLoopRemainingRef.current = null;
+      setRepeatMode('off');
+      await playerService.setRepeatMode('off');
+    } else {
+      setCustomLoopTarget(count);
+      setCustomLoopRemaining(count);
+      customLoopRemainingRef.current = count;
+      setRepeatMode('track');
+      await playerService.setRepeatMode('track');
+    }
+  }, []);
 
   const toggleSmartShuffle = useCallback(async () => {
     Vibration.vibrate(10);
@@ -520,6 +597,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         seekOffset,
         seekTo,
         cycleRepeat,
+        customLoopTarget,
+        customLoopRemaining,
+        setCustomLoopCount,
         toggleSmartShuffle,
         applySortMode,
         addCustomTrack,
