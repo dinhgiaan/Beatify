@@ -437,8 +437,19 @@ export const YoutubeMusicPage: React.FC = () => {
     mutationFn: previewMusicApi,
     onSuccess: (res) => {
       setPreviewData(res);
-      setSelectedIds(new Set(res.items.map((i) => i.id)));
+      // Tự động bỏ qua các video đã bị xóa hoặc chuyển sang riêng tư (Private)
+      const validItemIds = res.items.filter((i) => !i.isUnavailable).map((i) => i.id);
+      setSelectedIds(new Set(validItemIds));
       setCurrentPage(1);
+
+      const unavailableCount = res.items.filter((i) => i.isUnavailable).length;
+      if (unavailableCount > 0) {
+        toast.warning(
+          `Phát hiện ${unavailableCount} video đã bị xóa hoặc đặt Riêng tư - Hệ thống đã tự động bỏ chọn giúp bạn!`,
+          { duration: 6000 }
+        );
+      }
+
       toast.success(
         res.isPlaylist
           ? `Đã phân tích playlist: ${res.playlistTitle} (${res.totalCount} bài)`
@@ -1345,20 +1356,23 @@ export const YoutubeMusicPage: React.FC = () => {
                           return (
                             <div
                               key={item.id}
-                              onClick={() => toggleSelectItem(item.id)}
-                              className={`px-4 py-2.5 flex items-center justify-between gap-3 text-[11px] transition-colors group cursor-pointer ${
-                                !isSelected
-                                  ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)]'
-                                  : idx % 2 === 1
-                                    ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)]'
-                                    : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]'
+                              onClick={() => !item.isUnavailable && toggleSelectItem(item.id)}
+                              className={`px-4 py-2.5 flex items-center justify-between gap-3 text-[11px] transition-colors group ${
+                                item.isUnavailable
+                                  ? 'opacity-40 bg-rose-950/10 cursor-not-allowed'
+                                  : !isSelected
+                                    ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)] cursor-pointer'
+                                    : idx % 2 === 1
+                                      ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)] cursor-pointer'
+                                      : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] cursor-pointer'
                               }`}
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div onClick={(e) => e.stopPropagation()}>
                                   <Checkbox
                                     checked={isSelected}
-                                    onChange={() => toggleSelectItem(item.id)}
+                                    disabled={item.isUnavailable}
+                                    onChange={() => !item.isUnavailable && toggleSelectItem(item.id)}
                                   />
                                 </div>
                                 <span className="text-[10px] text-[var(--text-muted)] tabular-nums w-4 text-center font-medium">
@@ -1466,7 +1480,14 @@ export const YoutubeMusicPage: React.FC = () => {
 
                                 {/* Trạng thái đã tải */}
                                 <div>
-                                  {item.isAlreadyDownloaded ? (
+                                  {item.isUnavailable ? (
+                                    <span
+                                      className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium"
+                                      title={item.unavailableReason || 'Video đã bị xóa hoặc đặt chế độ riêng tư trên YouTube'}
+                                    >
+                                      🚫 Bị ẩn/xóa
+                                    </span>
+                                  ) : item.isAlreadyDownloaded ? (
                                     item.fileMissing ? (
                                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
                                         Mất file
@@ -1529,13 +1550,15 @@ export const YoutubeMusicPage: React.FC = () => {
                     return (
                       <tr
                         key={item.id}
-                        onClick={() => toggleSelectItem(item.id)}
-                        className={`transition-colors group cursor-pointer ${
-                          !isSelected
-                            ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)]'
-                            : index % 2 === 1
-                              ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)]'
-                              : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]'
+                        onClick={() => !item.isUnavailable && toggleSelectItem(item.id)}
+                        className={`transition-colors group ${
+                          item.isUnavailable
+                            ? 'opacity-40 bg-rose-950/10 cursor-not-allowed'
+                            : !isSelected
+                              ? 'opacity-60 bg-[var(--bg-subtle)]/40 hover:bg-[var(--bg-hover)] cursor-pointer'
+                              : index % 2 === 1
+                                ? 'bg-[var(--bg-subtle)]/20 hover:bg-[var(--bg-hover)] cursor-pointer'
+                                : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] cursor-pointer'
                         }`}
                       >
                         <td
@@ -1544,7 +1567,8 @@ export const YoutubeMusicPage: React.FC = () => {
                         >
                           <Checkbox
                             checked={isSelected}
-                            onChange={() => toggleSelectItem(item.id)}
+                            disabled={item.isUnavailable}
+                            onChange={() => !item.isUnavailable && toggleSelectItem(item.id)}
                           />
                         </td>
                         <td className="py-2 px-1 text-center text-[var(--text-muted)] text-[10.5px] tabular-nums font-medium">
@@ -1774,7 +1798,26 @@ export const YoutubeMusicPage: React.FC = () => {
                         <td className="py-2 pr-4 pl-2 text-right whitespace-nowrap">
                           <div className="inline-flex items-center justify-end gap-1 flex-nowrap">
                             {/* 1. Download Status Badge */}
-                            {item.isAlreadyDownloaded ? (
+                            {item.isUnavailable ? (
+                              <Tooltip
+                                position="bottom"
+                                align="end"
+                                content={
+                                  <div className="space-y-1 text-left max-w-[240px]">
+                                    <div className="font-semibold text-[12px] text-rose-400">
+                                      Video không khả dụng
+                                    </div>
+                                    <p className="text-[11px] text-[var(--text-secondary)] m-0 leading-normal">
+                                      {item.unavailableReason || 'Video đã bị xóa hoặc chuyển sang chế độ riêng tư trên YouTube.'}
+                                    </p>
+                                  </div>
+                                }
+                              >
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-medium shrink-0 cursor-help">
+                                  🚫 Bị ẩn/xóa
+                                </span>
+                              </Tooltip>
+                            ) : item.isAlreadyDownloaded ? (
                               item.fileMissing ? (
                                 <Tooltip
                                   position="bottom"

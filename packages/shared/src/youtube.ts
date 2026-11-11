@@ -149,6 +149,8 @@ export const YoutubeMusicPreviewItemSchema = z.object({
   lyricsSource: YoutubeMusicLyricsSourceSchema.nullable().optional(),
   customLyrics: z.string().optional(),
   hasCover: z.boolean().optional(),
+  isUnavailable: z.boolean().optional(),
+  unavailableReason: z.string().optional(),
 });
 export type YoutubeMusicPreviewItem = z.infer<typeof YoutubeMusicPreviewItemSchema>;
 

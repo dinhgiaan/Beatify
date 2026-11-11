@@ -96,6 +96,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
   const [showToken, setShowToken] = useState(false);
   const [customAudioUrl, setCustomAudioUrl] = useState('');
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [profileInitialEditing, setProfileInitialEditing] = useState(false);
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -206,42 +207,56 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
           showsVerticalScrollIndicator={false}
         >
           {/* THẺ HỒ SƠ NGƯỜI DÙNG & AVATAR NỔI BẬT */}
-          <TouchableOpacity
-            style={styles.profileHeaderCard}
-            onPress={() => {
-              Vibration.vibrate(10);
-              setProfileModalVisible(true);
-            }}
-            activeOpacity={0.8}
-            accessibilityLabel="Mở màn hình chỉnh sửa hồ sơ và thống kê"
-          >
-            <View style={styles.profileAvatarWrapper}>
-              {userProfile?.avatarUri ? (
-                <Image
-                  source={{ uri: userProfile.avatarUri }}
-                  style={styles.profileAvatarImg}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.profileAvatarPlaceholder}>
-                  <ProfileIcon size={28} color={colors.primary} />
-                </View>
-              )}
-            </View>
-            <View style={styles.profileHeaderInfo}>
-              <Text style={styles.profileHeaderName} numberOfLines={1}>
-                {userProfile?.displayName || 'Người Yêu Nhạc'}
-              </Text>
-              {Boolean(userProfile?.bio) && (
-                <Text style={styles.profileHeaderBio} numberOfLines={1}>
-                  {userProfile?.bio}
+          <View style={styles.profileHeaderCard}>
+            <TouchableOpacity
+              style={styles.profileHeaderMainTouch}
+              onPress={() => {
+                Vibration.vibrate(10);
+                setProfileInitialEditing(false);
+                setProfileModalVisible(true);
+              }}
+              activeOpacity={0.8}
+              accessibilityLabel="Xem thống kê nghe nhạc và Replay"
+            >
+              <View style={styles.profileAvatarWrapper}>
+                {userProfile?.avatarUri ? (
+                  <Image
+                    source={{ uri: userProfile.avatarUri }}
+                    style={styles.profileAvatarImg}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.profileAvatarPlaceholder}>
+                    <ProfileIcon size={28} color={colors.primary} />
+                  </View>
+                )}
+              </View>
+              <View style={styles.profileHeaderInfo}>
+                <Text style={styles.profileHeaderName} numberOfLines={1}>
+                  {userProfile?.displayName || 'Người Yêu Nhạc'}
                 </Text>
-              )}
-            </View>
-            <View style={styles.profileEditBadge}>
+                {Boolean(userProfile?.bio) && (
+                  <Text style={styles.profileHeaderBio} numberOfLines={1}>
+                    {userProfile?.bio}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.profileEditBadge}
+              onPress={() => {
+                Vibration.vibrate(10);
+                setProfileInitialEditing(true);
+                setProfileModalVisible(true);
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.7}
+              accessibilityLabel="Chỉnh sửa tên, giới thiệu và ảnh đại diện"
+            >
               <EditIcon size={16} color={colors.primary} />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
           {/* MỤC 1: THỐNG KÊ NGHE NHẠC & REPLAY (HIỂN THỊ TRỰC TIẾP RA NGOÀI) */}
           <View style={styles.sectionCard}>
@@ -822,6 +837,7 @@ export function HiddenSettingsModal({ visible, onClose, onProfileUpdated }: Hidd
           visible={profileModalVisible}
           onClose={() => setProfileModalVisible(false)}
           totalLibraryTracksCount={tracks.length}
+          initialEditing={profileInitialEditing}
           onProfileUpdated={(updated) => {
             setUserProfile(updated);
             onProfileUpdated?.(updated);
@@ -858,6 +874,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.surfaceHighlight,
     marginBottom: spacing.xs,
+  },
+  profileHeaderMainTouch: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   profileAvatarWrapper: {
     width: 52,

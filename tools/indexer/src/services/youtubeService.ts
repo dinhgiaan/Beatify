@@ -22,6 +22,8 @@ export interface YoutubePreviewEntry {
   thumbnailUrl?: string;
   channelUrl?: string;
   lyrics?: LyricsResult;
+  isUnavailable?: boolean;
+  unavailableReason?: string;
 }
 
 export interface YoutubePreviewResult {
@@ -479,6 +481,20 @@ export const YoutubeService = {
             ? item.uploader_url
             : undefined;
 
+      // Phát hiện video bị xóa, ẩn hoặc đổi sang Private
+      const isUnavailable =
+        /\[\s*(?:private|deleted|blocked|hidden)\s+video\s*\]/i.test(originalTitle) ||
+        /video (?:unavailable|deleted|private)/i.test(originalTitle) ||
+        item.availability === 'private' ||
+        item.availability === 'needs_auth' ||
+        !id;
+
+      const unavailableReason = isUnavailable
+        ? /private/i.test(originalTitle) || item.availability === 'private'
+          ? 'Video này đã chuyển sang Riêng tư (Private)'
+          : 'Video đã bị xóa hoặc không còn khả dụng trên YouTube'
+        : undefined;
+
       entries.push({
         id,
         url: itemUrl,
@@ -489,6 +505,8 @@ export const YoutubeService = {
         thumbnailUrl,
         channelUrl,
         lyrics,
+        isUnavailable,
+        unavailableReason,
       });
     }
 

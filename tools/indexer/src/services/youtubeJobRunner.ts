@@ -281,6 +281,8 @@ class YoutubeJobRunner extends EventEmitter {
         lyricsSource: lrcInfo?.source || 'none',
         customLyrics: lrcInfo?.text || undefined,
         hasCover: Boolean(entry.thumbnailUrl),
+        isUnavailable: entry.isUnavailable,
+        unavailableReason: entry.unavailableReason,
       });
     }
 

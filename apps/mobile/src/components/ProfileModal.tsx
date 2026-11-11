@@ -59,6 +59,7 @@ interface ProfileModalProps {
   onClose: () => void;
   totalLibraryTracksCount: number;
   onProfileUpdated?: (profile: UserProfile) => void;
+  initialEditing?: boolean;
 }
 
 const AVATAR_OPTIONS = [
@@ -119,6 +120,7 @@ export function ProfileModal({
   onClose,
   totalLibraryTracksCount,
   onProfileUpdated,
+  initialEditing = false,
 }: ProfileModalProps) {
   const [report, setReport] = useState<FullReplayReport | null>(null);
   const [activeTab, setActiveTab] = useState<'week' | 'month' | 'year' | 'memories'>('week');
@@ -132,7 +134,7 @@ export function ProfileModal({
     if (visible) {
       loadData();
     }
-  }, [visible]);
+  }, [visible, initialEditing]);
 
   const loadData = async () => {
     const data = await statsStorage.getReplayReport();
@@ -141,7 +143,7 @@ export function ProfileModal({
     setTempBio(data.profile.bio);
     setTempAvatarUri(data.profile.avatarUri || '');
     setTempAvatarKey(data.profile.avatarKey || data.profile.avatarEmoji || 'headphones');
-    setIsEditingProfile(false);
+    setIsEditingProfile(Boolean(initialEditing));
   };
 
   const handleStartEditing = () => {
@@ -168,9 +170,8 @@ export function ProfileModal({
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.85,
+        allowsEditing: false, // Tắt bắt buộc crop 1:1, giữ trọn vẹn 100% tỷ lệ và góc ảnh gốc
+        quality: 0.9,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -189,6 +190,43 @@ export function ProfileModal({
     } catch (err) {
       console.warn('Lỗi chọn ảnh đại diện từ iPhone:', err);
       Alert.alert('Không thể chọn ảnh', 'Đã xảy ra lỗi khi mở thư viện ảnh của thiết bị.');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      Vibration.vibrate(10);
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Cần cấp quyền Camera',
+          'Vui lòng cho phép Beatify truy cập Camera trong Cài đặt iPhone để chụp ảnh đại diện mới của bạn.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false, // Giữ trọn vẹn khung hình chụp từ Camera iPhone không ép crop
+        quality: 0.9,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        if (asset && asset.uri) {
+          const fileName = `user_avatar_${Date.now()}.jpg`;
+          const destPath = `${FileSystem.documentDirectory || ''}${fileName}`;
+          await FileSystem.copyAsync({
+            from: asset.uri,
+            to: destPath,
+          });
+          setTempAvatarUri(destPath);
+          Vibration.vibrate(10);
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi chụp ảnh từ Camera iPhone:', err);
+      Alert.alert('Không thể chụp ảnh', 'Đã xảy ra lỗi khi mở camera thiết bị.');
     }
   };
 
@@ -287,17 +325,26 @@ export function ProfileModal({
                   </View>
                 </View>
 
-                {/* Nút chọn ảnh trực tiếp từ Thư viện iPhone */}
-                <TouchableOpacity
-                  style={styles.pickImageBtn}
-                  onPress={handlePickImage}
-                  activeOpacity={0.8}
-                >
-                  <CameraIcon size={18} color={colors.textDark} />
-                  <Text style={styles.pickImageBtnText}>
-                    {tempAvatarUri ? 'Đổi ảnh' : 'Chọn ảnh từ iPhone'}
-                  </Text>
-                </TouchableOpacity>
+                {/* Lựa chọn ảnh trực tiếp từ Camera hoặc Thư viện iPhone (Không ép crop) */}
+                <View style={styles.imageActionButtonsRow}>
+                  <TouchableOpacity
+                    style={[styles.pickImageBtn, styles.takePhotoBtn]}
+                    onPress={handleTakePhoto}
+                    activeOpacity={0.8}
+                  >
+                    <CameraIcon size={17} color={colors.textDark} />
+                    <Text style={styles.pickImageBtnText}>Chụp ảnh</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.pickImageBtn, styles.libraryPhotoBtn]}
+                    onPress={handlePickImage}
+                    activeOpacity={0.8}
+                  >
+                    <DiscIcon size={17} color={colors.textPrimary} />
+                    <Text style={[styles.pickImageBtnText, { color: colors.textPrimary }]}>Thư viện ảnh</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {/* Chọn biểu tượng âm nhạc */}
                 <Text style={styles.editInputLabel}>Hoặc chọn biểu tượng đại diện</Text>
@@ -812,6 +859,23 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontWeight: fontWeights.semibold,
   },
+  imageActionButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  takePhotoBtn: {
+    flex: 1,
+    marginBottom: 0,
+    backgroundColor: colors.primary,
+  },
+  libraryPhotoBtn: {
+    flex: 1,
+    marginBottom: 0,
+    backgroundColor: colors.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
   pickImageBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -820,8 +884,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   pickImageBtnText: {
     color: colors.textDark,
