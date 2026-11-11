@@ -2,13 +2,13 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành toàn diện các tính năng mở rộng của Phase 4 cho Beatify Mobile:
-1. **Nghe gần đây (Recently Played):** Tự động ghi nhận bài nghe $\ge 5$ giây, loại trừ trùng lặp đưa lên đầu danh sách, cho phép người dùng tùy chọn giới hạn (10, 20, 30, 40, 50 bài, mặc định 30 bài). Tích hợp Card mở chi tiết tại tab Playlist, hàng cuộn ngang tại Thư viện Bài hát, và bộ chọn giới hạn trong Cài đặt ẩn (Hidden Settings).
-2. **Lời bài hát đồng bộ & Karaoke tô sáng từng chữ:** Phân tích cú pháp chuẩn `.lrc` (kèm auto spacing) và Plain text, hiệu ứng Karaoke tô sáng dần từng chữ theo tiến trình câu hát, hỗ trợ cuộn mượt tự động bám theo nhạc, bấm vào câu hát để tua, và mở trình sửa lời trực tiếp từ Now Playing.
-3. **Nghe nhạc ngoại tuyến & Trình quản lý dung lượng:** Tải và lưu trữ trọn bộ 3 tệp (nhạc + ảnh bìa + lời `.lrc`) vào thư mục cục bộ của app, tự động ưu tiên phát file `file://` khi offline; Modal `OfflineDownloadsModal` hiển thị tổng dung lượng (MB/GB), badge dung lượng từng bài, chế độ Multi-select checkbox để chọn và xóa hàng loạt (Batch delete) hoặc xóa lẻ, tích hợp tại tab Playlist và Cài đặt ẩn.
-4. **Bảo mật iOS Keychain (Apple Secure Enclave):** Cài đặt `expo-secure-store`, lưu trữ mã hóa `server_token` vào Keychain phần cứng an toàn, tự động di chuyển (migration) token cũ từ file JSON sang Keychain và xóa bỏ text lưu trần.
-5. **Hồ sơ cá nhân & Nút Avatar trên Header Thư viện:** Thêm nút Avatar đại diện tròn ở góc trên bên phải màn hình Thư viện (phong cách Spotify). Hỗ trợ đổi tên hiển thị, bio, chọn bộ 8 biểu tượng âm nhạc đại diện hoặc dán URL ảnh đại diện tùy chỉnh (`avatarUri`), thẻ Hồ sơ người dùng nổi bật ngay đầu Cài đặt & Hồ sơ, cập nhật trực tiếp tức thì sau khi lưu.
-Toàn bộ hệ thống 223/223 tests xanh 100%, TypeScript strict và ESLint sạch 100%. Sẵn sàng build `.ipa` để trải nghiệm trên iPhone.
+**Phase hiện tại:** Hoàn thành toàn diện các tính năng mở rộng của Phase 4 cho Beatify Mobile & Sửa lỗi kết nối Cloudflare R2 / Phát nhạc trên iPhone:
+1. **Khắc phục lỗi văng app khi bấm phát nhạc (Crash iOS):** Chuẩn hoá `track.file` từ chuỗi tương đối (`music/<id>.m4a`) thành full streaming URL (`https://.../stream/<id>?t=<token>`) hỗ trợ Range 206, đồng thời thêm lớp phòng vệ chống crash trong `rntpPlayerService.ts`.
+2. **Khắc phục lỗi thiếu ảnh bìa:** Chuẩn hoá `track.cover` và `album.cover` thành URL Cloudflare Worker đầy đủ (`https://.../covers/<albumId>?t=<token>`).
+3. **Triển khai Cloudflare Worker & Cải tiến API:** Đã deploy Worker lên `https://beatify-api.beatify-kato.workers.dev`, hỗ trợ xác thực qua cả `?t=` và `?token=`, đăng ký alias `/api/stream/:id` và `/api/covers/:albumId`.
+4. **Giao diện Bottom Tab Bar Nổi (Floating Pill Capsule Dock):** Thiết kế lại thanh điều hướng đáy nổi cách màn hình theo phong cách Truecaller, với hiệu ứng active pill highlight và giữ icon Thư viện để mở Cài đặt ẩn.
+5. **Xử lý triệt để lỗi "cancelled":** Thêm khoá chống đồng bộ trùng lặp và bỏ qua lỗi mạng huỷ ngầm để không hiện popup gây phiền.
+Toàn bộ hệ thống 225/225 tests xanh 100%, TypeScript strict và ESLint sạch 100%. Sẵn sàng build lại `.ipa` để trải nghiệm trực tiếp trên iPhone.
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
