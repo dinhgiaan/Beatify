@@ -2,14 +2,15 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành toàn diện đợt cập nhật UI/UX iOS 18 Glassmorphism, Tab Vừa nghe riêng biệt & Tinh chỉnh Album/Nghệ sĩ:
-1. **Hồ sơ & Thống kê:** Định dạng ngày "Bắt đầu hành trình" theo tiếng Việt (`DD/MM/YYYY`). Đặt icon Edit ở góc trên cùng bên phải (`top-right`) của Profile Card và loại bỏ nút thừa. Cho phép người dùng để trống Bio hoàn toàn (không tự ý gán chuỗi fallback). Đổi nút chọn ảnh từ iPhone thành nút compact có icon máy ảnh (`CameraIcon`) + "Đổi ảnh".
-2. **Floating Tab Bar phong cách iOS 18 Glassmorphism:** Khung ngoài capsule bo tròn `rgba(28, 28, 30, 0.78)` (chuẩn `#1C1C1E`/78) viền `border-white/10` `rgba(255, 255, 255, 0.12)`. Tab active bọc trong khối pill kính sáng `rgba(255, 255, 255, 0.14)` với icon và chữ đổi màu accent. Đảm bảo khoảng cách an toàn với MiniPlayer và Home Indicator.
-3. **Tab riêng "Vừa nghe" (Recently Played):** Tách phần "Vừa nghe gần đây" thành Tab độc lập trên Floating Dock (`recent.tsx`) với đầy đủ lịch sử phát nhạc, nút xóa lịch sử, phát nhạc trực tiếp và đánh dấu yêu thích.
-4. **Lọc Album thực thụ:** Phân loại và loại bỏ các đĩa đơn (Singles / Single / bài hát đơn lẻ), chỉ hiển thị các Album thực sự (như album phòng thu, EP nhiều bài).
-5. **Mục Nghệ sĩ nghệ thuật cao (Modern Artist Grid):** Thiết kế lại giao diện Nghệ sĩ dạng lưới 2 cột sang trọng phong cách Apple Music Artist Profile. Chân dung nghệ sĩ tròn lớn 96x96 có viền phát sáng neon, hiệu ứng đổ bóng sâu và badge số lượng bài hát tinh tế.
-6. **Loại bỏ hoàn toàn icon emoji thô:** Thay thế các ký tự emoji (`⚙️`, `▲`, `▼`, `•••`, `🔐`) bằng hệ thống nhãn thông minh (Badges) và icon vector SVG SF Symbols (`MoreHorizontalIcon`, `CameraIcon`, `ClockRewindIcon`).
-7. **Toàn bộ monorepo:** 225/225 tests passed 100%, typecheck sạch.
+**Phase hiện tại:** Hoàn thành tinh chỉnh UI/UX, Sửa lỗi Lời bài hát & Nâng cấp Trải nghiệm Người dùng:
+1. **Làm sạch Tab Thư viện:** Gỡ bỏ mục "Vừa nghe gần đây" khỏi `library.tsx` vì đã có tab "Vừa nghe" riêng biệt; ghim số lượng Album chính xác theo `realAlbums.length` (chỉ đếm các phát hành có từ 2 bài trở lên, loại trừ hoàn toàn các bản single/đĩa đơn).
+2. **Badge Singles & Thời lượng:** Bổ sung hiển thị thời lượng bài hát trên từng hàng danh sách; thu nhỏ badge `Single` với màu sắc tinh tế, kín đáo ở góc phụ.
+3. **Màn hình Tìm kiếm:** Hỗ trợ chạm vào bất kỳ khoảng trống nào trên màn hình để ẩn bàn phím (`Keyboard.dismiss`), hỗ trợ kéo cuộn ẩn phím (`keyboardDismissMode="on-drag"`).
+4. **Hệ thống Icon SF Symbols & Karaoke Mic:** Thay icon bình luận thành icon Microphone chuẩn Apple Music (`mic.fill`), thay icon tua/lặp đầu bài thành chuẩn Audio Player có thanh chặn đứng (`|◀` và `▶|`).
+5. **Ổn định hóa Lyrics:** Khắc phục triệt để lỗi spinner loading lặp liên tục và jitter giật cuộn bằng cách dùng ref cache ID bài hát và debounce cuộn khi dòng lyric thay đổi.
+6. **Lặp lại bài hát tùy chỉnh (Custom Loop Count):** Hỗ trợ nhấn giữ nút Lặp lại để chọn số lần phát lại (2 lần, 3 lần, 5 lần, Vô hạn) hoặc tự gõ số lần bất kỳ; hiển thị badge số lần còn lại trên nút lặp và tự động tắt khi hoàn thành.
+7. **Hồ sơ cá nhân & Thống kê Replay trực quan:** Đưa toàn bộ 4 chỉ số thống kê (Phút nghe, Lượt nghe, Cột mốc đạt, Kho bài hát) và Top nghệ sĩ / bài hát nghe nhiều nhất ra ngoài màn hình chính; đưa mục Nghe gần đây vào trong phần Kỹ thuật; bổ sung hiệu ứng chuyển động animation đóng/mở mượt mà (`LayoutAnimation.Presets.easeInEaseOut`).
+8. **Toàn bộ monorepo:** 227/227 tests passed 100%, typecheck sạch, ESLint 0 lỗi.
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
