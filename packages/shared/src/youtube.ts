@@ -153,6 +153,7 @@ export const YoutubeMusicPreviewItemSchema = z.object({
   hasCover: z.boolean().optional(),
   isUnavailable: z.boolean().optional(),
   unavailableReason: z.string().optional(),
+  fileSizeBytes: z.number().optional(),
 });
 export type YoutubeMusicPreviewItem = z.infer<typeof YoutubeMusicPreviewItemSchema>;
 

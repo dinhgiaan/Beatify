@@ -325,6 +325,7 @@ class YoutubeJobRunner extends EventEmitter {
         hasCover: Boolean(entry.thumbnailUrl),
         isUnavailable: entry.isUnavailable,
         unavailableReason: entry.unavailableReason,
+        fileSizeBytes: matched?.fileSizeBytes,
       });
     }
 

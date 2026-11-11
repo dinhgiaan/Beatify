@@ -60,11 +60,24 @@ function formatDuration(seconds?: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function formatEstimatedSize(durationSeconds?: number, format: YoutubeMusicFormat = 'm4a'): string {
+function formatEstimatedSize(
+  durationSeconds?: number,
+  format: YoutubeMusicFormat = 'm4a',
+  includeLyrics = true
+): string {
   if (!durationSeconds || durationSeconds <= 0) return '';
-  const kbpsRate = format === 'm4a' ? 32 : format === 'opus' ? 20 : format === 'mp3' ? 40 : 100;
-  const sizeMb = (durationSeconds * kbpsRate + 350) / 1024;
+  // Luồng audio thực tế từ YouTube: AAC ~128-144kbps (18 KB/s), Opus ~144-160kbps (18 KB/s)
+  const kbpsRate = format === 'm4a' ? 18 : format === 'opus' ? 18 : format === 'mp3' ? 24 : 80;
+  // Bìa album ~120KB, lời .lrc ~2KB nếu người dùng chọn tải lời
+  const overheadKb = 120 + (includeLyrics ? 2 : 0);
+  const sizeMb = (durationSeconds * kbpsRate + overheadKb) / 1024;
   return `~${sizeMb.toFixed(1)} MB`;
+}
+
+function formatExactSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '0 MB';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
 }
 
 // Chuyển đổi ngày phiên bản YYYY.MM.DD sang DD/MM/YYYY chuẩn Việt Nam
@@ -355,11 +368,32 @@ export const YoutubeMusicPage: React.FC = () => {
 
   const totalSelectedEstimatedSize = React.useMemo(() => {
     if (!previewData || selectedIds.size === 0) return '';
-    const totalSeconds = previewData.items
-      .filter((i) => selectedIds.has(i.id))
-      .reduce((acc, i) => acc + (i.duration || 0), 0);
-    return formatEstimatedSize(totalSeconds, preferredFormat);
-  }, [previewData, selectedIds, preferredFormat]);
+    let totalBytesExact = 0;
+    let totalSecondsEstimated = 0;
+    let exactCount = 0;
+    let estimateCount = 0;
+
+    previewData.items.forEach((i) => {
+      if (!selectedIds.has(i.id)) return;
+      if (i.fileSizeBytes && i.isAlreadyDownloaded) {
+        totalBytesExact += i.fileSizeBytes;
+        exactCount++;
+      } else if (i.duration) {
+        totalSecondsEstimated += i.duration;
+        estimateCount++;
+      }
+    });
+
+    if (exactCount > 0 && estimateCount === 0) {
+      return formatExactSize(totalBytesExact);
+    }
+
+    const kbpsRate = preferredFormat === 'm4a' ? 18 : preferredFormat === 'opus' ? 18 : preferredFormat === 'mp3' ? 24 : 80;
+    const overheadKb = 120 + (fetchLyrics ? 2 : 0);
+    const estimatedBytes = (totalSecondsEstimated * kbpsRate + estimateCount * overheadKb) * 1024;
+    const totalMb = (totalBytesExact + estimatedBytes) / (1024 * 1024);
+    return `~${totalMb.toFixed(1)} MB`;
+  }, [previewData, selectedIds, preferredFormat, fetchLyrics]);
 
   // Quick selection helpers
   const handleSelectOnlyWithLrc = () => {
@@ -1470,11 +1504,21 @@ export const YoutubeMusicPage: React.FC = () => {
                                   <div className="text-[var(--text-primary)] font-medium">
                                     {formatDuration(item.duration)}
                                   </div>
-                                  {item.duration && (
-                                    <div className="text-[9px] text-[var(--text-muted)]">
-                                      {formatEstimatedSize(item.duration, preferredFormat)}
+                                  {item.fileSizeBytes && item.isAlreadyDownloaded ? (
+                                    <div
+                                      className="text-[9px] font-medium text-emerald-400"
+                                      title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
+                                    >
+                                      {formatExactSize(item.fileSizeBytes)}
                                     </div>
-                                  )}
+                                  ) : item.duration ? (
+                                    <div
+                                      className="text-[9px] text-[var(--text-muted)]"
+                                      title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
+                                    >
+                                      {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
+                                    </div>
+                                  ) : null}
                                 </div>
 
                                 {/* Badge Lời bài hát */}
@@ -1774,11 +1818,21 @@ export const YoutubeMusicPage: React.FC = () => {
                           <div className="text-[var(--text-primary)] font-medium">
                             {formatDuration(item.duration)}
                           </div>
-                          {item.duration && (
-                            <div className="text-[9.5px] text-[var(--text-muted)]">
-                              {formatEstimatedSize(item.duration, preferredFormat)}
+                          {item.fileSizeBytes && item.isAlreadyDownloaded ? (
+                            <div
+                              className="text-[9.5px] font-medium text-emerald-400"
+                              title={`Dung lượng thực tế trên ổ đĩa: ${(item.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`}
+                            >
+                              {formatExactSize(item.fileSizeBytes)}
                             </div>
-                          )}
+                          ) : item.duration ? (
+                            <div
+                              className="text-[9.5px] text-[var(--text-muted)]"
+                              title="Dung lượng dự kiến ước tính (Audio + Bìa + Lời)"
+                            >
+                              {formatEstimatedSize(item.duration, preferredFormat, fetchLyrics)}
+                            </div>
+                          ) : null}
                         </td>
                         <td
                           className="py-2 px-2 text-center whitespace-nowrap"

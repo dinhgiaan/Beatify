@@ -208,57 +208,57 @@ export async function analyzeAudioFile(
     let vec: { delete?: () => void } | null = null;
 
     try {
-      const essentia = getEssentia();
-      vec = essentia.arrayToVector(analysisSlice) as { delete?: () => void };
+        const essentia = getEssentia();
+        vec = essentia.arrayToVector(analysisSlice) as { delete?: () => void };
 
-      // 1. Trích xuất Key (Khóa nhạc)
-      try {
-        const keyRes = essentia.KeyExtractor(vec);
-        if (keyRes && keyRes.key) {
-          camelotKey = pitchToCamelot(keyRes.key, keyRes.scale) || undefined;
-        }
-      } catch {
-        // Bỏ qua lỗi Key trích xuất
-      }
-
-      // 2. Trích xuất BPM
-      try {
-        const bpmRes = essentia.PercivalBpmEstimator(vec);
-        if (bpmRes && bpmRes.bpm && bpmRes.bpm > 30 && bpmRes.bpm < 300) {
-          bpm = Number(bpmRes.bpm.toFixed(1));
-        }
-      } catch {
-        // Bỏ qua lỗi BPM trích xuất
-      }
-    } catch (wasmErr) {
-      console.warn(`[AudioAnalysis] Essentia WASM gặp sự cố nhẹ khi phân tích ${trackId}:`, wasmErr);
-    } finally {
-      if (vec && typeof vec.delete === 'function') {
+        // 1. Trích xuất Key (Khóa nhạc)
         try {
-          vec.delete();
+          const keyRes = essentia.KeyExtractor(vec);
+          if (keyRes && keyRes.key) {
+            camelotKey = pitchToCamelot(keyRes.key, keyRes.scale) || undefined;
+          }
         } catch {
-          // Bỏ qua lỗi giải phóng vector WASM
+          // Bỏ qua lỗi Key trích xuất
         }
+
+          // 2. Trích xuất BPM
+          try {
+            const bpmRes = essentia.PercivalBpmEstimator(vec);
+            if (bpmRes && bpmRes.bpm && bpmRes.bpm > 30 && bpmRes.bpm < 300) {
+              bpm = Number(bpmRes.bpm.toFixed(1));
+            }
+          } catch {
+            // Bỏ qua lỗi BPM trích xuất
+          }
+        } catch (wasmErr) {
+          console.warn(`[AudioAnalysis] Essentia WASM gặp sự cố nhẹ khi phân tích ${trackId}:`, wasmErr);
+        } finally {
+          if (vec && typeof vec.delete === 'function') {
+            try {
+              vec.delete();
+            } catch {
+              // Bỏ qua lỗi giải phóng vector WASM
+            }
+          }
+        }
+
+        // 3. Trích xuất điểm chuyển introEnd & outroStart
+        const { introEnd, outroStart } = calculateIntroOutro(floats, 22050);
+
+        const result: AudioAnalysisResult = {
+          bpm,
+          key: camelotKey,
+          introEnd,
+          outroStart,
+        };
+
+        // Lưu vào cache
+        cache[trackId] = result;
+        await saveAnalysisCache(cache);
+
+        return result;
+      } catch (err) {
+        console.warn(`[AudioAnalysis] Không thể phân tích file "${filePath}":`, err);
+        return null;
       }
     }
-
-    // 3. Trích xuất điểm chuyển introEnd & outroStart
-    const { introEnd, outroStart } = calculateIntroOutro(floats, 22050);
-
-    const result: AudioAnalysisResult = {
-      bpm,
-      key: camelotKey,
-      introEnd,
-      outroStart,
-    };
-
-    // Lưu vào cache
-    cache[trackId] = result;
-    await saveAnalysisCache(cache);
-
-    return result;
-  } catch (err) {
-    console.warn(`[AudioAnalysis] Không thể phân tích file "${filePath}":`, err);
-    return null;
-  }
-}

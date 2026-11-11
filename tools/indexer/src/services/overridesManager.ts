@@ -26,10 +26,38 @@ export async function getOverrides(): Promise<Overrides> {
   }
 }
 
+let saveOverridesQueue: Promise<void> = Promise.resolve();
+
+async function safeAtomicWrite(targetPath: string, content: string): Promise<void> {
+  const dir = path.dirname(targetPath);
+  const tmpPath = path.join(dir, `${path.basename(targetPath)}.tmp.${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
+  await fs.writeFile(tmpPath, content, 'utf-8');
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    try {
+      await fs.rename(tmpPath, targetPath);
+      return;
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if ((code === 'EPERM' || code === 'EBUSY') && attempt < 6) {
+        await new Promise((r) => setTimeout(r, 60 * Math.pow(1.5, attempt)));
+        continue;
+      }
+      try {
+        await fs.copyFile(tmpPath, targetPath);
+        await fs.unlink(tmpPath).catch(() => {});
+        return;
+      } catch {
+        throw err;
+      }
+    }
+  }
+}
+
 export async function saveOverrides(overrides: Overrides): Promise<void> {
-  const tmpFile = `${OVERRIDES_FILE}.tmp`;
-  await fs.writeFile(tmpFile, JSON.stringify(overrides, null, 2), 'utf-8');
-  await fs.rename(tmpFile, OVERRIDES_FILE);
+  saveOverridesQueue = saveOverridesQueue.then(async () => {
+    await safeAtomicWrite(OVERRIDES_FILE, JSON.stringify(overrides, null, 2));
+  });
+  return saveOverridesQueue;
 }
 
 export async function setTrackOverride(
