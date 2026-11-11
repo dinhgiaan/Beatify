@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   UploadCloud,
   FolderSync,
+  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { YoutubeMusicDownloadRecord } from '@music-app/shared';
@@ -243,6 +244,25 @@ export const DownloadedVideosManagerPage: React.FC<{
       return true;
     });
   }, [downloads, activeTab, formatFilter, searchTerm]);
+
+  // Kiểm tra trạng thái đã chọn tất cả các bài đang hiển thị trong bộ lọc
+  const isAllFilteredSelected = useMemo(() => {
+    if (filteredDownloads.length === 0) return false;
+    return filteredDownloads.every((d) => selectedTrackIds.has(d.id));
+  }, [filteredDownloads, selectedTrackIds]);
+
+  // Toggle chọn tất cả / bỏ chọn tất cả
+  const handleToggleSelectAll = () => {
+    if (isAllFilteredSelected) {
+      const next = new Set(selectedTrackIds);
+      filteredDownloads.forEach((d) => next.delete(d.id));
+      setSelectedTrackIds(next);
+    } else {
+      const next = new Set(selectedTrackIds);
+      filteredDownloads.forEach((d) => next.add(d.id));
+      setSelectedTrackIds(next);
+    }
+  };
 
   // Phát nhạc nghe thử qua Audio Dock
   const handlePlayAudio = (record: YoutubeMusicDownloadRecord) => {
@@ -537,6 +557,24 @@ export const DownloadedVideosManagerPage: React.FC<{
             <option value="mp3">MP3</option>
             <option value="opus">Opus</option>
           </Select>
+
+          {/* Nút bấm chọn tất cả nhanh trên thanh công cụ */}
+          {filteredDownloads.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleToggleSelectAll}
+              className={`h-8 px-3 text-xs gap-1.5 font-semibold shrink-0 cursor-pointer transition-colors ${
+                isAllFilteredSelected
+                  ? 'bg-[#1DB954]/20 border-[#1DB954]/50 text-[#1DB954]'
+                  : 'text-zinc-300 hover:text-white'
+              }`}
+              title={isAllFilteredSelected ? 'Bỏ chọn tất cả bài hát đang hiển thị' : 'Chọn tất cả bài hát đang hiển thị'}
+            >
+              <CheckSquare size={13} className={isAllFilteredSelected ? 'text-[#1DB954]' : 'text-zinc-400'} />
+              <span>{isAllFilteredSelected ? 'Bỏ chọn tất cả' : `Chọn tất cả (${filteredDownloads.length})`}</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -557,6 +595,36 @@ export const DownloadedVideosManagerPage: React.FC<{
         </div>
       ) : (
         <div className="border border-[var(--border)] rounded-xl bg-[var(--bg-surface)] overflow-hidden divide-y divide-[var(--border)] shadow-sm">
+          {/* Header chọn tất cả đầu bảng */}
+          <div className="px-3.5 py-2 bg-[var(--bg-subtle)]/70 flex items-center justify-between text-xs border-b border-[var(--border)] select-none">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="select-all-downloads-checkbox"
+                checked={isAllFilteredSelected}
+                onChange={handleToggleSelectAll}
+                className="shrink-0 cursor-pointer"
+              />
+              <label
+                htmlFor="select-all-downloads-checkbox"
+                className="font-semibold text-zinc-300 hover:text-white cursor-pointer flex items-center gap-2"
+              >
+                <span>{isAllFilteredSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span>
+                <span className="text-zinc-500 font-normal">
+                  ({filteredDownloads.length} bài{selectedTrackIds.size > 0 ? ` • Đã chọn ${selectedTrackIds.size}` : ''})
+                </span>
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[var(--bg-surface)] hover:bg-[#1DB954]/15 hover:text-[#1DB954] text-zinc-300 border border-[var(--border)] transition-colors cursor-pointer"
+              >
+                {isAllFilteredSelected ? 'Bỏ chọn tất cả' : `Chọn tất cả (${filteredDownloads.length})`}
+              </button>
+            </div>
+          </div>
           {filteredDownloads.map((item, index) => {
             const isFileMissing = item.fileExists === false;
 
