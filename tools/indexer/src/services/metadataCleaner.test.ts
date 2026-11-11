@@ -91,4 +91,52 @@ describe('MetadataCleaner', () => {
     expect(res.artist).toBe('Meek Mill');
     expect(res.artists).toEqual(['Meek Mill', 'Drake']);
   });
+
+  it('nhận diện chuẩn xác video Sơn Tùng M-TP với dấu pipe và không cắt nhầm hyphen M-TP thành TP', () => {
+    const res = MetadataCleaner.clean({
+      title: 'Buông Đôi Tay Nhau Ra | OFFICIAL MUSIC VIDEO | Sơn Tùng M-TP',
+      channel: 'Sơn Tùng M-TP Official',
+    });
+    expect(res.title).toBe('Buông Đôi Tay Nhau Ra');
+    expect(res.artist).toBe('Sơn Tùng M-TP');
+    expect(res.artists).toEqual(['Sơn Tùng M-TP']);
+  });
+
+  it('nhận diện chuẩn xác video phân nhánh đa nghệ sĩ và nhóm rap như Rapital Xích Thêm Chút Remix', () => {
+    const res = MetadataCleaner.clean({
+      title: 'Xích Thêm Chút - XTC Remix | RPT Groovie ft TLinh x RPT MCK (Prod. by fat_benn & RPT LT)| RAPITALOVE',
+      channel: 'Rapital Official',
+    });
+    expect(res.title).toBe('Xích Thêm Chút - XTC Remix');
+    expect(res.artist).toBe('RPT Groovie');
+    expect(res.artists).toEqual(['RPT Groovie', 'TLinh', 'RPT MCK']);
+    expect(res.album).toBe('RAPITALOVE');
+  });
+
+  it('nhận diện định dạng ngược Title - Artist phổ biến tại Việt Nam (Cơn Mưa Cuối, Sống Cho Hết Đời Thanh Xuân)', () => {
+    const res1 = MetadataCleaner.clean({
+      title: '(Lyric Video) Cơn Mưa Cuối - JustaTee x Binz',
+      channel: 'JustaTee Music',
+    });
+    expect(res1.title).toBe('Cơn Mưa Cuối');
+    expect(res1.artist).toBe('JustaTee');
+    expect(res1.artists).toEqual(['JustaTee', 'Binz']);
+
+    const res2 = MetadataCleaner.clean({
+      title: 'SỐNG CHO HẾT ĐỜI THANH XUÂN 2 - BCTM x TNS',
+      channel: 'TNS Channel',
+    });
+    expect(res2.title).toBe('Sống Cho Hết Đời Thanh Xuân 2');
+    expect(res2.artist).toBe('BCTM');
+    expect(res2.artists).toEqual(['BCTM', 'TNS']);
+  });
+
+  it('không cắt nhầm dấu gạch nối trong Spider-Man hay tên danh từ ghép', () => {
+    const res = MetadataCleaner.clean({
+      title: 'Post Malone - Sunflower (Spider-Man: Into the Spider-Verse)',
+      channel: 'Post Malone',
+    });
+    expect(res.title).toBe('Sunflower (Spider-Man: Into the Spider-Verse)');
+    expect(res.artist).toBe('Post Malone');
+  });
 });

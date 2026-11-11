@@ -31,7 +31,15 @@ export interface AudioAnalysisResult {
   outroStart?: number; // Giây bắt đầu outro
 }
 
-const CACHE_FILE = path.resolve(process.cwd(), 'tools/indexer/audio_analysis_cache.json');
+function getCacheFilePath(): string {
+  const cwd = process.cwd();
+  if (cwd.endsWith('tools\\indexer') || cwd.endsWith('tools/indexer')) {
+    return path.resolve(cwd, 'audio_analysis_cache.json');
+  }
+  return path.resolve(cwd, 'tools/indexer/audio_analysis_cache.json');
+}
+
+const CACHE_FILE = getCacheFilePath();
 
 /**
  * Đọc bộ đệm cache kết quả phân tích âm thanh đã lưu trên đĩa
@@ -53,6 +61,7 @@ async function loadAnalysisCache(): Promise<Record<string, AudioAnalysisResult>>
  */
 async function saveAnalysisCache(cache: Record<string, AudioAnalysisResult>): Promise<void> {
   try {
+    await fs.mkdir(path.dirname(CACHE_FILE), { recursive: true });
     await fs.writeFile(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8');
   } catch (err) {
     console.warn('[AnalysisCache] Không thể ghi cache:', err);
@@ -187,29 +196,50 @@ export async function analyzeAudioFile(
       return null;
     }
 
-    const essentia = getEssentia();
-    const vec = essentia.arrayToVector(floats);
+    // Chỉ lấy tối đa 90 giây đại diện (từ giây thứ 15 để tránh intro tĩnh) để phân tích BPM & Key
+    // Vừa tăng tốc gấp 5 lần, vừa giải phóng bộ nhớ WASM heap tránh lỗi abort(undefined)
+    const sampleRate = 22050;
+    const startSample = Math.min(Math.floor(15 * sampleRate), Math.floor(floats.length * 0.1));
+    const targetSamples = Math.min(Math.floor(90 * sampleRate), floats.length - startSample);
+    const analysisSlice = floats.subarray(startSample, startSample + targetSamples);
 
-    // 1. Trích xuất Key (Khóa nhạc)
     let camelotKey: string | undefined;
-    try {
-      const keyRes = essentia.KeyExtractor(vec);
-      if (keyRes && keyRes.key) {
-        camelotKey = pitchToCamelot(keyRes.key, keyRes.scale) || undefined;
-      }
-    } catch (err) {
-      console.warn(`[AudioAnalysis] Lỗi nhận diện Key cho ${trackId}:`, err);
-    }
-
-    // 2. Trích xuất BPM
     let bpm: number | undefined;
+    let vec: { delete?: () => void } | null = null;
+
     try {
-      const bpmRes = essentia.PercivalBpmEstimator(vec);
-      if (bpmRes && bpmRes.bpm && bpmRes.bpm > 30 && bpmRes.bpm < 300) {
-        bpm = Number(bpmRes.bpm.toFixed(1));
+      const essentia = getEssentia();
+      vec = essentia.arrayToVector(analysisSlice) as { delete?: () => void };
+
+      // 1. Trích xuất Key (Khóa nhạc)
+      try {
+        const keyRes = essentia.KeyExtractor(vec);
+        if (keyRes && keyRes.key) {
+          camelotKey = pitchToCamelot(keyRes.key, keyRes.scale) || undefined;
+        }
+      } catch {
+        // Bỏ qua lỗi Key trích xuất
       }
-    } catch (err) {
-      console.warn(`[AudioAnalysis] Lỗi nhận diện BPM cho ${trackId}:`, err);
+
+      // 2. Trích xuất BPM
+      try {
+        const bpmRes = essentia.PercivalBpmEstimator(vec);
+        if (bpmRes && bpmRes.bpm && bpmRes.bpm > 30 && bpmRes.bpm < 300) {
+          bpm = Number(bpmRes.bpm.toFixed(1));
+        }
+      } catch {
+        // Bỏ qua lỗi BPM trích xuất
+      }
+    } catch (wasmErr) {
+      console.warn(`[AudioAnalysis] Essentia WASM gặp sự cố nhẹ khi phân tích ${trackId}:`, wasmErr);
+    } finally {
+      if (vec && typeof vec.delete === 'function') {
+        try {
+          vec.delete();
+        } catch {
+          // Bỏ qua lỗi giải phóng vector WASM
+        }
+      }
     }
 
     // 3. Trích xuất điểm chuyển introEnd & outroStart
