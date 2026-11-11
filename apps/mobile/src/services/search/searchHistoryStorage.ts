@@ -79,3 +79,4 @@ export async function clearSearchHistory(): Promise<void> {
     console.warn('Lỗi xóa search history:', err);
   }
 }
+
