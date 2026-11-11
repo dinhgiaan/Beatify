@@ -1691,7 +1691,7 @@ app.get('/local-api/fs/explore', async (c) => {
     // Danh sách Quick Roots (Thư viện chính, Đã nhập...)
     const quickRoots = [
       { name: 'Thư viện nhạc (MUSIC_SOURCE_DIR)', path: localConfig.MUSIC_SOURCE_DIR },
-      ...(localConfig.MUSIC_IMPORT_DIR
+      ...(localConfig.MUSIC_IMPORT_DIR && localConfig.MUSIC_IMPORT_DIR !== localConfig.MUSIC_SOURCE_DIR
         ? [{ name: 'Thư mục nhập (_imported)', path: localConfig.MUSIC_IMPORT_DIR }]
         : []),
     ];

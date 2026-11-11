@@ -141,21 +141,21 @@ export function MiniPlayer() {
 
 const styles = StyleSheet.create({
   container: {
-    width: '92%',
+    width: '94%',
     maxWidth: 380,
     height: MINI_PLAYER_HEIGHT,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(28, 28, 30, 0.88)', // iOS 18 Glassmorphism đồng bộ với Floating Dock
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.surfaceHighlight,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
     overflow: 'hidden',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
   },
   progressBarTrack: {
     position: 'absolute',

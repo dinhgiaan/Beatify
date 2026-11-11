@@ -48,7 +48,7 @@ class YoutubeJobRunner extends EventEmitter {
   async getConfig(): Promise<YoutubeMusicConfig> {
     await this.ensureStateDir();
     const local = loadLocalConfig();
-    const defaultRoot = local.MUSIC_IMPORT_DIR || local.MUSIC_SOURCE_DIR || 'D:\\Music';
+    const defaultRoot = local.MUSIC_SOURCE_DIR || local.MUSIC_IMPORT_DIR || 'D:\\music for app';
 
     if (existsSync(CONFIG_FILE)) {
       try {
@@ -357,7 +357,7 @@ class YoutubeJobRunner extends EventEmitter {
           (customFolder && customFolder.trim()) ||
           libraryRootPath ||
           localConfig.MUSIC_SOURCE_DIR ||
-          'D:\\Music';
+          'D:\\music for app';
 
         const now = new Date().toISOString();
         const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
@@ -698,7 +698,7 @@ class YoutubeJobRunner extends EventEmitter {
 
     if (req.mode === 'auto-scan') {
       const local = loadLocalConfig();
-      const targetDir = req.targetDir || local.MUSIC_SOURCE_DIR || local.MUSIC_IMPORT_DIR || 'D:\\Music';
+      const targetDir = req.targetDir || local.MUSIC_SOURCE_DIR || local.MUSIC_IMPORT_DIR || 'D:\\music for app';
       if (!existsSync(targetDir)) {
         throw new Error(`Thư mục đích không tồn tại: ${targetDir}`);
       }
