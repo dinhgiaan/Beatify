@@ -40,7 +40,8 @@
       "replayGain": -8.22,
       "hidden": true,
       "deletedAt": "2026-11-11T09:27:17.179Z",
-      "purged": false
+      "purged": true,
+      "purgedAt": "2026-11-11T09:36:04.490Z"
     },
     "baa55f484230": {
       "title": "Mất Kết Nối",

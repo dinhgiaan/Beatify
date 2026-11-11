@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import { existsSync, statSync } from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import { spawn, execFileSync, exec } from 'child_process';
 import { YoutubeService } from './youtubeService';
@@ -13,16 +14,17 @@ import { R2Uploader } from './r2Uploader';
 import { getOverrides, applyOverridesToScanned, purgeFromTrash } from './overridesManager';
 import { PathSanitizer } from './pathSanitizer';
 import { S3Client, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import type {
-  YoutubeMusicJobPayload,
-  YoutubeMusicDownloadRecord,
-  YoutubeMusicConfig,
-  JobEvent,
-  JobStatus,
-  YoutubeMusicPreviewItem,
-  YoutubeMusicPreviewResponse,
-  RelocateDownloadsRequest,
-  DeleteDownloadOptions,
+import {
+  type YoutubeMusicJobPayload,
+  type YoutubeMusicDownloadRecord,
+  type YoutubeMusicConfig,
+  type JobEvent,
+  type JobStatus,
+  type YoutubeMusicPreviewItem,
+  type YoutubeMusicPreviewResponse,
+  type RelocateDownloadsRequest,
+  type DeleteDownloadOptions,
+  normalizeText,
 } from '@music-app/shared';
 
 const STATE_DIR = path.resolve(
@@ -1068,6 +1070,23 @@ class YoutubeJobRunner extends EventEmitter {
             const { library } = buildLibrary(activeTracks);
             const uploader = new R2Uploader(config);
             await uploader.uploadLibrary(library);
+
+            // 1.4 Dọn dẹp ảnh bìa album mồ côi trên R2 nếu không còn bài hát nào dùng
+            const activeAlbumIds = new Set<string>();
+            for (const t of activeTracks) {
+              if (t.track.albumId) activeAlbumIds.add(t.track.albumId);
+            }
+            if (item.artist) {
+              const albumName = item.album || 'Singles';
+              const albumKey = `${normalizeText(item.artist)}|${normalizeText(albumName)}`;
+              const targetAlbumId = crypto.createHash('sha1').update(albumKey).digest('hex').slice(0, 12);
+              if (!activeAlbumIds.has(targetAlbumId)) {
+                await s3.send(new DeleteObjectCommand({ Bucket: config.R2_BUCKET, Key: `covers/${targetAlbumId}.jpg` })).catch(() => {});
+              }
+            }
+            if (resolvedTrackId && !activeTracks.some((t) => t.track.id === resolvedTrackId)) {
+              await s3.send(new DeleteObjectCommand({ Bucket: config.R2_BUCKET, Key: `covers/${resolvedTrackId}.jpg` })).catch(() => {});
+            }
           }
         } catch (libErr) {
           console.warn('Lỗi re-upload library.json lên R2 sau khi xóa:', libErr);

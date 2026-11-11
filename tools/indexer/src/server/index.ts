@@ -1429,6 +1429,11 @@ app.get('/local-api/r2/orphans', async (c) => {
 
     const validKeys = new Set<string>();
     validKeys.add('library.json');
+    for (const o of objects) {
+      if (o.Key && o.Key.startsWith('_meta/')) {
+        validKeys.add(o.Key);
+      }
+    }
     for (const t of activeTracks) {
       validKeys.add(t.track.file);
       if (t.track.albumId) {
@@ -1509,6 +1514,11 @@ app.post('/local-api/r2/prune', async (c) => {
 
       const validKeys = new Set<string>();
       validKeys.add('library.json');
+      for (const o of objects) {
+        if (o.Key && o.Key.startsWith('_meta/')) {
+          validKeys.add(o.Key);
+        }
+      }
       for (const t of activeTracks) {
         validKeys.add(t.track.file);
         if (t.track.albumId) validKeys.add(`covers/${t.track.albumId}.jpg`);
@@ -1520,7 +1530,7 @@ app.post('/local-api/r2/prune', async (c) => {
 
     let deletedCount = 0;
     for (const k of keys) {
-      if (k !== 'library.json') {
+      if (k !== 'library.json' && !k.startsWith('_meta/')) {
         await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: k }));
         deletedCount++;
       }
