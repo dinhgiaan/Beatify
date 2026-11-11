@@ -41,7 +41,8 @@ export const TrashPage: React.FC = () => {
       const res = await requestApi<{ trash: TrashItem[] }>('/local-api/trash');
       return res.trash || [];
     },
-    staleTime: 10000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const invalidateAll = () => {

@@ -17,7 +17,7 @@ import { updateFoldersConfig } from '../services/configManager';
 import { pickFolderNative } from '../services/folderPicker';
 import crypto from 'crypto';
 import { execFile, execFileSync } from 'child_process';
-import { TrackOverrideSchema, normalizeText, RelocateDownloadsRequestSchema, UserStateSchema, type UserState } from '@music-app/shared';
+import { TrackOverrideSchema, normalizeText, RelocateDownloadsRequestSchema, UserStateSchema, type UserState, type YoutubeMusicDownloadRecord } from '@music-app/shared';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { DependencyChecker } from '../services/dependencyChecker';
 import { LyricsService } from '../services/lyricsService';
@@ -1906,38 +1906,92 @@ app.post('/local-api/fs/delete', async (c) => {
 // 9. API: Danh sách bài hát trong Thùng rác (Trash)
 app.get('/local-api/trash', async (c) => {
   const localConfig = loadLocalConfig();
-  let files: string[] = [];
+  const overrides = await getOverrides();
+  const trashEntries = Object.entries(overrides.tracks || {}).filter(
+    ([, ov]) => Boolean(ov?.deletedAt && !ov?.purged)
+  );
+
+  if (trashEntries.length === 0) {
+    return c.json({ status: 200, trash: [] });
+  }
+
+  // Quét các file âm thanh trên đĩa cứng để bổ sung thông tin tệp nếu có
+  const allFiles: string[] = [];
   try {
-    files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+    if (localConfig.MUSIC_SOURCE_DIR && existsSync(localConfig.MUSIC_SOURCE_DIR)) {
+      const srcFiles = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      allFiles.push(...srcFiles);
+    }
+    if (localConfig.MUSIC_IMPORT_DIR && existsSync(localConfig.MUSIC_IMPORT_DIR)) {
+      const importFiles = await findAudioFiles(localConfig.MUSIC_IMPORT_DIR);
+      allFiles.push(...importFiles);
+    }
+  } catch {
+    // bỏ qua lỗi quét đĩa
+  }
+
+  // Lấy lịch sử tải để tra cứu nhanh nếu bài được tải từ YouTube
+  let downloads: YoutubeMusicDownloadRecord[] = [];
+  try {
+    downloads = await youtubeJobRunner.getDownloads(1000);
   } catch {
     // bỏ qua
   }
 
-  const overrides = await getOverrides();
   const trashItems = [];
 
-  for (const f of files) {
-    const item = await scanAudioFile(f);
-    if (!item) continue;
-    const ov = overrides.tracks[item.track.id];
-    if (ov?.deletedAt && !ov?.purged) {
-      const deletedDate = new Date(ov.deletedAt);
-      const now = new Date();
-      const elapsedDays = Math.floor((now.getTime() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysLeft = Math.max(0, 14 - elapsedDays);
+  for (const [trackId, ov] of trashEntries) {
+    const deletedDate = ov.deletedAt ? new Date(ov.deletedAt) : new Date();
+    const now = new Date();
+    const elapsedDays = Math.floor((now.getTime() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.max(0, 14 - elapsedDays);
 
-      trashItems.push({
-        id: item.track.id,
-        title: ov.title || item.track.title,
-        artist: ov.artist || item.track.artist,
-        album: ov.album || item.track.album,
-        albumId: item.track.albumId,
-        format: path.extname(item.filePath).toUpperCase().replace('.', ''),
-        deletedAt: ov.deletedAt,
-        daysLeft,
-        hasCover: Boolean(item.coverBuffer),
-      });
+    // 1. Tra cứu trong cachedScannedTracks
+    const cachedItem = cachedScannedTracks.find((t) => t.track.id === trackId);
+    let format = cachedItem ? path.extname(cachedItem.filePath).toUpperCase().replace('.', '') : undefined;
+    let hasCover = Boolean(cachedItem?.coverBuffer || cachedItem?.track?.cover);
+    let fileSizeMB: string | undefined;
+
+    // 2. Tra cứu trong lịch sử downloads
+    if (!format) {
+      const dlItem = downloads.find((d) => d.trackId === trackId || d.id === trackId);
+      if (dlItem) {
+        format = dlItem.format ? dlItem.format.toUpperCase() : 'M4A';
+        hasCover = Boolean(dlItem.coverExists || dlItem.relativeCoverPath);
+        if (dlItem.fileSizeBytes) {
+          fileSizeMB = (dlItem.fileSizeBytes / (1024 * 1024)).toFixed(2);
+        }
+      }
     }
+
+    // 3. Tra cứu trên đĩa cứng nếu chưa có
+    if (!format && allFiles.length > 0) {
+      for (const f of allFiles) {
+        try {
+          const item = await scanAudioFile(f);
+          if (item?.track?.id === trackId) {
+            format = path.extname(f).toUpperCase().replace('.', '');
+            hasCover = Boolean(item.coverBuffer);
+            break;
+          }
+        } catch {
+          // bỏ qua
+        }
+      }
+    }
+
+    trashItems.push({
+      id: trackId,
+      title: ov.title || cachedItem?.track?.title || 'Chưa rõ tiêu đề',
+      artist: ov.artist || cachedItem?.track?.artist || 'Chưa rõ nghệ sĩ',
+      album: ov.album || cachedItem?.track?.album || 'Single',
+      albumId: cachedItem?.track?.albumId,
+      format: format || 'M4A',
+      deletedAt: ov.deletedAt,
+      daysLeft,
+      hasCover,
+      fileSizeMB,
+    });
   }
 
   return c.json({ status: 200, trash: trashItems });

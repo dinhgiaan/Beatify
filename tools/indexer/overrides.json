@@ -38,7 +38,8 @@
       "year": 2020,
       "loudnessLufs": -9.78,
       "replayGain": -8.22,
-      "hidden": false,
+      "hidden": true,
+      "deletedAt": "2026-11-11T09:27:17.179Z",
       "purged": false
     },
     "baa55f484230": {
@@ -47,7 +48,10 @@
       "album": "Singles",
       "year": 2024,
       "loudnessLufs": -10.43,
-      "replayGain": -7.57
+      "replayGain": -7.57,
+      "hidden": true,
+      "purged": true,
+      "purgedAt": "2026-11-11T09:32:55.711Z"
     },
     "cd448c4210da": {
       "title": "Hạ Còn Vương Nắng",
@@ -66,7 +70,10 @@
       "album": "Singles",
       "year": 2024,
       "loudnessLufs": -13.52,
-      "replayGain": -4.48
+      "replayGain": -4.48,
+      "hidden": true,
+      "purged": true,
+      "purgedAt": "2026-11-11T09:32:52.463Z"
     }
   },
   "artistAliases": {}
