@@ -2,15 +2,13 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tinh chỉnh UI/UX, Sửa lỗi Lời bài hát & Nâng cấp Trải nghiệm Người dùng:
-1. **Làm sạch Tab Thư viện:** Gỡ bỏ mục "Vừa nghe gần đây" khỏi `library.tsx` vì đã có tab "Vừa nghe" riêng biệt; ghim số lượng Album chính xác theo `realAlbums.length` (chỉ đếm các phát hành có từ 2 bài trở lên, loại trừ hoàn toàn các bản single/đĩa đơn).
-2. **Badge Singles & Thời lượng:** Bổ sung hiển thị thời lượng bài hát trên từng hàng danh sách; thu nhỏ badge `Single` với màu sắc tinh tế, kín đáo ở góc phụ.
-3. **Màn hình Tìm kiếm:** Hỗ trợ chạm vào bất kỳ khoảng trống nào trên màn hình để ẩn bàn phím (`Keyboard.dismiss`), hỗ trợ kéo cuộn ẩn phím (`keyboardDismissMode="on-drag"`).
-4. **Hệ thống Icon SF Symbols & Karaoke Mic:** Thay icon bình luận thành icon Microphone chuẩn Apple Music (`mic.fill`), thay icon tua/lặp đầu bài thành chuẩn Audio Player có thanh chặn đứng (`|◀` và `▶|`).
-5. **Ổn định hóa Lyrics:** Khắc phục triệt để lỗi spinner loading lặp liên tục và jitter giật cuộn bằng cách dùng ref cache ID bài hát và debounce cuộn khi dòng lyric thay đổi.
-6. **Lặp lại bài hát tùy chỉnh (Custom Loop Count):** Hỗ trợ nhấn giữ nút Lặp lại để chọn số lần phát lại (2 lần, 3 lần, 5 lần, Vô hạn) hoặc tự gõ số lần bất kỳ; hiển thị badge số lần còn lại trên nút lặp và tự động tắt khi hoàn thành.
-7. **Hồ sơ cá nhân & Thống kê Replay trực quan:** Đưa toàn bộ 4 chỉ số thống kê (Phút nghe, Lượt nghe, Cột mốc đạt, Kho bài hát) và Top nghệ sĩ / bài hát nghe nhiều nhất ra ngoài màn hình chính; đưa mục Nghe gần đây vào trong phần Kỹ thuật; bổ sung hiệu ứng chuyển động animation đóng/mở mượt mà (`LayoutAnimation.Presets.easeInEaseOut`).
-8. **Toàn bộ monorepo:** 227/227 tests passed 100%, typecheck sạch, ESLint 0 lỗi.
+**Phase hiện tại:** Hoàn thành triển khai Giao diện Hip-hop & Streetwear, Nút Xáo trộn (Shuffle) và Trình tạo Lyric Poster:
+1. **Nút Shuffle ở Thư viện & MiniPlayer:** Bổ sung hàng nút tác vụ nhanh `[Phát ngẫu nhiên]` và `[Phát tất cả]` nổi bật tại tab Thư viện; thêm nút Shuffle thu nhỏ tương tác ngay trên thanh MiniPlayer ngoài màn hình chính.
+2. **Chế độ Đĩa Than Vinyl Xoay (Vinyl Turntable Mode):** Mô phỏng đĩa than Vinyl 12-inch đen bóng với các rãnh đĩa đồng tâm, tem nhãn album ở tâm và cần kim đĩa than (Tonearm) tự động hạ xuống đĩa khi phát, nhấc lên khi dừng; quay 360° mượt mà 60fps; lưu trạng thái cấu hình tự động.
+3. **Equalizer Sóng Nhạc Dày Đậm (Bass Waveform Visualizer):** Cụm Stereo LED VU Meter nhảy nhịp điệu với 9 cột dải tần số Sub-bass, 808 Kick, Mid và Treble màu sắc gradient neon rực rỡ.
+4. **Huy hiệu Thành tích Hip-hop (Street Badges & Ranks):** Nâng cấp hệ thống cột mốc và cấp bậc đường phố (*Drop the Needle, Midnight Cypher, Heavy Rotation, Flow State, Boom Bap Master, Crate Digger, Street Legend; Rank từ Rookie Rhymer đến Hip-hop Legend*).
+5. **Thẻ Chia sẻ Lời Trích Dẫn Dạng Poster Đường Phố (Lyric Poster Card):** Trình tạo poster punchline trích dẫn với Live Preview trực quan tỷ lệ 1:1 hoặc 9:16, hỗ trợ chỉnh sửa câu chữ, 4 font chữ (Street Bold, Graffiti, Typewriter, Modern Sans), 5 bảng màu thời thượng, căn lề và hiệu ứng nền mờ artwork.
+6. **Toàn bộ monorepo:** 228/228 tests passed 100%, typecheck sạch, ESLint 0 lỗi.
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
