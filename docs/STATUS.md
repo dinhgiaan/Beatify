@@ -14,6 +14,7 @@
    - 3 video không tải được do YouTube: 1 video Private, 1 video đã xóa, 1 video bị METUB Network chặn bản quyền trên YouTube (gắn nhãn lý do rõ ràng).
    - Nâng cấp công thức tính dung lượng 2 giai đoạn: Giai đoạn 1 (Preview) tính theo bitrate thực tế của YouTube (~18 KB/s) + phụ phí bìa (120KB) & lời (2KB); Giai đoạn 2 (Đã có file) hiển thị dung lượng thực tế 100% từ đĩa cứng (bỏ dấu `~`).
    - Sửa lỗi khoá file `EPERM` trên Windows cho `youtube_downloads.json` và `overrides.json` bằng hàng đợi mutex và `safeAtomicWrite` (thử lại 6 lần + fallback copy).
+   - Bổ sung hệ thống Badge và Tooltip cảnh báo thông minh: Tự động đánh dấu bài trùng lặp (`⚠️ Cùng bài #X`), giải thích cơ chế gom file chất lượng cao nhất, cảnh báo bài bị ẩn/chặn (`⛔ Không tải được`), và tooltip giải thích số lượng file thực tế tại nút "Chờ đồng bộ" trên Sidebar.
 8. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch (5/5 packages). Không thay đổi native dependency (không cần build lại .ipa).
 **Cập nhật lần cuối:** 2026-11-11
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
