@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeText, type Track } from '@music-app/shared';
@@ -35,7 +36,7 @@ import { formatTime } from '../../src/utils/formatTime';
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { tracks } = useLibrary();
-  const { currentTrack, playerState, skipToTrack, playQueue, togglePlay } = usePlayer();
+  const { currentTrack, playerState, playQueue, togglePlay } = usePlayer();
   const { contentPaddingBottom } = useTabBarMetrics();
 
   const [query, setQuery] = useState('');
@@ -55,15 +56,12 @@ export default function SearchScreen() {
   }, [tracks, query]);
 
   const handleTrackPress = (item: Track) => {
+    Vibration.vibrate(10);
     if (currentTrack?.id === item.id) {
       togglePlay();
     } else {
-      const idx = tracks.findIndex((t) => t.id === item.id);
-      if (idx >= 0) {
-        skipToTrack(idx);
-      } else {
-        playQueue([item], 0);
-      }
+      const idx = filteredTracks.findIndex((t) => t.id === item.id);
+      playQueue(filteredTracks, idx >= 0 ? idx : 0);
     }
   };
 

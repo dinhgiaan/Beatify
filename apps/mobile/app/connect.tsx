@@ -18,14 +18,19 @@ export default function ConnectScreen() {
   const [message, setMessage] = useState<string>('Đang xử lý cấu hình kết nối...');
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let isCancelled = false;
+
     async function processConnect() {
       try {
         const rawApi = params.api ? decodeURIComponent(params.api).trim().replace(/\/+$/, '') : '';
         const rawToken = params.token ? decodeURIComponent(params.token).trim() : '';
 
         if (!rawApi) {
-          setStatus('error');
-          setMessage('Không tìm thấy địa chỉ máy chủ (API URL) trong mã QR.');
+          if (!isCancelled) {
+            setStatus('error');
+            setMessage('Không tìm thấy địa chỉ máy chủ (API URL) trong mã QR.');
+          }
           return;
         }
 
@@ -46,27 +51,40 @@ export default function ConnectScreen() {
 
         // Cảnh báo nếu URL là 127.0.0.1 hoặc localhost
         if (rawApi.includes('127.0.0.1') || rawApi.includes('localhost')) {
-          setStatus('warning');
-          setMessage(
-            `Đã nhận máy chủ: ${rawApi}\n\n⚠️ Lưu ý: "127.0.0.1" là địa chỉ cục bộ của máy tính. iPhone không thể kết nối tới PC qua 127.0.0.1. Vui lòng đổi sang địa chỉ IP mạng LAN của máy tính hoặc địa chỉ Cloudflare Worker.`
-          );
+          if (!isCancelled) {
+            setStatus('warning');
+            setMessage(
+              `Đã nhận máy chủ: ${rawApi}\n\n⚠️ Lưu ý: "127.0.0.1" là địa chỉ cục bộ của máy tính. iPhone không thể kết nối tới PC qua 127.0.0.1. Vui lòng đổi sang địa chỉ IP mạng LAN của máy tính hoặc địa chỉ Cloudflare Worker.`
+            );
+          }
         } else {
-          setStatus('success');
-          setMessage(`Đã kết nối thành công tới máy chủ:\n${rawApi}\n\nĐang tự động đồng bộ thư viện nhạc...`);
+          if (!isCancelled) {
+            setStatus('success');
+            setMessage(`Đã kết nối thành công tới máy chủ:\n${rawApi}\n\nĐang tự động đồng bộ thư viện nhạc...`);
+          }
           syncLibrary({ silent: false, force: true }).catch(() => {});
         }
 
         // Tự động chuyển về thư viện sau 2 giây
-        setTimeout(() => {
-          router.replace('/(tabs)/library');
+        timer = setTimeout(() => {
+          if (!isCancelled) {
+            router.replace('/(tabs)/library');
+          }
         }, 2000);
       } catch (err) {
-        setStatus('error');
-        setMessage(`Lỗi kết nối: ${String(err)}`);
+        if (!isCancelled) {
+          setStatus('error');
+          setMessage(`Lỗi kết nối: ${String(err)}`);
+        }
       }
     }
 
     processConnect();
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [params.api, params.token, router, setServerToken, setServerUrl, syncLibrary]);
 
   return (

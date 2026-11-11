@@ -118,20 +118,32 @@ export class RntpPlayerService implements IPlayerService {
     }));
 
     const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
-    TrackPlayer.setMediaItems(mediaItems, safeIndex);
-    TrackPlayer.play();
+    try {
+      TrackPlayer.setMediaItems(mediaItems, safeIndex);
+      TrackPlayer.play();
+    } catch (err) {
+      console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
+    }
     this.notifyListeners();
   }
 
   async play(): Promise<void> {
     await this.setup();
-    TrackPlayer.play();
+    try {
+      TrackPlayer.play();
+    } catch (err) {
+      console.warn('[RNTP] Lỗi play():', err);
+    }
     this.notifyListeners();
   }
 
   async pause(): Promise<void> {
     await this.setup();
-    TrackPlayer.pause();
+    try {
+      TrackPlayer.pause();
+    } catch (err) {
+      console.warn('[RNTP] Lỗi pause():', err);
+    }
     this.notifyListeners();
   }
 
@@ -158,6 +170,10 @@ export class RntpPlayerService implements IPlayerService {
 
   async skipToIndex(index: number): Promise<void> {
     await this.setup();
+    if (index < 0 || index >= this.currentTracks.length) {
+      console.warn(`[RNTP] skipToIndex ngoài phạm vi hàng đợi: ${index} (tổng ${this.currentTracks.length})`);
+      return;
+    }
     this.lastTrackEndTime = Date.now();
     try {
       TrackPlayer.skipToIndex(index);
