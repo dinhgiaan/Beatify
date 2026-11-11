@@ -86,7 +86,7 @@ export class RntpPlayerService implements IPlayerService {
     const validTracks = tracks.filter((t) => {
       const hasValidUri = Boolean(
         t.file &&
-          (t.file.startsWith('http://') || t.file.startsWith('https://') || t.file.startsWith('file://'))
+        (t.file.startsWith('http://') || t.file.startsWith('https://') || t.file.startsWith('file://'))
       );
       if (!hasValidUri) {
         console.warn(`[RNTP] Bỏ qua bài "${t.title}" (${t.id}) do URL không hợp lệ: "${t.file}"`);
@@ -110,9 +110,9 @@ export class RntpPlayerService implements IPlayerService {
       duration: track.duration,
       artworkUrl:
         track.cover &&
-        (track.cover.startsWith('http://') ||
-          track.cover.startsWith('https://') ||
-          track.cover.startsWith('file://'))
+          (track.cover.startsWith('http://') ||
+            track.cover.startsWith('https://') ||
+            track.cover.startsWith('file://'))
           ? track.cover
           : undefined,
     }));
