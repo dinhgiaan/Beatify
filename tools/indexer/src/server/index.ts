@@ -1343,6 +1343,14 @@ app.post('/local-api/sync', async (c) => {
 
     await uploader.uploadLibrary(library);
 
+    // Đồng bộ trạng thái "Đã lên Cloud" cho các bài trong danh sách tải YouTube
+    try {
+      const uploadedTrackIds = new Set(library.tracks.map((t) => t.id));
+      await youtubeJobRunner.syncUploadedTrackIds(uploadedTrackIds);
+    } catch {
+      // bỏ qua lỗi cập nhật lịch sử tải
+    }
+
     currentSyncProgress = {
       active: false,
       step: `Đồng bộ hoàn tất: ${library.tracks.length} bài hát (mới tải: ${newAudioUploaded} bài, ${newCoversUploaded} bìa)!`,

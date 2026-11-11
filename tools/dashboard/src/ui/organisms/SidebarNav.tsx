@@ -15,6 +15,7 @@ import {
   HardDrive,
   Smartphone,
   QrCode,
+  Cloud,
 } from 'lucide-react';
 import { requestApi } from '../../core/api-client';
 import { useTheme } from '../../core/theme';
@@ -48,8 +49,8 @@ interface NavSection {
 }
 
 export const SidebarNav: React.FC<{
-  onOpenSyncModal: () => void;
-}> = () => {
+  onOpenSyncModal?: () => void;
+}> = ({ onOpenSyncModal }) => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [isConnectModalOpen, setIsConnectModalOpen] = React.useState(false);
@@ -345,7 +346,12 @@ export const SidebarNav: React.FC<{
 
           {/* Dải thông báo Chờ đồng bộ siêu xinh */}
           {Number(status?.unsyncedCount || 0) > 0 && (
-            <div className="flex items-center justify-between px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[9.5px] text-amber-300">
+            <button
+              type="button"
+              onClick={onOpenSyncModal}
+              className="w-full flex items-center justify-between px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 text-[9.5px] text-amber-300 transition-colors cursor-pointer text-left"
+              title="Bấm để mở cửa sổ đồng bộ lên R2 ngay"
+            >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                 <span className="truncate">Chờ đồng bộ:</span>
@@ -353,10 +359,22 @@ export const SidebarNav: React.FC<{
               <span className="font-medium shrink-0">
                 <strong className="text-amber-200">{status?.unsyncedMB ?? '0'} MB</strong> ({status?.unsyncedCount ?? 0} bài)
               </span>
-            </div>
+            </button>
           )}
         </div>
 
+        {/* Nút Đồng bộ Cloud R2 - Nổi bật ở mọi trang, 1 click là chạy thay vì gõ lệnh terminal */}
+        {onOpenSyncModal && (
+          <button
+            type="button"
+            onClick={onOpenSyncModal}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#1DB954] hover:bg-[#1ed760] text-black font-semibold text-xs shadow-md shadow-[#1DB954]/20 transition-all cursor-pointer active:scale-[0.98]"
+            title="Đồng bộ toàn bộ kho nhạc và ảnh bìa lên Cloudflare R2 mà không cần gõ lệnh"
+          >
+            <Cloud size={14} className="stroke-[2.5]" />
+            <span>Đồng bộ R2 ngay</span>
+          </button>
+        )}
       </div>
 
       {/* Modal Kết nối iPhone bằng mã QR */}
