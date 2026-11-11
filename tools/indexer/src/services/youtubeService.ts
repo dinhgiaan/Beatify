@@ -362,7 +362,7 @@ export const YoutubeService = {
   /**
    * Xem trước thông tin bài hát / playlist từ link YouTube mà chưa tải
    */
-  async previewUrl(url: string, maxItems = 150): Promise<YoutubePreviewResult> {
+  async previewUrl(url: string, maxItems = 1000): Promise<YoutubePreviewResult> {
     const cleanUrl = url.trim();
     if (!this.isValidYoutubeUrl(cleanUrl)) {
       throw new Error('URL YouTube không hợp lệ. Vui lòng nhập link youtube.com hoặc youtu.be');

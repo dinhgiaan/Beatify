@@ -168,7 +168,7 @@ class YoutubeJobRunner extends EventEmitter {
   }
 
   // 3. Phân tích trước khi tải (Preview)
-  async preview(urls: string[], maxItems = 100): Promise<YoutubeMusicPreviewResponse> {
+  async preview(urls: string[], maxItems = 1000): Promise<YoutubeMusicPreviewResponse> {
     const allItems: YoutubeMusicPreviewItem[] = [];
     let isPlaylist = false;
     let playlistTitle: string | undefined;
@@ -190,37 +190,39 @@ class YoutubeJobRunner extends EventEmitter {
       }
       for (const entry of res.entries) {
         if (allItems.length >= maxItems) break;
-        // Tự động tìm kiếm lời đồng bộ: Ưu tiên 1 LRCLIB, Ưu tiên 2 Phụ đề chính thức YouTube CC
+        // Tự động tìm kiếm lời đồng bộ: Chỉ tìm trước cho bài đơn hoặc 5 bài đầu tiên của playlist để tốc độ phản hồi nhanh tức thì (dưới 2s)
         let lyricsSource: 'lrclib-synced' | 'lrclib-plain' | 'yt-subs' | 'none' = 'none';
         let foundLyricsText = '';
 
-        try {
-          const lrc = await LyricsService.fetchLyrics(
-            entry.cleaned.title,
-            entry.cleaned.artist,
-            entry.duration
-          );
-          if (lrc?.syncedLyrics) {
-            lyricsSource = 'lrclib-synced';
-            foundLyricsText = lrc.syncedLyrics;
-          } else if (lrc?.plainLyrics) {
-            lyricsSource = 'lrclib-plain';
-            foundLyricsText = lrc.plainLyrics;
-          }
-
-          // Nếu LRCLIB không có lời đồng bộ, kiểm tra phụ đề CC chính thức của video YouTube
-          if (lyricsSource !== 'lrclib-synced') {
-            const ytSub = await LyricsService.extractYouTubeSubtitles(entry.url);
-            if (ytSub?.syncedLyrics) {
-              lyricsSource = 'yt-subs';
-              foundLyricsText = ytSub.syncedLyrics;
-            } else if (!foundLyricsText && ytSub?.plainLyrics) {
-              lyricsSource = 'yt-subs';
-              foundLyricsText = ytSub.plainLyrics;
+        if (!isPlaylist || allItems.length < 5) {
+          try {
+            const lrc = await LyricsService.fetchLyrics(
+              entry.cleaned.title,
+              entry.cleaned.artist,
+              entry.duration
+            );
+            if (lrc?.syncedLyrics) {
+              lyricsSource = 'lrclib-synced';
+              foundLyricsText = lrc.syncedLyrics;
+            } else if (lrc?.plainLyrics) {
+              lyricsSource = 'lrclib-plain';
+              foundLyricsText = lrc.plainLyrics;
             }
+
+            // Nếu LRCLIB không có lời đồng bộ, kiểm tra phụ đề CC chính thức của video YouTube
+            if (lyricsSource !== 'lrclib-synced') {
+              const ytSub = await LyricsService.extractYouTubeSubtitles(entry.url);
+              if (ytSub?.syncedLyrics) {
+                lyricsSource = 'yt-subs';
+                foundLyricsText = ytSub.syncedLyrics;
+              } else if (!foundLyricsText && ytSub?.plainLyrics) {
+                lyricsSource = 'yt-subs';
+                foundLyricsText = ytSub.plainLyrics;
+              }
+            }
+          } catch {
+            // Bỏ qua lỗi tìm lời khi xem trước
           }
-        } catch {
-          // Bỏ qua lỗi tìm lời khi xem trước
         }
 
         const matched = existingMap.get(entry.id) || existingMap.get(entry.url);

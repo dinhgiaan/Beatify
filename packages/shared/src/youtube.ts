@@ -108,7 +108,7 @@ export const YoutubeMusicJobPayloadSchema = z.object({
   fetchLyrics: z.boolean().default(true),
   useGeminiCleaning: z.boolean().default(true),
   concurrency: z.number().int().min(1).max(4).default(2),
-  maxItemsPerJob: z.number().int().min(1).max(200).default(100),
+  maxItemsPerJob: z.number().int().min(1).max(2000).default(1000),
   customFolderMap: z.record(z.string(), z.string()).optional(),
   itemOverrides: z
     .record(

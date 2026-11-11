@@ -137,6 +137,7 @@ export const YoutubeMusicPage: React.FC = () => {
   const [preferredFormat, setPreferredFormat] = useState<YoutubeMusicFormat>('m4a');
   const [fetchLyrics, setFetchLyrics] = useState(true);
   const [concurrency, setConcurrency] = useState(2);
+  const [maxPreviewItems, setMaxPreviewItems] = useState(500);
   const [libraryRootPath, setLibraryRootPath] = useState('');
 
   // Overrides per item
@@ -488,7 +489,7 @@ export const YoutubeMusicPage: React.FC = () => {
       return;
     }
 
-    previewMutation.mutate({ urls });
+    previewMutation.mutate({ urls, maxItems: maxPreviewItems });
   };
 
   const handlePasteClipboard = async () => {
@@ -566,7 +567,7 @@ export const YoutubeMusicPage: React.FC = () => {
       fetchLyrics,
       useGeminiCleaning: true,
       concurrency,
-      maxItemsPerJob: 100,
+      maxItemsPerJob: Math.max(1000, selectedItems.length),
       customFolderMap: finalFolderMap,
       itemOverrides: mergedOverrides,
     };
@@ -1013,6 +1014,23 @@ export const YoutubeMusicPage: React.FC = () => {
                 <option value={2}>2 bài</option>
                 <option value={3}>3 bài</option>
                 <option value={4}>4 bài</option>
+              </Select>
+            </div>
+
+            {/* Max Items Selector */}
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="yt-maxitems-selector" className="text-[var(--text-muted)] font-medium">Tối đa:</label>
+              <Select
+                id="yt-maxitems-selector"
+                name="maxPreviewItems"
+                value={maxPreviewItems}
+                onChange={(e) => setMaxPreviewItems(parseInt(e.target.value, 10))}
+                selectSize="sm"
+              >
+                <option value={100}>100 bài</option>
+                <option value={250}>250 bài</option>
+                <option value={500}>500 bài</option>
+                <option value={1000}>1000 bài</option>
               </Select>
             </div>
           </div>
@@ -1932,6 +1950,8 @@ export const YoutubeMusicPage: React.FC = () => {
                     <option value="50">50 bài / trang</option>
                     <option value="100">100 bài / trang</option>
                     <option value="200">200 bài / trang</option>
+                    <option value="300">300 bài / trang</option>
+                    <option value="500">500 bài / trang</option>
                   </Select>
                   <span className="tabular-nums">
                     ({startIndex + 1} - {Math.min(endIndex, previewData.items.length)} / {previewData.items.length} bài)

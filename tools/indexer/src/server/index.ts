@@ -2686,7 +2686,7 @@ app.post('/api/youtube-music/preview', async (c) => {
     if (urls.length === 0) {
       return c.json({ status: 'error', error: { message: 'Vui lòng cung cấp ít nhất một URL' } }, 400);
     }
-    const maxItems = typeof body.maxItems === 'number' ? body.maxItems : 100;
+    const maxItems = typeof body.maxItems === 'number' ? body.maxItems : 1000;
     const res = await youtubeJobRunner.preview(urls, maxItems);
     return c.json({ status: 'success', data: res });
   } catch (err: unknown) {
