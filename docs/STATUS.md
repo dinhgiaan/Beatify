@@ -22,6 +22,7 @@
    - Tab Playlist (`playlists.tsx`) giờ đây chỉ hiển thị duy nhất các Danh sách phát cá nhân của người dùng, bổ sung đầy đủ bộ công cụ Thêm / Đổi / Xóa ảnh bìa playlist từ thư viện ảnh máy.
    - Xóa bỏ mục "Nghe gần đây" khỏi tab Playlist (vì đã có tab "Vừa nghe" riêng biệt).
    - Tách "Bài hát yêu thích" và "Đã tải về máy" sang màn hình Bộ sưu tập chuyên biệt (`collection.tsx`).
+   - Hỗ trợ thêm / xóa 1 hoặc nhiều bài hát vào playlist trực tiếp từ trang Thư viện và trang Playlist trên Website Dashboard, tự động đồng bộ 2 chiều tức thì với iPhone qua Cloudflare R2 (`_meta/state.json`).
 5. **Thanh điều hướng nổi (Floating Tab Bar):**
    - Tăng độ đậm và tương phản cho thanh tab bar nổi (`rgba(18, 18, 20, 0.95)`, viền sáng `rgba(255, 255, 255, 0.16)`), hiển thị sắc nét không bị quá trong suốt.
 6. **Kiểm tra và xác minh Web Dashboard & Cloudflare R2:**
