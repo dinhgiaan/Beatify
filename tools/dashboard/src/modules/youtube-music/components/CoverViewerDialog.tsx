@@ -140,78 +140,78 @@ export const CoverViewerDialog: React.FC<CoverViewerDialogProps> = ({
           </div>
 
           {/* Image Display */}
-          <div className="p-4 flex items-center justify-center bg-black/40 relative">
-            <div className="w-full aspect-square rounded-xl overflow-hidden border border-[var(--border)] shadow-md flex items-center justify-center bg-[var(--bg-subtle)] relative group">
-              <img
-                src={currentCoverUrl}
-                alt={title || 'Cover Art'}
-                className="w-full h-full object-cover"
-              />
-              {isUploading && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center gap-2 text-white">
-                  <Loader2 size={24} className="animate-spin text-[#1DB954]" />
-                  <span className="text-xs font-medium">Đang lưu ảnh mới...</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)] bg-[var(--bg-subtle)] text-[11px] gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              {/* Nút Tải ảnh HD về máy tính */}
-              <button
-                type="button"
-                onClick={handleDownloadCover}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs"
-                title="Tải ảnh bìa gốc độ nét cao về máy tính"
-              >
-                <Download size={13} className="text-[#1DB954]" />
-                <span>Tải ảnh HD</span>
-              </button>
-
-              {/* Nút Đổi ảnh bìa mới từ máy tính (nếu có trackId) */}
-              {trackId && (
-                <>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
+              <div className="p-4 flex items-center justify-center bg-black/40 relative">
+                <div className="w-full aspect-square rounded-xl overflow-hidden border border-[var(--border)] shadow-md flex items-center justify-center bg-[var(--bg-subtle)] relative group">
+                  <img
+                    src={currentCoverUrl}
+                    alt={title || 'Cover Art'}
+                    className="w-full h-full object-cover"
                   />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1DB954] hover:bg-[#1ed760] text-black transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
-                    title="Chọn file ảnh từ máy tính để đổi bìa"
-                  >
-                    <Upload size={13} />
-                    <span>Đổi ảnh mới</span>
-                  </button>
-                </>
-              )}
-            </div>
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center gap-2 text-white">
+                      <Loader2 size={24} className="animate-spin text-[#1DB954]" />
+                      <span className="text-xs font-medium">Đang lưu ảnh mới...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <a
-                href={currentCoverUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition-colors"
-                title="Mở ảnh tab mới"
-              >
-                <span>Mở ảnh gốc</span>
-                <ExternalLink size={11} />
-              </a>
-              <Button variant="secondary" size="sm" onClick={onClose} className="h-7 text-xs">
-                Đóng
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
-  );
+                  {/* Footer Actions */}
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)] bg-[var(--bg-subtle)] text-[11px] gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      {/* Nút Tải ảnh HD về máy tính */}
+                      <button
+                        type="button"
+                        onClick={handleDownloadCover}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs"
+                        title="Tải ảnh bìa gốc độ nét cao về máy tính"
+                      >
+                        <Download size={13} className="text-[#1DB954]" />
+                        <span>Tải ảnh HD</span>
+                      </button>
+
+                      {/* Nút Đổi ảnh bìa mới từ máy tính (nếu có trackId) */}
+                      {trackId && (
+                        <>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1DB954] hover:bg-[#1ed760] text-black transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                            title="Chọn file ảnh từ máy tính để đổi bìa"
+                          >
+                            <Upload size={13} />
+                            <span>Đổi ảnh mới</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                      <a
+                        href={currentCoverUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition-colors"
+                        title="Mở ảnh tab mới"
+                      >
+                        <span>Mở ảnh gốc</span>
+                        <ExternalLink size={11} />
+                      </a>
+                      <Button variant="secondary" size="sm" onClick={onClose} className="h-7 text-xs">
+                        Đóng
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </AnimatePresence>
+            );
 };

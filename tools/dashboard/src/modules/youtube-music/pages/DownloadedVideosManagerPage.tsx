@@ -439,11 +439,10 @@ export const DownloadedVideosManagerPage: React.FC<{
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'all'
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === 'all'
                 ? 'text-black shadow-sm'
                 : 'text-zinc-400 hover:text-white'
-            }`}
+              }`}
           >
             {activeTab === 'all' && (
               <motion.span
@@ -461,11 +460,10 @@ export const DownloadedVideosManagerPage: React.FC<{
           <button
             type="button"
             onClick={() => setActiveTab('pending')}
-            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'pending'
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === 'pending'
                 ? 'text-black shadow-sm'
                 : 'text-zinc-400 hover:text-white'
-            }`}
+              }`}
           >
             {activeTab === 'pending' && (
               <motion.span
@@ -484,11 +482,10 @@ export const DownloadedVideosManagerPage: React.FC<{
           <button
             type="button"
             onClick={() => setActiveTab('uploaded')}
-            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'uploaded'
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === 'uploaded'
                 ? 'text-black shadow-sm'
                 : 'text-zinc-400 hover:text-white'
-            }`}
+              }`}
           >
             {activeTab === 'uploaded' && (
               <motion.span
@@ -508,11 +505,10 @@ export const DownloadedVideosManagerPage: React.FC<{
             <button
               type="button"
               onClick={() => setActiveTab('missing')}
-              className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'missing'
+              className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === 'missing'
                   ? 'text-white shadow-sm'
                   : 'text-rose-400 hover:text-rose-300'
-              }`}
+                }`}
             >
               {activeTab === 'missing' && (
                 <motion.span
@@ -566,11 +562,10 @@ export const DownloadedVideosManagerPage: React.FC<{
               variant="secondary"
               size="sm"
               onClick={handleToggleSelectAll}
-              className={`h-8 px-3 text-xs gap-1.5 font-semibold shrink-0 cursor-pointer transition-colors ${
-                isAllFilteredSelected
+              className={`h-8 px-3 text-xs gap-1.5 font-semibold shrink-0 cursor-pointer transition-colors ${isAllFilteredSelected
                   ? 'bg-[#1DB954]/20 border-[#1DB954]/50 text-[#1DB954]'
                   : 'text-zinc-300 hover:text-white'
-              }`}
+                }`}
               title={isAllFilteredSelected ? 'Bỏ chọn tất cả bài hát đang hiển thị' : 'Chọn tất cả bài hát đang hiển thị'}
             >
               <CheckSquare size={13} className={isAllFilteredSelected ? 'text-[#1DB954]' : 'text-zinc-400'} />
@@ -693,11 +688,10 @@ export const DownloadedVideosManagerPage: React.FC<{
                             handlePlayAudio(item);
                           }
                         }}
-                        className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity cursor-pointer text-white hover:text-[#1DB954] ${
-                          playingTrackId === item.id && isAudioPlaying
+                        className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity cursor-pointer text-white hover:text-[#1DB954] ${playingTrackId === item.id && isAudioPlaying
                             ? 'opacity-100 text-[#1DB954]'
                             : 'opacity-0 group-hover/cover:opacity-100'
-                        }`}
+                          }`}
                         title={playingTrackId === item.id && isAudioPlaying ? 'Tạm dừng' : 'Nghe thử ngay'}
                       >
                         {playingTrackId === item.id && isAudioPlaying ? (
@@ -879,11 +873,10 @@ export const DownloadedVideosManagerPage: React.FC<{
                             handlePlayAudio(item);
                           }
                         }}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                          playingTrackId === item.id && isAudioPlaying
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${playingTrackId === item.id && isAudioPlaying
                             ? 'text-[#1DB954] bg-[#1DB954]/10'
                             : 'text-zinc-400 hover:text-[#1DB954] hover:bg-[var(--bg-hover)]'
-                        }`}
+                          }`}
                         title={playingTrackId === item.id && isAudioPlaying ? 'Tạm dừng bài hát' : 'Nghe thử bài hát'}
                       >
                         {playingTrackId === item.id && isAudioPlaying ? (
