@@ -16,7 +16,13 @@
    - Sửa lỗi khoá file `EPERM` trên Windows cho `youtube_downloads.json` và `overrides.json` bằng hàng đợi mutex và `safeAtomicWrite` (thử lại 6 lần + fallback copy).
    - Bổ sung hệ thống Badge và Tooltip cảnh báo thông minh: Tự động đánh dấu bài trùng lặp (`⚠️ Cùng bài #X`), giải thích cơ chế gom file chất lượng cao nhất, cảnh báo bài bị ẩn/chặn (`⛔ Không tải được`), và tooltip giải thích số lượng file thực tế tại nút "Chờ đồng bộ" trên Sidebar.
 8. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch (5/5 packages). Không thay đổi native dependency (không cần build lại .ipa).
-**Cập nhật lần cuối:** 2026-11-11
+9. **Web Dashboard & Đồng bộ:**
+   - Sửa lỗi tạo playlist trên website (bóc tách payload `requestApi` chuẩn xác, tự động hiển thị playlist vừa tạo).
+   - Đảm bảo cơ chế đồng bộ 2 chiều (Web ↔ R2 ↔ iPhone) qua `_meta/state.json`.
+   - Khắc phục triệt để lỗi hiển thị ảnh bìa thư viện cá nhân và hỗ trợ stream HTTP Range 206 mượt mà cho local playback.
+   - Thống nhất thuật toán tìm kiếm tiếng Việt không dấu (`normalizeText`) trên toàn bộ các trang (Thư viện, Playlist, Trình quản lý tải về, Lịch sử tải).
+   - Khắc phục lỗi CI setup ffmpeg và lỗi xcodebuild broken pipe trên GitHub Actions.
+**Cập nhật lần cuối:** 2026-11-12
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
