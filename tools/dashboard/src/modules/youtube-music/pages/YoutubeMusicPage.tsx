@@ -34,6 +34,8 @@ import { CustomFolderDialog } from '../components/CustomFolderDialog';
 import { MetadataEditDialog } from '../components/MetadataEditDialog';
 import { LyricsEditorDialog } from '../components/LyricsEditorDialog';
 import { CoverViewerDialog } from '../components/CoverViewerDialog';
+import { DuplicateSongsModal } from '../components/DuplicateSongsModal';
+import { UnavailableSongsModal } from '../components/UnavailableSongsModal';
 import {
   fetchDependenciesApi,
   updateDependenciesApi,
@@ -242,6 +244,8 @@ export const YoutubeMusicPage: React.FC = () => {
   } | null>(null);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
   const [folderDialogTargetIds, setFolderDialogTargetIds] = useState<string[]>([]);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isUnavailableModalOpen, setIsUnavailableModalOpen] = useState(false);
 
   // 1. Fetch Dependency Status
   const { data: deps, refetch: refetchDeps } = useQuery({
@@ -1189,12 +1193,15 @@ export const YoutubeMusicPage: React.FC = () => {
                   const dupCount = previewData.items.filter((i) => i.isDuplicateSong).length;
                   if (dupCount === 0) return null;
                   return (
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium flex items-center gap-1 cursor-help shrink-0"
-                      title={`Trong playlist có ${dupCount} video khác link nhưng cùng một bài hát. Khi tải về, Beatify sẽ tự động gom thành 1 file duy nhất có chất lượng tốt nhất cho mỗi bài để tránh trùng rác và tiết kiệm bộ nhớ.`}
+                    <button
+                      type="button"
+                      onClick={() => setIsDuplicateModalOpen(true)}
+                      className="text-[10px] px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 font-medium flex items-center gap-1 cursor-pointer hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors shrink-0"
+                      title={`Trong playlist có ${dupCount} video khác link nhưng cùng một bài hát. Bấm để xem chi tiết danh sách, số thứ tự và chọn file muốn giữ lại.`}
                     >
                       <span>⚠️ {dupCount} bài trùng (tự gom 1 file)</span>
-                    </span>
+                      <span className="text-[9px] underline opacity-80 ml-0.5">Chi tiết</span>
+                    </button>
                   );
                 })()}
 
@@ -1203,12 +1210,15 @@ export const YoutubeMusicPage: React.FC = () => {
                   const unavailCount = previewData.items.filter((i) => i.isUnavailable).length;
                   if (unavailCount === 0) return null;
                   return (
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium flex items-center gap-1 cursor-help shrink-0"
-                      title={`Có ${unavailCount} video không thể tải do chủ kênh đặt Private hoặc bị chặn bản quyền trên YouTube (hệ thống đã tự động bỏ chọn).`}
+                    <button
+                      type="button"
+                      onClick={() => setIsUnavailableModalOpen(true)}
+                      className="text-[10px] px-2 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 font-medium flex items-center gap-1 cursor-pointer hover:bg-rose-500/20 hover:border-rose-500/50 transition-colors shrink-0"
+                      title={`Có ${unavailCount} video không thể tải do chủ kênh đặt Private hoặc bị chặn bản quyền. Bấm để xem danh sách chi tiết.`}
                     >
                       <span>⛔ {unavailCount} bài bị ẩn/chặn</span>
-                    </span>
+                      <span className="text-[9px] underline opacity-80 ml-0.5">Chi tiết</span>
+                    </button>
                   );
                 })()}
 
@@ -2327,6 +2337,30 @@ export const YoutubeMusicPage: React.FC = () => {
             });
             toast.success('Đã đặt lại thư mục mặc định');
           }}
+        />
+
+        {/* Modal chi tiết bài trùng */}
+        <DuplicateSongsModal
+          isOpen={isDuplicateModalOpen}
+          onClose={() => setIsDuplicateModalOpen(false)}
+          items={previewData?.items || []}
+          selectedIds={selectedIds}
+          onSwapKeep={(keepId, dropId) => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.add(keepId);
+              next.delete(dropId);
+              return next;
+            });
+            toast.success('Đã đổi bài giữ lại!');
+          }}
+        />
+
+        {/* Modal chi tiết bài bị ẩn / chặn */}
+        <UnavailableSongsModal
+          isOpen={isUnavailableModalOpen}
+          onClose={() => setIsUnavailableModalOpen(false)}
+          items={previewData?.items || []}
         />
     </div>
   );
