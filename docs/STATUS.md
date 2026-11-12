@@ -2,34 +2,27 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tinh chỉnh toàn diện Mobile App & Web Dashboard:
-1. **Tự động tải lại ảnh bìa HD từ YouTube (Đổi 1 bài và Hàng loạt nhiều bài trên Web Dashboard):**
-   - Theo đúng yêu cầu người dùng (tự động cào/tải lại ảnh bìa gốc từ video YouTube chứ không bắt người dùng phải tự tải file từ máy tính):
-     - **Tải ảnh YouTube cho 1 bài:** Tích hợp nút nổi bật **"Lấy ảnh từ YouTube"** trong hộp thoại Sửa bài hát và hộp thoại Xem ảnh lớn HD (`CoverViewerDialog`). Hệ thống tự động xác định videoId (hoặc tìm kiếm thông minh qua `yt-dlp`), tải thumbnail chất lượng cao nhất (`maxresdefault.jpg` / `hqdefault.jpg`), dùng ffmpeg crop tâm vuông 1:1 scale chuẩn 600x600 và đồng bộ ngay lên Cloudflare R2!
-     - **Tải ảnh YouTube hàng loạt (Batch):** Trên thanh Floating Bar và Modal Đổi ảnh bìa hàng loạt, cung cấp nút **"Tải ảnh bìa YouTube (X bài)"** để quét tự động toàn bộ các bài hát đã chọn cùng lúc, không cần thao tác thủ công.
-2. **Khắc phục lỗi nạp lời bài hát (.lrc) trên Web Dashboard:**
-   - Nâng cấp `getDownloadLyrics` và `updateDownloadLyrics` trong `youtubeJobRunner.ts`: Hỗ trợ tìm kiếm file `.lrc` linh hoạt đa nguồn (theo `item.libraryRootPath`, thư mục cấu hình `MUSIC_SOURCE_DIR`, thư mục custom lyrics, và tự động tra cứu fallback LRCLIB nếu trên đĩa chưa có file).
-   - Build lại toàn bộ bundle frontend (`tools/dashboard/dist`) loại bỏ hoàn toàn các lỗi catch ngầm trước đây.
-3. **Sửa lỗi hiển thị widget Dung lượng R2 (0.0 MB / Chờ đồng bộ 802.9 MB):**
-   - Bổ sung cơ chế phòng vệ chống rỗng giả mạo: khi server vừa khởi động hoặc khi S3 gặp độ trễ mạng, hàm `getR2TrackKeys` tự động nạp fallback danh sách các bài đã `uploadedToR2: true` từ lịch sử tải về, đảm bảo widget luôn hiển thị đúng 802.9 MB (242 bài đã dùng).
-   - Bổ sung nút bấm **Làm mới (Refresh)** tức thì ngay cạnh tiêu đề "Dung lượng R2" trên Sidebar và hỗ trợ tham số `/local-api/status?force=true`.
-4. **Lời bài hát (Lyrics trên Mobile):**
-   - Sửa lỗi trễ highlight: thêm độ bù thời gian chính xác 0.6s (`LYRICS_OFFSET_SEC`) giúp highlight bám sát giọng hát của ca sĩ.
-   - Loại bỏ giật lag khi cuộn và đổi dòng bằng cách cố định padding dòng (`paddingVertical: 9`), giảm độ nảy layout.
-   - Giảm font chữ dòng highlight xuống 21px / line 30px (bold), dòng thường 18px / line 26px, cân đối vừa vặn màn hình.
-   - Xóa bỏ hoàn toàn tính năng tạo Poster khi mở lyric theo yêu cầu người dùng.
-   - Anti-cache HTTP cho lời bài hát (`_t=${Date.now()}` và `no-cache, no-store`), nạp tức thì bản chỉnh sửa mới nhất từ Cloudflare R2 (`lyrics-manual/`).
-5. **Hẹn giờ tắt nhạc (Sleep Timer):**
-   - Hiển thị huy hiệu đếm ngược thời gian thực trên Header của màn hình Now Playing (`⏳ Tắt sau mm:ss`) và trên nút Đồng hồ ở bảng điều khiển dưới.
-   - Tính toán dựa trên timestamp hệ thống (`targetMs`), lắng nghe sự kiện `AppState` để đảm bảo khi khoá màn hình iOS hay chạy nền thì timer vẫn đếm chính xác và tự động dừng nhạc khi hết giờ.
-6. **Cấu trúc lại Tab Playlist & Bộ sưu tập:**
-   - Tab Playlist (`playlists.tsx`) giờ đây chỉ hiển thị duy nhất các Danh sách phát cá nhân của người dùng, bổ sung đầy đủ bộ công cụ Thêm / Đổi / Xóa ảnh bìa playlist từ thư viện ảnh máy.
-   - Xóa bỏ mục "Nghe gần đây" khỏi tab Playlist (vì đã có tab "Vừa nghe" riêng biệt).
-   - Tách "Bài hát yêu thích" và "Đã tải về máy" sang màn hình Bộ sưu tập chuyên biệt (`collection.tsx`).
-   - Hỗ trợ thêm / xóa 1 hoặc nhiều bài hát vào playlist trực tiếp từ trang Thư viện và trang Playlist trên Website Dashboard, tự động đồng bộ 2 chiều tức thì với iPhone qua Cloudflare R2 (`_meta/state.json`).
-7. **Thanh điều hướng nổi (Floating Tab Bar):**
-   - Tăng độ đậm và tương phản cho thanh tab bar nổi (`rgba(18, 18, 20, 0.95)`, viền sáng `rgba(255, 255, 255, 0.16)`), hiển thị sắc nét không bị quá trong suốt.
-8. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Không thay đổi native dependency (không cần build lại .ipa).
+**Phase hiện tại:** Hoàn thành thiết kế lại UI/UX Mobile App (Bottom Sheet, Vừa nghe, Tìm kiếm) theo phong cách tối giản Apple + Hip-hop:
+1. **Bottom Sheet Menu bài hát (`TrackActionSheet`):**
+   - Thay thế toàn bộ menu cũ bằng Bottom Sheet chuẩn Apple/Hip-hop, không dùng icon hay emoji trong sheet.
+   - Header gồm grabber nhỏ, cover 56x56 bo góc 12px có bóng đổ mềm động theo màu ảnh bìa (`useCoverColor`), tên bài cỡ 17 w700, nghệ sĩ & thời lượng cỡ 14 xám.
+   - Danh sách action thuần chữ cao 52px (Phát tiếp theo, Yêu thích/Bỏ yêu thích + "Đã thích", Thêm vào playlist, Tải xuống với 4 trạng thái kèm progress bar 2px, Sửa thông tin).
+   - Nhóm nguy hiểm "Xóa khỏi thư viện" màu đỏ nhạt, tích hợp popup Alert hệ thống xác nhận xóa an toàn.
+   - Vuốt xuống bám ngón tay để đóng, nền `expo-blur` kết hợp `expo-linear-gradient` tan dần về nền đen.
+2. **Màn hình "Vừa nghe" (`recent.tsx`):**
+   - Header lớn cỡ 38 weight 800, text link "Xóa lịch sử" căn phải (Alert xác nhận).
+   - Nền gradient động 35% từ màu ảnh bìa hero track (`useCoverColor`) tan dần về nền đen.
+   - Hero card bài nghe gần nhất: Cover lớn bo góc 12px, tên bài đã dọn dẹp tag qua `cleanTrackTitle`, nghệ sĩ + thời gian tương đối `formatRelativeTime` (ẩn chữ "Singles"), 1 nút Play tròn to màu xanh. Bỏ badge và nút tim thừa.
+   - 2 nút hành động bo tròn kiểu pill 48px: "Phát tất cả" (xanh) và "Phát ngẫu nhiên" (xám), không icon thừa.
+   - Danh sách bài trước đó: Hỗ trợ vuốt trái (`Swipeable`) để "Yêu thích" hoặc "Xóa" khỏi lịch sử, nhấn giữ mở `TrackActionSheet`.
+3. **Mini Player & Floating TabBar (`_layout.tsx` & `MiniPlayer.tsx`):**
+   - Mini Player: Dải sóng âm **Waveform SVG** mỏng (45 vạch âm thanh pseudo-random có seed từ track ID, đồng bộ theo tiến trình nghe độc lập qua `useProgress` không gây re-render màn hình ngoài); lược bỏ nút Shuffle, chỉ giữ Play/Pause và Next.
+   - Floating TabBar: Bỏ icon, chỉ dùng nhãn chữ ("Trang chủ", "Vừa nghe", "Tìm kiếm", "Playlist", "Yêu thích"). Tab active hiển thị chữ xanh kèm chấm chỉ báo 4px bên dưới.
+4. **Màn hình "Tìm kiếm" (`search.tsx`):**
+   - Search bar bo tròn mềm mại không icon kính lúp, debounce 300ms, text link "Xóa" khi có text, text link "Hủy" khi focus.
+   - Trạng thái chưa nhập text: Mục "Nghệ sĩ nghe nhiều" dạng chip text và "Gần đây" (hỗ trợ vuốt trái để xóa từng mục, link "Xóa tất cả").
+   - Khi có kết quả: Filter tabs dạng text ("Tất cả", "Bài hát", "Nghệ sĩ") kèm gạch chân xanh 2px; highlight từ khóa khớp chuẩn tiếng Việt có/không dấu qua `searchHighlight.ts`; nhấn giữ mở `TrackActionSheet`.
+5. **Toàn bộ monorepo:** 270/270 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Đã push lên GitHub nhánh `main`.
 **Cập nhật lần cuối:** 2026-11-12
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
