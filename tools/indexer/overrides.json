@@ -1014,7 +1014,8 @@
       "artist": "Emma ft. Obito & VSTRA",
       "album": "Singles",
       "loudnessLufs": -15.98,
-      "replayGain": -2.02
+      "replayGain": -2.02,
+      "cover": "covers/9f3506bbde34.jpg"
     },
     "d56833586b15": {
       "title": "Ykasa Remix",
@@ -1028,7 +1029,8 @@
       "artist": "1NG - 2CAN - DICK",
       "album": "Singles",
       "loudnessLufs": -12.63,
-      "replayGain": -5.37
+      "replayGain": -5.37,
+      "cover": "covers/9d9f3e7b3764.jpg"
     },
     "20678036656f": {
       "title": "2AM",

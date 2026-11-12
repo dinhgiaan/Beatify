@@ -18,6 +18,9 @@ import {
   Image as ImageIcon,
   Upload,
   Loader2,
+  Edit3,
+  Eye,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -73,6 +76,20 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
   const [createCoverFile, setCreateCoverFile] = useState<File | null>(null);
   const [createCoverPreview, setCreateCoverPreview] = useState<string | null>(null);
   const createCoverInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Modal chỉnh sửa Playlist
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+  const [editPlaylistName, setEditPlaylistName] = useState('');
+  const [editPlaylistDesc, setEditPlaylistDesc] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [editRemoveCover, setEditRemoveCover] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editCoverInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Modal phóng to xem ảnh bìa Playlist
+  const [viewCoverUrl, setViewCoverUrl] = useState<string | null>(null);
+  const [viewCoverTitle, setViewCoverTitle] = useState<string | null>(null);
 
   // Quản lý ảnh bìa playlist đang xem
   const [isUploadingPlaylistCover, setIsUploadingPlaylistCover] = useState(false);
@@ -368,12 +385,97 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
       .filter((t): t is TrackItem => Boolean(t));
   }, [activePlaylist, tracksMap]);
 
-  // Danh sách bài yêu thích
+  // Danh sách bài yêu thích hợp lệ
   const favoriteTracks = useMemo(() => {
     return userState.favoriteIds
       .map((id) => tracksMap.get(id))
       .filter((t): t is TrackItem => Boolean(t));
   }, [userState.favoriteIds, tracksMap]);
+
+  // Danh sách ID yêu thích mồ côi (không tồn tại trong thư viện local)
+  const orphanFavoriteIds = useMemo(() => {
+    return userState.favoriteIds.filter((id) => !tracksMap.has(id));
+  }, [userState.favoriteIds, tracksMap]);
+
+  // Dọn dẹp ID yêu thích mồ côi
+  const handleCleanOrphanFavorites = () => {
+    const validIds = userState.favoriteIds.filter((id) => tracksMap.has(id));
+    handleSaveState((prev) => ({
+      ...prev,
+      favoriteIds: validIds,
+    }));
+    toast.success(`Đã dọn dẹp ${orphanFavoriteIds.length} bài hát không còn tồn tại trong thư viện!`);
+  };
+
+  // Mở modal chỉnh sửa Playlist đã có
+  const handleOpenEditPlaylist = (pl: Playlist, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingPlaylist(pl);
+    setEditPlaylistName(pl.name);
+    setEditPlaylistDesc(pl.description || '');
+    setEditCoverFile(null);
+    setEditCoverPreview(pl.coverUrl || null);
+    setEditRemoveCover(false);
+  };
+
+  // Lưu thông tin chỉnh sửa Playlist
+  const handleSaveEditPlaylist = async () => {
+    if (!editingPlaylist) return;
+    const trimmed = editPlaylistName.trim();
+    if (!trimmed) {
+      toast.error('Vui lòng nhập tên danh sách phát');
+      return;
+    }
+
+    try {
+      setIsSavingEdit(true);
+      let finalCoverUrl = editingPlaylist.coverUrl;
+
+      if (editCoverFile) {
+        const formData = new FormData();
+        formData.append('cover', editCoverFile);
+        const res = await fetch(`/local-api/playlists/${editingPlaylist.id}/cover`, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: formData,
+        });
+        if (res.ok) {
+          const json = await res.json();
+          finalCoverUrl = json.coverUrl || `/local-api/covers/playlist_${editingPlaylist.id}.jpg?_t=${Date.now()}`;
+        }
+      } else if (editRemoveCover) {
+        await fetch(`/local-api/playlists/${editingPlaylist.id}/cover`, {
+          method: 'DELETE',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        finalCoverUrl = undefined;
+      }
+
+      const now = new Date().toISOString();
+      handleSaveState((prev) => ({
+        ...prev,
+        playlists: prev.playlists.map((pl) =>
+          pl.id === editingPlaylist.id
+            ? {
+                ...pl,
+                name: trimmed,
+                description: editPlaylistDesc.trim() || undefined,
+                coverUrl: finalCoverUrl,
+                updatedAt: now,
+              }
+            : pl
+        ),
+      }));
+
+      setEditingPlaylist(null);
+      toast.success('Đã cập nhật danh sách phát thành công!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi cập nhật danh sách phát: ${msg}`);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Bộ lọc bài hát khi thêm vào playlist
   const candidateTracks = useMemo(() => {
@@ -458,7 +560,15 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
           }`}
         >
           <Heart size={16} className={activeTab === 'favorites' ? 'fill-rose-400' : ''} />
-          <span>Bài hát yêu thích ({userState.favoriteIds.length})</span>
+          <span>Bài hát yêu thích ({favoriteTracks.length})</span>
+          {orphanFavoriteIds.length > 0 && (
+            <span
+              className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-bold"
+              title={`${orphanFavoriteIds.length} bài hát cũ không còn tồn tại trong thư mục nhạc local`}
+            >
+              +{orphanFavoriteIds.length} cũ
+            </span>
+          )}
         </button>
 
         <div className="ml-auto flex items-center gap-2 text-xs text-[var(--text-muted)]">
@@ -506,7 +616,34 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                       ) : (
                         <ListMusic size={40} className="text-[#1DB954]/70 group-hover:scale-110 transition-transform" />
                       )}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+
+                      {/* Nút hành động nhanh trên góc ảnh: Xem ảnh lớn & Chỉnh sửa */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        {pl.coverUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewCoverUrl(pl.coverUrl || null);
+                              setViewCoverTitle(pl.name);
+                            }}
+                            title="Xem ảnh bìa lớn"
+                            className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-[#1DB954] border border-white/10 shadow transition-colors cursor-pointer"
+                          >
+                            <Eye size={13} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenEditPlaylist(pl, e)}
+                          title="Sửa tên, mô tả & Đổi ảnh bìa Playlist"
+                          className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/10 shadow transition-colors cursor-pointer"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                      </div>
+
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                         <div className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-lg">
                           <ChevronRight size={20} />
                         </div>
@@ -526,7 +663,17 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                       </p>
                     )}
                     <div className="mt-auto pt-2 text-[11px] text-[var(--text-muted)] flex items-center justify-between">
-                      <span>Cập nhật gần đây</span>
+                      <span
+                        onClick={(e) => handleOpenEditPlaylist(pl, e)}
+                        className="hover:text-[#1DB954] transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Edit3 size={11} /> Sửa playlist
+                      </span>
+                      {pl.coverUrl ? (
+                        <span className="text-[#1DB954] text-[10.5px]">Có ảnh bìa</span>
+                      ) : (
+                        <span className="text-zinc-500 text-[10.5px]">Chưa có ảnh</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -557,6 +704,15 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                         <span>Xóa {selectedPlaylistTrackIds.size} bài khỏi Playlist</span>
                       </Button>
                     )}
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleOpenEditPlaylist(activePlaylist)}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      <Edit3 size={14} />
+                      <span>Sửa Playlist</span>
+                    </Button>
 
                     <Button
                       variant="secondary"
@@ -596,9 +752,16 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                     />
 
                     <div
-                      onClick={() => activePlaylistCoverInputRef.current?.click()}
+                      onClick={() => {
+                        if (activePlaylist.coverUrl) {
+                          setViewCoverUrl(activePlaylist.coverUrl);
+                          setViewCoverTitle(activePlaylist.name);
+                        } else {
+                          activePlaylistCoverInputRef.current?.click();
+                        }
+                      }}
                       className="w-24 h-24 rounded-xl bg-black/50 border border-[var(--border)] flex items-center justify-center relative overflow-hidden group cursor-pointer shadow-md hover:border-[#1DB954]/50 transition-colors"
-                      title="Bấm để thay đổi ảnh bìa Playlist"
+                      title={activePlaylist.coverUrl ? 'Bấm để phóng to xem ảnh bìa' : 'Bấm để thêm ảnh bìa Playlist'}
                     >
                       {activePlaylist.coverUrl ? (
                         <img
@@ -614,8 +777,17 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                       )}
 
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
-                        <Upload size={18} className="text-[#1DB954]" />
-                        <span className="text-[10px] font-semibold">Đổi ảnh</span>
+                        {activePlaylist.coverUrl ? (
+                          <>
+                            <Eye size={18} className="text-[#1DB954]" />
+                            <span className="text-[10px] font-semibold">Xem ảnh</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={18} className="text-[#1DB954]" />
+                            <span className="text-[10px] font-semibold">Thêm ảnh</span>
+                          </>
+                        )}
                       </div>
 
                       {isUploadingPlaylistCover && (
@@ -625,17 +797,31 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                       )}
                     </div>
 
-                    {/* Nút xóa ảnh bìa nếu đã có */}
-                    {activePlaylist.coverUrl && (
+                    {/* Cụm nút thao tác nhanh ảnh bìa */}
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleDeletePlaylistCover(activePlaylist.id)}
+                        onClick={() => activePlaylistCoverInputRef.current?.click()}
                         disabled={isUploadingPlaylistCover}
-                        className="text-[10.5px] text-rose-400 hover:text-rose-300 hover:underline cursor-pointer transition-colors"
+                        className="text-[10.5px] text-[#1DB954] hover:underline cursor-pointer transition-colors"
                       >
-                        Xóa ảnh bìa
+                        {activePlaylist.coverUrl ? 'Đổi ảnh' : 'Thêm ảnh'}
                       </button>
-                    )}
+
+                      {activePlaylist.coverUrl && (
+                        <>
+                          <span className="text-zinc-600 text-[10px]">•</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePlaylistCover(activePlaylist.id)}
+                            disabled={isUploadingPlaylistCover}
+                            className="text-[10.5px] text-rose-400 hover:text-rose-300 hover:underline cursor-pointer transition-colors"
+                          >
+                            Xóa ảnh
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -827,6 +1013,32 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Banner phát hiện ID mồ côi (không còn tồn tại trong thư mục nhạc local) */}
+          {orphanFavoriteIds.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-amber-200">
+                    Phát hiện {orphanFavoriteIds.length} bài hát yêu thích cũ không còn tồn tại trong thư viện local
+                  </p>
+                  <p className="text-[11px] text-amber-400/80">
+                    (Có thể do bài hát đã bị xóa khỏi đĩa, đổi tên file hoặc thay đổi mã SHA1 sau khi tải lại)
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCleanOrphanFavorites}
+                className="text-xs bg-amber-500/20 text-amber-200 border-amber-500/40 hover:bg-amber-500/30 shrink-0 cursor-pointer"
+              >
+                <Trash2 size={12} className="mr-1.5" />
+                Dọn dẹp {orphanFavoriteIds.length} liên kết cũ
+              </Button>
+            </div>
+          )}
 
           {favoriteTracks.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-[var(--border)] rounded-2xl bg-[var(--bg-surface)]">
@@ -1097,6 +1309,183 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                 Thêm vào Playlist ({selectedTrackIdsToAdd.length})
               </Button>
             </div>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* MODAL CHỈNH SỬA PLAYLIST (TÊN, MÔ TẢ & ẢNH BÌA) */}
+      <Dialog
+        open={Boolean(editingPlaylist)}
+        onOpenChange={(open) => {
+          if (!open) setEditingPlaylist(null);
+        }}
+        title={`Chỉnh sửa Danh sách phát "${editingPlaylist?.name || ''}"`}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-muted)]">TÊN PLAYLIST *</label>
+            <input
+              type="text"
+              value={editPlaylistName}
+              onChange={(e) => setEditPlaylistName(e.target.value)}
+              placeholder="Nhập tên playlist..."
+              className="w-full px-3.5 py-2.5 bg-black/40 border border-[var(--border)] rounded-xl text-sm text-white focus:outline-none focus:border-[#1DB954]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-muted)]">MÔ TẢ (TÙY CHỌN)</label>
+            <textarea
+              value={editPlaylistDesc}
+              onChange={(e) => setEditPlaylistDesc(e.target.value)}
+              placeholder="Thêm mô tả cho playlist này..."
+              rows={2}
+              className="w-full px-3.5 py-2 bg-black/40 border border-[var(--border)] rounded-xl text-sm text-white focus:outline-none focus:border-[#1DB954] resize-none"
+            />
+          </div>
+
+          {/* Chọn / Đổi / Xóa ảnh bìa Playlist */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-muted)]">ẢNH BÌA DANH SÁCH PHÁT</label>
+            <input
+              type="file"
+              ref={editCoverInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                  toast.error('Vui lòng chọn file ảnh hợp lệ');
+                  return;
+                }
+                setEditCoverFile(file);
+                setEditRemoveCover(false);
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  setEditCoverPreview(ev.target?.result as string);
+                };
+                reader.readAsDataURL(file);
+              }}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+            />
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-black/30 border border-[var(--border)]">
+              <div className="w-16 h-16 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 relative">
+                {editCoverPreview && !editRemoveCover ? (
+                  <img src={editCoverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon size={22} className="text-zinc-500" />
+                )}
+              </div>
+
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => editCoverInputRef.current?.click()}
+                    className="text-xs h-7 gap-1"
+                  >
+                    <Upload size={12} />
+                    <span>{editCoverPreview && !editRemoveCover ? 'Đổi ảnh khác' : 'Chọn ảnh bìa'}</span>
+                  </Button>
+
+                  {editCoverPreview && !editRemoveCover && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setViewCoverUrl(editCoverPreview);
+                          setViewCoverTitle(editPlaylistName || 'Ảnh bìa Playlist');
+                        }}
+                        className="text-xs h-7 px-2"
+                        title="Xem ảnh lớn"
+                      >
+                        <Eye size={12} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          setEditCoverFile(null);
+                          setEditRemoveCover(true);
+                        }}
+                        className="text-xs h-7 px-2 text-rose-300"
+                      >
+                        Gỡ ảnh
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {editCoverFile
+                    ? editCoverFile.name
+                    : editRemoveCover
+                    ? 'Ảnh bìa sẽ được xóa sau khi lưu'
+                    : editCoverPreview
+                    ? 'Đang dùng ảnh bìa hiện tại'
+                    : 'Đề xuất ảnh vuông chuẩn 1:1 (JPG, PNG, WEBP)'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="text"
+              onClick={() => setEditingPlaylist(null)}
+              disabled={isSavingEdit}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveEditPlaylist}
+              disabled={isSavingEdit}
+              className="flex items-center gap-1.5"
+            >
+              {isSavingEdit && <Loader2 size={14} className="animate-spin" />}
+              <span>{isSavingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* MODAL XEM ẢNH BÌA LỚN */}
+      <Dialog
+        open={Boolean(viewCoverUrl)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewCoverUrl(null);
+            setViewCoverTitle(null);
+          }
+        }}
+        title={viewCoverTitle ? `Ảnh bìa: ${viewCoverTitle}` : 'Xem ảnh bìa Playlist'}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-full max-w-md aspect-square rounded-2xl overflow-hidden bg-black/60 border border-[var(--border)] shadow-2xl flex items-center justify-center">
+            {viewCoverUrl && (
+              <img
+                src={viewCoverUrl}
+                alt="Playlist Cover HD"
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+          <div className="flex justify-end w-full">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setViewCoverUrl(null);
+                setViewCoverTitle(null);
+              }}
+            >
+              Đóng
+            </Button>
           </div>
         </div>
       </Dialog>
