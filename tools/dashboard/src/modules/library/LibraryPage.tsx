@@ -111,6 +111,13 @@ export const LibraryPage: React.FC<{
     artist: string;
   } | null>(null);
 
+  // Batch Cover state (Đổi ảnh bìa cho nhiều bài cùng lúc)
+  const [isBatchCoverOpen, setIsBatchCoverOpen] = useState(false);
+  const [batchCoverPreview, setBatchCoverPreview] = useState<string | null>(null);
+  const [batchCoverFile, setBatchCoverFile] = useState<File | null>(null);
+  const [isBatchUploadingCover, setIsBatchUploadingCover] = useState(false);
+  const batchCoverInputRef = React.useRef<HTMLInputElement>(null);
+
   // Trash confirm state (single track)
   const [trashTrack, setTrashTrack] = useState<TrackItem | null>(null);
 
@@ -492,6 +499,61 @@ export const LibraryPage: React.FC<{
       toast.error(`Không thể xóa ảnh bìa: ${msg}`);
     } finally {
       setIsUploadingCover(false);
+    }
+  };
+
+  // Chọn ảnh cho chế độ đổi ảnh bìa hàng loạt
+  const handleBatchFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file hình ảnh hợp lệ (.jpg, .png, .webp)');
+      return;
+    }
+    setBatchCoverFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setBatchCoverPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Áp dụng ảnh bìa cho toàn bộ các bài hát đã chọn
+  const handleApplyBatchCover = async () => {
+    if (!batchCoverFile || selectedTrackIds.size === 0) {
+      toast.error('Vui lòng chọn file ảnh trước khi áp dụng');
+      return;
+    }
+
+    try {
+      setIsBatchUploadingCover(true);
+      const formData = new FormData();
+      formData.append('cover', batchCoverFile);
+      formData.append('ids', JSON.stringify(Array.from(selectedTrackIds)));
+
+      const res = await fetch('/local-api/tracks/batch-cover', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Lỗi server khi đổi ảnh bìa hàng loạt');
+      }
+
+      const json = await res.json();
+      toast.success(json.message || `Đã đổi ảnh bìa thành công cho ${selectedTrackIds.size} bài hát!`);
+      setIsBatchCoverOpen(false);
+      setBatchCoverFile(null);
+      setBatchCoverPreview(null);
+      setCoverTimestamp(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Không thể đổi ảnh bìa hàng loạt: ${msg}`);
+    } finally {
+      setIsBatchUploadingCover(false);
     }
   };
 
@@ -1297,6 +1359,21 @@ export const LibraryPage: React.FC<{
                   <Button
                     variant="secondary"
                     size="sm"
+                    onClick={() => {
+                      setBatchCoverFile(null);
+                      setBatchCoverPreview(null);
+                      setIsBatchCoverOpen(true);
+                    }}
+                    className="h-8 text-xs px-3 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                    title="Đổi ảnh bìa HD cho toàn bộ các bài hát đã chọn cùng lúc"
+                  >
+                    <ImageIcon size={12} />
+                    <span>Đổi ảnh bìa ({selectedTrackIds.size} bài)</span>
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setSelectedTrackIds(new Set())}
                     className="h-8 text-xs px-3"
                   >
@@ -1595,6 +1672,106 @@ export const LibraryPage: React.FC<{
             }}
           />
 
+          {/* Hộp thoại Đổi ảnh bìa hàng loạt cho nhiều bài hát */}
+          <Dialog
+            open={isBatchCoverOpen}
+            onOpenChange={(o) => {
+              if (!o) {
+                setIsBatchCoverOpen(false);
+                setBatchCoverFile(null);
+                setBatchCoverPreview(null);
+              }
+            }}
+            title={`Đổi ảnh bìa cho ${selectedTrackIds.size} bài hát đã chọn`}
+            description="Ảnh bìa mới sẽ được áp dụng cho toàn bộ các bài hát đang được chọn và đồng bộ an toàn lên R2"
+            actions={
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setIsBatchCoverOpen(false);
+                    setBatchCoverFile(null);
+                    setBatchCoverPreview(null);
+                  }}
+                  disabled={isBatchUploadingCover}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleApplyBatchCover}
+                  disabled={!batchCoverFile || isBatchUploadingCover}
+                  className="flex items-center gap-1.5"
+                >
+                  {isBatchUploadingCover ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Đang lưu...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={13} />
+                      <span>Áp dụng cho {selectedTrackIds.size} bài</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            }
+          >
+            <div className="space-y-4 py-2">
+              <input
+                type="file"
+                ref={batchCoverInputRef}
+                onChange={handleBatchFileSelect}
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+              />
+
+              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/15 hover:border-[#1DB954]/50 rounded-2xl bg-black/30 transition-colors">
+                {batchCoverPreview ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-32 h-32 rounded-xl overflow-hidden border border-white/20 shadow-lg relative">
+                      <img src={batchCoverPreview} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => batchCoverInputRef.current?.click()}
+                        className="text-xs h-7"
+                      >
+                        Chọn ảnh khác
+                      </Button>
+                      <span className="text-[11px] text-zinc-400 font-mono truncate max-w-[180px]">
+                        {batchCoverFile?.name}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => batchCoverInputRef.current?.click()}
+                    className="flex flex-col items-center gap-2 cursor-pointer text-center"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-white">
+                      <Upload size={22} className="text-[#1DB954]" />
+                    </div>
+                    <span className="text-xs font-semibold text-white">Bấm để chọn file ảnh từ máy tính</span>
+                    <span className="text-[11px] text-zinc-400">Hỗ trợ JPG, PNG, WEBP (tỉ lệ vuông 1:1)</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+                <ShieldCheck size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Thao tác này sẽ cập nhật ảnh bìa chất lượng cao cho <strong>{selectedTrackIds.size} bài hát</strong> đang chọn và tự động tạo file ảnh sidecar trên máy tính.
+                </span>
+              </div>
+            </div>
+          </Dialog>
+
           {/* Hộp thoại xem ảnh bìa lớn HD kèm tải / đổi ảnh */}
           {viewingCover && (
             <CoverViewerDialog
@@ -1604,7 +1781,7 @@ export const LibraryPage: React.FC<{
               title={viewingCover.title}
               artist={viewingCover.artist}
               trackId={viewingCover.trackId}
-              onCoverUpdated={(newUrl) => {
+              onCoverUpdated={() => {
                 setCoverTimestamp(Date.now());
                 queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
                 queryClient.invalidateQueries({ queryKey: ['system-status'] });

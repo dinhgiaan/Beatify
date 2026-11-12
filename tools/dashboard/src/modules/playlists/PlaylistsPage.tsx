@@ -15,6 +15,9 @@ import {
   ChevronRight,
   ArrowLeft,
   Cloud,
+  Image as ImageIcon,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -67,6 +70,13 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
+  const [createCoverFile, setCreateCoverFile] = useState<File | null>(null);
+  const [createCoverPreview, setCreateCoverPreview] = useState<string | null>(null);
+  const createCoverInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Quản lý ảnh bìa playlist đang xem
+  const [isUploadingPlaylistCover, setIsUploadingPlaylistCover] = useState(false);
+  const activePlaylistCoverInputRef = React.useRef<HTMLInputElement>(null);
 
   // Modal thêm bài hát vào Playlist
   const [isAddTracksModalOpen, setIsAddTracksModalOpen] = useState(false);
@@ -143,19 +153,98 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
     saveStateMutation.mutate(updated);
   };
 
+  // Cập nhật ảnh bìa cho Playlist
+  const handleUploadPlaylistCover = async (playlistId: string, file: File) => {
+    try {
+      setIsUploadingPlaylistCover(true);
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const res = await fetch(`/local-api/playlists/${playlistId}/cover`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Không thể lưu ảnh bìa playlist lên server');
+      const json = await res.json();
+      const newCoverUrl = json.coverUrl || `/local-api/covers/playlist_${playlistId}.jpg?_t=${Date.now()}`;
+
+      handleSaveState((prev) => ({
+        ...prev,
+        playlists: prev.playlists.map((pl) =>
+          pl.id === playlistId ? { ...pl, coverUrl: newCoverUrl, updatedAt: new Date().toISOString() } : pl
+        ),
+      }));
+      toast.success('Đã cập nhật ảnh bìa danh sách phát!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi cập nhật ảnh bìa: ${msg}`);
+    } finally {
+      setIsUploadingPlaylistCover(false);
+      if (activePlaylistCoverInputRef.current) activePlaylistCoverInputRef.current.value = '';
+    }
+  };
+
+  // Xóa ảnh bìa Playlist
+  const handleDeletePlaylistCover = async (playlistId: string) => {
+    try {
+      setIsUploadingPlaylistCover(true);
+      await fetch(`/local-api/playlists/${playlistId}/cover`, {
+        method: 'DELETE',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      handleSaveState((prev) => ({
+        ...prev,
+        playlists: prev.playlists.map((pl) =>
+          pl.id === playlistId ? { ...pl, coverUrl: undefined, updatedAt: new Date().toISOString() } : pl
+        ),
+      }));
+      toast.success('Đã xóa ảnh bìa danh sách phát!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi xóa ảnh bìa: ${msg}`);
+    } finally {
+      setIsUploadingPlaylistCover(false);
+    }
+  };
+
   // Tạo playlist
-  const handleCreatePlaylist = () => {
+  const handleCreatePlaylist = async () => {
     const trimmed = newPlaylistName.trim();
     if (!trimmed) {
       toast.error('Vui lòng nhập tên danh sách phát');
       return;
     }
 
+    const playlistId = 'pl_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    let coverUrl: string | undefined = undefined;
+
+    // Nếu người dùng có chọn ảnh bìa trước khi tạo
+    if (createCoverFile) {
+      try {
+        const formData = new FormData();
+        formData.append('cover', createCoverFile);
+        const res = await fetch(`/local-api/playlists/${playlistId}/cover`, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: formData,
+        });
+        if (res.ok) {
+          const json = await res.json();
+          coverUrl = json.coverUrl || `/local-api/covers/playlist_${playlistId}.jpg?_t=${Date.now()}`;
+        }
+      } catch {
+        // bỏ qua
+      }
+    }
+
     const now = new Date().toISOString();
     const newPlaylist: Playlist = {
-      id: 'pl_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+      id: playlistId,
       name: trimmed,
       description: newPlaylistDesc.trim() || undefined,
+      coverUrl,
       trackIds: [],
       createdAt: now,
       updatedAt: now,
@@ -169,6 +258,8 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
     setIsCreateModalOpen(false);
     setNewPlaylistName('');
     setNewPlaylistDesc('');
+    setCreateCoverFile(null);
+    setCreateCoverPreview(null);
     setSelectedPlaylistId(newPlaylist.id);
     toast.success(`Đã tạo playlist "${trimmed}"`);
   };
@@ -383,7 +474,18 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                     className="group flex flex-col p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:border-[#1DB954]/40 hover:bg-white/[0.03] transition-all cursor-pointer relative"
                   >
                     <div className="aspect-square w-full rounded-lg bg-black/40 border border-[var(--border)] flex items-center justify-center mb-3 relative overflow-hidden group-hover:shadow-lg transition-all">
-                      <ListMusic size={40} className="text-[#1DB954]/70 group-hover:scale-110 transition-transform" />
+                      {pl.coverUrl ? (
+                        <img
+                          src={pl.coverUrl}
+                          alt={pl.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <ListMusic size={40} className="text-[#1DB954]/70 group-hover:scale-110 transition-transform" />
+                      )}
                       <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-lg">
                           <ChevronRight size={20} />
@@ -447,9 +549,64 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
 
                 {/* Header Playlist */}
                 <div className="flex items-start gap-5 p-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]">
-                  <div className="w-24 h-24 rounded-xl bg-black/50 border border-[var(--border)] flex items-center justify-center shrink-0">
-                    <ListMusic size={36} className="text-[#1DB954]" />
+                  {/* Khung ảnh bìa Playlist */}
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <input
+                      type="file"
+                      ref={activePlaylistCoverInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && activePlaylist) {
+                          handleUploadPlaylistCover(activePlaylist.id, file);
+                        }
+                      }}
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                    />
+
+                    <div
+                      onClick={() => activePlaylistCoverInputRef.current?.click()}
+                      className="w-24 h-24 rounded-xl bg-black/50 border border-[var(--border)] flex items-center justify-center relative overflow-hidden group cursor-pointer shadow-md hover:border-[#1DB954]/50 transition-colors"
+                      title="Bấm để thay đổi ảnh bìa Playlist"
+                    >
+                      {activePlaylist.coverUrl ? (
+                        <img
+                          src={activePlaylist.coverUrl}
+                          alt={activePlaylist.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <ListMusic size={36} className="text-[#1DB954]" />
+                      )}
+
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
+                        <Upload size={18} className="text-[#1DB954]" />
+                        <span className="text-[10px] font-semibold">Đổi ảnh</span>
+                      </div>
+
+                      {isUploadingPlaylistCover && (
+                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                          <Loader2 size={20} className="animate-spin text-[#1DB954]" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nút xóa ảnh bìa nếu đã có */}
+                    {activePlaylist.coverUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePlaylistCover(activePlaylist.id)}
+                        disabled={isUploadingPlaylistCover}
+                        className="text-[10.5px] text-rose-400 hover:text-rose-300 hover:underline cursor-pointer transition-colors"
+                      >
+                        Xóa ảnh bìa
+                      </button>
+                    )}
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <Badge variant="primary" className="text-[10px] mb-2 text-[#1DB954] border-[#1DB954]/30">
                       DANH SÁCH PHÁT
@@ -714,6 +871,73 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
               rows={3}
               className="w-full px-3.5 py-2.5 bg-black/40 border border-[var(--border)] rounded-xl text-sm text-white focus:outline-none focus:border-[#1DB954] resize-none"
             />
+          </div>
+
+          {/* Chọn ảnh bìa cho Playlist mới */}
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase">
+              Ảnh bìa Playlist (tùy chọn)
+            </label>
+            <input
+              type="file"
+              ref={createCoverInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                  toast.error('Vui lòng chọn file ảnh hợp lệ');
+                  return;
+                }
+                setCreateCoverFile(file);
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  setCreateCoverPreview(ev.target?.result as string);
+                };
+                reader.readAsDataURL(file);
+              }}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+            />
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-black/30 border border-[var(--border)]">
+              <div className="w-16 h-16 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                {createCoverPreview ? (
+                  <img src={createCoverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon size={22} className="text-zinc-500" />
+                )}
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => createCoverInputRef.current?.click()}
+                    className="text-xs h-7 gap-1"
+                  >
+                    <Upload size={12} />
+                    <span>{createCoverFile ? 'Đổi ảnh' : 'Chọn ảnh bìa'}</span>
+                  </Button>
+                  {createCoverFile && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => {
+                        setCreateCoverFile(null);
+                        setCreateCoverPreview(null);
+                      }}
+                      className="text-xs h-7 px-2"
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {createCoverFile ? createCoverFile.name : 'Đề xuất ảnh vuông chuẩn 1:1 (JPG, PNG, WEBP)'}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, X, ExternalLink, Download, Upload, Loader2, Check } from 'lucide-react';
+import { Image as ImageIcon, X, ExternalLink, Download, Upload, Loader2 } from 'lucide-react';
 import { Button } from '../../../ui/atoms/Button';
 import { toast } from 'sonner';
 

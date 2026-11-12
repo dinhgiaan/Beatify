@@ -828,6 +828,136 @@ app.delete('/local-api/tracks/:id/cover', async (c) => {
   return c.json({ status: 200, message: 'Đã xóa ảnh bìa thành công' });
 });
 
+// 4.1c. API: Cập nhật ảnh bìa hàng loạt cho nhiều bài hát (Batch Cover Update)
+app.post('/local-api/tracks/batch-cover', async (c) => {
+  const body = await c.req.parseBody();
+  const file = body['cover'];
+  const rawIds = body['ids'];
+
+  if (!file || !(file instanceof File)) {
+    return c.json({ status: 400, error: 'File ảnh bìa không hợp lệ' }, 400);
+  }
+
+  let ids: string[] = [];
+  if (typeof rawIds === 'string') {
+    try {
+      ids = JSON.parse(rawIds);
+    } catch {
+      ids = rawIds.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  } else if (Array.isArray(rawIds)) {
+    ids = rawIds as string[];
+  }
+
+  if (ids.length === 0) {
+    return c.json({ status: 400, error: 'Danh sách bài hát cần đổi bìa rỗng' }, 400);
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  await fs.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
+
+  let updatedCount = 0;
+  for (const trackId of ids) {
+    const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
+    if (!scanned) continue;
+
+    const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
+
+    await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`), buffer);
+    await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`), buffer);
+
+    if (scanned.filePath && existsSync(scanned.filePath)) {
+      try {
+        const sidecarCoverPath = scanned.filePath.replace(path.extname(scanned.filePath), '.jpg');
+        await fs.writeFile(sidecarCoverPath, buffer);
+      } catch {
+        // bỏ qua
+      }
+    }
+
+    cachedCovers.set(albumId, buffer);
+    cachedCovers.set(trackId, buffer);
+    scanned.coverBuffer = buffer;
+    scanned.track.cover = `covers/${albumId}.jpg`;
+
+    try {
+      await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+    } catch {
+      // bỏ qua
+    }
+    updatedCount++;
+  }
+
+  return c.json({
+    status: 200,
+    updatedCount,
+    message: `Đã cập nhật ảnh bìa mới thành công cho ${updatedCount} bài hát!`,
+  });
+});
+
+// 4.1d. API: Cập nhật ảnh bìa cho Playlist
+app.post('/local-api/playlists/:id/cover', async (c) => {
+  const playlistId = c.req.param('id');
+  const body = await c.req.parseBody();
+  const file = body['cover'];
+
+  if (!file || !(file instanceof File)) {
+    return c.json({ status: 400, error: 'File ảnh bìa không hợp lệ' }, 400);
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  await fs.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
+
+  const coverFileName = `playlist_${playlistId}.jpg`;
+  await fs.writeFile(path.join(CUSTOM_COVERS_DIR, coverFileName), buffer);
+  cachedCovers.set(`playlist_${playlistId}`, buffer);
+
+  // Tải trực tiếp lên R2 nếu đã cấu hình
+  const localConfig = loadLocalConfig();
+  if (
+    localConfig.isR2Configured &&
+    localConfig.R2_ACCOUNT_ID &&
+    localConfig.R2_ACCESS_KEY_ID &&
+    localConfig.R2_SECRET_ACCESS_KEY &&
+    localConfig.R2_BUCKET
+  ) {
+    try {
+      const uploader = new R2Uploader({
+        R2_ACCOUNT_ID: localConfig.R2_ACCOUNT_ID,
+        R2_ACCESS_KEY_ID: localConfig.R2_ACCESS_KEY_ID,
+        R2_SECRET_ACCESS_KEY: localConfig.R2_SECRET_ACCESS_KEY,
+        R2_BUCKET: localConfig.R2_BUCKET,
+        MUSIC_SOURCE_DIR: localConfig.MUSIC_SOURCE_DIR,
+      });
+      await uploader.uploadCover(`playlist_${playlistId}`, buffer);
+    } catch {
+      // Bỏ qua lỗi upload R2 tức thì
+    }
+  }
+
+  return c.json({
+    status: 200,
+    coverUrl: `/local-api/covers/playlist_${playlistId}.jpg?_t=${Date.now()}`,
+    message: 'Đã cập nhật ảnh bìa Playlist thành công!',
+  });
+});
+
+// 4.1e. API: Xóa ảnh bìa của Playlist
+app.delete('/local-api/playlists/:id/cover', async (c) => {
+  const playlistId = c.req.param('id');
+  const coverFileName = `playlist_${playlistId}.jpg`;
+  const coverPath = path.join(CUSTOM_COVERS_DIR, coverFileName);
+
+  if (existsSync(coverPath)) {
+    await fs.unlink(coverPath).catch(() => {});
+  }
+  cachedCovers.delete(`playlist_${playlistId}`);
+
+  return c.json({ status: 200, message: 'Đã xóa ảnh bìa Playlist thành công' });
+});
+
 // 4.2. API: Lấy lời bài hát
 app.get('/local-api/tracks/:id/lyrics', async (c) => {
   const trackId = c.req.param('id');

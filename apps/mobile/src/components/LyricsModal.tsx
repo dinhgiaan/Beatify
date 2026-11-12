@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
-  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
