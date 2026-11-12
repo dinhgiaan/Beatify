@@ -27,6 +27,16 @@ export function addTrackToRecentList(trackId: string, current: RecentTracksData)
 }
 
 /**
+ * Hàm thuần: Xóa một bài hát khỏi danh sách nghe gần đây
+ */
+export function removeTrackFromRecentList(trackId: string, current: RecentTracksData): RecentTracksData {
+  return {
+    ...current,
+    trackIds: current.trackIds.filter((id) => id !== trackId),
+  };
+}
+
+/**
  * Hàm thuần: Cập nhật giới hạn số lượng bài nghe gần đây
  * - Cắt giảm danh sách nếu số lượng hiện tại vượt quá limit mới
  */

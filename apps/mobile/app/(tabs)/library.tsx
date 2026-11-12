@@ -18,6 +18,7 @@ import { useNavigation } from 'expo-router';
 import { smartShuffle, type Track, type UpdateTrack, type UserProfile } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
+import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import {
   colors,
   fontSizes,
@@ -28,9 +29,6 @@ import {
 import {
   DiscIcon,
   HeartIcon,
-  EditIcon,
-  TrashIcon,
-  CloseIcon,
   PlaylistIcon,
   DownloadIcon,
   HeadphonesIcon,
@@ -129,7 +127,7 @@ export default function LibraryScreen() {
     handleTrackDeleted,
   } = usePlayer();
 
-  const { isTrackOffline, downloadTrack, isDownloading } = useOffline();
+  const { isTrackOffline, downloadTrack, deleteOfflineTrack, isDownloading } = useOffline();
 
   const { contentPaddingBottom } = useTabBarMetrics();
 
@@ -442,27 +440,6 @@ export default function LibraryScreen() {
 
     setAddToPlaylistModalVisible(false);
     Alert.alert('Thành công', `Đã thêm "${selectedTrackForMenu.title}" vào playlist "${targetPlaylist.name}"!`);
-  };
-
-  const handleMenuDelete = () => {
-    if (!selectedTrackForMenu) return;
-    const trackToDelete = selectedTrackForMenu;
-    setActionSheetVisible(false);
-
-    Alert.alert(
-      'Xóa bài hát',
-      `Bạn có chắc chắn muốn xóa bài "${trackToDelete.title}" khỏi thư viện và đưa vào thùng rác trên Cloudflare R2?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa vĩnh viễn',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteTrack(trackToDelete.id, handleTrackDeleted);
-          },
-        },
-      ]
-    );
   };
 
   const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
@@ -922,139 +899,50 @@ export default function LibraryScreen() {
         )}
       </Animated.View>
 
-      {/* Action Sheet Menu '...' cho bài hát */}
-      <Modal
+        {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}
+      <TrackActionSheet
         visible={actionSheetVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setActionSheetVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setActionSheetVisible(false)}
-        >
-          <View style={styles.sheetContainer}>
-            {selectedTrackForMenu && (
-              <>
-                <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle} numberOfLines={1}>
-                    {selectedTrackForMenu.title}
-                  </Text>
-                  <Text style={styles.sheetSubtitle} numberOfLines={1}>
-                    {selectedTrackForMenu.artist}
-                  </Text>
-                </View>
-
-                {/* Nút Thả tim */}
-                <TouchableOpacity
-                  style={styles.sheetActionBtn}
-                  onPress={handleMenuFavorite}
-                  activeOpacity={0.7}
-                >
-                  <HeartIcon
-                    size={20}
-                    color={
-                      userState.favoriteIds.includes(selectedTrackForMenu.id)
-                        ? colors.primary
-                        : colors.textSecondary
-                    }
-                    fill={
-                      userState.favoriteIds.includes(selectedTrackForMenu.id)
-                        ? colors.primary
-                        : 'none'
-                    }
-                  />
-                  <Text style={styles.sheetActionText}>
-                    {userState.favoriteIds.includes(selectedTrackForMenu.id)
-                      ? 'Xóa khỏi danh sách yêu thích'
-                      : 'Thêm vào danh sách yêu thích'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Nút Thêm vào Playlist */}
-                <TouchableOpacity
-                  style={styles.sheetActionBtn}
-                  onPress={handleOpenAddToPlaylist}
-                  activeOpacity={0.7}
-                >
-                  <PlaylistIcon size={20} color={colors.textPrimary} />
-                  <Text style={styles.sheetActionText}>Thêm vào danh sách phát...</Text>
-                </TouchableOpacity>
-
-                {/* Nút Tải bài hát về máy (Offline) */}
-                <TouchableOpacity
-                  style={styles.sheetActionBtn}
-                  onPress={async () => {
-                    if (selectedTrackForMenu) {
-                      setActionSheetVisible(false);
-                      if (isTrackOffline(selectedTrackForMenu.id)) {
-                        Alert.alert('Đã tải', 'Bài hát này đã có sẵn trên máy của bạn.');
-                      } else {
-                        await downloadTrack(selectedTrackForMenu);
-                      }
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <DownloadIcon
-                    size={20}
-                    color={
-                      isTrackOffline(selectedTrackForMenu.id)
-                        ? colors.primary
-                        : colors.textPrimary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.sheetActionText,
-                      isTrackOffline(selectedTrackForMenu.id) && { color: colors.primary },
-                    ]}
-                  >
-                    {isDownloading[selectedTrackForMenu.id]
-                      ? 'Đang tải về máy...'
+                onClose={() => setActionSheetVisible(false)}
+                track={selectedTrackForMenu}
+                coverUrl={selectedTrackForMenu?.cover || null}
+                isFavorite={selectedTrackForMenu ? userState.favoriteIds.includes(selectedTrackForMenu.id) : false}
+                downloadStatus={
+                  selectedTrackForMenu
+                    ? isDownloading[selectedTrackForMenu.id]
+                      ? 'downloading'
                       : isTrackOffline(selectedTrackForMenu.id)
-                        ? 'Đã tải về máy (Offline)'
-                        : 'Tải bài hát về máy (Offline)'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Nút Chỉnh sửa */}
-                <TouchableOpacity
-                  style={styles.sheetActionBtn}
-                  onPress={handleMenuEdit}
-                  activeOpacity={0.7}
-                >
-                  <EditIcon size={20} color={colors.textPrimary} />
-                  <Text style={styles.sheetActionText}>Chỉnh sửa thông tin bài hát</Text>
-                </TouchableOpacity>
-
-                {/* Nút Xóa bài */}
-                <TouchableOpacity
-                  style={styles.sheetActionBtn}
-                  onPress={handleMenuDelete}
-                  activeOpacity={0.7}
-                >
-                  <TrashIcon size={20} color={colors.dangerLight} />
-                  <Text style={[styles.sheetActionText, styles.sheetActionDeleteText]}>
-                    Xóa bài hát khỏi thư viện
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Nút Đóng */}
-                <TouchableOpacity
-                  style={styles.sheetCancelBtn}
-                  onPress={() => setActionSheetVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <CloseIcon size={18} color={colors.textSecondary} />
-                  <Text style={styles.sheetCancelBtnText}>Đóng</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+                        ? 'downloaded'
+                        : 'idle'
+                    : 'idle'
+                }
+                onPlayNext={(t) => {
+                  if (!t) return;
+                  const nextTracks = [...tracks];
+                  const currIdx = currentTrack ? tracks.findIndex((item) => item.id === currentTrack.id) : -1;
+                  const insertIdx = currIdx >= 0 ? currIdx + 1 : 0;
+                  nextTracks.splice(insertIdx, 0, t);
+                  setTracks(nextTracks);
+                }}
+                onToggleFavorite={() => {
+                  handleMenuFavorite();
+                }}
+                onAddToPlaylist={() => {
+                  handleOpenAddToPlaylist();
+                }}
+                onDownloadPress={async (t, status) => {
+                  if (status === 'downloaded') {
+                    await deleteOfflineTrack(t.id);
+                  } else if (status === 'idle' || status === 'error') {
+                    await downloadTrack(t);
+                  }
+                }}
+                onEditInfo={() => {
+                  handleMenuEdit();
+                }}
+                onDeleteFromLibrary={async (t) => {
+                  await deleteTrack(t.id, handleTrackDeleted);
+                }}
+      />
 
       {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */}
       <EditTrackModal

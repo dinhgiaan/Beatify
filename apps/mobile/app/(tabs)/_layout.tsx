@@ -1,15 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
-import {
-  HomeIcon,
-  SearchIcon,
-  PlaylistIcon,
-  ClockRewindIcon,
-  HeartIcon,
-} from '../../src/components/icons/SvgIcons';
 import {
   colors,
   fontWeights,
@@ -21,32 +14,18 @@ type TabsTabBarProps = Parameters<
 >[0];
 
 /**
- * Custom Bottom Tab Bar kết hợp MiniPlayer nằm ngay trên thanh điều hướng
- * Tôn trọng Home Indicator qua useSafeAreaInsets, kiểm soát 100% theme tokens
+ * Custom Bottom Tab Bar tối giản chuẩn Apple + Hip-hop
+ * Chỉ dùng nhãn chữ và chấm chỉ báo 4px bên dưới tab đang active, không dùng icon
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
-  const [tabWidth, setTabWidth] = useState(0);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const numTabs = state.routes.length || 4;
-
-  useEffect(() => {
-    if (tabWidth > 0) {
-      Animated.spring(slideAnim, {
-        toValue: state.index * tabWidth,
-        useNativeDriver: true,
-        friction: 9,
-        tension: 70,
-      }).start();
-    }
-  }, [state.index, tabWidth, slideAnim]);
 
   return (
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
       {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
       <MiniPlayer />
 
-      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn chuẩn iOS 18 Glassmorphism */}
+      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn tối giản */}
       <View
         style={[
           styles.floatingDock,
@@ -54,26 +33,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             marginBottom: Math.max(insets.bottom, 12),
           },
         ]}
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w > 0) {
-            setTabWidth((w - 8) / numTabs);
-          }
-        }}
       >
-        {/* Lớp nền viên thuốc động lướt mượt mà giữa các tab (iOS 18 Active Glass Pill) */}
-        {tabWidth > 0 && (
-          <Animated.View
-            style={[
-              styles.activePillIndicator,
-              {
-                width: tabWidth,
-                transform: [{ translateX: slideAnim }],
-              },
-            ]}
-          />
-        )}
-
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor?.options ?? {};
@@ -99,24 +59,16 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           };
 
           let label = options.title ?? route.name;
-          let icon = null;
-          const iconColor = isFocused ? colors.primary : 'rgba(255, 255, 255, 0.55)';
-
           if (route.name === 'library') {
             label = 'Trang chủ';
-            icon = <HomeIcon size={18} color={iconColor} />;
           } else if (route.name === 'search') {
             label = 'Tìm kiếm';
-            icon = <SearchIcon size={18} color={iconColor} />;
           } else if (route.name === 'collection') {
             label = 'Yêu thích';
-            icon = <HeartIcon size={18} color={iconColor} fill={isFocused ? colors.primary : 'none'} />;
           } else if (route.name === 'recent') {
             label = 'Vừa nghe';
-            icon = <ClockRewindIcon size={18} color={iconColor} />;
           } else if (route.name === 'playlists') {
             label = 'Playlist';
-            icon = <PlaylistIcon size={18} color={iconColor} />;
           }
 
           return (
@@ -132,7 +84,6 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               activeOpacity={0.7}
               style={styles.tabButton}
             >
-              <View style={styles.iconContainer}>{icon}</View>
               <Text
                 style={[
                   styles.tabLabel,
@@ -141,6 +92,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               >
                 {label}
               </Text>
+              {isFocused && <View style={styles.activeDot} />}
             </TouchableOpacity>
           );
         })}
@@ -218,38 +170,31 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 20,
   },
-  activePillIndicator: {
-    position: 'absolute',
-    top: 4,
-    bottom: 4,
-    left: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)', // bg-white/15 active pill
-    borderRadius: radius.pill,
-  },
   tabButton: {
     flex: 1,
-    height: 48,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
     borderRadius: radius.pill,
     zIndex: 1,
     backgroundColor: 'transparent',
   },
-  iconContainer: {
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   tabLabel: {
-    fontSize: 10.5,
+    fontSize: 13,
     fontWeight: fontWeights.medium,
-    color: 'rgba(255, 255, 255, 0.55)',
-    marginTop: 2,
+    color: 'rgba(255, 255, 255, 0.45)',
   },
   tabLabelFocused: {
     color: colors.primary,
     fontWeight: fontWeights.bold,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginTop: 3,
   },
 });

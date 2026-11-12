@@ -1,37 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Alert,
   Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { smartShuffle, type Track } from '@music-app/shared';
 import { usePlayer, useLibrary } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
+import { useCoverColor } from '../../src/hooks/useCoverColor';
 import {
   colors,
   spacing,
-  radius,
-  fontSizes,
   fontWeights,
 } from '../../src/theme';
 import {
-  ClockRewindIcon,
-  DiscIcon,
-  HeartIcon,
   PlayIcon,
   PauseIcon,
-  ShuffleIcon,
-  TrashIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
-import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
+import { cleanTrackTitle, formatRelativeTime } from '../../src/utils/recentFormatters';
+import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 
 export default function RecentScreen() {
   const insets = useSafeAreaInsets();
@@ -40,13 +37,26 @@ export default function RecentScreen() {
   const {
     recentTracks,
     clearRecentTracks,
+    removeRecentTrack,
     currentTrack,
     playerState,
     playQueue,
     togglePlay,
     setIsSmartShuffle,
   } = usePlayer();
-  const { userState, toggleFavorite } = useLibrary();
+  const { userState, toggleFavorite, deleteTrack } = useLibrary();
+
+  // Menu Bottom Sheet cho bài hát
+  const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // Hero card là bài hát nghe gần đây nhất (#0)
+  const heroTrack = recentTracks.length > 0 ? recentTracks[0] : null;
+  const isHeroPlaying = heroTrack && currentTrack?.id === heroTrack.id && playerState.isPlaying;
+  const isHeroCurrent = heroTrack && currentTrack?.id === heroTrack.id;
+
+  // Lấy màu chủ đạo từ ảnh bìa hero track để tạo gradient nền
+  const coverColor = useCoverColor(heroTrack?.cover);
 
   const handleClearHistory = () => {
     Vibration.vibrate(10);
@@ -90,587 +100,488 @@ export default function RecentScreen() {
     playQueue(shuffled, 0);
   };
 
-  const heroTrack = recentTracks.length > 0 ? recentTracks[0] : null;
-  const isHeroPlaying = heroTrack && currentTrack?.id === heroTrack.id && playerState.isPlaying;
-  const isHeroCurrent = heroTrack && currentTrack?.id === heroTrack.id;
-  const isHeroFav = heroTrack ? userState?.favoriteIds?.includes(heroTrack.id) : false;
-
-  const renderHeroCard = () => {
-    if (!heroTrack) return null;
-
-    return (
-      <View style={styles.heroSection}>
-        <View style={styles.heroBadgeRow}>
-          <View style={styles.heroBadge}>
-            <View style={styles.heroBadgeDot} />
-            <Text style={styles.heroBadgeText}>VỪA NGHE GẦN ĐÂY NHẤT</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.heroCard, isHeroCurrent && styles.heroCardActive]}
-          onPress={() => handleTrackPress(heroTrack, 0)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.heroCoverWrapper}>
-            {heroTrack.cover ? (
-              <Image source={{ uri: heroTrack.cover }} style={styles.heroCoverImg} resizeMode="cover" />
-            ) : (
-              <View style={styles.heroCoverPlaceholder}>
-                <DiscIcon size={28} color={colors.textTertiary} />
-              </View>
-            )}
-            {isHeroCurrent && (
-              <View style={styles.heroPlayingOverlay}>
-                <EqualizerIndicator isPlaying={playerState.isPlaying} size={18} color={colors.primary} />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.heroInfo}>
-            <Text
-              style={[styles.heroTitleText, isHeroCurrent && styles.heroTitleTextActive]}
-              numberOfLines={1}
-            >
-              {heroTrack.title}
-            </Text>
-            <Text style={styles.heroArtistText} numberOfLines={1}>
-              {heroTrack.artist} {heroTrack.album ? `• ${heroTrack.album}` : ''}
-            </Text>
-            <Text style={styles.heroDurationText}>{formatTime(heroTrack.duration)}</Text>
-          </View>
-
-          <View style={styles.heroActions}>
-            <TouchableOpacity
-              style={styles.heroFavBtn}
-              onPress={() => toggleFavorite(heroTrack.id)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <HeartIcon
-                size={20}
-                color={isHeroFav ? colors.primary : colors.textTertiary}
-                fill={isHeroFav ? colors.primary : 'none'}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.heroPlayCircle}
-              onPress={() => {
-                Vibration.vibrate(10);
-                if (isHeroCurrent) {
-                  togglePlay();
-                } else {
-                  playQueue(recentTracks, 0);
-                }
-              }}
-              activeOpacity={0.8}
-            >
-              {isHeroPlaying ? (
-                <PauseIcon size={18} color="#000000" />
-              ) : (
-                <PlayIcon size={18} color="#000000" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-
-        {/* Action buttons: Phát tất cả & Phát ngẫu nhiên */}
-        <View style={styles.quickActionsRow}>
-          <TouchableOpacity
-            style={styles.actionPlayBtn}
-            onPress={handlePlayAll}
-            activeOpacity={0.8}
-          >
-            <PlayIcon size={16} color="#000000" />
-            <Text style={styles.actionPlayBtnText}>Phát tất cả</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionShuffleBtn}
-            onPress={handleShufflePlayAll}
-            activeOpacity={0.8}
-          >
-            <ShuffleIcon size={16} color={colors.textPrimary} />
-            <Text style={styles.actionShuffleBtnText}>Phát ngẫu nhiên</Text>
-          </TouchableOpacity>
-        </View>
-
-        {recentTracks.length > 1 && (
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitleText}>Lịch sử trước đó</Text>
-            <Text style={styles.sectionCountText}>{recentTracks.length - 1} bài</Text>
-          </View>
-        )}
-      </View>
-    );
+  const openTrackMenu = (track: Track) => {
+    Vibration.vibrate(15);
+    setSelectedTrackForMenu(track);
+    setMenuVisible(true);
   };
 
-  const renderTrackItem = ({ item, index }: { item: Track; index: number }) => {
-    // Offset index by 1 because item #0 is the hero card
-    const realIndex = index + 1;
-    const isPlayingCurrent = currentTrack?.id === item.id;
-    const isFav = userState?.favoriteIds?.includes(item.id);
-
-    return (
-      <TouchableOpacity
-        style={[styles.trackItem, isPlayingCurrent && styles.trackItemActive]}
-        onPress={() => handleTrackPress(item, realIndex)}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.trackIndexText}>{realIndex + 1}</Text>
-
-        <View style={styles.coverWrapper}>
-          {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImg} resizeMode="cover" />
-          ) : (
-            <View style={styles.coverPlaceholder}>
-              <DiscIcon size={18} color={colors.textTertiary} />
-            </View>
-          )}
-          {isPlayingCurrent && (
-            <View style={styles.playingOverlay}>
-              <EqualizerIndicator isPlaying={playerState.isPlaying} size={14} color={colors.primary} />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.trackInfo}>
-          <Text
-            style={[styles.titleText, isPlayingCurrent && styles.titleTextActive]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <Text style={styles.artistText} numberOfLines={1}>
-            {item.artist} {item.album ? `• ${item.album}` : ''}
-          </Text>
-        </View>
-
-        <View style={styles.trackRight}>
+    // Render các hành động khi vuốt trái một bài hát trong danh sách
+    const renderRightActions = (item: Track) => {
+      const isFav = userState?.favoriteIds?.includes(item.id);
+      return (
+        <View style={styles.swipeActionsContainer}>
           <TouchableOpacity
-            style={styles.favBtn}
-            onPress={() => toggleFavorite(item.id)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={[styles.swipeActionBtn, styles.swipeFavBtn]}
+            onPress={() => {
+              Vibration.vibrate(10);
+              toggleFavorite(item.id);
+            }}
+            activeOpacity={0.8}
           >
-            <HeartIcon
-              size={17}
-              color={isFav ? colors.primary : colors.textTertiary}
-              fill={isFav ? colors.primary : 'none'}
-            />
+            <Text style={styles.swipeFavText}>{isFav ? 'Bỏ thích' : 'Yêu thích'}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.durationText}>{formatTime(item.duration)}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Vừa nghe</Text>
-          <Text style={styles.headerSubtitle}>
-            {recentTracks.length > 0
-              ? `${recentTracks.length} bài hát được nghe gần đây`
-              : 'Lịch sử phát nhạc của bạn'}
-          </Text>
-        </View>
-
-        {recentTracks.length > 0 && (
           <TouchableOpacity
-            style={styles.clearBtn}
-            onPress={handleClearHistory}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={[styles.swipeActionBtn, styles.swipeDeleteBtn]}
+            onPress={() => {
+              Vibration.vibrate(10);
+              removeRecentTrack?.(item.id);
+            }}
+            activeOpacity={0.8}
           >
-            <TrashIcon size={14} color={colors.textSecondary} />
-            <Text style={styles.clearBtnText}>Xóa</Text>
+            <Text style={styles.swipeDeleteText}>Xóa</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      );
+    };
 
-      <FlatList
-        data={recentTracks.length > 1 ? recentTracks.slice(1) : []}
-        keyExtractor={(item, idx) => `recent-${item.id}-${idx + 1}`}
-        renderItem={renderTrackItem}
-        ListHeaderComponent={renderHeroCard}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: contentPaddingBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          recentTracks.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <ClockRewindIcon size={38} color={colors.textTertiary} />
+    // Header và Hero card
+    const renderHeader = () => {
+      if (!heroTrack) return null;
+
+      const cleanedHeroTitle = cleanTrackTitle(heroTrack.title);
+
+      return (
+            <View style={styles.headerSection}>
+              {/* Tiêu đề trang kiểu Apple Typography lớn */}
+              <View style={styles.titleRow}>
+                <Text style={styles.largePageTitle}>Vừa nghe</Text>
+                {recentTracks.length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleClearHistory}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.clearHistoryLink}>Xóa lịch sử</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={styles.emptyTitle}>Chưa có bài hát nào gần đây</Text>
-              <Text style={styles.emptySubtitle}>
-                Những bài hát bạn nghe sẽ tự động được ghi nhận tại đây để bạn có thể nghe lại bất cứ lúc nào.
-              </Text>
+
+              {/* Hero Card tối giản, poster-like */}
               <TouchableOpacity
-                style={styles.exploreBtn}
-                onPress={() => router.push('/(tabs)/library')}
-                activeOpacity={0.8}
+                style={[
+                  styles.heroCard,
+                  { shadowColor: coverColor },
+                  isHeroCurrent && styles.heroCardActive,
+                ]}
+                onPress={() => handleTrackPress(heroTrack, 0)}
+                onLongPress={() => openTrackMenu(heroTrack)}
+                activeOpacity={0.88}
               >
-                <Text style={styles.exploreBtnText}>Khám phá thư viện</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
-      />
-    </View>
-  );
+                <Image
+                  source={{ uri: heroTrack.cover }}
+                  style={styles.heroCover}
+                  contentFit="cover"
+                  transition={200}
+                />
+
+                <View style={styles.heroInfo}>
+                    <Text style={styles.heroTitle} numberOfLines={2}>
+                      {cleanedHeroTitle}
+                    </Text>
+                      <Text style={styles.heroArtist} numberOfLines={1}>
+                        {heroTrack.artist} · {formatRelativeTime(undefined, 0)}
+                      </Text>
+                    </View>
+
+                    {/* 1 Nút Play tròn to màu xanh */}
+                    <TouchableOpacity
+                      style={styles.heroPlayCircle}
+                      onPress={() => {
+                        Vibration.vibrate(10);
+                        if (isHeroCurrent) {
+                          togglePlay();
+                        } else {
+                          playQueue(recentTracks, 0);
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      {isHeroPlaying ? (
+                        <PauseIcon size={20} color="#000000" />
+                      ) : (
+                        <PlayIcon size={20} color="#000000" />
+                      )}
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+
+                    {/* Cụm 2 nút hành động bo tròn kiểu pill 48px, không icon */}
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={[styles.pillBtn, styles.playAllBtn]}
+                        onPress={handlePlayAll}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.playAllBtnText}>Phát tất cả</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.pillBtn, styles.shuffleBtn]}
+                        onPress={handleShufflePlayAll}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.shuffleBtnText}>Phát ngẫu nhiên</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Tiêu đề mục trước đó */}
+                    {recentTracks.length > 1 && (
+                        <View style={styles.sectionHeaderRow}>
+                          <Text style={styles.sectionHeaderText}>Trước đó</Text>
+                          <Text style={styles.sectionCountText}>{recentTracks.length - 1} bài</Text>
+                        </View>
+        )}
+                      </View>
+                    );
+  };
+
+                    // Render từng bài trong danh sách Trước đó
+                    const renderTrackItem = ({item, index}: {item: Track; index: number }) => {
+                    const realIndex = index + 1; // #0 là hero card
+                    const isPlayingCurrent = currentTrack?.id === item.id;
+                    const cleanedTitle = cleanTrackTitle(item.title);
+
+                    return (
+      <Swipeable
+                      renderRightActions={() => renderRightActions(item)}
+                      overshootRight={false}
+                    >
+                      <TouchableOpacity
+                        style={[styles.trackRow, isPlayingCurrent && styles.trackRowActive]}
+                        onPress={() => handleTrackPress(item, realIndex)}
+                        onLongPress={() => openTrackMenu(item)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.trackIndex}>{realIndex + 1}</Text>
+
+                        <Image
+                          source={{ uri: item.cover }}
+                          style={styles.trackCover}
+                          contentFit="cover"
+                          transition={150}
+                        />
+
+                        <View style={styles.trackInfo}>
+                          <Text
+                            style={[styles.trackTitle, isPlayingCurrent && styles.trackTitleActive]}
+                            numberOfLines={1}
+                          >
+                            {cleanedTitle}
+                          </Text>
+                          <Text style={styles.trackArtist} numberOfLines={1}>
+                            {item.artist}
+                          </Text>
+                        </View>
+
+                      <Text style={styles.trackDuration}>{formatTime(item.duration)}</Text>
+                    </TouchableOpacity>
+                  </Swipeable>
+                  );
+  };
+
+                  return (
+                  <View style={[styles.container, { paddingTop: insets.top }]}>
+                        {/* Lớp gradient màu cover ở 35% trên cùng tan dần về nền đen */}
+                        <LinearGradient
+                          colors={[`${coverColor}55`, 'rgba(18, 18, 20, 0)']}
+                          style={styles.topGradient}
+                          pointerEvents="none"
+                        />
+
+                        {recentTracks.length === 0 ? (
+                          <View style={styles.emptyContainer}>
+                            <Text style={styles.largePageTitle}>Vừa nghe</Text>
+                            <View style={styles.emptyPrompt}>
+                              <Text style={styles.emptyTitle}>Chưa có bài hát nào</Text>
+                              <Text style={styles.emptySubtitle}>
+                                Những bài hát bạn nghe sẽ tự động được ghi lại ở đây.
+                              </Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <FlatList
+                            data={recentTracks.slice(1)}
+                            keyExtractor={(item, idx) => `recent-${item.id}-${idx + 1}`}
+                            renderItem={renderTrackItem}
+                            ListHeaderComponent={renderHeader}
+                            contentContainerStyle={[
+                              styles.listContent,
+                              { paddingBottom: contentPaddingBottom + 20 },
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                          />
+                        )}
+
+                      {/* Menu bài hát Bottom Sheet kiểu Apple */}
+                      {selectedTrackForMenu && (
+                        <TrackActionSheet
+                          visible={menuVisible}
+                          onClose={() => setMenuVisible(false)}
+                          track={selectedTrackForMenu}
+                          isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
+                          onPlayNext={() => {
+                            // Đưa bài lên đầu hàng đợi phát
+                            playQueue([selectedTrackForMenu, ...recentTracks], 0);
+                          }}
+                          onToggleFavorite={() => {
+                            toggleFavorite(selectedTrackForMenu.id);
+                          }}
+                          onAddToPlaylist={() => {
+                            router.push({
+                              pathname: '/modal/add-to-playlist',
+                              params: { trackId: selectedTrackForMenu.id },
+                            });
+                          }}
+                          onEditInfo={() => {
+                            router.push({
+                              pathname: '/modal/edit-track',
+                              params: { trackId: selectedTrackForMenu.id },
+                            });
+                          }}
+                          onDeleteFromLibrary={() => {
+                            deleteTrack(selectedTrackForMenu.id);
+                          }}
+                        />
+                      )}
+                    </View>
+                    );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+                    const styles = StyleSheet.create({
+                      container: {
+                      flex: 1,
+                    backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+                      topGradient: {
+                      position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '42%',
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
+                    headerSection: {
+                      paddingHorizontal: spacing.lg,
+                    paddingTop: spacing.sm,
+                    paddingBottom: spacing.md,
   },
-  headerSubtitle: {
-    fontSize: fontSizes.caption,
-    color: colors.textTertiary,
-    marginTop: 2,
+                    titleRow: {
+                      flexDirection: 'row',
+                    alignItems: 'baseline',
+                    justifyContent: 'space-between',
+                    marginBottom: spacing.lg,
   },
-  clearBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    largePageTitle: {
+                      fontSize: 38,
+                    fontWeight: '800',
+                    color: colors.textPrimary,
+                    letterSpacing: -0.5,
   },
-  clearBtnText: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.semibold,
+                    clearHistoryLink: {
+                      fontSize: 15,
+                    fontWeight: fontWeights.medium,
+                    color: colors.textTertiary,
   },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+                    heroCard: {
+                      flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(28, 28, 30, 0.75)',
+                    borderRadius: 16,
+                    padding: spacing.md,
+                    shadowOffset: {width: 0, height: 8 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 14,
+                    elevation: 8,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  heroSection: {
-    marginBottom: spacing.md,
+                    heroCardActive: {
+                    borderColor: 'rgba(29, 185, 84, 0.35)',
   },
-  heroBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-    paddingHorizontal: spacing.xs,
+                    heroCover: {
+                      width: 90,
+                    height: 90,
+                    borderRadius: 12,
+                    backgroundColor: colors.surface,
   },
-  heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.25)',
-    gap: 5,
+                    heroInfo: {
+                      flex: 1,
+                    marginLeft: spacing.md,
+                    marginRight: spacing.sm,
+                    justifyContent: 'center',
   },
-  heroBadgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
+                      heroTitle: {
+                      fontSize: 20,
+                    fontWeight: '700',
+                    color: colors.textPrimary,
+                    lineHeight: 26,
+                    letterSpacing: -0.3,
   },
-  heroBadgeText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: fontWeights.bold,
-    letterSpacing: 0.8,
+                      heroArtist: {
+                      fontSize: 14,
+                    fontWeight: fontWeights.regular,
+                    color: colors.textSecondary,
+                    marginTop: 4,
   },
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: spacing.sm,
+                    heroPlayCircle: {
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: colors.primary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: colors.primary,
+                    shadowOffset: {width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 8,
+                    elevation: 4,
   },
-  heroCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(34, 197, 94, 0.06)',
+                      actionRow: {
+                      flexDirection: 'row',
+                    gap: 12,
+                    marginTop: spacing.lg,
   },
-  heroCoverWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-    position: 'relative',
-    marginRight: spacing.md,
+                      pillBtn: {
+                      flex: 1,
+                    height: 48,
+                    borderRadius: 48,
+                    alignItems: 'center',
+                    justifyContent: 'center',
   },
-  heroCoverImg: {
-    width: '100%',
-    height: '100%',
+                    playAllBtn: {
+                      backgroundColor: colors.primary,
   },
-  heroCoverPlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+                      playAllBtnText: {
+                      fontSize: 15,
+                    fontWeight: '700',
+                    color: '#000000',
   },
-  heroPlayingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+                    shuffleBtn: {
+                      backgroundColor: '#282828',
   },
-  heroInfo: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingRight: spacing.sm,
+                    shuffleBtnText: {
+                      fontSize: 15,
+                    fontWeight: '600',
+                    color: '#FFFFFF',
   },
-  heroTitleText: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.bold,
-    marginBottom: 2,
+                      sectionHeaderRow: {
+                      flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: spacing.xl,
+                    marginBottom: spacing.xs,
   },
-  heroTitleTextActive: {
-    color: colors.primary,
+                      sectionHeaderText: {
+                      fontSize: 14,
+                    fontWeight: '700',
+                    color: colors.textSecondary,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.8,
   },
-  heroArtistText: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    marginBottom: 4,
+                    sectionCountText: {
+                      fontSize: 13,
+                    color: colors.textTertiary,
   },
-  heroDurationText: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
+                      listContent: {
+                      paddingTop: spacing.xs,
   },
-  heroActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+                    trackRow: {
+                      flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: spacing.lg,
+                    backgroundColor: colors.background,
   },
-  heroFavBtn: {
-    padding: 6,
+                    trackRowActive: {
+                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
-  heroPlayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
+                    trackIndex: {
+                      width: 26,
+                    fontSize: 14,
+                    fontWeight: fontWeights.medium,
+                    color: colors.textTertiary,
+                    textAlign: 'center',
+                    marginRight: 6,
   },
-  quickActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+                    trackCover: {
+                      width: 46,
+                    height: 46,
+                    borderRadius: 8,
+                    backgroundColor: colors.surface,
+                    marginRight: spacing.md,
   },
-  actionPlayBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
+                    trackInfo: {
+                      flex: 1,
+                    justifyContent: 'center',
+                    marginRight: spacing.sm,
   },
-  actionPlayBtnText: {
-    color: '#000000',
-    fontSize: fontSizes.subhead,
-    fontWeight: fontWeights.bold,
+                      trackTitle: {
+                      fontSize: 16,
+                    fontWeight: '600',
+                    color: colors.textPrimary,
+                    letterSpacing: -0.2,
   },
-  actionShuffleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 10,
-    borderRadius: radius.pill,
+                      trackTitleActive: {
+                      color: colors.primary,
   },
-  actionShuffleBtnText: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.subhead,
-    fontWeight: fontWeights.semibold,
+                      trackArtist: {
+                      fontSize: 13,
+                    fontWeight: fontWeights.regular,
+                    color: colors.textSecondary,
+                    marginTop: 3,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xs,
+                    trackDuration: {
+                      fontSize: 13,
+                    color: colors.textTertiary,
   },
-  sectionTitleText: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+                      swipeActionsContainer: {
+                      flexDirection: 'row',
+                    width: 150,
+                    height: '100%',
   },
-  sectionCountText: {
-    color: colors.textTertiary,
-    fontSize: fontSizes.caption,
+                    swipeActionBtn: {
+                      flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
   },
-  trackItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    marginBottom: 2,
+                    swipeFavBtn: {
+                      backgroundColor: '#1A3B2B',
   },
-  trackItemActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    swipeFavText: {
+                      color: colors.primary,
+                    fontSize: 13,
+                    fontWeight: '700',
   },
-  trackIndexText: {
-    width: 22,
-    fontSize: 12,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginRight: 6,
-    fontVariant: ['tabular-nums'],
+                    swipeDeleteBtn: {
+                      backgroundColor: '#3B1A1A',
   },
-  coverWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceElevated,
-    position: 'relative',
-    marginRight: spacing.md,
+                    swipeDeleteText: {
+                      color: '#FF6B6B',
+                    fontSize: 13,
+                    fontWeight: '700',
   },
-  coverImg: {
-    width: '100%',
-    height: '100%',
+                    emptyContainer: {
+                      flex: 1,
+                    paddingHorizontal: spacing.lg,
+                    paddingTop: spacing.sm,
   },
-  coverPlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+                    emptyPrompt: {
+                      flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingBottom: 80,
   },
-  playingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+                    emptyTitle: {
+                      fontSize: 20,
+                    fontWeight: '700',
+                    color: colors.textPrimary,
   },
-  trackInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  titleText: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.semibold,
-  },
-  titleTextActive: {
-    color: colors.primary,
-    fontWeight: fontWeights.bold,
-  },
-  artistText: {
-    color: colors.textTertiary,
-    fontSize: fontSizes.caption,
-    marginTop: 2,
-  },
-  trackRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  favBtn: {
-    padding: 4,
-  },
-  durationText: {
-    color: colors.textTertiary,
-    fontSize: fontSizes.caption,
-    fontVariant: ['tabular-nums'],
-    width: 36,
-    textAlign: 'right',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xxl,
-    paddingTop: 80,
-  },
-  emptyIconCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  emptyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.title,
-    fontWeight: fontWeights.bold,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    color: colors.textTertiary,
-    fontSize: fontSizes.subhead,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-    lineHeight: 20,
-    marginBottom: spacing.lg,
-  },
-  exploreBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-  },
-  exploreBtnText: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.subhead,
-    fontWeight: fontWeights.semibold,
+                    emptySubtitle: {
+                      fontSize: 14,
+                    color: colors.textTertiary,
+                    textAlign: 'center',
+                    marginTop: 8,
+                    maxWidth: 260,
+                    lineHeight: 20,
   },
 });

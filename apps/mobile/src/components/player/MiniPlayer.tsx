@@ -8,7 +8,7 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { usePlayer, useProgress } from '../../context';
+import { usePlayer } from '../../context';
 import {
   colors,
   fontSizes,
@@ -21,23 +21,10 @@ import {
   PauseIcon,
   NextIcon,
   DiscIcon,
-  ShuffleIcon,
 } from '../icons/SvgIcons';
 import { EqualizerIndicator } from './EqualizerIndicator';
+import { Waveform } from './Waveform';
 import { MINI_PLAYER_HEIGHT } from '../../hooks/useTabBarMetrics';
-
-/**
- * Thanh tiến trình 2pt nằm trên đỉnh MiniPlayer
- * Subscribe riêng useProgress() để cô lập re-render mỗi 250ms
- */
-export function MiniProgressBar() {
-  const { progressPercent } = useProgress();
-  return (
-    <View style={styles.progressBarTrack}>
-      <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-    </View>
-  );
-}
 
 /**
  * MiniPlayer: Thanh phát nhạc thu nhỏ xuất hiện phía trên Tab Bar
@@ -50,8 +37,6 @@ export function MiniPlayer() {
     playerState,
     togglePlay,
     next,
-    isSmartShuffle,
-    toggleSmartShuffle,
   } = usePlayer();
 
   const playScale = useRef(new Animated.Value(1)).current;
@@ -88,7 +73,9 @@ export function MiniPlayer() {
       accessibilityRole="button"
       accessibilityLabel={`Đang phát: ${currentTrack.title} của ${currentTrack.artist}. Chạm để mở toàn màn hình.`}
     >
-      <MiniProgressBar />
+      <View style={styles.waveformWrapper}>
+        <Waveform trackId={currentTrack.id} height={10} barCount={45} />
+      </View>
 
       <View style={styles.contentRow}>
         {/* Ảnh bìa thu nhỏ 40x40 */}
@@ -131,25 +118,8 @@ export function MiniPlayer() {
           </View>
         </View>
 
-        {/* Cụm nút điều khiển: Shuffle, Play/Pause và Next */}
+        {/* Cụm nút điều khiển: Play/Pause và Next */}
         <View style={styles.controlsRow}>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              toggleSmartShuffle();
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel={isSmartShuffle ? 'Đang bật xáo trộn thông minh' : 'Bật xáo trộn thông minh'}
-          >
-            <ShuffleIcon
-              size={17}
-              color={isSmartShuffle ? colors.primary : colors.textTertiary}
-            />
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.controlButton}
             onPress={handleTogglePlay}
@@ -203,76 +173,73 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
   },
-  progressBarTrack: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.surface,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  contentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  artworkWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceElevated,
-    marginRight: spacing.md,
-  },
-  artworkImage: {
-    width: '100%',
-    height: '100%',
-  },
-  artworkPlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  titleText: {
-    fontSize: fontSizes.subhead,
-    fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
-  },
-  artistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  miniEqualizerBadge: {
-    marginRight: 4,
-    height: 12,
-    justifyContent: 'center',
-  },
-  artistText: {
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.regular,
-    color: colors.textSecondary,
-    flexShrink: 1,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  controlButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+    waveformWrapper: {
+      position: 'absolute',
+      top: 2,
+      left: 8,
+      right: 8,
+      height: 10,
+      overflow: 'hidden',
+      zIndex: 2,
+    },
+    contentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    artworkWrapper: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      overflow: 'hidden',
+      backgroundColor: colors.surfaceElevated,
+      marginRight: spacing.md,
+    },
+    artworkImage: {
+      width: '100%',
+      height: '100%',
+    },
+    artworkPlaceholder: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    infoWrapper: {
+      flex: 1,
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+    },
+    titleText: {
+      fontSize: fontSizes.subhead,
+      fontWeight: fontWeights.semibold,
+      color: colors.textPrimary,
+    },
+    artistRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    miniEqualizerBadge: {
+      marginRight: 4,
+      height: 12,
+      justifyContent: 'center',
+    },
+    artistText: {
+      fontSize: fontSizes.caption,
+      fontWeight: fontWeights.regular,
+      color: colors.textSecondary,
+      flexShrink: 1,
+    },
+    controlsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    controlButton: {
+      width: 32,
+      height: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });

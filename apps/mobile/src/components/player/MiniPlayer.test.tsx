@@ -68,6 +68,15 @@ vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
 
+vi.mock('./Waveform', () => ({
+  Waveform: () => null,
+}));
+
+vi.mock('react-native-svg', () => ({
+  default: () => null,
+  Rect: () => null,
+}));
+
 vi.mock('../icons/SvgIcons', () => ({
   PlayIcon: () => null,
   PauseIcon: () => null,
@@ -151,7 +160,7 @@ describe('MiniPlayer Component', () => {
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const playButton = controlsRow?.props.children[1];
+    const playButton = controlsRow?.props.children[0];
 
     const stopPropagation = vi.fn();
     playButton.props.onPress({ stopPropagation });
@@ -170,14 +179,12 @@ describe('MiniPlayer Component', () => {
       playerState: { isPlaying: false },
       togglePlay: mockTogglePlay,
       next: mockNext,
-      isSmartShuffle: false,
-      toggleSmartShuffle: mockToggleSmartShuffle,
     });
 
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const nextButton = controlsRow?.props.children[2];
+    const nextButton = controlsRow?.props.children[1];
 
     const stopPropagation = vi.fn();
     nextButton.props.onPress({ stopPropagation });
@@ -186,29 +193,21 @@ describe('MiniPlayer Component', () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
   });
 
-  it('nhấn nút Shuffle kích hoạt toggleSmartShuffle', () => {
-    mockUsePlayer.mockReturnValue({
-      currentTrack: {
-        id: 'track_1',
-        title: 'Lối Nhỏ',
-        artist: 'Đen Vâu',
-      },
-      playerState: { isPlaying: false },
-      togglePlay: mockTogglePlay,
-      next: mockNext,
-      isSmartShuffle: false,
-      toggleSmartShuffle: mockToggleSmartShuffle,
+    it('lược bỏ nút Shuffle khỏi MiniPlayer theo thiết kế tối giản (chỉ giữ Play/Pause và Next)', () => {
+      mockUsePlayer.mockReturnValue({
+        currentTrack: {
+          id: 'track_1',
+          title: 'Lối Nhỏ',
+          artist: 'Đen Vâu',
+        },
+        playerState: { isPlaying: false },
+        togglePlay: mockTogglePlay,
+        next: mockNext,
+      });
+
+      const element = MiniPlayer();
+      const contentRow = element?.props.children[1];
+      const controlsRow = contentRow?.props.children[2];
+      expect(controlsRow?.props.children.length).toBe(2);
     });
-
-    const element = MiniPlayer();
-    const contentRow = element?.props.children[1];
-    const controlsRow = contentRow?.props.children[2];
-    const shuffleButton = controlsRow?.props.children[0];
-
-    const stopPropagation = vi.fn();
-    shuffleButton.props.onPress({ stopPropagation });
-
-    expect(stopPropagation).toHaveBeenCalled();
-    expect(mockToggleSmartShuffle).toHaveBeenCalledTimes(1);
   });
-});

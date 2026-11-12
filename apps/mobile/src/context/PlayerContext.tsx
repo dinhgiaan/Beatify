@@ -16,6 +16,7 @@ import {
   loadRecentTracks,
   saveRecentTracks,
   addTrackToRecentList,
+  removeTrackFromRecentList,
   updateRecentLimit,
   DEFAULT_RECENT_LIMIT,
   type RecentTracksData,
@@ -42,6 +43,7 @@ export interface PlayerContextValue {
   recentLimit: number;
   setRecentLimit: (limit: number) => Promise<void>;
   clearRecentTracks: () => Promise<void>;
+  removeRecentTrack: (trackId: string) => Promise<void>;
   playQueue: (trackList?: Track[], startIndex?: number) => Promise<void>;
   togglePlay: () => Promise<void>;
   next: () => Promise<void>;
@@ -605,6 +607,16 @@ const clearRecentTracks = useCallback(async () => {
   });
 }, []);
 
+// Xóa một bài khỏi danh sách nghe gần đây
+const removeRecentTrack = useCallback(async (trackId: string) => {
+  Vibration.vibrate(5);
+  setRecentTracksData((prev) => {
+    const updated = removeTrackFromRecentList(trackId, prev);
+    saveRecentTracks(updated).catch(() => { });
+    return updated;
+  });
+}, []);
+
 // Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
 const recentTracks = useMemo(() => {
   const trackMap = new Map<string, Track>();
@@ -636,6 +648,7 @@ return (
       recentLimit: recentTracksData.limit,
       setRecentLimit,
       clearRecentTracks,
+      removeRecentTrack,
       playQueue,
       togglePlay,
       next,
