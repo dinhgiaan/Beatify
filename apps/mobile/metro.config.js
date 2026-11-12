@@ -15,4 +15,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// 3. Pin singleton để tránh duplicate trong pnpm monorepo
+// (quan trọng khi xcodebuild gọi Metro bundle qua symlink)
+const singletons = ['react', 'react-native', 'expo', 'expo-router'];
+config.resolver.extraNodeModules = singletons.reduce((acc, name) => {
+  acc[name] = path.resolve(projectRoot, 'node_modules', name);
+  return acc;
+}, {});
+
 module.exports = config;
