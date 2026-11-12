@@ -12,8 +12,12 @@
 2. **Hẹn giờ tắt nhạc (Sleep Timer):**
    - Hiển thị huy hiệu đếm ngược thời gian thực trên Header của màn hình Now Playing (`⏳ Tắt sau mm:ss`) và trên nút Đồng hồ ở bảng điều khiển dưới.
    - Tính toán dựa trên timestamp hệ thống (`targetMs`), lắng nghe sự kiện `AppState` để đảm bảo khi khoá màn hình iOS hay chạy nền thì timer vẫn đếm chính xác và tự động dừng nhạc khi hết giờ.
-3. **Ảnh bìa sắc nét (HD Album Cover):**
-   - Tích hợp bộ chọn ảnh HD từ thư viện máy (`expo-image-picker`) trong modal chỉnh sửa thông tin bài hát (`EditTrackModal`) với chất lượng nguyên bản 1.0 (không nén mờ), lưu trực tiếp vào cấu hình bài hát.
+3. **Ảnh bìa sắc nét (HD Album Artwork trên Website Dashboard):**
+   - Tích hợp trực tiếp trên Web Dashboard các nút thao tác ảnh bìa chuyên nghiệp:
+     - **Tải ảnh HD về máy:** Tải ngay file ảnh chất lượng cao 1:1 nguyên bản về máy tính với tên file tự động chuẩn `${artist} - ${title} - Cover.jpg`.
+     - **Đổi ảnh bìa mới:** Chọn file ảnh từ máy tính (.jpg, .png, .webp) và tải lên làm bìa mới qua API `/local-api/tracks/:id/cover`, tự động lưu file sidecar bên cạnh bài hát và đồng bộ lên R2.
+     - **Xem ảnh lớn phóng to:** Bổ sung nút xem ảnh bìa phóng to HD trong bảng Thư viện và trang Quản lý bài đã tải (`CoverViewerDialog`).
+     - **Xóa ảnh bìa:** Cho phép hoàn tác về trạng thái mặc định.
 4. **Cấu trúc lại Tab Playlist & Bộ sưu tập:**
    - Tab Playlist (`playlists.tsx`) giờ đây chỉ hiển thị duy nhất các Danh sách phát cá nhân của người dùng, bổ sung đầy đủ bộ công cụ Thêm / Đổi / Xóa ảnh bìa playlist từ thư viện ảnh máy.
    - Xóa bỏ mục "Nghe gần đây" khỏi tab Playlist (vì đã có tab "Vừa nghe" riêng biệt).
