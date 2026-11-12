@@ -43,6 +43,7 @@ interface TrackItem {
   hasCover: boolean;
   hasLyrics: boolean;
   filePath: string;
+  mtimeMs?: number;
 }
 
 interface PlaylistsPageProps {
@@ -477,23 +478,63 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
     }
   };
 
-  // Bộ lọc bài hát khi thêm vào playlist
+  // Bộ lọc và sắp xếp bài hát khi thêm vào playlist
+  const [trackSortBy, setTrackSortBy] = useState<'recent' | 'az' | 'artist'>('recent');
+  const [trackDateFilter, setTrackDateFilter] = useState<'all' | 'today' | 'week'>('all');
+
   const candidateTracks = useMemo(() => {
     if (!activePlaylist) return [];
     const currentSet = new Set(activePlaylist.trackIds);
-    if (!trackSearchQuery.trim()) {
-      return allTracks.filter((t) => !currentSet.has(t.id));
-    }
-    const q = normalizeText(trackSearchQuery);
-    return allTracks.filter((t) => {
-      if (currentSet.has(t.id)) return false;
-      return (
+    let list = allTracks.filter((t) => !currentSet.has(t.id));
+
+    // Lọc theo từ khóa
+    if (trackSearchQuery.trim()) {
+      const q = normalizeText(trackSearchQuery);
+      list = list.filter((t) =>
         normalizeText(t.title).includes(q) ||
         normalizeText(t.artist).includes(q) ||
         normalizeText(t.album).includes(q)
       );
-    });
-  }, [allTracks, activePlaylist, trackSearchQuery]);
+    }
+
+    // Lọc theo ngày tải
+    if (trackDateFilter !== 'all') {
+      const now = Date.now();
+      const cutoff = trackDateFilter === 'today' ? now - 24 * 3600 * 1000 : now - 7 * 24 * 3600 * 1000;
+      list = list.filter((t) => (t.mtimeMs || 0) >= cutoff);
+    }
+
+    // Sắp xếp
+    if (trackSortBy === 'recent') {
+      list.sort((a, b) => (b.mtimeMs || 0) - (a.mtimeMs || 0));
+    } else if (trackSortBy === 'az') {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (trackSortBy === 'artist') {
+      list.sort((a, b) => a.artist.localeCompare(b.artist));
+    }
+
+    return list;
+  }, [allTracks, activePlaylist, trackSearchQuery, trackDateFilter, trackSortBy]);
+
+  // Kiểm tra xem tất cả bài candidate có đang được chọn không
+  const isAllCandidatesSelected = useMemo(() => {
+    if (candidateTracks.length === 0) return false;
+    return candidateTracks.every((t) => selectedTrackIdsToAdd.includes(t.id));
+  }, [candidateTracks, selectedTrackIdsToAdd]);
+
+  // Toggle chọn tất cả bài hát trong danh sách đang lọc
+  const handleToggleSelectAllCandidates = () => {
+    if (isAllCandidatesSelected) {
+      const candidateSet = new Set(candidateTracks.map((t) => t.id));
+      setSelectedTrackIdsToAdd((prev) => prev.filter((id) => !candidateSet.has(id)));
+    } else {
+      const set = new Set(selectedTrackIdsToAdd);
+      for (const t of candidateTracks) {
+        set.add(t.id);
+      }
+      setSelectedTrackIdsToAdd(Array.from(set));
+    }
+  };
 
   const handlePlay = (track: TrackItem) => {
     if (playingTrackId === track.id && onTogglePlayPause) {
@@ -1233,24 +1274,80 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
         open={isAddTracksModalOpen}
         onOpenChange={setIsAddTracksModalOpen}
         title={`Thêm bài hát vào "${activePlaylist?.name || 'Playlist'}"`}
+        maxWidth="max-w-4xl"
       >
-        <div className="flex flex-col gap-4 max-h-[75vh]">
-          {/* Ô tìm kiếm */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-3 text-[var(--text-muted)]" />
-            <input
-              type="text"
-              value={trackSearchQuery}
-              onChange={(e) => setTrackSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm theo tên bài hát, nghệ sĩ, album..."
-              className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-[var(--border)] rounded-xl text-sm text-white focus:outline-none focus:border-[#1DB954]"
-            />
+        <div className="flex flex-col gap-4 max-h-[80vh]">
+          {/* Hàng 1: Ô tìm kiếm & Sắp xếp */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3.5 top-3 text-[var(--text-muted)]" />
+              <input
+                type="text"
+                value={trackSearchQuery}
+                onChange={(e) => setTrackSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm theo tên bài hát, nghệ sĩ, album..."
+                className="w-full pl-10 pr-4 py-2 bg-black/40 border border-[var(--border)] rounded-xl text-sm text-white focus:outline-none focus:border-[#1DB954]"
+              />
+            </div>
+
+            {/* Sắp xếp */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs text-[var(--text-muted)]">Xếp:</span>
+              <select
+                value={trackSortBy}
+                onChange={(e) => setTrackSortBy(e.target.value as 'recent' | 'az' | 'artist')}
+                className="bg-black/50 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#1DB954] cursor-pointer"
+              >
+                <option value="recent">Mới tải gần đây</option>
+                <option value="az">Tên bài hát (A - Z)</option>
+                <option value="artist">Nghệ sĩ (A - Z)</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl bg-black/20 max-h-80">
+          {/* Hàng 2: Chọn tất cả (Select All) & Bộ lọc nhanh thời gian tải */}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1 bg-white/[0.02] border border-[var(--border)] rounded-xl p-2.5">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isAllCandidatesSelected}
+                onChange={handleToggleSelectAllCandidates}
+                className="w-4 h-4 rounded cursor-pointer accent-[#1DB954]"
+              />
+              <span className="text-xs font-semibold text-white">
+                Chọn tất cả ({candidateTracks.length} bài khả dụng)
+              </span>
+            </label>
+
+            {/* Quick Filter thời gian tải */}
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-[var(--text-muted)] mr-1">Lọc tải:</span>
+              {(['all', 'today', 'week'] as const).map((filter) => {
+                const isAct = trackDateFilter === filter;
+                const label = filter === 'all' ? 'Tất cả' : filter === 'today' ? '24h qua' : '7 ngày qua';
+                return (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setTrackDateFilter(filter)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      isAct
+                        ? 'bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/40 font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Danh sách bài hát */}
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl bg-black/20 max-h-96">
             {candidateTracks.length === 0 ? (
-              <div className="p-8 text-center text-xs text-[var(--text-muted)]">
-                Không tìm thấy bài hát nào phù hợp (hoặc tất cả bài đã có trong danh sách)
+              <div className="p-10 text-center text-xs text-[var(--text-muted)]">
+                Không tìm thấy bài hát nào phù hợp với bộ lọc hiện tại (hoặc tất cả bài đã có trong danh sách)
               </div>
             ) : (
               candidateTracks.map((t) => {
@@ -1263,24 +1360,51 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                         isSelected ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                       );
                     }}
-                    className={`flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer transition-colors ${isSelected ? 'bg-[#1DB954]/10' : ''
-                      }`}
+                    className={`flex items-center gap-3 p-2.5 sm:p-3 hover:bg-white/5 cursor-pointer transition-colors ${
+                      isSelected ? 'bg-[#1DB954]/10' : ''
+                    }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected
+                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                        isSelected
                           ? 'bg-[#1DB954] border-[#1DB954] text-black'
                           : 'border-[var(--border)] bg-black/40'
-                        }`}
+                      }`}
                     >
                       {isSelected && <Check size={14} className="stroke-[3]" />}
                     </div>
+
+                    {/* Thumbnail ảnh bìa */}
+                    <div className="w-9 h-9 rounded-md bg-black/50 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      {t.hasCover ? (
+                        <img
+                          src={`/local-api/covers/${t.albumId || t.id}.jpg`}
+                          alt={t.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Music size={16} className="text-zinc-500" />
+                      )}
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-white truncate">{t.title}</div>
                       <div className="text-xs text-[var(--text-muted)] truncate">
-                        {t.artist} • {t.album || 'Single'}
+                        {t.artist} {t.album && `• ${t.album}`}
                       </div>
                     </div>
-                    <div className="text-xs text-[var(--text-muted)] shrink-0">
+
+                    {/* Ngày tải nếu có */}
+                    {t.mtimeMs && t.mtimeMs > 0 && (
+                      <div className="text-[11px] text-[var(--text-muted)] shrink-0 hidden sm:block">
+                        {new Date(t.mtimeMs).toLocaleDateString('vi-VN')}
+                      </div>
+                    )}
+
+                    <div className="text-xs text-[var(--text-muted)] shrink-0 font-mono">
                       {formatDuration(t.duration)}
                     </div>
                   </div>
@@ -1289,10 +1413,23 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-xs text-[var(--text-muted)]">
-              Đã chọn: <strong className="text-white">{selectedTrackIdsToAdd.length}</strong> bài hát
-            </span>
+          {/* Footer Modal */}
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[var(--text-muted)]">
+                Đã chọn: <strong className="text-[#1DB954] text-sm">{selectedTrackIdsToAdd.length}</strong> / {candidateTracks.length} bài
+              </span>
+              {selectedTrackIdsToAdd.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrackIdsToAdd([])}
+                  className="text-xs text-rose-400 hover:underline cursor-pointer"
+                >
+                  Bỏ chọn tất cả
+                </button>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <Button variant="text" onClick={() => setIsAddTracksModalOpen(false)}>
                 Hủy
@@ -1301,8 +1438,12 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                 variant="primary"
                 onClick={handleConfirmAddTracks}
                 disabled={selectedTrackIdsToAdd.length === 0}
+                className="gap-1.5"
               >
-                Thêm vào Playlist ({selectedTrackIdsToAdd.length})
+                <span>Thêm vào Playlist</span>
+                <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs">
+                  {selectedTrackIdsToAdd.length}
+                </span>
               </Button>
             </div>
           </div>

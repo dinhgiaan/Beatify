@@ -554,6 +554,14 @@ app.get('/local-api/tracks', async (c) => {
     const ext = path.extname(item.filePath).replace('.', '').toLowerCase();
     const albumId = item.track.albumId;
     const trackId = item.track.id;
+    let mtimeMs = 0;
+    if (fileExists) {
+      try {
+        mtimeMs = Math.round(statSync(item.filePath).mtimeMs);
+      } catch {
+        mtimeMs = 0;
+      }
+    }
     const hasCover = Boolean(
       item.coverBuffer ||
       item.track.cover ||
@@ -573,6 +581,7 @@ app.get('/local-api/tracks', async (c) => {
       hasLyrics: !!item.track.lyrics,
       filePath: item.filePath,
       fileExists,
+      mtimeMs,
       isSynced: r2TrackKeys.has(item.track.file),
     };
   });
