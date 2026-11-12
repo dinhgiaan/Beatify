@@ -233,6 +233,16 @@ app.get('/local-api/status', async (c) => {
     const overrides = await getOverrides();
     const r2Keys = await getR2TrackKeys();
 
+    if (cachedScannedTracks.length === 0) {
+      try {
+        const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+        const rawScanned = await scanFilesWithCache(files);
+        cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
+      } catch {
+        // bỏ qua
+      }
+    }
+
     if (cachedScannedTracks.length > 0) {
       // Dùng dữ liệu cache đã có để tính toán siêu tốc (không băm lại SHA-1, không nghẽn Disk I/O)
       for (const item of cachedScannedTracks) {
@@ -257,22 +267,13 @@ app.get('/local-api/status', async (c) => {
         }
       }
     } else {
-      // Nếu cache RAM chưa nạp, duyệt file và stat kích thước nhanh chóng
-      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
-      fileCount = files.length;
-      for (const f of files) {
-        try {
-          const sz = statSync(f).size;
-          totalBytes += sz;
-        } catch {
-          // bỏ qua
-        }
-      }
-      // Ước tính tạm thời cho đến khi library được nạp
+      // Thư mục không có tệp âm thanh nào
+      fileCount = 0;
+      totalBytes = 0;
       syncedBytes = 0;
       syncedCount = 0;
-      unsyncedBytes = totalBytes;
-      unsyncedCount = fileCount;
+      unsyncedBytes = 0;
+      unsyncedCount = 0;
     }
   } catch {
     // bỏ qua lỗi đọc thư mục
