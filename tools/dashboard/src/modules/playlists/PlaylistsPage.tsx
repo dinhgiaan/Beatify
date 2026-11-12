@@ -82,6 +82,7 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
   const [isAddTracksModalOpen, setIsAddTracksModalOpen] = useState(false);
   const [trackSearchQuery, setTrackSearchQuery] = useState('');
   const [selectedTrackIdsToAdd, setSelectedTrackIdsToAdd] = useState<string[]>([]);
+  const [selectedPlaylistTrackIds, setSelectedPlaylistTrackIds] = useState<Set<string>>(new Set());
 
   // Dialog xác nhận xóa playlist
   const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
@@ -322,6 +323,25 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
     }));
   };
 
+  // Xóa nhiều bài hát cùng lúc khỏi playlist
+  const handleBatchRemoveTracksFromPlaylist = () => {
+    if (!selectedPlaylistId || selectedPlaylistTrackIds.size === 0) return;
+    const count = selectedPlaylistTrackIds.size;
+    handleSaveState((prev) => ({
+      ...prev,
+      playlists: prev.playlists.map((pl) => {
+        if (pl.id !== selectedPlaylistId) return pl;
+        return {
+          ...pl,
+          trackIds: pl.trackIds.filter((id) => !selectedPlaylistTrackIds.has(id)),
+          updatedAt: new Date().toISOString(),
+        };
+      }),
+    }));
+    setSelectedPlaylistTrackIds(new Set());
+    toast.success(`Đã xóa ${count} bài hát khỏi danh sách phát (Đồng bộ iPhone)!`);
+  };
+
   // Toggle Favorite
   const handleToggleFavorite = (trackId: string) => {
     const isFav = userState.favoriteIds.includes(trackId);
@@ -527,6 +547,17 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                   </button>
 
                   <div className="flex items-center gap-2">
+                    {selectedPlaylistTrackIds.size > 0 && (
+                      <Button
+                        variant="danger"
+                        onClick={handleBatchRemoveTracksFromPlaylist}
+                        className="flex items-center gap-1.5 text-xs bg-rose-500/20 text-rose-300 border-rose-500/30"
+                      >
+                        <Trash2 size={13} />
+                        <span>Xóa {selectedPlaylistTrackIds.size} bài khỏi Playlist</span>
+                      </Button>
+                    )}
+
                     <Button
                       variant="secondary"
                       onClick={() => setIsAddTracksModalOpen(true)}
@@ -648,7 +679,27 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                     <table className="w-full text-left text-sm border-collapse">
                       <thead>
                         <tr className="border-b border-[var(--border)] text-xs text-[var(--text-muted)] bg-white/[0.02]">
-                          <th className="py-3 px-4 w-12 text-center">#</th>
+                          <th className="py-3 px-4 w-16 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  activePlaylistTracks.length > 0 &&
+                                  selectedPlaylistTrackIds.size === activePlaylistTracks.length
+                                }
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedPlaylistTrackIds(new Set(activePlaylistTracks.map((t) => t.id)));
+                                  } else {
+                                    setSelectedPlaylistTrackIds(new Set());
+                                  }
+                                }}
+                                className="rounded cursor-pointer accent-[#1DB954]"
+                                title="Chọn tất cả bài hát"
+                              />
+                              <span>#</span>
+                            </div>
+                          </th>
                           <th className="py-3 px-4">TIÊU ĐỀ</th>
                           <th className="py-3 px-4">NGHỆ SĨ</th>
                           <th className="py-3 px-4">ALBUM</th>
@@ -668,21 +719,37 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                               className="hover:bg-white/[0.03] transition-colors group"
                             >
                               <td className="py-2.5 px-4 text-center text-xs text-[var(--text-muted)]">
-                                <button
-                                  type="button"
-                                  onClick={() => handlePlay(track)}
-                                  className="cursor-pointer text-[var(--text-muted)] hover:text-white"
-                                >
-                                  {isPlayingThis ? (
-                                    <Pause size={14} className="text-[#1DB954]" />
-                                  ) : (
-                                    <span className="group-hover:hidden">{idx + 1}</span>
-                                  )}
-                                  <Play
-                                    size={14}
-                                    className={`hidden ${!isPlayingThis ? 'group-hover:inline text-[#1DB954]' : ''}`}
+                                <div className="flex items-center justify-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedPlaylistTrackIds.has(track.id)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPlaylistTrackIds((prev) => {
+                                        const next = new Set(prev);
+                                        if (next.has(track.id)) next.delete(track.id);
+                                        else next.add(track.id);
+                                        return next;
+                                      });
+                                    }}
+                                    className="rounded cursor-pointer accent-[#1DB954]"
                                   />
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePlay(track)}
+                                    className="cursor-pointer text-[var(--text-muted)] hover:text-white"
+                                  >
+                                    {isPlayingThis ? (
+                                      <Pause size={14} className="text-[#1DB954]" />
+                                    ) : (
+                                      <span className="group-hover:hidden">{idx + 1}</span>
+                                    )}
+                                    <Play
+                                      size={14}
+                                      className={`hidden ${!isPlayingThis ? 'group-hover:inline text-[#1DB954]' : ''}`}
+                                    />
+                                  </button>
+                                </div>
                               </td>
                               <td className="py-2.5 px-4 font-semibold text-white">
                                 <span className={isPlayingThis ? 'text-[#1DB954]' : ''}>

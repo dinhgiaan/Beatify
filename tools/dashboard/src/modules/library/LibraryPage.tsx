@@ -28,6 +28,8 @@ import {
   Download,
   Upload,
   Loader2,
+  ListPlus,
+  FolderPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -38,7 +40,7 @@ import { ConfirmDialog } from '../../ui/molecules/ConfirmDialog';
 import { requestApi } from '../../core/api-client';
 import { ArtistHoverCard } from '../artists/components/ArtistHoverCard';
 import { CoverViewerDialog } from '../youtube-music/components/CoverViewerDialog';
-import { normalizeText } from '@music-app/shared';
+import { normalizeText, type UserState, type Playlist } from '@music-app/shared';
 import type { PlayingTrack } from '../../app/Layout';
 
 interface TrackItem {
@@ -117,6 +119,27 @@ export const LibraryPage: React.FC<{
   const [batchCoverFile, setBatchCoverFile] = useState<File | null>(null);
   const [isBatchUploadingCover, setIsBatchUploadingCover] = useState(false);
   const batchCoverInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Modal thêm bài hát vào Playlist từ trang Thư viện
+  const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
+  const [tracksToAddToPlaylist, setTracksToAddToPlaylist] = useState<string[]>([]);
+
+  // Lấy UserState (Playlists) để phục vụ thêm bài hát vào playlist
+  const { data: userStateRes } = useQuery<UserState | { data: UserState }>({
+    queryKey: ['user-state'],
+    queryFn: () => requestApi<UserState | { data: UserState }>('/local-api/state'),
+  });
+
+  const userPlaylists: Playlist[] = useMemo(() => {
+    if (!userStateRes) return [];
+    if ('playlists' in userStateRes && Array.isArray(userStateRes.playlists)) {
+      return userStateRes.playlists;
+    }
+    if ('data' in userStateRes && userStateRes.data && 'playlists' in userStateRes.data) {
+      return userStateRes.data.playlists;
+    }
+    return [];
+  }, [userStateRes]);
 
   // Trash confirm state (single track)
   const [trashTrack, setTrashTrack] = useState<TrackItem | null>(null);
@@ -557,6 +580,58 @@ export const LibraryPage: React.FC<{
     }
   };
 
+  // Thêm 1 hoặc nhiều bài hát vào Playlist từ trang Thư viện
+  const handleConfirmAddToPlaylist = async (playlistId: string) => {
+    if (!tracksToAddToPlaylist.length) return;
+    try {
+      const currentState = await requestApi<UserState | { data: UserState }>('/local-api/state');
+      const stateObj: UserState =
+        'playlists' in currentState && Array.isArray(currentState.playlists)
+          ? currentState
+          : 'data' in currentState && currentState.data && 'playlists' in currentState.data
+            ? currentState.data
+            : { version: 1, updatedAt: new Date().toISOString(), playlists: [], favoriteIds: [] };
+
+      const targetPlaylist = stateObj.playlists.find((p) => p.id === playlistId);
+      if (!targetPlaylist) {
+        toast.error('Không tìm thấy danh sách phát');
+        return;
+      }
+
+      // Thêm bài hát mà không trùng lặp
+      const existingSet = new Set(targetPlaylist.trackIds);
+      let addedCount = 0;
+      for (const id of tracksToAddToPlaylist) {
+        if (!existingSet.has(id)) {
+          targetPlaylist.trackIds.push(id);
+          existingSet.add(id);
+          addedCount++;
+        }
+      }
+
+      targetPlaylist.updatedAt = new Date().toISOString();
+      stateObj.updatedAt = new Date().toISOString();
+
+      await requestApi('/local-api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stateObj),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['user-state'] });
+      toast.success(
+        addedCount > 0
+          ? `Đã thêm ${addedCount} bài hát vào playlist "${targetPlaylist.name}" (Đồng bộ iPhone)!`
+          : `Các bài hát đã có sẵn trong playlist "${targetPlaylist.name}"`
+      );
+      setIsAddToPlaylistModalOpen(false);
+      setTracksToAddToPlaylist([]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi thêm vào playlist: ${msg}`);
+    }
+  };
+
   const formatDuration = (sec: number) => {
     if (!sec || isNaN(sec)) return '0:00';
     const m = Math.floor(sec / 60);
@@ -948,9 +1023,9 @@ export const LibraryPage: React.FC<{
           </div>
 
           {/* Cột 7: Thao tác */}
-            <div className="w-24 shrink-0 text-right">
-              <span>Thao tác</span>
-            </div>
+          <div className="w-32 shrink-0 text-right">
+            <span>Thao tác</span>
+          </div>
           </div>
 
           {/* Trạng thái Loading hoặc Rỗng */}
@@ -1158,8 +1233,20 @@ export const LibraryPage: React.FC<{
                       {formatDuration(t.duration)}
                     </div>
 
-                      {/* Cột 7: Nút Thao tác (Xem/Tải/Đổi ảnh bìa, Sửa siêu dữ liệu, Chuyển vào thùng rác) */}
-                      <div className="w-24 shrink-0 flex items-center justify-end gap-1.5">
+                      {/* Cột 7: Nút Thao tác (Thêm vào Playlist, Xem/Đổi ảnh bìa, Sửa siêu dữ liệu, Chuyển vào thùng rác) */}
+                      <div className="w-32 shrink-0 flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTracksToAddToPlaylist([t.id]);
+                            setIsAddToPlaylistModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-400 text-zinc-400 cursor-pointer transition-colors"
+                          title="Thêm bài này vào Danh sách phát (Playlist)"
+                        >
+                          <ListPlus size={13} />
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -1369,6 +1456,20 @@ export const LibraryPage: React.FC<{
                   >
                     <ImageIcon size={12} />
                     <span>Đổi ảnh bìa ({selectedTrackIds.size} bài)</span>
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setTracksToAddToPlaylist(Array.from(selectedTrackIds));
+                      setIsAddToPlaylistModalOpen(true);
+                    }}
+                    className="h-8 text-xs px-3 gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                    title="Thêm các bài hát đã chọn vào danh sách phát và tự động đồng bộ với iPhone"
+                  >
+                    <ListPlus size={13} />
+                    <span>Thêm vào Playlist ({selectedTrackIds.size})</span>
                   </Button>
 
                   <Button
@@ -1769,6 +1870,56 @@ export const LibraryPage: React.FC<{
                   Thao tác này sẽ cập nhật ảnh bìa chất lượng cao cho <strong>{selectedTrackIds.size} bài hát</strong> đang chọn và tự động tạo file ảnh sidecar trên máy tính.
                 </span>
               </div>
+            </div>
+          </Dialog>
+
+          {/* Hộp thoại Chọn Playlist để thêm bài hát */}
+          <Dialog
+            open={isAddToPlaylistModalOpen}
+            onOpenChange={setIsAddToPlaylistModalOpen}
+            title={`Thêm ${tracksToAddToPlaylist.length} bài hát vào Danh sách phát`}
+            description="Dữ liệu sẽ tự động đồng bộ tức thì với ứng dụng iPhone qua Cloudflare R2"
+          >
+            <div className="space-y-3 py-2">
+              {userPlaylists.length === 0 ? (
+                <div className="text-center py-8 border border-dashed border-white/10 rounded-xl bg-black/20">
+                  <FolderPlus size={32} className="mx-auto text-zinc-500 mb-2" />
+                  <p className="text-sm text-zinc-300 font-semibold mb-1">Chưa có danh sách phát nào</p>
+                  <p className="text-xs text-zinc-500 max-w-xs mx-auto">
+                    Vui lòng qua trang Playlist để tạo danh sách phát đầu tiên.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {userPlaylists.map((pl) => (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => handleConfirmAddToPlaylist(pl.id)}
+                      className="w-full flex items-center gap-3.5 p-3 rounded-xl border border-white/[0.08] bg-black/30 hover:bg-white/[0.05] hover:border-[#1DB954]/50 transition-all text-left cursor-pointer group"
+                    >
+                      <div className="w-12 h-12 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                        {pl.coverUrl ? (
+                          <img src={pl.coverUrl} alt={pl.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ListPlus size={20} className="text-[#1DB954]" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-white group-hover:text-[#1DB954] transition-colors truncate">
+                          {pl.name}
+                        </h4>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          {pl.trackIds.length} bài hát {pl.description ? `• ${pl.description}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-xs font-semibold text-[#1DB954] opacity-0 group-hover:opacity-100 transition-opacity">
+                        + Thêm
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </Dialog>
 
