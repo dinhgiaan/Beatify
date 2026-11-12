@@ -574,6 +574,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
             ...(updates.album !== undefined ? { album: updates.album } : {}),
             ...(updates.year !== undefined ? { year: updates.year } : {}),
+            ...(updates.cover !== undefined ? { cover: updates.cover } : {}),
           };
         }
         return t;
@@ -589,6 +590,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             ...(updates.artist !== undefined ? { artist: updates.artist } : {}),
             ...(updates.album !== undefined ? { album: updates.album } : {}),
             ...(updates.year !== undefined ? { year: updates.year } : {}),
+            ...(updates.cover !== undefined ? { cover: updates.cover } : {}),
           };
         }
         return t;

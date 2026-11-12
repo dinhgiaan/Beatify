@@ -8,6 +8,7 @@ import {
   SearchIcon,
   PlaylistIcon,
   ClockRewindIcon,
+  HeartIcon,
 } from '../../src/components/icons/SvgIcons';
 import {
   colors,
@@ -103,16 +104,19 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
 
           if (route.name === 'library') {
             label = 'Trang chủ';
-            icon = <HomeIcon size={19} color={iconColor} />;
-          } else if (route.name === 'recent') {
-            label = 'Vừa nghe';
-            icon = <ClockRewindIcon size={19} color={iconColor} />;
+            icon = <HomeIcon size={18} color={iconColor} />;
           } else if (route.name === 'search') {
             label = 'Tìm kiếm';
-            icon = <SearchIcon size={19} color={iconColor} />;
+            icon = <SearchIcon size={18} color={iconColor} />;
+          } else if (route.name === 'collection') {
+            label = 'Yêu thích';
+            icon = <HeartIcon size={18} color={iconColor} fill={isFocused ? colors.primary : 'none'} />;
+          } else if (route.name === 'recent') {
+            label = 'Vừa nghe';
+            icon = <ClockRewindIcon size={18} color={iconColor} />;
           } else if (route.name === 'playlists') {
             label = 'Playlist';
-            icon = <PlaylistIcon size={19} color={iconColor} />;
+            icon = <PlaylistIcon size={18} color={iconColor} />;
           }
 
           return (
@@ -160,15 +164,21 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="recent"
-        options={{
-          title: 'Vừa nghe',
-        }}
-      />
-      <Tabs.Screen
         name="search"
         options={{
           title: 'Tìm kiếm',
+        }}
+      />
+      <Tabs.Screen
+        name="collection"
+        options={{
+          title: 'Yêu thích',
+        }}
+      />
+      <Tabs.Screen
+        name="recent"
+        options={{
+          title: 'Vừa nghe',
         }}
       />
       <Tabs.Screen
@@ -192,21 +202,21 @@ const styles = StyleSheet.create({
   },
   floatingDock: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(28, 28, 30, 0.78)', // bg-[#1C1C1E]/78 Glassmorphism
+    backgroundColor: 'rgba(18, 18, 20, 0.95)', // Tăng độ đậm theo yêu cầu (không còn trong suốt quá mức)
     borderRadius: radius.pill,
     paddingHorizontal: 4,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)', // border-white/10
+    borderColor: 'rgba(255, 255, 255, 0.16)', // Viền nổi khối rõ nét
     alignItems: 'center',
     justifyContent: 'center',
-    width: '94%',
-    maxWidth: 380,
+    width: '95%',
+    maxWidth: 410,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 16,
+    shadowOpacity: 0.65,
+    shadowRadius: 20,
+    elevation: 20,
   },
   activePillIndicator: {
     position: 'absolute',

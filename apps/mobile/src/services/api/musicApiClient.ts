@@ -108,12 +108,17 @@ export class MusicApiClient {
   }
 
   async fetchLyrics(id: string): Promise<string | null> {
+    const timestamp = Date.now();
     const url = this.token
-      ? `${this.baseUrl}/lyrics/${id}?t=${encodeURIComponent(this.token)}`
-      : `${this.baseUrl}/lyrics/${id}`;
+      ? `${this.baseUrl}/lyrics/${id}?t=${encodeURIComponent(this.token)}&_t=${timestamp}`
+      : `${this.baseUrl}/lyrics/${id}?_t=${timestamp}`;
     const res = await fetch(url, {
       method: 'GET',
-      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+      headers: {
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
     });
 
     if (res.status === 404) return null;

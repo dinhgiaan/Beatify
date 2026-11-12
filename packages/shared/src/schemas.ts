@@ -53,6 +53,7 @@ export const PlaylistSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
+  coverUrl: z.string().optional(), // đường dẫn ảnh bìa tùy chỉnh (file://, http://, data:)
   trackIds: z.array(z.string()), // tham chiếu Track.id
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -116,6 +117,7 @@ export const UpdateTrackSchema = z.object({
   album: z.string().optional(),
   year: z.number().int().optional(),
   lyrics: z.string().optional(),
+  cover: z.string().optional(),
 });
 export type UpdateTrack = z.infer<typeof UpdateTrackSchema>;
 

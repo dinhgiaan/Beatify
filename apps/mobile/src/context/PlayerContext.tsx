@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
-import { Vibration } from 'react-native';
+import { Vibration, AppState } from 'react-native';
 import {
   type Track,
   smartShuffle,
@@ -518,44 +518,55 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [tracks, currentTrackIndex, setTracks]
   );
 
-  // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc)
+  // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc) dựa trên wall-clock timestamp an toàn khi khóa màn hình
+  const sleepTimerTargetMsRef = useRef<number | null>(null);
+
   const setSleepTimer = useCallback((minutes: number | null) => {
     Vibration.vibrate(10);
     if (minutes === null || minutes <= 0) {
+      sleepTimerTargetMsRef.current = null;
       setSleepTimerMinutes(null);
       setSleepTimerRemainingSec(null);
       return;
     }
+    const targetMs = Date.now() + minutes * 60 * 1000;
+    sleepTimerTargetMsRef.current = targetMs;
     setSleepTimerMinutes(minutes);
     setSleepTimerRemainingSec(minutes * 60);
   }, []);
 
-  // Đếm ngược Sleep Timer
+  // Đếm ngược Sleep Timer tự động bám theo thời gian thực (kể cả khi app chạy nền hoặc khóa màn hình)
   useEffect(() => {
-    if (sleepTimerRemainingSec === null) return;
+    if (sleepTimerMinutes === null || !sleepTimerTargetMsRef.current) return;
 
-    if (sleepTimerRemainingSec <= 0) {
-      playerService.pause().catch(() => { });
-      setSleepTimerMinutes(null);
-      setSleepTimerRemainingSec(null);
-      Vibration.vibrate([0, 100, 50, 100]);
-      return;
-    }
+    const checkTimer = () => {
+      if (!sleepTimerTargetMsRef.current) return;
+      const now = Date.now();
+      const diffMs = sleepTimerTargetMsRef.current - now;
+      if (diffMs <= 0) {
+        playerService.pause().catch(() => { });
+        setSleepTimerMinutes(null);
+        setSleepTimerRemainingSec(null);
+        sleepTimerTargetMsRef.current = null;
+        Vibration.vibrate([0, 100, 50, 100]);
+      } else {
+        setSleepTimerRemainingSec(Math.ceil(diffMs / 1000));
+      }
+    };
 
-    const interval = setInterval(() => {
-      setSleepTimerRemainingSec((prev) => {
-        if (prev === null || prev <= 1) {
-          playerService.pause().catch(() => { });
-          setSleepTimerMinutes(null);
-          Vibration.vibrate([0, 100, 50, 100]);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    checkTimer();
+    const interval = setInterval(checkTimer, 1000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        checkTimer();
+      }
+    });
 
-    return () => clearInterval(interval);
-  }, [sleepTimerRemainingSec]);
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [sleepTimerMinutes]);
 
   // Xử lý khi bài hát bị xóa khỏi app
   const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {

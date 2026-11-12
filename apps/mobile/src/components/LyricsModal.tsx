@@ -15,7 +15,6 @@ import type { Track } from '@music-app/shared';
 import { parseLrc, findActiveLrcIndex, formatLrcSpacing, type LrcLine } from '@music-app/shared';
 import { EditIcon, LyricsIcon } from './icons/SvgIcons';
 import { ModalHeader } from './ModalHeader';
-import { LyricPosterModal } from './player/LyricPosterModal';
 import {
   colors,
   spacing,
@@ -36,9 +35,11 @@ export interface LyricsModalProps {
   onFetchLyrics: (trackId: string) => Promise<string | null>;
 }
 
-const DEFAULT_LINE_HEIGHT = 60;
+const DEFAULT_LINE_HEIGHT = 48;
 const LYRICS_TOP_PADDING = 60;
 const LYRICS_BOTTOM_PADDING = 320;
+// Bù trễ âm thanh/Bluetooth 0.6s để lời highlight khớp chuẩn xác với nhịp hát
+const LYRICS_OFFSET_SEC = 0.6;
 
 export function LyricsModal({
   visible,
@@ -51,8 +52,6 @@ export function LyricsModal({
 }: LyricsModalProps) {
   const [rawLyrics, setRawLyrics] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [posterModalVisible, setPosterModalVisible] = useState(false);
-  const [selectedLyricForPoster, setSelectedLyricForPoster] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const userScrolledRef = useRef(false);
   const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,28 +60,33 @@ export function LyricsModal({
   const onFetchLyricsRef = useRef(onFetchLyrics);
   onFetchLyricsRef.current = onFetchLyrics;
 
-  // Nạp lời bài hát một lần duy nhất khi mở modal hoặc đổi bài (tránh loading lặp vô hạn)
+  const loadLyrics = () => {
+    if (!track) return;
+    setIsLoading(true);
+    userScrolledRef.current = false;
+    lineYOffsets.current = {};
+    loadedTrackIdRef.current = track.id;
+
+    onFetchLyricsRef.current(track.id)
+      .then((content) => {
+        setRawLyrics(formatLrcSpacing(content));
+      })
+      .catch((err) => {
+        console.warn('Không tải được lời bài hát:', err);
+        setRawLyrics(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
+  // Nạp lời bài hát khi mở modal hoặc đổi bài
   useEffect(() => {
     if (visible && track) {
       if (loadedTrackIdRef.current === track.id && rawLyrics !== null) {
         return;
       }
-      setIsLoading(true);
-      userScrolledRef.current = false;
-      lineYOffsets.current = {};
-      loadedTrackIdRef.current = track.id;
-
-      onFetchLyricsRef.current(track.id)
-        .then((content) => {
-          setRawLyrics(formatLrcSpacing(content));
-        })
-        .catch((err) => {
-          console.warn('Không tải được lời bài hát:', err);
-          setRawLyrics(null);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      loadLyrics();
     }
   }, [visible, track?.id, rawLyrics]);
 
@@ -94,13 +98,14 @@ export function LyricsModal({
 
   const isSynced = lrcLines.length > 0;
 
-  // Tìm chỉ số dòng đang phát bằng Binary Search O(log N)
+  // Tìm chỉ số dòng đang phát bằng Binary Search O(log N) kèm bù trễ 0.6s để highlight chuẩn xác
   const activeIndex = useMemo(() => {
     if (!isSynced) return -1;
-    return findActiveLrcIndex(lrcLines, currentTimeSec);
+    const effectiveTimeSec = currentTimeSec + LYRICS_OFFSET_SEC;
+    return findActiveLrcIndex(lrcLines, effectiveTimeSec);
   }, [isSynced, lrcLines, currentTimeSec]);
 
-  // Tự động cuộn mượt mà chỉ khi đổi dòng câu hát (tránh giật màn hình ở mỗi tick thời gian)
+  // Tự động cuộn mượt mà chỉ khi đổi dòng câu hát (tránh giật màn hình)
   const prevActiveIndexRef = useRef<number>(-1);
   useEffect(() => {
     if (visible && isSynced && activeIndex >= 0 && !userScrolledRef.current) {
@@ -109,8 +114,8 @@ export function LyricsModal({
         const realY = lineYOffsets.current[activeIndex];
         const targetY =
           typeof realY === 'number'
-            ? Math.max(0, realY - 140)
-            : Math.max(0, activeIndex * DEFAULT_LINE_HEIGHT - 140);
+            ? Math.max(0, realY - 160)
+            : Math.max(0, activeIndex * DEFAULT_LINE_HEIGHT - 160);
         scrollRef.current?.scrollTo({ y: targetY, animated: true });
       }
     }
@@ -182,33 +187,20 @@ export function LyricsModal({
             subtitle={track.artist}
             onClose={onClose}
             rightElement={
-              <View style={styles.headerRightActions}>
-                <TouchableOpacity
-                  style={styles.posterActionBtn}
-                  onPress={() => {
-                    Vibration.vibrate(10);
-                    const currentLine = lrcLines[activeIndex]?.text || rawLyrics?.split('\n')[0] || '';
-                    setSelectedLyricForPoster(currentLine);
-                    setPosterModalVisible(true);
-                  }}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                >
-                  <Text style={styles.posterActionBtnText}>Poster ✦</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.editBtn}
-                  onPress={() => onOpenEditLyrics(track)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Chỉnh sửa lời bài hát"
-                >
-                  <EditIcon size={13} color={colors.primary} />
-                  <Text style={styles.editText}>Edit</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => {
+                  loadedTrackIdRef.current = null;
+                  onOpenEditLyrics(track);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                accessibilityRole="button"
+                accessibilityLabel="Chỉnh sửa lời bài hát"
+              >
+                <EditIcon size={13} color={colors.primary} />
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
             }
           />
         </View>
@@ -266,11 +258,6 @@ export function LyricsModal({
                     if (onSeek) onSeek(line.time);
                     userScrolledRef.current = false;
                   }}
-                  onLongPress={() => {
-                    Vibration.vibrate(20);
-                    setSelectedLyricForPoster(line.text);
-                    setPosterModalVisible(true);
-                  }}
                 >
                   {renderLineContent(line, idx, isActive)}
                 </TouchableOpacity>
@@ -295,12 +282,6 @@ export function LyricsModal({
             <View style={{ height: 120 }} />
           </ScrollView>
         )}
-        <LyricPosterModal
-          visible={posterModalVisible}
-          onClose={() => setPosterModalVisible(false)}
-          initialLyricText={selectedLyricForPoster}
-          track={track}
-        />
       </SafeAreaView>
     </Modal>
   );
@@ -325,24 +306,6 @@ const styles = StyleSheet.create({
   headerWrap: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xs,
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  posterActionBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  posterActionBtnText: {
-    color: '#ffffff',
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.bold,
   },
   editBtn: {
     flexDirection: 'row',
@@ -413,16 +376,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   lyricLineWrap: {
-    paddingVertical: spacing.md,
+    paddingVertical: 9,
     paddingHorizontal: spacing.xs,
   },
   lyricLineWrapActive: {
-    paddingVertical: spacing.lg,
+    paddingVertical: 9,
   },
   lyricText: {
     color: colors.textWhite28,
-    fontSize: fontSizes.titleLarge,
-    lineHeight: lineHeights.headline,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: fontWeights.semibold,
     letterSpacing: -0.3,
   },
@@ -436,13 +399,13 @@ const styles = StyleSheet.create({
   },
   lyricTextActive: {
     color: colors.textPrimary,
-    fontSize: fontSizes.display,
-    lineHeight: lineHeights.huge,
-    fontWeight: fontWeights.extrabold,
-    letterSpacing: -0.4,
+    fontSize: 21,
+    lineHeight: 30,
+    fontWeight: fontWeights.bold,
+    letterSpacing: -0.3,
     textShadowColor: colors.white35,
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
+    textShadowRadius: 8,
   },
   plainLyricsBadge: {
     flexDirection: 'row',

@@ -12,8 +12,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import type { Track, UpdateTrack } from '@music-app/shared';
 import { TrashIcon } from './icons/SvgIcons';
 import { ModalHeader } from './ModalHeader';
@@ -82,6 +84,7 @@ export function EditTrackModal({
   const [artist, setArtist] = useState('');
   const [album, setAlbum] = useState('');
   const [year, setYear] = useState('');
+  const [coverUri, setCoverUri] = useState<string | undefined>(undefined);
   const [lyrics, setLyrics] = useState('');
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -95,6 +98,7 @@ export function EditTrackModal({
       setArtist(track.artist || '');
       setAlbum(track.album || '');
       setYear(track.year ? track.year.toString() : '');
+      setCoverUri(track.cover);
       setLyrics('');
       setErrorMessage(null);
 
@@ -117,6 +121,22 @@ export function EditTrackModal({
   }, [track, visible, onFetchLyrics]);
 
   if (!track) return null;
+
+  const handlePickCover = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1.0, // Giữ độ phân giải sắc nét cao nhất
+      });
+      if (!res.canceled && res.assets && res.assets[0]?.uri) {
+        setCoverUri(res.assets[0].uri);
+      }
+    } catch (err) {
+      Alert.alert('Không thể chọn ảnh', String(err));
+    }
+  };
 
   const handleSave = async () => {
     const trimmedTitle = title.trim();
@@ -150,6 +170,7 @@ export function EditTrackModal({
         album: album.trim() || undefined,
         year: parsedYear,
         lyrics: lyrics.trim(),
+        cover: coverUri,
       };
       await onSave(track.id, updates);
       onClose();
@@ -224,6 +245,42 @@ export function EditTrackModal({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Ảnh bìa bài hát (Đổi ảnh HD sắc nét từ thư viện máy) */}
+            <View style={styles.coverRow}>
+              <View style={styles.coverBox}>
+                {coverUri ? (
+                  <Image source={{ uri: coverUri }} style={styles.coverImg} resizeMode="cover" />
+                ) : (
+                  <View style={styles.coverEmptyBox}>
+                    <Text style={styles.coverEmptyText}>Chưa có bìa</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.coverActions}>
+                <Text style={styles.label}>ẢNH BÌA BÀI HÁT</Text>
+                <TouchableOpacity
+                  style={styles.pickCoverBtn}
+                  onPress={handlePickCover}
+                  activeOpacity={0.7}
+                  disabled={isSaving || isDeleting}
+                >
+                  <Text style={styles.pickCoverBtnText}>
+                    {coverUri ? 'Đổi ảnh bìa nét hơn' : 'Chọn ảnh HD từ máy'}
+                  </Text>
+                </TouchableOpacity>
+                {coverUri && (
+                  <TouchableOpacity
+                    style={styles.removeCoverBtn}
+                    onPress={() => setCoverUri(undefined)}
+                    activeOpacity={0.7}
+                    disabled={isSaving || isDeleting}
+                  >
+                    <Text style={styles.removeCoverBtnText}>Xóa ảnh bìa</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
             {/* Tên bài hát */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
@@ -506,5 +563,61 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     fontSize: fontSizes.subhead,
     fontWeight: fontWeights.bold,
+  },
+  coverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  coverBox: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+  },
+  coverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  coverEmptyBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverEmptyText: {
+    fontSize: 10,
+    color: colors.textTertiary,
+  },
+  coverActions: {
+    flex: 1,
+    gap: 4,
+  },
+  pickCoverBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 7,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+  },
+  pickCoverBtnText: {
+    color: colors.textDark,
+    fontSize: fontSizes.captionLarge,
+    fontWeight: fontWeights.bold,
+  },
+  removeCoverBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  removeCoverBtnText: {
+    color: colors.dangerLight,
+    fontSize: 11,
+    fontWeight: fontWeights.semibold,
   },
 });

@@ -285,11 +285,22 @@ export function NowPlayingView() {
           <Text style={styles.headerTitle}>
             {showQueue ? 'HÀNG ĐỢI PHÁT' : 'ĐANG PHÁT'}
           </Text>
-          {currentTrack?.album && !showQueue && (
+          {sleepTimerRemainingSec !== null ? (
+            <TouchableOpacity
+              style={styles.timerHeaderBadge}
+              onPress={() => setSleepTimerDialogVisible(true)}
+              activeOpacity={0.7}
+            >
+              <ClockIcon size={11} color={colors.primary} />
+              <Text style={styles.timerHeaderBadgeText}>
+                Tắt sau {formatTime(sleepTimerRemainingSec)}
+              </Text>
+            </TouchableOpacity>
+          ) : currentTrack?.album && !showQueue ? (
             <Text style={styles.headerSubtitle} numberOfLines={1}>
               {currentTrack.album}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Nút bật/tắt Chế độ Đĩa Than Vinyl */}
@@ -709,9 +720,14 @@ export function NowPlayingView() {
             }
           >
             <ClockIcon
-              size={20}
+              size={18}
               color={sleepTimerRemainingSec !== null ? colors.primary : colors.textPrimary}
             />
+            {sleepTimerRemainingSec !== null && (
+              <Text style={styles.bottomTimerText}>
+                {formatTime(sleepTimerRemainingSec)}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1500,5 +1516,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  timerHeaderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    gap: 4,
+    marginTop: 2,
+  },
+  timerHeaderBadgeText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: fontWeights.bold,
+  },
+  bottomTimerText: {
+    color: colors.primary,
+    fontSize: 9.5,
+    fontWeight: fontWeights.bold,
+    marginTop: 2,
   },
 });

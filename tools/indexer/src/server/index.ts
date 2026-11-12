@@ -589,10 +589,10 @@ const streamHandler = async (c: Context) => {
     ext === '.m4a'
       ? 'audio/mp4'
       : ext === '.flac'
-      ? 'audio/flac'
-      : ext === '.opus'
-      ? 'audio/ogg'
-      : 'audio/mpeg';
+        ? 'audio/flac'
+        : ext === '.opus'
+          ? 'audio/ogg'
+          : 'audio/mpeg';
 
   const range = c.req.header('range');
   if (range) {
@@ -1618,22 +1618,22 @@ app.post('/local-api/r2/prune', async (c) => {
 
     let deletedCount = 0;
     for (const k of keys) {
-        if (k !== 'library.json' && !k.startsWith('_meta/')) {
-          await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: k }));
-          deletedCount++;
-        }
+      if (k !== 'library.json' && !k.startsWith('_meta/')) {
+        await s3.send(new DeleteObjectCommand({ Bucket: localConfig.R2_BUCKET, Key: k }));
+        deletedCount++;
       }
-
-      return c.json({
-        status: 200,
-        deletedCount,
-        message: `Đã dọn dẹp xóa thành công ${deletedCount} file thừa trên Cloudflare R2!`,
-      });
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      return c.json({ status: 500, error: 'Lỗi dọn dẹp R2: ' + errMsg }, 500);
     }
-  });
+
+    return c.json({
+      status: 200,
+      deletedCount,
+      message: `Đã dọn dẹp xóa thành công ${deletedCount} file thừa trên Cloudflare R2!`,
+    });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return c.json({ status: 500, error: 'Lỗi dọn dẹp R2: ' + errMsg }, 500);
+  }
+});
 
 // 7. API: Chỉnh sửa thông tin bài hát (Non-destructive Metadata Override)
 app.post('/local-api/tracks/:id/override', async (c) => {
