@@ -7,7 +7,7 @@ import fs from 'fs/promises';
 import { createReadStream, statSync, existsSync } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { loadConfig, loadLocalConfig } from '../config';
+import { loadConfig, loadLocalConfig, type IndexerConfig } from '../config';
 import { findAudioFiles, scanAudioFile, calculateTrackId } from '../services/scanner';
 import type { ScannedTrack } from '../services/scanner';
 import { buildLibrary } from '../services/libraryBuilder';
@@ -16,7 +16,8 @@ import { getOverrides, setTrackOverride, applyOverridesToScanned, moveToTrash, r
 import { updateFoldersConfig } from '../services/configManager';
 import { pickFolderNative } from '../services/folderPicker';
 import crypto from 'crypto';
-import { execFile, execFileSync } from 'child_process';
+import os from 'os';
+import { execFile, execFileSync, spawn } from 'child_process';
 import { TrackOverrideSchema, normalizeText, RelocateDownloadsRequestSchema, UserStateSchema, type UserState, type YoutubeMusicDownloadRecord } from '@music-app/shared';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { DependencyChecker } from '../services/dependencyChecker';
@@ -159,7 +160,7 @@ async function getR2TrackKeys(forceRefresh = false): Promise<Set<string>> {
   const now = Date.now();
   if (forceRefresh) {
     cachedR2TrackKeys.clear();
-  } else if (cachedR2TrackKeys.size > 0 && now - lastR2KeysFetchTime < 3000) {
+  } else if (cachedR2TrackKeys.size > 0 && now - lastR2KeysFetchTime < 10000) {
     return cachedR2TrackKeys;
   }
   const localConfig = loadLocalConfig();
@@ -187,9 +188,26 @@ async function getR2TrackKeys(forceRefresh = false): Promise<Set<string>> {
         lastR2KeysFetchTime = now;
       }
     } catch {
+      // bỏ qua lỗi mạng
+    }
+  }
+
+  // Fallback bảo vệ: Nếu gọi S3 bị lỗi mạng hoặc chưa trả về kịp nhưng trong youtube_downloads.json
+  // đã lưu trạng thái các bài đã upload lên R2 (uploadedToR2: true), nạp lại các key này để
+  // UI không bị rơi vào trạng thái rỗng giả mạo (0 bài / 0.0 MB).
+  if (cachedR2TrackKeys.size === 0) {
+    try {
+      const downloads = await youtubeJobRunner.getDownloads();
+      for (const d of downloads) {
+        if (d.uploadedToR2 && d.trackId && d.format) {
+          cachedR2TrackKeys.add(`music/${d.trackId}.${d.format}`);
+        }
+      }
+    } catch {
       // bỏ qua
     }
   }
+
   return cachedR2TrackKeys;
 }
 
@@ -216,8 +234,9 @@ app.use('*', csrfGuard);
 
 // 1. API: Trạng thái & Thống kê hệ thống (Chỉ tính bài hát còn hoạt động, loại trừ bài ẩn/đã xóa)
 app.get('/local-api/status', async (c) => {
+  const isForce = c.req.query('force') === 'true';
   const now = Date.now();
-  if (cachedStatusResponse && now - lastStatusFetchTime < STATUS_CACHE_TTL_MS) {
+  if (!isForce && cachedStatusResponse && now - lastStatusFetchTime < STATUS_CACHE_TTL_MS) {
     return c.json(cachedStatusResponse);
   }
 
@@ -231,7 +250,7 @@ app.get('/local-api/status', async (c) => {
 
   try {
     const overrides = await getOverrides();
-    const r2Keys = await getR2TrackKeys();
+    const r2Keys = await getR2TrackKeys(isForce);
 
     if (cachedScannedTracks.length === 0) {
       try {
@@ -893,6 +912,257 @@ app.post('/local-api/tracks/batch-cover', async (c) => {
     status: 200,
     updatedCount,
     message: `Đã cập nhật ảnh bìa mới thành công cho ${updatedCount} bài hát!`,
+  });
+});
+
+async function fetchYouTubeCoverBuffer(
+  track: { id: string; title: string; artist: string; filePath?: string }
+): Promise<Buffer | null> {
+  let targetVideoId: string | null = null;
+
+  // 1. Kiểm tra trong youtube_downloads.json xem có videoId sẵn không
+  try {
+    const downloads = await youtubeJobRunner.getDownloads();
+    const matched = downloads.find(
+      (d) =>
+        d.trackId === track.id ||
+        (normalizeText(d.title || '') === normalizeText(track.title) &&
+          normalizeText(d.artist || '') === normalizeText(track.artist))
+    );
+    if (matched && matched.videoId) {
+      targetVideoId = matched.videoId;
+    }
+  } catch {
+    // bỏ qua
+  }
+
+  // 2. Nếu chưa có videoId, tìm kiếm videoId chính xác bằng yt-dlp ytsearch1
+  if (!targetVideoId) {
+    try {
+      const q = `${track.artist} ${track.title}`;
+      const searchP = await new Promise<string | null>((resolve) => {
+        execFile('yt-dlp', ['--print', '%(id)s', `ytsearch1:${q}`], (err, stdout) => {
+          if (err || !stdout?.trim()) resolve(null);
+          else {
+            const firstLine = stdout.trim().split('\n')[0]?.trim();
+            resolve(firstLine || null);
+          }
+        });
+      });
+      if (searchP) targetVideoId = searchP;
+    } catch {
+      // bỏ qua
+    }
+  }
+
+  // 3. Xây dựng danh sách URLs ảnh bìa ưu tiên độ phân giải cao nhất (maxresdefault -> hqdefault)
+  const candidateUrls: string[] = [];
+  if (targetVideoId) {
+    candidateUrls.push(`https://i.ytimg.com/vi/${targetVideoId}/maxresdefault.jpg`);
+    candidateUrls.push(`https://i.ytimg.com/vi/${targetVideoId}/hqdefault.jpg`);
+  }
+
+  if (candidateUrls.length === 0) {
+    return null;
+  }
+
+  // 4. Tải ảnh thumbnail về thư mục tạm và dùng ffmpeg crop tâm vuông 1:1, scale 600x600
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      });
+      if (res.ok) {
+        const rawBuf = Buffer.from(await res.arrayBuffer());
+        if (rawBuf.length < 1500) continue; // tránh ảnh rỗng / placeholder 1x1
+
+        const tempDir = path.join(os.tmpdir(), `beatify_cover_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
+        await fs.mkdir(tempDir, { recursive: true });
+        const rawPath = path.join(tempDir, 'raw.jpg');
+        const squarePath = path.join(tempDir, 'square.jpg');
+
+        await fs.writeFile(rawPath, rawBuf);
+
+        const ffmpegProcess = await new Promise<{ exitCode: number }>((resolve) => {
+          const p = spawn('ffmpeg', [
+            '-y',
+            '-i',
+            rawPath,
+            '-vf',
+            "crop='min(iw,ih)':'min(iw,ih)',scale=600:600",
+            '-q:v',
+            '2',
+            squarePath,
+          ]);
+          p.on('close', (code) => resolve({ exitCode: code ?? 1 }));
+          p.on('error', () => resolve({ exitCode: 1 }));
+        });
+
+        let finalBuffer: Buffer | null = null;
+        if (ffmpegProcess.exitCode === 0 && existsSync(squarePath)) {
+          finalBuffer = await fs.readFile(squarePath);
+        } else {
+          finalBuffer = rawBuf;
+        }
+
+        try {
+          if (existsSync(rawPath)) await fs.unlink(rawPath);
+          if (existsSync(squarePath)) await fs.unlink(squarePath);
+          await fs.rmdir(tempDir);
+        } catch {
+          // bỏ qua
+        }
+
+        if (finalBuffer && finalBuffer.length > 0) {
+          return finalBuffer;
+        }
+      }
+    } catch {
+      // thử tiếp url dự phòng
+    }
+  }
+
+  return null;
+}
+
+// 4.1e. API: Tự động tải lại ảnh bìa từ YouTube cho 1 bài hát
+app.post('/local-api/tracks/:id/fetch-yt-cover', async (c) => {
+  const trackId = c.req.param('id');
+  const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
+  if (!scanned) {
+    return c.json({ status: 404, error: 'Không tìm thấy bài hát' }, 404);
+  }
+
+  const buffer = await fetchYouTubeCoverBuffer({
+    id: trackId,
+    title: scanned.track.title,
+    artist: scanned.track.artist,
+    filePath: scanned.filePath,
+  });
+
+  if (!buffer) {
+    return c.json({ status: 500, error: 'Không thể tìm hoặc tải ảnh bìa từ YouTube cho bài hát này' }, 500);
+  }
+
+  const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
+  await fs.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
+  await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`), buffer);
+  await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`), buffer);
+
+  if (scanned.filePath && existsSync(scanned.filePath)) {
+    try {
+      const sidecarCoverPath = scanned.filePath.replace(path.extname(scanned.filePath), '.jpg');
+      await fs.writeFile(sidecarCoverPath, buffer);
+    } catch {
+      // bỏ qua
+    }
+  }
+
+  cachedCovers.set(albumId, buffer);
+  cachedCovers.set(trackId, buffer);
+  scanned.coverBuffer = buffer;
+  scanned.track.cover = `covers/${albumId}.jpg`;
+
+  try {
+    await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+  } catch {
+    // bỏ qua
+  }
+
+  const localConfig = loadLocalConfig();
+  if (localConfig.isR2Configured) {
+    try {
+      const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+      await uploader.uploadCover(albumId, buffer);
+      await uploader.uploadCover(trackId, buffer);
+    } catch {
+      // bỏ qua lỗi upload R2
+    }
+  }
+
+  return c.json({
+    status: 200,
+    albumId,
+    trackId,
+    coverUrl: `/local-api/covers/${albumId}.jpg?_t=${Date.now()}`,
+    message: 'Đã tải và cập nhật ảnh bìa HD từ YouTube thành công!',
+  });
+});
+
+// 4.1f. API: Tự động tải lại ảnh bìa từ YouTube cho nhiều bài hát (Hàng loạt)
+app.post('/local-api/tracks/batch-fetch-yt-cover', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[] };
+  const ids = Array.isArray(body.ids) ? body.ids : [];
+
+  if (ids.length === 0) {
+    return c.json({ status: 400, error: 'Danh sách bài hát cần tải bìa rỗng' }, 400);
+  }
+
+  await fs.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
+  const localConfig = loadLocalConfig();
+  const uploader = localConfig.isR2Configured ? new R2Uploader(localConfig as unknown as IndexerConfig) : null;
+
+  let successCount = 0;
+  for (const trackId of ids) {
+    const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
+    if (!scanned) continue;
+
+    try {
+      const buffer = await fetchYouTubeCoverBuffer({
+        id: trackId,
+        title: scanned.track.title,
+        artist: scanned.track.artist,
+        filePath: scanned.filePath,
+      });
+
+      if (!buffer) continue;
+
+      const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
+      await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`), buffer);
+      await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`), buffer);
+
+      if (scanned.filePath && existsSync(scanned.filePath)) {
+        try {
+          const sidecarCoverPath = scanned.filePath.replace(path.extname(scanned.filePath), '.jpg');
+          await fs.writeFile(sidecarCoverPath, buffer);
+        } catch {
+          // bỏ qua
+        }
+      }
+
+      cachedCovers.set(albumId, buffer);
+      cachedCovers.set(trackId, buffer);
+      scanned.coverBuffer = buffer;
+      scanned.track.cover = `covers/${albumId}.jpg`;
+
+      try {
+        await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+      } catch {
+        // bỏ qua
+      }
+
+      if (uploader) {
+        try {
+          await uploader.uploadCover(albumId, buffer);
+          await uploader.uploadCover(trackId, buffer);
+        } catch {
+          // bỏ qua
+        }
+      }
+
+      successCount++;
+    } catch {
+      // bỏ qua bài lỗi, tiếp tục
+    }
+  }
+
+  return c.json({
+    status: 200,
+    successCount,
+    total: ids.length,
+    message: `Đã tải và cập nhật ảnh bìa YouTube thành công cho ${successCount}/${ids.length} bài hát!`,
   });
 });
 

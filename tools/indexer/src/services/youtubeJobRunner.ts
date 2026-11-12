@@ -635,23 +635,57 @@ class YoutubeJobRunner extends EventEmitter {
   // 5. Lyrics & File Actions
   async getDownloadLyrics(id: string): Promise<{ lyrics: string; source: string; hasSynced: boolean }> {
     const list = await this.getDownloads();
-    const item = list.find((r) => r.id === id);
-    if (!item || !item.relativeFilePath) {
+    let item = list.find((r) => r.id === id);
+    if (!item) {
+      item = list.find((r) => r.trackId === id || r.videoId === id);
+    }
+    if (!item) {
       throw new Error('Không tìm thấy thông tin bài hát');
     }
 
     let lrcPath: string | null = null;
-    if (item.relativeLyricsPath && item.libraryRootPath) {
-      const candidate = path.resolve(item.libraryRootPath, item.relativeLyricsPath);
-      if (existsSync(candidate)) {
-        lrcPath = candidate;
+    const candidates: string[] = [];
+
+    // Danh sách các thư mục gốc có thể chứa file
+    const rootDirs: string[] = [];
+    if (item.libraryRootPath) rootDirs.push(item.libraryRootPath);
+    try {
+      const cfg = loadLocalConfig();
+      if (cfg.MUSIC_SOURCE_DIR && !rootDirs.includes(cfg.MUSIC_SOURCE_DIR)) {
+        rootDirs.push(cfg.MUSIC_SOURCE_DIR);
+      }
+      if (cfg.MUSIC_IMPORT_DIR && !rootDirs.includes(cfg.MUSIC_IMPORT_DIR)) {
+        rootDirs.push(cfg.MUSIC_IMPORT_DIR);
+      }
+    } catch {
+      // bỏ qua
+    }
+
+    // Thử ghép các rootDirs với relativeLyricsPath & relativeFilePath
+    for (const rDir of rootDirs) {
+      if (item.relativeLyricsPath) {
+        candidates.push(path.resolve(rDir, item.relativeLyricsPath));
+      }
+      if (item.relativeFilePath) {
+        const audioFullPath = path.resolve(rDir, item.relativeFilePath);
+        candidates.push(audioFullPath.replace(path.extname(audioFullPath), '.lrc'));
       }
     }
-    if (!lrcPath && item.relativeFilePath && item.libraryRootPath) {
-      const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
-      const candidate = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
-      if (existsSync(candidate)) {
-        lrcPath = candidate;
+
+    // Thư mục custom lyrics của indexer
+    if (item.trackId) {
+      const customPath = path.resolve(
+        process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
+        'lyrics',
+        `${item.trackId}.lrc`
+      );
+      candidates.push(customPath);
+    }
+
+    for (const c of candidates) {
+      if (existsSync(c)) {
+        lrcPath = c;
+        break;
       }
     }
 
@@ -661,21 +695,50 @@ class YoutubeJobRunner extends EventEmitter {
       return { lyrics: text, source: 'lrc-file', hasSynced };
     }
 
+    // Nếu chưa có file .lrc trên đĩa, tự động thử tìm kiếm nhanh từ LRCLIB
+    if (item.title && item.artist) {
+      try {
+        const lrclibRes = await LyricsService.fetchLyrics(item.title, item.artist, item.duration || undefined);
+        const lrcContent = lrclibRes.syncedLyrics || lrclibRes.plainLyrics || '';
+        if (lrcContent) {
+          const hasSynced = /\[\d{2}:\d{2}/.test(lrcContent);
+          return { lyrics: lrcContent, source: lrclibRes.source, hasSynced };
+        }
+      } catch {
+        // bỏ qua
+      }
+    }
+
     return { lyrics: '', source: 'none', hasSynced: false };
   }
 
-  async updateDownloadLyrics(id: string, lyrics: string): Promise<{ success: boolean }> {
+  async updateDownloadLyrics(id: string, lyrics: string): Promise<{ success: boolean; relativeLyricsPath?: string }> {
     const list = await this.getDownloads();
-    const item = list.find((r) => r.id === id);
+    let item = list.find((r) => r.id === id);
+    if (!item) {
+      item = list.find((r) => r.trackId === id || r.videoId === id);
+    }
     if (!item || !item.relativeFilePath) {
       throw new Error('Không tìm thấy thông tin bài hát');
     }
 
     let lrcPath: string | null = null;
-    if (item.relativeLyricsPath && item.libraryRootPath) {
-      lrcPath = path.resolve(item.libraryRootPath, item.relativeLyricsPath);
-    } else if (item.relativeFilePath && item.libraryRootPath) {
-      const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
+    let baseDir = item.libraryRootPath || '';
+    if (!baseDir || !existsSync(baseDir)) {
+      try {
+        const cfg = loadLocalConfig();
+        if (cfg.MUSIC_SOURCE_DIR && existsSync(cfg.MUSIC_SOURCE_DIR)) {
+          baseDir = cfg.MUSIC_SOURCE_DIR;
+        }
+      } catch {
+        // bỏ qua
+      }
+    }
+
+    if (item.relativeLyricsPath && baseDir) {
+      lrcPath = path.resolve(baseDir, item.relativeLyricsPath);
+    } else if (item.relativeFilePath && baseDir) {
+      const audioFullPath = path.resolve(baseDir, item.relativeFilePath);
       lrcPath = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
     }
 
@@ -683,26 +746,34 @@ class YoutubeJobRunner extends EventEmitter {
       throw new Error('Không xác định được đường dẫn file .lrc');
     }
 
-    await fs.writeFile(lrcPath, lyrics.trim() + '\n', 'utf-8');
+    const parentDir = path.dirname(lrcPath);
+    if (!existsSync(parentDir)) {
+      await fs.mkdir(parentDir, { recursive: true });
+    }
 
-    // Lưu vào thư mục lyrics/ của indexer để sync R2
-    const globalLrcDir = path.resolve(
-      process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
-      'lyrics'
-    );
-    await fs.mkdir(globalLrcDir, { recursive: true });
-    // Nếu có videoId hoặc id:
-    const backupLrc = path.join(globalLrcDir, `${item.id}.lrc`);
-    await fs.writeFile(backupLrc, lyrics.trim() + '\n', 'utf-8');
+    await fs.writeFile(lrcPath, lyrics, 'utf-8');
 
-    // Ghi nhật ký vào file info.txt trong thư mục bài hát
-    const trackDir = path.dirname(lrcPath);
-    YoutubeService.appendInfoLog(
-      trackDir,
-      `Cập nhật và ghi đè lại file lời bài hát (.lrc) bởi Kato`
-    );
+    // Lưu đồng thời vào thư mục custom lyrics của indexer để đồng bộ
+    if (item.trackId) {
+      const customDir = path.resolve(
+        process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
+        'lyrics'
+      );
+      if (!existsSync(customDir)) {
+        await fs.mkdir(customDir, { recursive: true });
+      }
+      await fs.writeFile(path.join(customDir, `${item.trackId}.lrc`), lyrics, 'utf-8');
+    }
 
-    return { success: true };
+    // Cập nhật trạng thái trong youtube_downloads.json
+    const relativeLyrics = path.relative(baseDir, lrcPath);
+    item.relativeLyricsPath = relativeLyrics;
+    item.lyricsExists = true;
+    item.lyricsSource = /\[\d{2}:\d{2}/.test(lyrics) ? 'lrclib-synced' : 'lrclib-plain';
+    item.updatedAt = new Date().toISOString();
+    await this.saveDownloads(list);
+
+    return { success: true, relativeLyricsPath: relativeLyrics };
   }
 
   async verifyDownloads(r2UploadedKeys?: Set<string>): Promise<YoutubeMusicDownloadRecord[]> {

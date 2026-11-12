@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -16,6 +16,7 @@ import {
   Smartphone,
   QrCode,
   Cloud,
+  RefreshCw,
 } from 'lucide-react';
 import { requestApi } from '../../core/api-client';
 import { useTheme } from '../../core/theme';
@@ -76,6 +77,22 @@ export const SidebarNav: React.FC<{
     month: '2-digit',
     year: 'numeric',
   });
+
+  const queryClient = useQueryClient();
+  const [isRefreshingStatus, setIsRefreshingStatus] = React.useState(false);
+
+  const handleRefreshStatus = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setIsRefreshingStatus(true);
+      const fresh = await requestApi<SystemStatus>('/local-api/status?force=true');
+      queryClient.setQueryData(['system-status'], fresh);
+    } catch {
+      // bỏ qua
+    } finally {
+      setIsRefreshingStatus(false);
+    }
+  };
 
   const { data: status } = useQuery<SystemStatus>({
     queryKey: ['system-status'],
@@ -311,6 +328,15 @@ export const SidebarNav: React.FC<{
               <span className="text-[10px] font-semibold text-zinc-300 tracking-wide uppercase">
                 Dung lượng R2
               </span>
+              <button
+                type="button"
+                onClick={handleRefreshStatus}
+                disabled={isRefreshingStatus}
+                className="p-0.5 rounded text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                title="Làm mới trạng thái kết nối Cloudflare R2 ngay lập tức"
+              >
+                <RefreshCw size={9.5} className={isRefreshingStatus ? 'animate-spin text-[#1DB954]' : ''} />
+              </button>
             </div>
             <span
               className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold  border ${usedPct > 80

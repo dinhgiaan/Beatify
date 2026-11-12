@@ -30,6 +30,7 @@ import {
   Loader2,
   ListPlus,
   FolderPlus,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -575,6 +576,74 @@ export const LibraryPage: React.FC<{
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Không thể đổi ảnh bìa hàng loạt: ${msg}`);
+    } finally {
+      setIsBatchUploadingCover(false);
+    }
+  };
+
+  // Tự động tải lại ảnh bìa từ YouTube cho 1 bài hát
+  const handleFetchYouTubeCover = async (trackId: string) => {
+    try {
+      setIsUploadingCover(true);
+      const res = await fetch(`/local-api/tracks/${trackId}/fetch-yt-cover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Không thể tải ảnh bìa YouTube cho bài này');
+      }
+
+      setCoverTimestamp(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      toast.success(json.message || 'Đã tải ảnh bìa YouTube HD thành công!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải ảnh bìa YouTube: ${msg}`);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  // Tự động tải lại ảnh bìa từ YouTube hàng loạt cho toàn bộ bài hát đã chọn
+  const handleBatchFetchYouTubeCover = async () => {
+    if (selectedTrackIds.size === 0) {
+      toast.error('Vui lòng chọn ít nhất 1 bài hát');
+      return;
+    }
+
+    const toastId = toast.loading(`Đang tự động tìm & tải ảnh bìa YouTube HD cho ${selectedTrackIds.size} bài hát...`);
+    try {
+      setIsBatchUploadingCover(true);
+      const res = await fetch('/local-api/tracks/batch-fetch-yt-cover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ ids: Array.from(selectedTrackIds) }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Lỗi server khi tải ảnh bìa YouTube hàng loạt');
+      }
+
+      toast.dismiss(toastId);
+      toast.success(json.message || `Đã tải và cập nhật ảnh bìa YouTube cho ${selectedTrackIds.size} bài hát!`);
+      setIsBatchCoverOpen(false);
+      setCoverTimestamp(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+    } catch (err: unknown) {
+      toast.dismiss(toastId);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Không thể tải ảnh bìa YouTube hàng loạt: ${msg}`);
     } finally {
       setIsBatchUploadingCover(false);
     }
@@ -1451,11 +1520,11 @@ export const LibraryPage: React.FC<{
                       setBatchCoverPreview(null);
                       setIsBatchCoverOpen(true);
                     }}
-                    className="h-8 text-xs px-3 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                    title="Đổi ảnh bìa HD cho toàn bộ các bài hát đã chọn cùng lúc"
+                    className="h-8 text-xs px-3 gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    title="Tự động tải lại ảnh bìa HD từ YouTube cho toàn bộ các bài hát đã chọn cùng lúc"
                   >
-                    <ImageIcon size={12} />
-                    <span>Đổi ảnh bìa ({selectedTrackIds.size} bài)</span>
+                    <Sparkles size={12} />
+                    <span>Tải ảnh bìa YouTube ({selectedTrackIds.size} bài)</span>
                   </Button>
 
                   <Button
@@ -1560,16 +1629,28 @@ export const LibraryPage: React.FC<{
                         className="hidden"
                       />
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Nút Đổi ảnh bìa mới */}
+                        {/* Nút Lấy ảnh từ YouTube HD (Ưu tiên cao nhất) */}
+                        <button
+                          type="button"
+                          onClick={() => handleFetchYouTubeCover(editingTrack.id)}
+                          disabled={isUploadingCover}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                          title="Tự động tìm kiếm video trên YouTube và tải ảnh bìa gốc HD chất lượng cao"
+                        >
+                          {isUploadingCover ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                          <span>Lấy ảnh từ YouTube</span>
+                        </button>
+
+                        {/* Nút Đổi ảnh bìa mới từ máy tính */}
                         <button
                           type="button"
                           onClick={() => editCoverInputRef.current?.click()}
                           disabled={isUploadingCover}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1DB954] hover:bg-[#1ed760] text-black transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
-                          title="Chọn file ảnh từ máy tính để tải lên làm bìa mới"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-zinc-300 border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                          title="Chọn file ảnh từ máy tính (nếu muốn tải ảnh cá nhân)"
                         >
                           <Upload size={13} />
-                          <span>Đổi ảnh mới</span>
+                          <span>Từ máy tính</span>
                         </button>
 
                         {/* Nút Tải ảnh HD về máy */}
@@ -1577,7 +1658,7 @@ export const LibraryPage: React.FC<{
                           type="button"
                           onClick={() => handleDownloadTrackCover(editingTrack)}
                           disabled={isUploadingCover}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs"
                           title="Tải ảnh bìa gốc độ nét cao về máy tính"
                         >
                           <Download size={13} className="text-[#1DB954]" />
@@ -1597,7 +1678,7 @@ export const LibraryPage: React.FC<{
                         </button>
                       </div>
                       <p className="text-[10.5px] text-zinc-400 leading-tight">
-                        Hỗ trợ ảnh JPG, PNG, WEBP. Ảnh mới sẽ tự động lưu và đồng bộ lên R2.
+                        Tự động cào ảnh gốc YouTube (1:1 HD 600x600) hoặc chọn file từ máy tính. Tự động đồng bộ lên R2.
                       </p>
                     </div>
                   </div>
@@ -1783,8 +1864,8 @@ export const LibraryPage: React.FC<{
                 setBatchCoverPreview(null);
               }
             }}
-            title={`Đổi ảnh bìa cho ${selectedTrackIds.size} bài hát đã chọn`}
-            description="Ảnh bìa mới sẽ được áp dụng cho toàn bộ các bài hát đang được chọn và đồng bộ an toàn lên R2"
+            title={`Tải lại ảnh bìa cho ${selectedTrackIds.size} bài hát đã chọn`}
+            description="Tự động cào ảnh gốc từ YouTube (HD) hoặc chọn một file ảnh từ máy tính để áp dụng chung"
             actions={
               <>
                 <Button
@@ -1797,31 +1878,79 @@ export const LibraryPage: React.FC<{
                   }}
                   disabled={isBatchUploadingCover}
                 >
-                  Hủy
+                  Đóng
                 </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleApplyBatchCover}
-                  disabled={!batchCoverFile || isBatchUploadingCover}
-                  className="flex items-center gap-1.5"
-                >
-                  {isBatchUploadingCover ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Đang lưu...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={13} />
-                      <span>Áp dụng cho {selectedTrackIds.size} bài</span>
-                    </>
-                  )}
-                </Button>
+                {batchCoverFile && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleApplyBatchCover}
+                    disabled={isBatchUploadingCover}
+                    className="flex items-center gap-1.5"
+                  >
+                    {isBatchUploadingCover ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Đang lưu...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={13} />
+                        <span>Áp dụng ảnh máy tính ({selectedTrackIds.size} bài)</span>
+                      </>
+                    )}
+                  </Button>
+                )}
               </>
             }
           >
             <div className="space-y-4 py-2">
+              {/* Lựa chọn 1 (Chính): Tải tự động từ YouTube */}
+              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-red-400 shrink-0" />
+                      <h4 className="text-sm font-semibold text-white">
+                        Tự động tải lại ảnh bìa từ YouTube (Khuyên dùng)
+                      </h4>
+                    </div>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Hệ thống tự động tìm video YouTube tương ứng của từng bài trong <strong>{selectedTrackIds.size} bài</strong>, tải ảnh bìa gốc độ phân giải cao nhất (HD maxresdefault), crop vuông 600x600 chuẩn mực và đồng bộ lên R2.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleBatchFetchYouTubeCover}
+                  disabled={isBatchUploadingCover}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-semibold flex items-center justify-center gap-2 py-2"
+                >
+                  {isBatchUploadingCover ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Đang tải ảnh bìa YouTube...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Bắt đầu tải ảnh bìa YouTube ({selectedTrackIds.size} bài)</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Lựa chọn 2: Tự chọn ảnh từ máy tính nếu cần */}
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-white/10" />
+                <span className="flex-shrink mx-3 text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
+                  Hoặc tự chọn ảnh từ máy tính
+                </span>
+                <div className="flex-grow border-t border-white/10" />
+              </div>
+
               <input
                 type="file"
                 ref={batchCoverInputRef}
@@ -1830,10 +1959,10 @@ export const LibraryPage: React.FC<{
                 className="hidden"
               />
 
-              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/15 hover:border-[#1DB954]/50 rounded-2xl bg-black/30 transition-colors">
+              <div className="flex flex-col items-center justify-center p-4 border border-dashed border-white/15 hover:border-white/30 rounded-xl bg-black/20 transition-colors">
                 {batchCoverPreview ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-32 h-32 rounded-xl overflow-hidden border border-white/20 shadow-lg relative">
+                  <div className="flex flex-col items-center gap-2.5">
+                    <div className="w-24 h-24 rounded-lg overflow-hidden border border-white/20 shadow-md relative">
                       <img src={batchCoverPreview} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1845,7 +1974,7 @@ export const LibraryPage: React.FC<{
                       >
                         Chọn ảnh khác
                       </Button>
-                      <span className="text-[11px] text-zinc-400 font-mono truncate max-w-[180px]">
+                      <span className="text-[11px] text-zinc-400 font-mono truncate max-w-[150px]">
                         {batchCoverFile?.name}
                       </span>
                     </div>
@@ -1853,22 +1982,13 @@ export const LibraryPage: React.FC<{
                 ) : (
                   <div
                     onClick={() => batchCoverInputRef.current?.click()}
-                    className="flex flex-col items-center gap-2 cursor-pointer text-center"
+                    className="flex flex-col items-center gap-1.5 cursor-pointer text-center py-2"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-white">
-                      <Upload size={22} className="text-[#1DB954]" />
-                    </div>
-                    <span className="text-xs font-semibold text-white">Bấm để chọn file ảnh từ máy tính</span>
-                    <span className="text-[11px] text-zinc-400">Hỗ trợ JPG, PNG, WEBP (tỉ lệ vuông 1:1)</span>
+                    <Upload size={18} className="text-zinc-400" />
+                    <span className="text-xs text-zinc-300">Chọn 1 file ảnh từ máy để áp dụng chung</span>
+                    <span className="text-[10px] text-zinc-500">Hỗ trợ JPG, PNG, WEBP</span>
                   </div>
                 )}
-              </div>
-
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
-                <ShieldCheck size={15} className="text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  Thao tác này sẽ cập nhật ảnh bìa chất lượng cao cho <strong>{selectedTrackIds.size} bài hát</strong> đang chọn và tự động tạo file ảnh sidecar trên máy tính.
-                </span>
               </div>
             </div>
           </Dialog>

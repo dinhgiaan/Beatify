@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, X, ExternalLink, Download, Upload, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, X, ExternalLink, Download, Upload, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '../../../ui/atoms/Button';
 import { toast } from 'sonner';
 
@@ -106,6 +106,34 @@ export const CoverViewerDialog: React.FC<CoverViewerDialogProps> = ({
     }
   };
 
+  // Tự động tải lại ảnh bìa HD từ YouTube
+  const handleFetchYouTubeCover = async () => {
+    if (!trackId) return;
+    try {
+      setIsUploading(true);
+      const res = await fetch(`/local-api/tracks/${trackId}/fetch-yt-cover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Không tìm thấy ảnh bìa từ YouTube');
+      }
+      const newCoverWithTimestamp = `${json.coverUrl || `/local-api/covers/${trackId}.jpg`}?_t=${Date.now()}`;
+      setCurrentCoverUrl(newCoverWithTimestamp);
+      onCoverUpdated?.(newCoverWithTimestamp);
+      toast.success(json.message || 'Đã tải và cập nhật ảnh bìa HD từ YouTube thành công!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải ảnh bìa YouTube: ${msg}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
@@ -169,6 +197,20 @@ export const CoverViewerDialog: React.FC<CoverViewerDialogProps> = ({
                         <Download size={13} className="text-[#1DB954]" />
                         <span>Tải ảnh HD</span>
                       </button>
+
+                      {/* Nút Lấy bìa YouTube HD (Ưu tiên) */}
+                      {trackId && (
+                        <button
+                          type="button"
+                          onClick={handleFetchYouTubeCover}
+                          disabled={isUploading}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                          title="Tự động tìm kiếm video YouTube tương ứng và lấy ảnh bìa HD chất lượng cao nhất"
+                        >
+                          {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                          <span>Lấy bìa YouTube</span>
+                        </button>
+                      )}
 
                       {/* Nút Đổi ảnh bìa mới từ máy tính (nếu có trackId) */}
                       {trackId && (
