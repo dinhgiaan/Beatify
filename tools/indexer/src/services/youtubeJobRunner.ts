@@ -123,7 +123,7 @@ class YoutubeJobRunner extends EventEmitter {
   }
 
   // 2. Lịch sử tải nhạc
-  async getDownloads(limit = 200): Promise<YoutubeMusicDownloadRecord[]> {
+  async getDownloads(limit?: number): Promise<YoutubeMusicDownloadRecord[]> {
     await this.ensureStateDir();
     if (!existsSync(DOWNLOADS_FILE)) return [];
     try {
@@ -146,7 +146,7 @@ class YoutubeJobRunner extends EventEmitter {
           item.fileExists = false;
         }
       }
-      return list.slice(0, limit);
+      return typeof limit === 'number' && limit > 0 ? list.slice(0, limit) : list;
     } catch {
       return [];
     }
@@ -640,10 +640,22 @@ class YoutubeJobRunner extends EventEmitter {
       throw new Error('Không tìm thấy thông tin bài hát');
     }
 
-    const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
-    const lrcPath = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
+    let lrcPath: string | null = null;
+    if (item.relativeLyricsPath && item.libraryRootPath) {
+      const candidate = path.resolve(item.libraryRootPath, item.relativeLyricsPath);
+      if (existsSync(candidate)) {
+        lrcPath = candidate;
+      }
+    }
+    if (!lrcPath && item.relativeFilePath && item.libraryRootPath) {
+      const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
+      const candidate = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
+      if (existsSync(candidate)) {
+        lrcPath = candidate;
+      }
+    }
 
-    if (existsSync(lrcPath)) {
+    if (lrcPath && existsSync(lrcPath)) {
       const text = await fs.readFile(lrcPath, 'utf-8');
       const hasSynced = /\[\d{2}:\d{2}/.test(text);
       return { lyrics: text, source: 'lrc-file', hasSynced };
@@ -659,8 +671,17 @@ class YoutubeJobRunner extends EventEmitter {
       throw new Error('Không tìm thấy thông tin bài hát');
     }
 
-    const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
-    const lrcPath = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
+    let lrcPath: string | null = null;
+    if (item.relativeLyricsPath && item.libraryRootPath) {
+      lrcPath = path.resolve(item.libraryRootPath, item.relativeLyricsPath);
+    } else if (item.relativeFilePath && item.libraryRootPath) {
+      const audioFullPath = path.resolve(item.libraryRootPath, item.relativeFilePath);
+      lrcPath = audioFullPath.replace(path.extname(audioFullPath), '.lrc');
+    }
+
+    if (!lrcPath) {
+      throw new Error('Không xác định được đường dẫn file .lrc');
+    }
 
     await fs.writeFile(lrcPath, lyrics.trim() + '\n', 'utf-8');
 
@@ -675,7 +696,7 @@ class YoutubeJobRunner extends EventEmitter {
     await fs.writeFile(backupLrc, lyrics.trim() + '\n', 'utf-8');
 
     // Ghi nhật ký vào file info.txt trong thư mục bài hát
-    const trackDir = path.dirname(audioFullPath);
+    const trackDir = path.dirname(lrcPath);
     YoutubeService.appendInfoLog(
       trackDir,
       `Cập nhật và ghi đè lại file lời bài hát (.lrc) bởi Kato`

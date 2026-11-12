@@ -814,8 +814,9 @@ export const DownloadedVideosManagerPage: React.FC<{
                             lyricsText: res.lyrics,
                             source: res.source,
                           });
-                        } catch {
-                          toast.error('Lỗi nạp lời bài hát');
+                        } catch (err: unknown) {
+                          const msg = err instanceof Error ? err.message : String(err);
+                          toast.error(`Lỗi nạp lời bài hát: ${msg}`);
                         }
                       }}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
