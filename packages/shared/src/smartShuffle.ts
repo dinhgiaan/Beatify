@@ -27,6 +27,9 @@ export function smartShuffle(tracks: Track[], currentTrackId?: string | null): T
     }
   }
 
+  // Xáo trộn ngẫu nhiên toàn bộ danh sách pool trước
+  fisherYatesShuffle(pool);
+
   // 2. Gom nhóm các bài hát còn lại theo Nghệ sĩ
   const artistMap = new Map<string, Track[]>();
   for (const track of pool) {
@@ -48,8 +51,10 @@ export function smartShuffle(tracks: Track[], currentTrackId?: string | null): T
     : null;
 
   while (artistMap.size > 0) {
-    // Tìm nghệ sĩ có số bài còn lại nhiều nhất trong TẤT CẢ nghệ sĩ
-    const allSorted = Array.from(artistMap.entries()).sort((a, b) => b[1].length - a[1].length);
+    // Sắp xếp các nghệ sĩ ngẫu nhiên và theo số bài
+    const allArtists = Array.from(artistMap.entries());
+    fisherYatesShuffle(allArtists);
+    const allSorted = allArtists.sort((a, b) => b[1].length - a[1].length);
     const globalMax = allSorted[0] ? allSorted[0][1].length : 0;
 
     // Tìm các nghệ sĩ khả dụng khác với lastArtistKey
@@ -58,11 +63,11 @@ export function smartShuffle(tracks: Track[], currentTrackId?: string | null): T
     let selectedKey = '';
 
     if (availableArtists.length > 0) {
-      // Ưu tiên cao nhất cho nghệ sĩ đang có số bài bằng globalMax để tránh bị dồn ở cuối
+      // Ưu tiên cho nghệ sĩ đang có số bài bằng globalMax
       const topCandidates = availableArtists.filter(([, list]) => list.length === globalMax);
       const candidatesToPick = topCandidates.length > 0
         ? topCandidates
-        : availableArtists.filter(([, list]) => list.length === (availableArtists[0]?.[1].length ?? 1));
+        : availableArtists.slice(0, Math.min(5, availableArtists.length));
 
       const chosen = candidatesToPick[Math.floor(Math.random() * candidatesToPick.length)] ?? candidatesToPick[0];
       if (chosen) {
@@ -73,7 +78,7 @@ export function smartShuffle(tracks: Track[], currentTrackId?: string | null): T
     if (!selectedKey) {
       // Bắt buộc phải chọn lại nghệ sĩ vừa phát nếu chỉ còn mỗi nghệ sĩ đó
       const remaining = Array.from(artistMap.keys());
-      selectedKey = remaining[0] ?? '';
+      selectedKey = remaining[Math.floor(Math.random() * remaining.length)] ?? '';
     }
 
     if (!selectedKey) break;

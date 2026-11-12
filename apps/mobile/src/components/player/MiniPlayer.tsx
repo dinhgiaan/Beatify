@@ -20,6 +20,7 @@ import {
   PlayIcon,
   PauseIcon,
   NextIcon,
+  PrevIcon,
   DiscIcon,
 } from '../icons/SvgIcons';
 import { EqualizerIndicator } from './EqualizerIndicator';
@@ -34,9 +35,11 @@ export function MiniPlayer() {
   const router = useRouter();
   const {
     currentTrack,
+    currentTrackIndex,
     playerState,
     togglePlay,
     next,
+    previous,
   } = usePlayer();
 
   const playScale = useRef(new Animated.Value(1)).current;
@@ -58,6 +61,13 @@ export function MiniPlayer() {
   const handleTogglePlay = (e: { stopPropagation?: () => void }) => {
     e.stopPropagation?.();
     togglePlay();
+  };
+
+  const handlePrevious = (e: { stopPropagation?: () => void }) => {
+    e.stopPropagation?.();
+    if (currentTrackIndex > 0) {
+      previous();
+    }
   };
 
   const handleNext = (e: { stopPropagation?: () => void }) => {
@@ -118,8 +128,20 @@ export function MiniPlayer() {
           </View>
         </View>
 
-        {/* Cụm nút điều khiển: Play/Pause và Next */}
+        {/* Cụm nút điều khiển: Prev, Play/Pause và Next */}
         <View style={styles.controlsRow}>
+          <TouchableOpacity
+            style={[styles.controlButton, currentTrackIndex <= 0 && { opacity: 0.3 }]}
+            onPress={handlePrevious}
+            disabled={currentTrackIndex <= 0}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Bài trước đó"
+          >
+            <PrevIcon size={18} color={currentTrackIndex <= 0 ? colors.textTertiary : colors.textPrimary} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.controlButton}
             onPress={handleTogglePlay}
@@ -175,10 +197,10 @@ const styles = StyleSheet.create({
   },
     waveformWrapper: {
       position: 'absolute',
-      top: 2,
+      top: 0,
       left: 8,
       right: 8,
-      height: 10,
+      height: 8,
       overflow: 'hidden',
       zIndex: 2,
     },
@@ -186,6 +208,7 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.md,
+      paddingTop: 6,
     },
     artworkWrapper: {
       width: 40,

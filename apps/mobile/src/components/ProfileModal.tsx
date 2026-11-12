@@ -129,6 +129,7 @@ export function ProfileModal({
   const [tempBio, setTempBio] = useState('');
   const [tempAvatarUri, setTempAvatarUri] = useState('');
   const [tempAvatarKey, setTempAvatarKey] = useState('headphones');
+  const [isAvatarPreviewModalOpen, setIsAvatarPreviewModalOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -294,7 +295,17 @@ export function ProfileModal({
 
                 {/* Xem trước Avatar */}
                 <View style={styles.editAvatarPreviewRow}>
-                  <View style={styles.avatarBox}>
+                  <TouchableOpacity
+                    style={styles.avatarBox}
+                    onLongPress={() => {
+                      if (tempAvatarUri) {
+                        Vibration.vibrate(15);
+                        setIsAvatarPreviewModalOpen(true);
+                      }
+                    }}
+                    delayLongPress={600}
+                    activeOpacity={0.8}
+                  >
                     {tempAvatarUri ? (
                       <Image
                         source={{ uri: tempAvatarUri }}
@@ -304,12 +315,8 @@ export function ProfileModal({
                     ) : (
                       renderAvatarSvg(tempAvatarKey, 34, colors.primary)
                     )}
-                  </View>
+                  </TouchableOpacity>
                   <View style={styles.editAvatarHint}>
-                    <Text style={styles.editAvatarHintTitle}>Xem trước hiển thị</Text>
-                    <Text style={styles.editAvatarHintSub}>
-                      {tempAvatarUri ? 'Ảnh từ Thư viện iPhone' : `Biểu tượng: ${tempAvatarKey}`}
-                    </Text>
                     {tempAvatarUri ? (
                       <TouchableOpacity
                         style={styles.clearAvatarUriBtn}
@@ -429,8 +436,15 @@ export function ProfileModal({
                 <TouchableOpacity
                   style={styles.avatarBox}
                   onPress={handleStartEditing}
+                  onLongPress={() => {
+                    if (report.profile.avatarUri) {
+                      Vibration.vibrate(15);
+                      setIsAvatarPreviewModalOpen(true);
+                    }
+                  }}
+                  delayLongPress={600}
                   activeOpacity={0.8}
-                  accessibilityLabel="Bấm để chỉnh sửa hồ sơ và ảnh đại diện"
+                  accessibilityLabel="Chạm để chỉnh sửa, nhấn giữ để xem phóng to ảnh đại diện"
                 >
                   {report.profile.avatarUri ? (
                     <Image
@@ -707,6 +721,28 @@ export function ProfileModal({
             )}
           </ScrollView>
         </View>
+
+        {/* Modal Phóng to toàn màn hình ảnh đại diện */}
+        <Modal
+          visible={isAvatarPreviewModalOpen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsAvatarPreviewModalOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.fullscreenAvatarOverlay}
+            activeOpacity={1}
+            onPress={() => setIsAvatarPreviewModalOpen(false)}
+          >
+            <View style={styles.fullscreenAvatarContainer}>
+              <Image
+                source={{ uri: isEditingProfile ? tempAvatarUri : (report?.profile.avatarUri || '') }}
+                style={styles.fullscreenAvatarImage}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </Modal>
   );
@@ -1286,5 +1322,27 @@ const styles = StyleSheet.create({
   milestoneStatusPending: {
     fontSize: 12,
     color: '#555555',
+  },
+  fullscreenAvatarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  fullscreenAvatarContainer: {
+    width: '90%',
+    aspectRatio: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  fullscreenAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
 });

@@ -282,24 +282,23 @@ export function NowPlayingView() {
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>
-            {showQueue ? 'HÀNG ĐỢI PHÁT' : 'ĐANG PHÁT'}
-          </Text>
-            { sleepTimerRemainingSec !== null ? (
-              <TouchableOpacity
-                style={styles.timerHeaderBadge}
-                onPress={() => setSleepTimerDialogVisible(true)}
-                activeOpacity={0.7}
-              >
-                <ClockIcon size={11} color={colors.primary} />
-                <Text style={styles.timerHeaderBadgeText}>
-                  Tắt sau {formatTime(sleepTimerRemainingSec)}
-                </Text>
-              </TouchableOpacity>
-            ) : currentTrack?.album && !showQueue ? (
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
-                {currentTrack.album}
-              </Text>
+          {showQueue && (
+            <Text style={styles.headerTitle}>HÀNG ĐỢI PHÁT</Text>
+          )}
+          {sleepTimerRemainingSec !== null ? (
+            <TouchableOpacity
+              style={styles.timerHeaderBadge}
+              onPress={() => setSleepTimerDialogVisible(true)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Xem hẹn giờ ngủ"
+            >
+              <ClockIcon size={18} color={colors.primary} />
+            </TouchableOpacity>
+          ) : currentTrack?.album && !showQueue ? (
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              {currentTrack.album}
+            </Text>
           ) : null}
         </View>
 

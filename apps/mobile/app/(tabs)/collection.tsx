@@ -75,11 +75,6 @@ export default function CollectionScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Brand Header */}
       <View style={styles.header}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandBadge}>
-            <Text style={styles.brandBadgeText}>BEATIFY</Text>
-          </View>
-        </View>
         <Text style={styles.headerTitle}>Bộ sưu tập</Text>
         <Text style={styles.headerSubtitle}>
           Kho lưu trữ bài hát yêu thích và bản nhạc ngoại tuyến của bạn
@@ -136,14 +131,6 @@ export default function CollectionScreen() {
             <Text style={styles.arrowText}>→</Text>
           </View>
         </TouchableOpacity>
-
-        {/* Gợi ý tính năng */}
-        <View style={styles.hintBox}>
-          <Text style={styles.hintTitle}>Nghe nhạc không cần mạng</Text>
-          <Text style={styles.hintDesc}>
-            Các bài hát đã tải về máy sẽ được lưu trữ an toàn trong bộ nhớ máy. Khi ra ngoài không có Wi-Fi hoặc 4G, bạn vẫn có thể mở phát nhạc mượt mà.
-          </Text>
-        </View>
       </ScrollView>
 
       {/* Modal chi tiết bài hát yêu thích */}

@@ -376,11 +376,12 @@ export default function LibraryScreen() {
     if (currentTrack?.id === item.id) {
       togglePlay();
     } else {
-      const idx = tracks.findIndex((t) => t.id === item.id);
+      const currentQueueTracks = tracks.length > 0 ? tracks : filteredTracks;
+      const idx = currentQueueTracks.findIndex((t) => t.id === item.id);
       if (idx >= 0) {
         skipToTrack(idx);
       } else {
-        playQueue([item], 0);
+        playQueue(filteredTracks, filteredTracks.findIndex((t) => t.id === item.id));
       }
     }
   };

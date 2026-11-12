@@ -25,6 +25,7 @@ import {
 import {
   PlayIcon,
   PauseIcon,
+  ShuffleIcon,
 } from '../../src/components/icons/SvgIcons';
 import { formatTime } from '../../src/utils/formatTime';
 import { cleanTrackTitle, formatRelativeTime } from '../../src/utils/recentFormatters';
@@ -98,6 +99,7 @@ export default function RecentScreen() {
     const shuffled = smartShuffle(recentTracks);
     setIsSmartShuffle?.(true);
     playQueue(shuffled, 0);
+    router.push('/now-playing');
   };
 
   const openTrackMenu = (track: Track) => {
@@ -206,7 +208,7 @@ export default function RecentScreen() {
                     </TouchableOpacity>
                   </TouchableOpacity>
 
-                    {/* Cụm 2 nút hành động bo tròn kiểu pill 48px, không icon */}
+                    {/* Cụm 2 nút hành động: Phát tất cả + Icon Shuffle */}
                     <View style={styles.actionRow}>
                       <TouchableOpacity
                         style={[styles.pillBtn, styles.playAllBtn]}
@@ -217,11 +219,12 @@ export default function RecentScreen() {
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.pillBtn, styles.shuffleBtn]}
+                        style={[styles.pillBtn, styles.shuffleIconBtn]}
                         onPress={handleShufflePlayAll}
                         activeOpacity={0.8}
+                        accessibilityLabel="Phát ngẫu nhiên"
                       >
-                        <Text style={styles.shuffleBtnText}>Phát ngẫu nhiên</Text>
+                        <ShuffleIcon size={18} color="#000000" />
                       </TouchableOpacity>
                     </View>
 
@@ -449,6 +452,7 @@ export default function RecentScreen() {
                     justifyContent: 'center',
   },
                     playAllBtn: {
+                      flex: 1,
                       backgroundColor: colors.primary,
   },
                       playAllBtnText: {
@@ -456,13 +460,13 @@ export default function RecentScreen() {
                     fontWeight: '700',
                     color: '#000000',
   },
-                    shuffleBtn: {
-                      backgroundColor: '#282828',
-  },
-                    shuffleBtnText: {
-                      fontSize: 15,
-                    fontWeight: '600',
-                    color: '#FFFFFF',
+                    shuffleIconBtn: {
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: colors.primary,
+                      alignItems: 'center',
+                      justifyContent: 'center',
   },
                       sectionHeaderRow: {
                       flexDirection: 'row',

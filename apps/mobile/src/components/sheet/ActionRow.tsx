@@ -83,7 +83,7 @@ export const ActionRow: React.FC<ActionRowProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: tokens.spacing.rowHeight,
+    height: 46,
     paddingHorizontal: tokens.spacing.sheetPadding,
     justifyContent: 'center',
     position: 'relative',

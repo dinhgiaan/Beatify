@@ -9,6 +9,8 @@ import {
   Keyboard,
   StyleSheet,
   Vibration,
+  ActivityIndicator,
+  Animated,
   type StyleProp,
   type TextStyle,
 } from 'react-native';
@@ -86,14 +88,30 @@ export default function SearchScreen() {
   // Menu Bottom Sheet cho bài hát
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const resultsFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Debounce query 300ms
+  // Debounce query và hiệu ứng loading 0.6s khi tìm kiếm
   useEffect(() => {
+    if (!rawQuery.trim()) {
+      setDebouncedQuery('');
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    resultsFadeAnim.setValue(0);
     const timer = setTimeout(() => {
       setDebouncedQuery(rawQuery.trim());
-    }, 300);
+      setIsSearching(false);
+      Animated.timing(resultsFadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+    }, 600);
     return () => clearTimeout(timer);
-  }, [rawQuery]);
+  }, [rawQuery, resultsFadeAnim]);
 
   // Nạp lịch sử tìm kiếm từ ổ đĩa
   useEffect(() => {
@@ -372,7 +390,13 @@ return (
       </View>
 
             {/* Nội dung trang */}
-            {debouncedQuery.length === 0 ? (
+            {isSearching ? (
+              // Trạng thái đang tìm kiếm (0.6s) với icon và hiệu ứng loading
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingText}>Đang tìm kiếm bài hát...</Text>
+              </View>
+            ) : debouncedQuery.length === 0 ? (
               // Trạng thái trống: Gần đây & Nghệ sĩ nghe nhiều
               <FlatList
                 data={[]}
@@ -384,19 +408,24 @@ return (
                       <View style={styles.artistSection}>
                         <Text style={styles.sectionHeaderTitle}>Nghệ sĩ nghe nhiều</Text>
                         <View style={styles.chipsWrapper}>
-                          {popularArtists.map((artist) => (
-                            <TouchableOpacity
+                          {popularArtists.map((artist, aIdx) => (
+                            <Animated.View
                               key={artist}
-                              style={styles.artistChip}
-                              onPress={() => {
-                                Vibration.vibrate(5);
-                                setRawQuery(artist);
-                                setDebouncedQuery(artist);
+                              style={{
+                                opacity: 1,
                               }}
-                              activeOpacity={0.75}
                             >
-                              <Text style={styles.artistChipText}>{artist}</Text>
-                            </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.artistChip}
+                                onPress={() => {
+                                  Vibration.vibrate(5);
+                                  setRawQuery(artist);
+                                }}
+                                activeOpacity={0.75}
+                              >
+                                <Text style={styles.artistChipText}>{artist}</Text>
+                              </TouchableOpacity>
+                            </Animated.View>
                           ))}
                         </View>
                       </View>
@@ -443,19 +472,21 @@ return (
                   </View>
                 </TouchableWithoutFeedback>
                 ) : (
-                // Danh sách kết quả tìm kiếm
-                <FlatList
-                  data={filteredTracks}
-                  keyExtractor={(item) => item.id}
-                  renderItem={renderTrackItem}
-                  contentContainerStyle={[
-                    styles.listContent,
-                    { paddingBottom: contentPaddingBottom + 20 },
-                  ]}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="on-drag"
-                  showsVerticalScrollIndicator={false}
-                />
+                // Danh sách kết quả tìm kiếm với animation xuất hiện mượt mà
+                <Animated.View style={{ flex: 1, opacity: resultsFadeAnim }}>
+                  <FlatList
+                    data={filteredTracks}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderTrackItem}
+                    contentContainerStyle={[
+                      styles.listContent,
+                      { paddingBottom: contentPaddingBottom + 20 },
+                    ]}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    showsVerticalScrollIndicator={false}
+                  />
+                </Animated.View>
       )}
 
                 {/* Menu bài hát Bottom Sheet kiểu Apple */}
@@ -616,6 +647,18 @@ return (
   },
               listContent: {
               paddingTop: spacing.xs,
+  },
+              loadingContainer: {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                paddingVertical: 36,
+  },
+              loadingText: {
+                fontSize: 13,
+                color: colors.textSecondary,
+                fontWeight: fontWeights.medium,
   },
                 trackRow: {
                 flexDirection: 'row',

@@ -6,6 +6,7 @@ import {
   Pressable,
   Dimensions,
   Alert,
+  Modal,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -253,92 +254,100 @@ export const TrackActionSheet: React.FC<TrackActionSheetProps> = ({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
-      {/* Vùng Backdrop làm mờ & chạm đóng */}
-      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => closeSheet()} />
-      </Animated.View>
-
-      {/* Sheet Container */}
-      <GestureDetector gesture={panGesture}>
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-            animatedSheetStyle,
-          ]}
-        >
-          {/* Nền Blur & Lớp Linear Gradient tan từ màu Cover */}
-          <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-          <LinearGradient
-            colors={[`${coverColor}45`, `${coverColor}10`, 'transparent']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.55 }}
-            style={StyleSheet.absoluteFill}
-          />
-
-          {/* 1. Header: Grabber + Cover 56x56 + Info */}
-          <View style={styles.header}>
-            {/* Grabber nhỏ thanh thoát */}
-            <View style={styles.grabber} />
-
-            {track && (
-              <View style={styles.trackInfoRow}>
-                {/* Ảnh bìa bo góc 12 mang bóng đổ mềm màu cover */}
-                <View
-                  style={[
-                    styles.coverWrapper,
-                    {
-                      shadowColor: coverColor,
-                    },
-                  ]}
-                >
-                  <Image
-                    source={coverUrl ? { uri: coverUrl } : null}
-                    style={styles.coverImage}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                </View>
-
-                {/* Thông tin bài hát */}
-                <View style={styles.titleWrapper}>
-                  <Text style={styles.trackTitle} numberOfLines={1}>
-                    {track.title}
-                  </Text>
-                  <Text style={styles.trackSubtitle} numberOfLines={1}>
-                    {track.artist} · {formatDuration(track.duration)}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* 2. Danh sách Action chuẩn Typography, không icon */}
-          <View style={styles.actionsList}>
-            {mainActions.map((action) => (
-              <ActionRow
-                key={action.id}
-                label={action.label}
-                secondaryText={action.secondaryText}
-                secondaryColor={action.secondaryColor}
-                progressPercent={action.progressPercent}
-                onPress={action.onPress}
-              />
-            ))}
-          </View>
-
-          {/* 3. Nhóm nguy hiểm (cách nhóm trên 12px không kẻ vạch) */}
-          <View style={styles.dangerGroup}>
-            <ActionRow
-              label="Xóa khỏi thư viện"
-              isDestructive
-              onPress={handleDeletePress}
-            />
-          </View>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={() => closeSheet()}
+    >
+      <View style={StyleSheet.absoluteFill}>
+        {/* Vùng Backdrop làm mờ & chạm đóng */}
+        <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => closeSheet()} />
         </Animated.View>
-      </GestureDetector>
-    </View>
+
+        {/* Sheet Container */}
+        <GestureDetector gesture={panGesture}>
+          <Animated.View
+            style={[
+              styles.sheetContainer,
+              { paddingBottom: Math.max(insets.bottom, 24) },
+              animatedSheetStyle,
+            ]}
+          >
+            {/* Nền Blur & Lớp Linear Gradient tan từ màu Cover */}
+            <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[`${coverColor}45`, `${coverColor}10`, 'transparent']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.55 }}
+              style={StyleSheet.absoluteFill}
+            />
+
+            {/* 1. Header: Grabber + Cover 56x56 + Info */}
+            <View style={styles.header}>
+              {/* Grabber nhỏ thanh thoát */}
+              <View style={styles.grabber} />
+
+              {track && (
+                <View style={styles.trackInfoRow}>
+                  {/* Ảnh bìa bo góc 12 mang bóng đổ mềm màu cover */}
+                  <View
+                    style={[
+                      styles.coverWrapper,
+                      {
+                        shadowColor: coverColor,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={coverUrl ? { uri: coverUrl } : null}
+                      style={styles.coverImage}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  </View>
+
+                  {/* Thông tin bài hát */}
+                  <View style={styles.titleWrapper}>
+                    <Text style={styles.trackTitle} numberOfLines={1}>
+                      {track.title}
+                    </Text>
+                    <Text style={styles.trackSubtitle} numberOfLines={1}>
+                      {track.artist} · {formatDuration(track.duration)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* 2. Danh sách Action chuẩn Typography, không icon */}
+            <View style={styles.actionsList}>
+              {mainActions.map((action) => (
+                <ActionRow
+                  key={action.id}
+                  label={action.label}
+                  secondaryText={action.secondaryText}
+                  secondaryColor={action.secondaryColor}
+                  progressPercent={action.progressPercent}
+                  onPress={action.onPress}
+                />
+              ))}
+            </View>
+
+            {/* 3. Nhóm nguy hiểm (cách nhóm trên 12px không kẻ vạch) */}
+            <View style={styles.dangerGroup}>
+              <ActionRow
+                label="Xóa khỏi thư viện"
+                isDestructive
+                onPress={handleDeletePress}
+              />
+            </View>
+          </Animated.View>
+        </GestureDetector>
+      </View>
+    </Modal>
   );
 };
 

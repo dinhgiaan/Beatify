@@ -10,6 +10,10 @@ import {
   StyleSheet,
   Vibration,
   Image,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -291,11 +295,6 @@ export default function PlaylistsScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header Tab Playlist */}
         <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <View style={styles.brandBadge}>
-              <Text style={styles.brandBadgeText}>BEATIFY</Text>
-            </View>
-          </View>
           <View style={styles.headerTitleRow}>
             <View>
               <Text style={styles.headerTitle}>Playlist</Text>
@@ -304,12 +303,12 @@ export default function PlaylistsScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.createBtn}
+              style={styles.createIconBtn}
               onPress={handleOpenCreate}
               activeOpacity={0.8}
+              accessibilityLabel="Tạo playlist mới"
             >
-              <PlusIcon size={16} color={colors.textDark} />
-              <Text style={styles.createBtnText}>Tạo mới</Text>
+              <PlusIcon size={20} color={colors.textDark} />
             </TouchableOpacity>
           </View>
         </View>
@@ -355,73 +354,58 @@ export default function PlaylistsScreen() {
           animationType="fade"
           onRequestClose={() => setCreateModalVisible(false)}
         >
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalBox}>
-                    <View style={styles.modalHeader}>
-                      <Text style={styles.modalTitle}>
-                        {editingPlaylist ? 'Chỉnh sửa Playlist' : 'Tạo Playlist mới'}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => setCreateModalVisible(false)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <CloseIcon size={20} color={colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.modalOverlay}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+                style={styles.modalBox}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {editingPlaylist ? 'Chỉnh sửa Playlist' : 'Tạo Playlist mới'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setCreateModalVisible(false)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <CloseIcon size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
 
-                    {/* Chọn ảnh bìa cho Playlist */}
-                    <View style={styles.coverPickerSection}>
-                      <TouchableOpacity
-                        style={styles.coverPreviewBox}
-                        onPress={handlePickCover}
-                        activeOpacity={0.8}
-                      >
-                        {playlistCover ? (
-                          <Image source={{ uri: playlistCover }} style={styles.coverPreviewImage} />
-                        ) : (
-                          <View style={styles.coverPlaceholder}>
-                            <PlusIcon size={24} color={colors.primary} />
-                            <Text style={styles.coverPlaceholderText}>Thêm ảnh bìa</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-
-                      <View style={styles.coverActionButtons}>
-                        <TouchableOpacity
-                          style={styles.coverActionBtn}
-                          onPress={handlePickCover}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.coverActionBtnText}>
-                            {playlistCover ? 'Đổi ảnh khác' : 'Chọn ảnh từ máy'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        {playlistCover && (
-                          <TouchableOpacity
-                            style={[styles.coverActionBtn, styles.coverRemoveBtn]}
-                            onPress={handleRemoveCover}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={styles.coverRemoveBtnText}>Xóa ảnh bìa</Text>
-                          </TouchableOpacity>
-                        )}
+                {/* Layout 2 cột: Cột 1 là Thêm ảnh bìa, Cột 2 là 2 dòng (Tên & Mô tả) */}
+                <View style={styles.twoColumnSection}>
+                  {/* Cột 1 bên trái: Khung Thêm ảnh bìa */}
+                  <TouchableOpacity
+                    style={styles.coverPreviewBoxTwoCol}
+                    onPress={handlePickCover}
+                    activeOpacity={0.8}
+                    accessibilityLabel="Thêm hoặc đổi ảnh bìa"
+                  >
+                    {playlistCover ? (
+                      <Image source={{ uri: playlistCover }} style={styles.coverPreviewImage} />
+                    ) : (
+                      <View style={styles.coverPlaceholder}>
+                        <PlusIcon size={24} color={colors.primary} />
+                        <Text style={styles.coverPlaceholderText}>Thêm ảnh bìa</Text>
                       </View>
-                    </View>
+                    )}
+                  </TouchableOpacity>
 
+                  {/* Cột 2 bên phải: Dòng 1 Tên playlist, Dòng 2 Mô tả */}
+                  <View style={styles.twoColumnRight}>
                     <TextInput
-                      style={styles.input}
-                      placeholder="Tên danh sách phát (ví dụ: Acoustic Chill...)"
+                      style={styles.twoColInput}
+                      placeholder="Tên danh sách phát..."
                       placeholderTextColor={colors.textTertiary}
                       value={playlistTitle}
                       onChangeText={setPlaylistTitle}
-                      autoFocus={!editingPlaylist}
+                      autoFocus={false}
                       maxLength={60}
                     />
-
                     <TextInput
-                      style={[styles.input, styles.descInput]}
-                      placeholder="Mô tả danh sách phát (tùy chọn)"
+                      style={[styles.twoColInput, styles.twoColDescInput]}
+                      placeholder="Mô tả danh sách phát (tùy chọn)..."
                       placeholderTextColor={colors.textTertiary}
                       value={playlistDesc}
                       onChangeText={setPlaylistDesc}
@@ -429,30 +413,44 @@ export default function PlaylistsScreen() {
                       numberOfLines={3}
                       maxLength={150}
                     />
-
-                      <View style={styles.modalActions}>
-                        <TouchableOpacity
-                          style={styles.modalCancelBtn}
-                          onPress={() => setCreateModalVisible(false)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.modalCancelText}>Hủy</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.modalSaveBtn}
-                          onPress={handleSavePlaylist}
-                          activeOpacity={0.8}
-                        >
-                          <CheckIcon size={16} color={colors.textDark} />
-                          <Text style={styles.modalSaveText}>
-                            {editingPlaylist ? 'Lưu thay đổi' : 'Tạo ngay'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+                  </View>
                 </View>
-              </Modal>
+
+                {/* Nút xóa ảnh bìa nếu đã chọn */}
+                {playlistCover && (
+                  <TouchableOpacity
+                    style={styles.coverRemoveRowBtn}
+                    onPress={handleRemoveCover}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.coverRemoveBtnText}>Xóa ảnh bìa đã chọn</Text>
+                  </TouchableOpacity>
+                )}
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.modalCancelBtn}
+                    onPress={() => setCreateModalVisible(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalCancelText}>Hủy</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.modalSaveBtn}
+                    onPress={handleSavePlaylist}
+                    activeOpacity={0.8}
+                  >
+                    <CheckIcon size={16} color={colors.textDark} />
+                    <Text style={styles.modalSaveText}>
+                      {editingPlaylist ? 'Lưu thay đổi' : 'Tạo ngay'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
             </View>
             );
 }
@@ -500,6 +498,14 @@ export default function PlaylistsScreen() {
               fontSize: fontSizes.captionLarge,
             color: colors.textTertiary,
             marginTop: 2,
+  },
+            createIconBtn: {
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
   },
             createBtn: {
               flexDirection: 'row',
@@ -594,9 +600,10 @@ export default function PlaylistsScreen() {
             modalOverlay: {
               flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             alignItems: 'center',
-            padding: spacing.xl,
+            paddingTop: 70,
+            paddingHorizontal: spacing.xl,
   },
               modalBox: {
               width: '100%',
@@ -618,22 +625,47 @@ export default function PlaylistsScreen() {
             fontSize: fontSizes.title,
             fontWeight: fontWeights.bold,
   },
-              coverPickerSection: {
+              twoColumnSection: {
               flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.md,
-            marginBottom: spacing.lg,
+              gap: spacing.md,
+              marginBottom: spacing.md,
   },
-            coverPreviewBox: {
-              width: 72,
-            height: 72,
-            borderRadius: radius.lg,
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.15)',
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: 'center',
+              coverPreviewBoxTwoCol: {
+              width: 104,
+              height: 104,
+              borderRadius: radius.lg,
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.15)',
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center',
+  },
+              twoColumnRight: {
+              flex: 1,
+              gap: 8,
+  },
+              twoColInput: {
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: radius.md,
+              paddingHorizontal: spacing.sm,
+              paddingVertical: 6,
+              color: colors.textPrimary,
+              fontSize: fontSizes.captionLarge,
+  },
+              twoColDescInput: {
+              height: 62,
+              textAlignVertical: 'top',
+  },
+              coverRemoveRowBtn: {
+              alignSelf: 'flex-start',
+              paddingVertical: 4,
+              paddingHorizontal: spacing.sm,
+              borderRadius: radius.sm,
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              marginBottom: spacing.sm,
   },
             coverPreviewImage: {
               width: '100%',
