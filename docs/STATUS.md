@@ -2,26 +2,29 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tinh chỉnh UI/UX, Vinyl Turntable, Studio Waveform & Smart Transition:
-1. **Lời bài hát (Lyrics):** Highlight đồng bộ cả câu hát tự nhiên, mượt mà (Apple Music style), loại bỏ cắt chữ giật lag.
-2. **Đĩa than & Cần kim chân thực (Vinyl Turntable & Tonearm):** Thiết kế lại mâm đĩa nhôm phay xước viền strobe, rãnh vinyl siêu nét kèm vệt phản quang anisotropic; cần kim Technics SL-1200 S-Shape có khớp gimbal đối trọng và tự động di chuyển tịnh tiến từ rãnh ngoài vào rãnh trong theo tiến độ bài nhạc (`positionSec / durationSec`), kèm rung lắc vi mô analog khi kim đọc đĩa quay.
-3. **Thanh sóng âm thanh Studio (Mastering Spectrum):** Thay thế waveform hoạt hình bằng dải 24 cột sóng thanh mảnh, sắc nét, màu xanh ngọc lục bảo Studio Emerald (`#10B981`) nảy hữu cơ theo phổ tần số thật.
-4. **Hồ sơ cá nhân & Cài đặt:** Xóa dòng chữ placeholder thừa thãi ở bio người dùng; chuyển phần "Dung lượng nhạc ngoại tuyến (offline)" vào bên trong nhóm "Cài đặt kỹ thuật & máy chủ" (Accordion).
-5. **Ảnh bìa thu nhỏ (Artwork Thumbnail):** Hiển thị ảnh bìa trực quan trong Danh sách chờ (Queue list), danh sách Bài hát yêu thích (Favorites) và Chi tiết tuyển tập (Collection details).
-6. **Tiêu đề màn hình tinh gọn:** Loại bỏ tiêu đề lớn trùng lặp với thanh floating tab bar ở các tab Thư viện, Tìm kiếm và Vừa nghe; thay bằng brand badge BEATIFY nhỏ gọn, giải phóng không gian màn hình.
-7. **Kiểm toán & Đồng bộ Playlist YouTube 248 bài:**
-   - Hoàn tất kiểm toán toàn vẹn 248 bài trên ổ đĩa `D:\music for app\(chill)`: 245 bài tải thành công 100% (file audio m4a, bìa jpg, lời lrc, đo ReplayGain).
-   - 3 video không tải được do YouTube: 1 video Private, 1 video đã xóa, 1 video bị METUB Network chặn bản quyền trên YouTube (gắn nhãn lý do rõ ràng).
-   - Nâng cấp công thức tính dung lượng 2 giai đoạn: Giai đoạn 1 (Preview) tính theo bitrate thực tế của YouTube (~18 KB/s) + phụ phí bìa (120KB) & lời (2KB); Giai đoạn 2 (Đã có file) hiển thị dung lượng thực tế 100% từ đĩa cứng (bỏ dấu `~`).
-   - Sửa lỗi khoá file `EPERM` trên Windows cho `youtube_downloads.json` và `overrides.json` bằng hàng đợi mutex và `safeAtomicWrite` (thử lại 6 lần + fallback copy).
-   - Bổ sung hệ thống Badge và Tooltip cảnh báo thông minh: Tự động đánh dấu bài trùng lặp (`⚠️ Cùng bài #X`), giải thích cơ chế gom file chất lượng cao nhất, cảnh báo bài bị ẩn/chặn (`⛔ Không tải được`), và tooltip giải thích số lượng file thực tế tại nút "Chờ đồng bộ" trên Sidebar.
-8. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch (5/5 packages). Không thay đổi native dependency (không cần build lại .ipa).
-9. **Web Dashboard & Đồng bộ:**
-   - Sửa lỗi tạo playlist trên website (bóc tách payload `requestApi` chuẩn xác, tự động hiển thị playlist vừa tạo).
-   - Đảm bảo cơ chế đồng bộ 2 chiều (Web ↔ R2 ↔ iPhone) qua `_meta/state.json`.
-   - Khắc phục triệt để lỗi hiển thị ảnh bìa thư viện cá nhân và hỗ trợ stream HTTP Range 206 mượt mà cho local playback.
-   - Thống nhất thuật toán tìm kiếm tiếng Việt không dấu (`normalizeText`) trên toàn bộ các trang (Thư viện, Playlist, Trình quản lý tải về, Lịch sử tải).
-   - Khắc phục lỗi CI setup ffmpeg và lỗi xcodebuild broken pipe trên GitHub Actions.
+**Phase hiện tại:** Hoàn thành tinh chỉnh toàn diện Mobile App & Web Dashboard (Giai đoạn tiếp theo):
+1. **Lời bài hát (Lyrics trên Mobile):**
+   - Sửa lỗi trễ highlight: thêm độ bù thời gian chính xác 0.6s (`LYRICS_OFFSET_SEC`) giúp highlight bám sát giọng hát của ca sĩ.
+   - Loại bỏ giật lag khi cuộn và đổi dòng bằng cách cố định padding dòng (`paddingVertical: 9`), giảm độ nảy layout.
+   - Giảm font chữ dòng highlight xuống 21px / line 30px (bold), dòng thường 18px / line 26px, cân đối vừa vặn màn hình.
+   - Xóa bỏ hoàn toàn tính năng tạo Poster khi mở lyric theo yêu cầu người dùng.
+   - Anti-cache HTTP cho lời bài hát (`_t=${Date.now()}` và `no-cache, no-store`), nạp tức thì bản chỉnh sửa mới nhất từ Cloudflare R2 (`lyrics-manual/`).
+2. **Hẹn giờ tắt nhạc (Sleep Timer):**
+   - Hiển thị huy hiệu đếm ngược thời gian thực trên Header của màn hình Now Playing (`⏳ Tắt sau mm:ss`) và trên nút Đồng hồ ở bảng điều khiển dưới.
+   - Tính toán dựa trên timestamp hệ thống (`targetMs`), lắng nghe sự kiện `AppState` để đảm bảo khi khoá màn hình iOS hay chạy nền thì timer vẫn đếm chính xác và tự động dừng nhạc khi hết giờ.
+3. **Ảnh bìa sắc nét (HD Album Cover):**
+   - Tích hợp bộ chọn ảnh HD từ thư viện máy (`expo-image-picker`) trong modal chỉnh sửa thông tin bài hát (`EditTrackModal`) với chất lượng nguyên bản 1.0 (không nén mờ), lưu trực tiếp vào cấu hình bài hát.
+4. **Cấu trúc lại Tab Playlist & Bộ sưu tập:**
+   - Tab Playlist (`playlists.tsx`) giờ đây chỉ hiển thị duy nhất các Danh sách phát cá nhân của người dùng, bổ sung đầy đủ bộ công cụ Thêm / Đổi / Xóa ảnh bìa playlist từ thư viện ảnh máy.
+   - Xóa bỏ mục "Nghe gần đây" khỏi tab Playlist (vì đã có tab "Vừa nghe" riêng biệt).
+   - Tách "Bài hát yêu thích" và "Đã tải về máy" sang màn hình Bộ sưu tập chuyên biệt (`collection.tsx`).
+5. **Thanh điều hướng nổi (Floating Tab Bar):**
+   - Tăng độ đậm và tương phản cho thanh tab bar nổi (`rgba(18, 18, 20, 0.95)`, viền sáng `rgba(255, 255, 255, 0.16)`), hiển thị sắc nét không bị quá trong suốt.
+6. **Kiểm tra và xác minh Web Dashboard & Cloudflare R2:**
+   - Giải thích cơ chế thư mục `lyrics-manual/` trên R2 (bảo toàn lời sửa thủ công của người dùng, không bao giờ bị indexer ghi đè).
+   - Khắc phục lỗi hiển thị widget Dung lượng R2 và cache quét bài hát (`/local-api/status` trả về chính xác 802.9 MB / 242 bài đã đồng bộ).
+   - Xác minh API lấy lời bài hát `.lrc` của các bài tải về (`getDownloadLyrics`) hoạt động 100% trơn tru.
+7. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch sẽ cả 5 packages. Không thay đổi native dependency (không cần build lại .ipa).
 **Cập nhật lần cuối:** 2026-11-12
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
