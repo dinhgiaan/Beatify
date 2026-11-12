@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { YoutubeMusicDownloadRecord } from '@music-app/shared';
+import { normalizeText } from '@music-app/shared';
 import { PageHeader } from '../../../ui/organisms/PageHeader';
 import { Select, Checkbox } from '../../../ui/atoms/Controls';
 import { Button } from '../../../ui/atoms/Button';
@@ -262,14 +263,14 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
-      // 1. Filter theo từ khóa
-      const term = searchTerm.toLowerCase().trim();
+      // 1. Filter theo từ khóa (bỏ dấu tiếng Việt, không phân biệt hoa thường)
+      const term = normalizeText(searchTerm.trim());
       const matchSearch =
         !term ||
-        (item.title && item.title.toLowerCase().includes(term)) ||
-        (item.artist && item.artist.toLowerCase().includes(term)) ||
-        (item.album && item.album.toLowerCase().includes(term)) ||
-        (item.relativeFilePath && item.relativeFilePath.toLowerCase().includes(term));
+        normalizeText(item.title || '').includes(term) ||
+        normalizeText(item.artist || '').includes(term) ||
+        normalizeText(item.album || '').includes(term) ||
+        normalizeText(item.relativeFilePath || '').includes(term);
 
       if (!matchSearch) return false;
 

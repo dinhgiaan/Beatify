@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { YoutubeMusicDownloadRecord } from '@music-app/shared';
+import { normalizeText } from '@music-app/shared';
 import { PageHeader } from '../../../ui/organisms/PageHeader';
 import { ModuleNavTabs } from '../../../ui/molecules/ModuleNavTabs';
 import { Select, Checkbox } from '../../../ui/atoms/Controls';
@@ -228,14 +229,14 @@ export const DownloadedVideosManagerPage: React.FC<{
       // Lọc theo Format
       if (formatFilter !== 'all' && d.format !== formatFilter) return false;
 
-      // Tìm kiếm từ khóa
+      // Tìm kiếm từ khóa (bỏ dấu tiếng Việt, không phân biệt hoa thường)
       if (searchTerm.trim() !== '') {
-        const q = searchTerm.toLowerCase();
-        const titleMatch = d.title?.toLowerCase().includes(q);
-        const artistMatch = d.artist?.toLowerCase().includes(q);
-        const albumMatch = d.album?.toLowerCase().includes(q);
-        const videoIdMatch = d.videoId.toLowerCase().includes(q);
-        const pathMatch = d.relativeFilePath?.toLowerCase().includes(q);
+        const q = normalizeText(searchTerm);
+        const titleMatch = normalizeText(d.title || '').includes(q);
+        const artistMatch = normalizeText(d.artist || '').includes(q);
+        const albumMatch = normalizeText(d.album || '').includes(q);
+        const videoIdMatch = normalizeText(d.videoId || '').includes(q);
+        const pathMatch = normalizeText(d.relativeFilePath || '').includes(q);
         if (!titleMatch && !artistMatch && !albumMatch && !videoIdMatch && !pathMatch) {
           return false;
         }
