@@ -457,12 +457,12 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
         playlists: prev.playlists.map((pl) =>
           pl.id === editingPlaylist.id
             ? {
-                ...pl,
-                name: trimmed,
-                description: editPlaylistDesc.trim() || undefined,
-                coverUrl: finalCoverUrl,
-                updatedAt: now,
-              }
+              ...pl,
+              name: trimmed,
+              description: editPlaylistDesc.trim() || undefined,
+              coverUrl: finalCoverUrl,
+              updatedAt: now,
+            }
             : pl
         ),
       }));
@@ -537,11 +537,10 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
             setActiveTab('playlists');
             setSelectedPlaylistId(null);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'playlists'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${activeTab === 'playlists'
               ? 'bg-[#1DB954]/15 text-[#1DB954] border border-[#1DB954]/30'
               : 'text-[var(--text-muted)] hover:text-white hover:bg-white/5'
-          }`}
+            }`}
         >
           <ListMusic size={16} />
           <span>Danh sách phát ({userState.playlists.length})</span>
@@ -553,11 +552,10 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
             setActiveTab('favorites');
             setSelectedPlaylistId(null);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'favorites'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${activeTab === 'favorites'
               ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
               : 'text-[var(--text-muted)] hover:text-white hover:bg-white/5'
-          }`}
+            }`}
         >
           <Heart size={16} className={activeTab === 'favorites' ? 'fill-rose-400' : ''} />
           <span>Bài hát yêu thích ({favoriteTracks.length})</span>
@@ -617,188 +615,188 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                         <ListMusic size={40} className="text-[#1DB954]/70 group-hover:scale-110 transition-transform" />
                       )}
 
-                      {/* Nút hành động nhanh trên góc ảnh: Xem ảnh lớn & Chỉnh sửa */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        {pl.coverUrl && (
+                        {/* Nút hành động nhanh trên góc ảnh: Xem ảnh lớn & Chỉnh sửa */}
+                        <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          {pl.coverUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewCoverUrl(pl.coverUrl || null);
+                                setViewCoverTitle(pl.name);
+                              }}
+                              title="Xem ảnh bìa lớn"
+                              className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-[#1DB954] border border-white/10 shadow transition-colors cursor-pointer"
+                            >
+                              <Eye size={13} />
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setViewCoverUrl(pl.coverUrl || null);
-                              setViewCoverTitle(pl.name);
-                            }}
-                            title="Xem ảnh bìa lớn"
-                            className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-[#1DB954] border border-white/10 shadow transition-colors cursor-pointer"
+                            onClick={(e) => handleOpenEditPlaylist(pl, e)}
+                            title="Sửa tên, mô tả & Đổi ảnh bìa Playlist"
+                            className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/10 shadow transition-colors cursor-pointer"
                           >
-                            <Eye size={13} />
+                            <Edit3 size={13} />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => handleOpenEditPlaylist(pl, e)}
-                          title="Sửa tên, mô tả & Đổi ảnh bìa Playlist"
-                          className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/10 shadow transition-colors cursor-pointer"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                      </div>
+                        </div>
 
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                        <div className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-lg">
-                          <ChevronRight size={20} />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shadow-lg">
+                            <ChevronRight size={20} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-sm font-bold text-white truncate group-hover:text-[#1DB954] transition-colors">
-                        {pl.name}
-                      </h4>
-                      <Badge variant="neutral" className="text-[10px] shrink-0">
-                        {pl.trackIds.length} bài
-                      </Badge>
-                    </div>
-                    {pl.description && (
-                      <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-2">
-                        {pl.description}
-                      </p>
-                    )}
-                    <div className="mt-auto pt-2 text-[11px] text-[var(--text-muted)] flex items-center justify-between">
-                      <span
-                        onClick={(e) => handleOpenEditPlaylist(pl, e)}
-                        className="hover:text-[#1DB954] transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        <Edit3 size={11} /> Sửa playlist
-                      </span>
-                      {pl.coverUrl ? (
-                        <span className="text-[#1DB954] text-[10.5px]">Có ảnh bìa</span>
-                      ) : (
-                        <span className="text-zinc-500 text-[10.5px]">Chưa có ảnh</span>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-sm font-bold text-white truncate group-hover:text-[#1DB954] transition-colors">
+                          {pl.name}
+                        </h4>
+                        <Badge variant="neutral" className="text-[10px] shrink-0">
+                          {pl.trackIds.length} bài
+                        </Badge>
+                      </div>
+                      {pl.description && (
+                        <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-2">
+                          {pl.description}
+                        </p>
                       )}
+                      <div className="mt-auto pt-2 text-[11px] text-[var(--text-muted)] flex items-center justify-between">
+                        <span
+                          onClick={(e) => handleOpenEditPlaylist(pl, e)}
+                          className="hover:text-[#1DB954] transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <Edit3 size={11} /> Sửa playlist
+                        </span>
+                        {pl.coverUrl ? (
+                          <span className="text-[#1DB954] text-[10.5px]">Có ảnh bìa</span>
+                        ) : (
+                          <span className="text-zinc-500 text-[10.5px]">Chưa có ảnh</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
                 ))}
-              </div>
-            )
-          ) : (
-            /* Chi tiết Playlist đang chọn */
-            activePlaylist && (
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPlaylistId(null)}
-                    className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft size={16} />
-                    <span>Quay lại danh sách Playlist</span>
-                  </button>
+                  </div>
+                )
+                ) : (
+                /* Chi tiết Playlist đang chọn */
+                activePlaylist && (
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlaylistId(null)}
+                      className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft size={16} />
+                      <span>Quay lại danh sách Playlist</span>
+                    </button>
 
-                  <div className="flex items-center gap-2">
-                    {selectedPlaylistTrackIds.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      {selectedPlaylistTrackIds.size > 0 && (
+                        <Button
+                          variant="danger"
+                          onClick={handleBatchRemoveTracksFromPlaylist}
+                          className="flex items-center gap-1.5 text-xs bg-rose-500/20 text-rose-300 border-rose-500/30"
+                        >
+                          <Trash2 size={13} />
+                          <span>Xóa {selectedPlaylistTrackIds.size} bài khỏi Playlist</span>
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleOpenEditPlaylist(activePlaylist)}
+                        className="flex items-center gap-1.5 text-xs"
+                      >
+                        <Edit3 size={14} />
+                        <span>Sửa Playlist</span>
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => setIsAddTracksModalOpen(true)}
+                        className="flex items-center gap-2 text-xs"
+                      >
+                        <Plus size={14} />
+                        <span>Thêm bài hát</span>
+                      </Button>
+
                       <Button
                         variant="danger"
-                        onClick={handleBatchRemoveTracksFromPlaylist}
-                        className="flex items-center gap-1.5 text-xs bg-rose-500/20 text-rose-300 border-rose-500/30"
+                        onClick={() => setPlaylistToDelete(activePlaylist)}
+                        className="flex items-center gap-2 text-xs"
                       >
-                        <Trash2 size={13} />
-                        <span>Xóa {selectedPlaylistTrackIds.size} bài khỏi Playlist</span>
+                        <Trash2 size={14} />
+                        <span>Xóa Playlist</span>
                       </Button>
-                    )}
-
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleOpenEditPlaylist(activePlaylist)}
-                      className="flex items-center gap-1.5 text-xs"
-                    >
-                      <Edit3 size={14} />
-                      <span>Sửa Playlist</span>
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsAddTracksModalOpen(true)}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <Plus size={14} />
-                      <span>Thêm bài hát</span>
-                    </Button>
-
-                    <Button
-                      variant="danger"
-                      onClick={() => setPlaylistToDelete(activePlaylist)}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <Trash2 size={14} />
-                      <span>Xóa Playlist</span>
-                    </Button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Header Playlist */}
-                <div className="flex items-start gap-5 p-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]">
-                  {/* Khung ảnh bìa Playlist */}
-                  <div className="flex flex-col items-center gap-2 shrink-0">
-                    <input
-                      type="file"
-                      ref={activePlaylistCoverInputRef}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file && activePlaylist) {
-                          handleUploadPlaylistCover(activePlaylist.id, file);
-                        }
-                      }}
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                    />
+                  {/* Header Playlist */}
+                  <div className="flex items-start gap-5 p-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]">
+                    {/* Khung ảnh bìa Playlist */}
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <input
+                        type="file"
+                        ref={activePlaylistCoverInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && activePlaylist) {
+                            handleUploadPlaylistCover(activePlaylist.id, file);
+                          }
+                        }}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                      />
 
-                    <div
-                      onClick={() => {
-                        if (activePlaylist.coverUrl) {
-                          setViewCoverUrl(activePlaylist.coverUrl);
-                          setViewCoverTitle(activePlaylist.name);
-                        } else {
-                          activePlaylistCoverInputRef.current?.click();
-                        }
-                      }}
-                      className="w-24 h-24 rounded-xl bg-black/50 border border-[var(--border)] flex items-center justify-center relative overflow-hidden group cursor-pointer shadow-md hover:border-[#1DB954]/50 transition-colors"
-                      title={activePlaylist.coverUrl ? 'Bấm để phóng to xem ảnh bìa' : 'Bấm để thêm ảnh bìa Playlist'}
-                    >
-                      {activePlaylist.coverUrl ? (
-                        <img
-                          src={activePlaylist.coverUrl}
-                          alt={activePlaylist.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <ListMusic size={36} className="text-[#1DB954]" />
-                      )}
-
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
+                      <div
+                        onClick={() => {
+                          if (activePlaylist.coverUrl) {
+                            setViewCoverUrl(activePlaylist.coverUrl);
+                            setViewCoverTitle(activePlaylist.name);
+                          } else {
+                            activePlaylistCoverInputRef.current?.click();
+                          }
+                        }}
+                        className="w-24 h-24 rounded-xl bg-black/50 border border-[var(--border)] flex items-center justify-center relative overflow-hidden group cursor-pointer shadow-md hover:border-[#1DB954]/50 transition-colors"
+                        title={activePlaylist.coverUrl ? 'Bấm để phóng to xem ảnh bìa' : 'Bấm để thêm ảnh bìa Playlist'}
+                      >
                         {activePlaylist.coverUrl ? (
-                          <>
-                            <Eye size={18} className="text-[#1DB954]" />
-                            <span className="text-[10px] font-semibold">Xem ảnh</span>
-                          </>
+                          <img
+                            src={activePlaylist.coverUrl}
+                            alt={activePlaylist.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         ) : (
-                          <>
-                            <Upload size={18} className="text-[#1DB954]" />
-                            <span className="text-[10px] font-semibold">Thêm ảnh</span>
-                          </>
+                          <ListMusic size={36} className="text-[#1DB954]" />
+                        )}
+
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
+                          {activePlaylist.coverUrl ? (
+                            <>
+                              <Eye size={18} className="text-[#1DB954]" />
+                              <span className="text-[10px] font-semibold">Xem ảnh</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={18} className="text-[#1DB954]" />
+                              <span className="text-[10px] font-semibold">Thêm ảnh</span>
+                            </>
+                          )}
+                        </div>
+
+                        {isUploadingPlaylistCover && (
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                            <Loader2 size={20} className="animate-spin text-[#1DB954]" />
+                          </div>
                         )}
                       </div>
 
-                      {isUploadingPlaylistCover && (
-                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                          <Loader2 size={20} className="animate-spin text-[#1DB954]" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cụm nút thao tác nhanh ảnh bìa */}
-                    <div className="flex items-center gap-2">
+                        {/* Cụm nút thao tác nhanh ảnh bìa */ }
+                        < div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => activePlaylistCoverInputRef.current?.click()}
@@ -1265,16 +1263,14 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                         isSelected ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                       );
                     }}
-                    className={`flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-[#1DB954]/10' : ''
-                    }`}
+                    className={`flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer transition-colors ${isSelected ? 'bg-[#1DB954]/10' : ''
+                      }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${
-                        isSelected
+                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected
                           ? 'bg-[#1DB954] border-[#1DB954] text-black'
                           : 'border-[var(--border)] bg-black/40'
-                      }`}
+                        }`}
                     >
                       {isSelected && <Check size={14} className="stroke-[3]" />}
                     </div>
@@ -1425,10 +1421,10 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                   {editCoverFile
                     ? editCoverFile.name
                     : editRemoveCover
-                    ? 'Ảnh bìa sẽ được xóa sau khi lưu'
-                    : editCoverPreview
-                    ? 'Đang dùng ảnh bìa hiện tại'
-                    : 'Đề xuất ảnh vuông chuẩn 1:1 (JPG, PNG, WEBP)'}
+                      ? 'Ảnh bìa sẽ được xóa sau khi lưu'
+                      : editCoverPreview
+                        ? 'Đang dùng ảnh bìa hiện tại'
+                        : 'Đề xuất ảnh vuông chuẩn 1:1 (JPG, PNG, WEBP)'}
                 </p>
               </div>
             </div>
