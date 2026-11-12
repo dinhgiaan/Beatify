@@ -22,7 +22,10 @@
    - Search bar bo tròn mềm mại không icon kính lúp, debounce 300ms, text link "Xóa" khi có text, text link "Hủy" khi focus.
    - Trạng thái chưa nhập text: Mục "Nghệ sĩ nghe nhiều" dạng chip text và "Gần đây" (hỗ trợ vuốt trái để xóa từng mục, link "Xóa tất cả").
    - Khi có kết quả: Filter tabs dạng text ("Tất cả", "Bài hát", "Nghệ sĩ") kèm gạch chân xanh 2px; highlight từ khóa khớp chuẩn tiếng Việt có/không dấu qua `searchHighlight.ts`; nhấn giữ mở `TrackActionSheet`.
-5. **Toàn bộ monorepo:** 270/270 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Đã push lên GitHub nhánh `main`.
+5. **Web Dashboard (tools/dashboard):**
+   - Nâng cấp Modal thêm bài hát vào Playlist: mở rộng kích thước rộng rãi (`max-w-4xl`), thêm nút chọn tất cả (Select All) / bỏ chọn tất cả, tích hợp thumbnail ảnh bìa 38x38, hiển thị ngày tải (mtimeMs) và thời lượng.
+   - Bổ sung bộ lọc thời gian tải (Tất cả / 24h qua / 7 ngày qua) và tùy chọn sắp xếp (Mới tải gần đây / Tên bài hát A-Z / Nghệ sĩ A-Z), giúp 1-click thêm toàn bộ bài hát vừa tải từ YouTube vào playlist.
+6. **Toàn bộ monorepo:** 270/270 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Đã push lên GitHub nhánh `main`.
 **Cập nhật lần cuối:** 2026-11-12
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
