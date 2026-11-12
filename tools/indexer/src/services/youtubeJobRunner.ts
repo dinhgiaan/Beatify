@@ -436,6 +436,8 @@ class YoutubeJobRunner extends EventEmitter {
     const workerCount = Math.min(concurrency, total);
     const completedItemIds = new Set<string>();
     const activeItemIds = new Set<string>();
+    const failedItemIds = new Set<string>();
+    const failedDetails: { id?: string; url: string; title?: string; artist?: string; error: string }[] = [];
 
     const workers = Array.from({ length: workerCount }, async () => {
       while (currentIndex < urls.length) {
@@ -598,8 +600,18 @@ class YoutubeJobRunner extends EventEmitter {
           failed++;
           activeItemIds.delete(url);
           if (override?.id) activeItemIds.delete(override.id);
+          failedItemIds.add(url);
+          if (override?.id) failedItemIds.add(override.id);
+          const errStr = err instanceof Error ? err.message : String(err);
+          failedDetails.push({
+            id: override?.id,
+            url,
+            title: override?.cleanTitle || record.title || undefined,
+            artist: override?.artist || record.artist || undefined,
+            error: errStr,
+          });
           record.status = 'failed';
-          record.errorMessage = err instanceof Error ? err.message : String(err);
+          record.errorMessage = errStr;
           await this.addOrUpdateDownload(record).catch(() => {});
         }
       }
@@ -626,6 +638,8 @@ class YoutubeJobRunner extends EventEmitter {
         },
         completedItemIds: Array.from(completedItemIds),
         activeItemIds: [],
+        failedItemIds: Array.from(failedItemIds),
+        failedDetails,
       });
 
       this.activeJobs.delete(jobId);

@@ -61,6 +61,18 @@ export const JobEventSchema = z.object({
   resumeAt: z.string().nullable().optional(),
   completedItemIds: z.array(z.string()).optional(),
   activeItemIds: z.array(z.string()).optional(),
+  failedItemIds: z.array(z.string()).optional(),
+  failedDetails: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        url: z.string(),
+        title: z.string().optional(),
+        artist: z.string().optional(),
+        error: z.string(),
+      })
+    )
+    .optional(),
 });
 export type JobEvent = z.infer<typeof JobEventSchema>;
 
