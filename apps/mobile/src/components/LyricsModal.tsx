@@ -114,7 +114,7 @@ export function LyricsModal({
         const realY = lineYOffsets.current[activeIndex];
         const targetY =
           typeof realY === 'number'
-            ? Math.max(0, realY - 160)
+            ?Math.max(0, realY - 160)
             : Math.max(0, activeIndex * DEFAULT_LINE_HEIGHT - 160);
         scrollRef.current?.scrollTo({ y: targetY, animated: true });
       }

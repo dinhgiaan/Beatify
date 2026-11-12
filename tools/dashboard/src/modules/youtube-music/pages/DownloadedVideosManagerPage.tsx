@@ -75,6 +75,7 @@ export const DownloadedVideosManagerPage: React.FC<{
   const [tracksForR2Review, setTracksForR2Review] = useState<YoutubeMusicDownloadRecord[]>([]);
 
   const [viewingCover, setViewingCover] = useState<{
+    id?: string;
     url: string;
     title: string;
     artist: string;
@@ -656,6 +657,7 @@ export const DownloadedVideosManagerPage: React.FC<{
                     onClick={(e) => {
                       e.stopPropagation();
                       setViewingCover({
+                        id: item.id,
                         url: `/local-api/downloads/${encodeURIComponent(item.id)}/cover`,
                         title: item.title || '',
                         artist: item.artist || '',
@@ -1024,7 +1026,7 @@ export const DownloadedVideosManagerPage: React.FC<{
         />
       )}
 
-      {/* Dialog xem ảnh bìa lớn */}
+      {/* Dialog xem ảnh bìa lớn kèm tải / đổi ảnh HD */}
       {viewingCover && (
         <CoverViewerDialog
           isOpen={Boolean(viewingCover)}
@@ -1032,6 +1034,11 @@ export const DownloadedVideosManagerPage: React.FC<{
           imageUrl={viewingCover.url}
           title={viewingCover.title}
           artist={viewingCover.artist}
+          trackId={viewingCover.id}
+          onCoverUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['yt-downloads'] });
+            queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+          }}
         />
       )}
 

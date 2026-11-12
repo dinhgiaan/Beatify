@@ -110,7 +110,7 @@ export class MusicApiClient {
   async fetchLyrics(id: string): Promise<string | null> {
     const timestamp = Date.now();
     const url = this.token
-      ? `${this.baseUrl}/lyrics/${id}?t=${encodeURIComponent(this.token)}&_t=${timestamp}`
+      ?`${this.baseUrl}/lyrics/${id}?t=${encodeURIComponent(this.token)}&_t=${timestamp}`
       : `${this.baseUrl}/lyrics/${id}?_t=${timestamp}`;
     const res = await fetch(url, {
       method: 'GET',

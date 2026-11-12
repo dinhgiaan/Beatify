@@ -88,6 +88,7 @@ export const TrackOverrideSchema = z.object({
   trackNumber: z.number().int().optional(),
   loudnessLufs: z.number().optional(),
   replayGain: z.number().optional(),
+  cover: z.string().optional(),
   hidden: z.boolean().optional(),
   deletedAt: z.string().optional(),
   purged: z.boolean().optional(),

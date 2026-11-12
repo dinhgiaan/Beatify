@@ -25,6 +25,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Download,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -34,6 +37,7 @@ import { Dialog } from '../../ui/organisms/Dialog';
 import { ConfirmDialog } from '../../ui/molecules/ConfirmDialog';
 import { requestApi } from '../../core/api-client';
 import { ArtistHoverCard } from '../artists/components/ArtistHoverCard';
+import { CoverViewerDialog } from '../youtube-music/components/CoverViewerDialog';
 import { normalizeText } from '@music-app/shared';
 import type { PlayingTrack } from '../../app/Layout';
 
@@ -94,6 +98,18 @@ export const LibraryPage: React.FC<{
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
   const [editAlbum, setEditAlbum] = useState('');
+  const [coverTimestamp, setCoverTimestamp] = useState<number>(Date.now());
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const editCoverInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Dialog xem ảnh bìa lớn HD
+  const [viewingCover, setViewingCover] = useState<{
+    isOpen: boolean;
+    trackId: string;
+    imageUrl: string;
+    title: string;
+    artist: string;
+  } | null>(null);
 
   // Trash confirm state (single track)
   const [trashTrack, setTrashTrack] = useState<TrackItem | null>(null);
@@ -393,6 +409,90 @@ export const LibraryPage: React.FC<{
         album: editAlbum.trim(),
       },
     });
+  };
+
+  // Tải ảnh bìa chất lượng cao về máy tính
+  const handleDownloadTrackCover = async (track: TrackItem) => {
+    try {
+      const coverUrl = `/local-api/covers/${track.albumId || track.id}.jpg`;
+      const res = await fetch(coverUrl);
+      if (!res.ok) throw new Error('Bài hát chưa có ảnh bìa hoặc không thể tải từ server');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = (track.title || 'Track').replace(/[/\\?%*:|"<>]/g, '_');
+      const safeArtist = (track.artist || 'Artist').replace(/[/\\?%*:|"<>]/g, '_');
+      a.download = `${safeArtist} - ${safeTitle} - Cover.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Đã tải ảnh bìa "${safeTitle}" về máy tính!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải ảnh: ${msg}`);
+    }
+  };
+
+  // Chọn ảnh từ máy tính để tải lên làm bìa mới (HD)
+  const handleUploadNewCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingTrack) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file hình ảnh hợp lệ (.jpg, .png, .webp)');
+      return;
+    }
+
+    try {
+      setIsUploadingCover(true);
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const res = await fetch(`/local-api/tracks/${editingTrack.id}/cover`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Lỗi server khi lưu ảnh bìa mới');
+      }
+
+      setCoverTimestamp(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      toast.success('Đã cập nhật ảnh bìa mới sắc nét (HD) thành công!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Không thể cập nhật ảnh bìa: ${msg}`);
+    } finally {
+      setIsUploadingCover(false);
+      if (editCoverInputRef.current) editCoverInputRef.current.value = '';
+    }
+  };
+
+  // Xóa ảnh bìa của bài hát
+  const handleDeleteCover = async () => {
+    if (!editingTrack) return;
+    try {
+      setIsUploadingCover(true);
+      const res = await fetch(`/local-api/tracks/${editingTrack.id}/cover`, {
+        method: 'DELETE',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      if (!res.ok) throw new Error('Lỗi server khi xóa ảnh bìa');
+      setCoverTimestamp(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      toast.success('Đã xóa ảnh bìa thành công!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Không thể xóa ảnh bìa: ${msg}`);
+    } finally {
+      setIsUploadingCover(false);
+    }
   };
 
   const formatDuration = (sec: number) => {
@@ -786,7 +886,7 @@ export const LibraryPage: React.FC<{
           </div>
 
           {/* Cột 7: Thao tác */}
-          <div className="w-20 shrink-0 text-right">
+          <div className="w-24 shrink-0 text-right">
             <span>Thao tác</span>
           </div>
         </div>
@@ -996,8 +1096,26 @@ export const LibraryPage: React.FC<{
                 {formatDuration(t.duration)}
               </div>
 
-              {/* Cột 7: Nút Thao tác (Sửa siêu dữ liệu, Chuyển vào thùng rác) */ }
-              <div className="w-20 shrink-0 flex items-center justify-end gap-1.5">
+              {/* Cột 7: Nút Thao tác (Xem/Tải/Đổi ảnh bìa, Sửa siêu dữ liệu, Chuyển vào thùng rác) */}
+              <div className="w-24 shrink-0 flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const coverUrl = `/local-api/covers/${t.albumId || t.id}.jpg?_t=${coverTimestamp}`;
+                    setViewingCover({
+                      isOpen: true,
+                      trackId: t.id,
+                      imageUrl: coverUrl,
+                      title: t.title,
+                      artist: t.artist,
+                    });
+                  }}
+                  className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-400 text-zinc-400 cursor-pointer transition-colors"
+                  title="Xem, tải về hoặc đổi ảnh bìa HD"
+                >
+                  <ImageIcon size={13} />
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleOpenEdit(t)}
@@ -1218,6 +1336,93 @@ export const LibraryPage: React.FC<{
     }
   >
     <div className="space-y-3.5 py-1">
+      {/* Khối quản lý ảnh bìa sắc nét HD */}
+      {editingTrack && (
+        <div className="p-3.5 rounded-2xl bg-black/30 border border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[11.5px] font-semibold text-zinc-300 flex items-center gap-1.5">
+              <ImageIcon size={14} className="text-[#1DB954]" />
+              <span>Ảnh bìa bài hát (Album Artwork HD)</span>
+            </label>
+            <span className="text-[10px] text-zinc-400">Tỷ lệ vuông 1:1</span>
+          </div>
+
+          <div className="flex items-center gap-3.5">
+            {/* Khung xem ảnh bìa */}
+            <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/50 shrink-0 flex items-center justify-center relative shadow-md group">
+              <Music size={24} className="text-zinc-600 shrink-0" />
+              {(editingTrack.albumId || editingTrack.id) && (
+                <img
+                  key={coverTimestamp}
+                  src={`/local-api/covers/${editingTrack.albumId || editingTrack.id}.jpg?_t=${coverTimestamp}`}
+                  alt={editTitle}
+                  className="w-full h-full object-cover absolute inset-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+              {isUploadingCover && (
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                  <Loader2 size={18} className="animate-spin text-[#1DB954]" />
+                </div>
+              )}
+            </div>
+
+            {/* Các nút bấm thao tác ảnh bìa */}
+            <div className="flex-1 space-y-2">
+              <input
+                type="file"
+                ref={editCoverInputRef}
+                onChange={handleUploadNewCover}
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+              />
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Nút Đổi ảnh bìa mới */}
+                <button
+                  type="button"
+                  onClick={() => editCoverInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1DB954] hover:bg-[#1ed760] text-black transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                  title="Chọn file ảnh từ máy tính để tải lên làm bìa mới"
+                >
+                  <Upload size={13} />
+                  <span>Đổi ảnh mới</span>
+                </button>
+
+                {/* Nút Tải ảnh HD về máy */}
+                <button
+                  type="button"
+                  onClick={() => handleDownloadTrackCover(editingTrack)}
+                  disabled={isUploadingCover}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-colors cursor-pointer active:scale-95 shadow-xs"
+                  title="Tải ảnh bìa gốc độ nét cao về máy tính"
+                >
+                  <Download size={13} className="text-[#1DB954]" />
+                  <span>Tải ảnh HD</span>
+                </button>
+
+                {/* Nút Xóa ảnh bìa */}
+                <button
+                  type="button"
+                  onClick={handleDeleteCover}
+                  disabled={isUploadingCover}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer active:scale-95 shadow-xs"
+                  title="Xóa ảnh bìa của bài hát"
+                >
+                  <Trash2 size={12} />
+                  <span>Xóa</span>
+                </button>
+              </div>
+              <p className="text-[10.5px] text-zinc-400 leading-tight">
+                Hỗ trợ ảnh JPG, PNG, WEBP. Ảnh mới sẽ tự động lưu và đồng bộ lên R2.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <label className="block text-[11.5px] font-medium text-[var(--text-secondary)] mb-1">
           Tên bài hát
@@ -1386,6 +1591,23 @@ export const LibraryPage: React.FC<{
       batchMoveToTrashMutation.mutate(Array.from(selectedTrackIds));
     }}
   />
+
+  {/* Hộp thoại xem ảnh bìa lớn HD kèm tải / đổi ảnh */}
+  {viewingCover && (
+    <CoverViewerDialog
+      isOpen={viewingCover.isOpen}
+      onClose={() => setViewingCover(null)}
+      imageUrl={viewingCover.imageUrl}
+      title={viewingCover.title}
+      artist={viewingCover.artist}
+      trackId={viewingCover.trackId}
+      onCoverUpdated={(newUrl) => {
+        setCoverTimestamp(Date.now());
+        queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+        queryClient.invalidateQueries({ queryKey: ['system-status'] });
+      }}
+    />
+  )}
     </div >
   );
 };

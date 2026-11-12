@@ -175,6 +175,7 @@ export function applyOverridesToScanned(
       if (ov.trackNumber !== undefined) updatedTrack.trackNumber = ov.trackNumber;
       if (ov.loudnessLufs !== undefined) updatedTrack.loudnessLufs = ov.loudnessLufs;
       if (ov.replayGain !== undefined) updatedTrack.replayGain = ov.replayGain;
+      if (ov.cover !== undefined) updatedTrack.cover = ov.cover;
     }
 
     // Áp dụng gộp nghệ sĩ từ artistAliases nếu có

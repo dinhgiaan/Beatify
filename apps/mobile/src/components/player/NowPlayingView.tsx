@@ -285,21 +285,21 @@ export function NowPlayingView() {
           <Text style={styles.headerTitle}>
             {showQueue ? 'HÀNG ĐỢI PHÁT' : 'ĐANG PHÁT'}
           </Text>
-          {sleepTimerRemainingSec !== null ? (
-            <TouchableOpacity
-              style={styles.timerHeaderBadge}
-              onPress={() => setSleepTimerDialogVisible(true)}
-              activeOpacity={0.7}
-            >
-              <ClockIcon size={11} color={colors.primary} />
-              <Text style={styles.timerHeaderBadgeText}>
-                Tắt sau {formatTime(sleepTimerRemainingSec)}
+            { sleepTimerRemainingSec !== null ? (
+              <TouchableOpacity
+                style={styles.timerHeaderBadge}
+                onPress={() => setSleepTimerDialogVisible(true)}
+                activeOpacity={0.7}
+              >
+                <ClockIcon size={11} color={colors.primary} />
+                <Text style={styles.timerHeaderBadgeText}>
+                  Tắt sau {formatTime(sleepTimerRemainingSec)}
+                </Text>
+              </TouchableOpacity>
+            ) : currentTrack?.album && !showQueue ? (
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                {currentTrack.album}
               </Text>
-            </TouchableOpacity>
-          ) : currentTrack?.album && !showQueue ? (
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {currentTrack.album}
-            </Text>
           ) : null}
         </View>
 
@@ -405,7 +405,7 @@ export function NowPlayingView() {
                   >
                     <View style={styles.queueItemIndex}>
                       {isCurrent ? (
-                    <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
+                        <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
                       ) : (
                         <Text style={styles.queueIndexText}>{index + 1}</Text>
                       )}

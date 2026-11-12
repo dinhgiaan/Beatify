@@ -562,114 +562,114 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => {
-      clearInterval(interval);
-      sub.remove();
-    };
-  }, [sleepTimerMinutes]);
+  return () => {
+    clearInterval(interval);
+    sub.remove();
+  };
+}, [sleepTimerMinutes]);
 
-  // Xử lý khi bài hát bị xóa khỏi app
-  const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {
-    const targetIdx = tracks.findIndex((t) => t.id === trackId);
-    if (tracks[currentTrackIndex]?.id === trackId) {
-      if (updatedList.length > 0) {
-        const nextIdx = Math.min(targetIdx, updatedList.length - 1);
-        setCurrentTrackIndex(nextIdx);
-        await playQueue(updatedList, nextIdx);
-      } else {
-        setCurrentTrackIndex(0);
-        await playerService.pause();
-      }
-    } else if (targetIdx < currentTrackIndex) {
-      setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+// Xử lý khi bài hát bị xóa khỏi app
+const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {
+  const targetIdx = tracks.findIndex((t) => t.id === trackId);
+  if (tracks[currentTrackIndex]?.id === trackId) {
+    if (updatedList.length > 0) {
+      const nextIdx = Math.min(targetIdx, updatedList.length - 1);
+      setCurrentTrackIndex(nextIdx);
+      await playQueue(updatedList, nextIdx);
+    } else {
+      setCurrentTrackIndex(0);
+      await playerService.pause();
     }
-  }, [tracks, currentTrackIndex, playQueue]);
+  } else if (targetIdx < currentTrackIndex) {
+    setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+  }
+}, [tracks, currentTrackIndex, playQueue]);
 
-  // Cập nhật giới hạn số lượng bài nghe gần đây
-  const setRecentLimit = useCallback(async (limit: number) => {
-    Vibration.vibrate(10);
-    setRecentTracksData((prev) => {
-      const updated = updateRecentLimit(limit, prev);
-      saveRecentTracks(updated).catch(() => { });
-      return updated;
-    });
-  }, []);
+// Cập nhật giới hạn số lượng bài nghe gần đây
+const setRecentLimit = useCallback(async (limit: number) => {
+  Vibration.vibrate(10);
+  setRecentTracksData((prev) => {
+    const updated = updateRecentLimit(limit, prev);
+    saveRecentTracks(updated).catch(() => { });
+    return updated;
+  });
+}, []);
 
-  // Xóa danh sách bài nghe gần đây
-  const clearRecentTracks = useCallback(async () => {
-    Vibration.vibrate(10);
-    setRecentTracksData((prev) => {
-      const updated = { ...prev, trackIds: [] };
-      saveRecentTracks(updated).catch(() => { });
-      return updated;
-    });
-  }, []);
+// Xóa danh sách bài nghe gần đây
+const clearRecentTracks = useCallback(async () => {
+  Vibration.vibrate(10);
+  setRecentTracksData((prev) => {
+    const updated = { ...prev, trackIds: [] };
+    saveRecentTracks(updated).catch(() => { });
+    return updated;
+  });
+}, []);
 
-  // Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
-  const recentTracks = useMemo(() => {
-    const trackMap = new Map<string, Track>();
-    for (const t of tracks) {
-      trackMap.set(t.id, t);
-    }
-    return recentTracksData.trackIds
-      .map((id) => trackMap.get(id))
-      .filter((t): t is Track => t !== undefined);
-  }, [tracks, recentTracksData.trackIds]);
+// Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
+const recentTracks = useMemo(() => {
+  const trackMap = new Map<string, Track>();
+  for (const t of tracks) {
+    trackMap.set(t.id, t);
+  }
+  return recentTracksData.trackIds
+    .map((id) => trackMap.get(id))
+    .filter((t): t is Track => t !== undefined);
+}, [tracks, recentTracksData.trackIds]);
 
-  const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
-  const gaplessDeltaMs = playerService.getGaplessDeltaMs();
+const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
+const gaplessDeltaMs = playerService.getGaplessDeltaMs();
 
-  return (
-    <PlayerContext.Provider
-      value={{
-        tracks,
-        currentTrackIndex,
-        setCurrentTrackIndex,
-        currentTrack,
-        playerState,
-        repeatMode,
-        isSmartShuffle,
-        setIsSmartShuffle,
-        sortMode,
-        setSortMode,
-        recentTracks,
-        recentLimit: recentTracksData.limit,
-        setRecentLimit,
-        clearRecentTracks,
-        playQueue,
-        togglePlay,
-        next,
-        previous,
-        skipToTrack,
-        seekOffset,
-        seekTo,
-        cycleRepeat,
-        customLoopTarget,
-        customLoopRemaining,
-        setCustomLoopCount,
-        isVinylMode,
-        toggleVinylMode,
-        transitionSettings,
-        updateTransitionSettings,
-        toggleSmartShuffle,
-        applySortMode,
-        addCustomTrack,
-        removeFromQueue,
-        moveQueueItem,
-        sleepTimerMinutes,
-        sleepTimerRemainingSec,
-        setSleepTimer,
-        handleTrackDeleted,
-        gaplessDeltaMs,
-        atomicWriteBranch,
-        lastMoveError,
-        recoveryStatus,
-        writeQueueStatus,
-      }}
-    >
-      {children}
-    </PlayerContext.Provider>
-  );
+return (
+  <PlayerContext.Provider
+    value={{
+      tracks,
+      currentTrackIndex,
+      setCurrentTrackIndex,
+      currentTrack,
+      playerState,
+      repeatMode,
+      isSmartShuffle,
+      setIsSmartShuffle,
+      sortMode,
+      setSortMode,
+      recentTracks,
+      recentLimit: recentTracksData.limit,
+      setRecentLimit,
+      clearRecentTracks,
+      playQueue,
+      togglePlay,
+      next,
+      previous,
+      skipToTrack,
+      seekOffset,
+      seekTo,
+      cycleRepeat,
+      customLoopTarget,
+      customLoopRemaining,
+      setCustomLoopCount,
+      isVinylMode,
+      toggleVinylMode,
+      transitionSettings,
+      updateTransitionSettings,
+      toggleSmartShuffle,
+      applySortMode,
+      addCustomTrack,
+      removeFromQueue,
+      moveQueueItem,
+      sleepTimerMinutes,
+      sleepTimerRemainingSec,
+      setSleepTimer,
+      handleTrackDeleted,
+      gaplessDeltaMs,
+      atomicWriteBranch,
+      lastMoveError,
+      recoveryStatus,
+      writeQueueStatus,
+    }}
+  >
+    {children}
+  </PlayerContext.Provider>
+);
 }
 
 export function usePlayer(): PlayerContextValue {
