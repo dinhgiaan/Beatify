@@ -83,7 +83,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             styles.activePillIndicator,
             {
               width: `${tabWidthPercent}%`,
-              left: indicatorLeft as any,
+              left: indicatorLeft,
             },
           ]}
         />

@@ -165,92 +165,92 @@ export default function SearchScreen() {
       }
       return matchTitle || matchArtist;
     });
-}, [tracks, debouncedQuery, selectedFilter]);
+  }, [tracks, debouncedQuery, selectedFilter]);
 
-const recordToHistory = useCallback((trackId: string) => {
-  setHistoryData((prev) => {
-    const next = addTrackToSearchHistory(trackId, prev);
-    saveSearchHistory(next);
-    return next;
-  });
-}, []);
+  const recordToHistory = useCallback((trackId: string) => {
+    setHistoryData((prev) => {
+      const next = addTrackToSearchHistory(trackId, prev);
+      saveSearchHistory(next);
+      return next;
+    });
+  }, []);
 
-const handleTrackPress = (item: Track, queueContext: Track[]) => {
-  Vibration.vibrate(10);
-  recordToHistory(item.id);
+  const handleTrackPress = (item: Track, queueContext: Track[]) => {
+    Vibration.vibrate(10);
+    recordToHistory(item.id);
 
-  if (currentTrack?.id === item.id) {
-    togglePlay();
-  } else {
-    const idx = queueContext.findIndex((t) => t.id === item.id);
-    playQueue(queueContext, idx >= 0 ? idx : 0);
-  }
-};
+    if (currentTrack?.id === item.id) {
+      togglePlay();
+    } else {
+      const idx = queueContext.findIndex((t) => t.id === item.id);
+      playQueue(queueContext, idx >= 0 ? idx : 0);
+    }
+  };
 
-const handleClear = () => {
-  setRawQuery('');
-  setDebouncedQuery('');
-};
+  const handleClear = () => {
+    setRawQuery('');
+    setDebouncedQuery('');
+  };
 
-const handleCancel = () => {
-  Keyboard.dismiss();
-  setIsFocused(false);
-  setRawQuery('');
-  setDebouncedQuery('');
-};
+  const handleCancel = () => {
+    Keyboard.dismiss();
+    setIsFocused(false);
+    setRawQuery('');
+    setDebouncedQuery('');
+  };
 
-const handleClearAllHistory = () => {
-  Vibration.vibrate(10);
-  setHistoryData({ trackIds: [] });
-  clearSearchHistory();
-};
+  const handleClearAllHistory = () => {
+    Vibration.vibrate(10);
+    setHistoryData({ trackIds: [] });
+    clearSearchHistory();
+  };
 
-const handleRemoveHistoryItem = (trackId: string) => {
-  Vibration.vibrate(5);
-  setHistoryData((prev) => {
-    const next = removeTrackFromSearchHistory(trackId, prev);
-    saveSearchHistory(next);
-    return next;
-  });
-};
+  const handleRemoveHistoryItem = (trackId: string) => {
+    Vibration.vibrate(5);
+    setHistoryData((prev) => {
+      const next = removeTrackFromSearchHistory(trackId, prev);
+      saveSearchHistory(next);
+      return next;
+    });
+  };
 
-const openTrackMenu = (track: Track) => {
-  Vibration.vibrate(15);
-  setSelectedTrackForMenu(track);
-  setMenuVisible(true);
-};
+  const openTrackMenu = (track: Track) => {
+    Vibration.vibrate(15);
+    setSelectedTrackForMenu(track);
+    setMenuVisible(true);
+  };
 
-// Nút xoá khi vuốt trái bài trong lịch sử
-const renderHistorySwipeActions = (trackId: string) => {
-  return (
-    <TouchableOpacity
-      style={styles.swipeDeleteHistoryBtn}
-      onPress={() => handleRemoveHistoryItem(trackId)}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.swipeDeleteText}>Xóa</Text>
-    </TouchableOpacity>
-  );
-};
+  // Nút xoá khi vuốt trái bài trong lịch sử
+  const renderHistorySwipeActions = (trackId: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.swipeDeleteHistoryBtn}
+        onPress={() => handleRemoveHistoryItem(trackId)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.swipeDeleteText}>Xóa</Text>
+      </TouchableOpacity>
+    );
+  };
 
-// Render mục kết quả tìm kiếm
-const renderTrackItem = ({ item }: { item: Track }) => {
-  const isCurrent = currentTrack?.id === item.id;
-  const cleanedTitle = cleanTrackTitle(item.title);
+  // Render mục kết quả tìm kiếm
+  const renderTrackItem = ({ item }: { item: Track }) => {
+    const isCurrent = currentTrack?.id === item.id;
+    const cleanedTitle = cleanTrackTitle(item.title);
 
-  return (
-    <TouchableOpacity
-      style={[styles.trackRow, isCurrent && styles.trackRowActive]}
-      onPress={() => handleTrackPress(item, filteredTracks)}
-      onLongPress={() => openTrackMenu(item)}
-      activeOpacity={0.75}
-    >
-      <Image
-        source={{ uri: item.cover }}
-        style={styles.trackCover}
-        contentFit="cover"
-        transition={150}
-      />
+    return (
+      <TouchableOpacity
+        style={[styles.trackRow, isCurrent && styles.trackRowActive]}
+        onPress={() => handleTrackPress(item, filteredTracks)}
+        onLongPress={() => openTrackMenu(item)}
+        activeOpacity={0.75}
+      >
+        <Image
+          source={{ uri: item.cover }}
+          style={styles.trackCover}
+          contentFit="cover"
+          transition={150}
+        />
 
         <View style={styles.trackInfo}>
           <HighlightedText
@@ -272,16 +272,16 @@ const renderTrackItem = ({ item }: { item: Track }) => {
         {item.duration > 0 && (
           <Text style={styles.trackDuration}>{formatTime(item.duration)}</Text>
         )}
-    </TouchableOpacity>
-  );
-};
+      </TouchableOpacity>
+    );
+  };
 
-// Render mục Lịch sử tìm kiếm (có hỗ trợ vuốt trái để xóa)
-const renderHistoryItem = ({ item }: { item: Track }) => {
-  const isCurrent = currentTrack?.id === item.id;
-  const cleanedTitle = cleanTrackTitle(item.title);
+  // Render mục Lịch sử tìm kiếm (có hỗ trợ vuốt trái để xóa)
+  const renderHistoryItem = ({ item }: { item: Track }) => {
+    const isCurrent = currentTrack?.id === item.id;
+    const cleanedTitle = cleanTrackTitle(item.title);
 
-  return (
+    return (
       <Swipeable
         renderRightActions={() => renderHistorySwipeActions(item.id)}
         overshootRight={false}
@@ -314,49 +314,49 @@ const renderHistoryItem = ({ item }: { item: Track }) => {
           <Text style={styles.trackDuration}>{formatTime(item.duration)}</Text>
         </TouchableOpacity>
       </Swipeable>
-  );
-};
+    );
+  };
 
-return (
-  <View style={[styles.container, { paddingTop: insets.top }]}>
-    {/* Header & Search Bar tối giản không icon kính lúp */}
-    <View style={styles.header}>
-          <View style={styles.searchBarRow}>
-            <View style={styles.searchBar}>
-              <TextInput
-                ref={inputRef}
-                style={styles.searchInput}
-                placeholder="Tìm bài hát, nghệ sĩ..."
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                value={rawQuery}
-                onChangeText={setRawQuery}
-                onFocus={() => setIsFocused(true)}
-                autoCorrect={false}
-                autoCapitalize="none"
-                clearButtonMode="never"
-                returnKeyType="search"
-              />
-              {rawQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={handleClear}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.clearTextLink}
-                >
-                  <Text style={styles.clearLinkText}>Xóa</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {isFocused && (
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header & Search Bar tối giản không icon kính lúp */}
+      <View style={styles.header}>
+        <View style={styles.searchBarRow}>
+          <View style={styles.searchBar}>
+            <TextInput
+              ref={inputRef}
+              style={styles.searchInput}
+              placeholder="Tìm bài hát, nghệ sĩ..."
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              value={rawQuery}
+              onChangeText={setRawQuery}
+              onFocus={() => setIsFocused(true)}
+              autoCorrect={false}
+              autoCapitalize="none"
+              clearButtonMode="never"
+              returnKeyType="search"
+            />
+            {rawQuery.length > 0 && (
               <TouchableOpacity
-                onPress={handleCancel}
-                style={styles.cancelBtn}
+                onPress={handleClear}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.clearTextLink}
               >
-                <Text style={styles.cancelBtnText}>Hủy</Text>
+                <Text style={styles.clearLinkText}>Xóa</Text>
               </TouchableOpacity>
             )}
           </View>
+
+          {isFocused && (
+            <TouchableOpacity
+              onPress={handleCancel}
+              style={styles.cancelBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.cancelBtnText}>Hủy</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Filter Tabs dạng text với gạch chân xanh 2px khi có kết quả */}
         {debouncedQuery.length > 0 && (
@@ -389,352 +389,354 @@ return (
         )}
       </View>
 
-            {/* Nội dung trang */}
-            {isSearching ? (
-              // Trạng thái đang tìm kiếm (0.6s) với icon và hiệu ứng loading
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingText}>Đang tìm kiếm bài hát...</Text>
-              </View>
-            ) : debouncedQuery.length === 0 ? (
-              // Trạng thái trống: Gần đây & Nghệ sĩ nghe nhiều
-              <FlatList
-                data={[]}
-                renderItem={() => null}
-                ListHeaderComponent={
-                  <View>
-                    {/* Mục Nghệ sĩ nghe nhiều dạng Chip text bo tròn */}
-                    {popularArtists.length > 0 && (
-                      <View style={styles.artistSection}>
-                        <Text style={styles.sectionHeaderTitle}>Nghệ sĩ nghe nhiều</Text>
-                        <View style={styles.chipsWrapper}>
-                          {popularArtists.map((artist, aIdx) => (
-                            <Animated.View
-                              key={artist}
-                              style={{
-                                opacity: 1,
+      {/* Nội dung trang */}
+      {isSearching ? (
+        // Trạng thái đang tìm kiếm (0.6s) với icon và hiệu ứng loading
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loadingText}>Đang tìm kiếm bài hát...</Text>
+        </View>
+      ) : debouncedQuery.length === 0 ? (
+        // Trạng thái trống: Gần đây & Nghệ sĩ nghe nhiều
+        <FlatList
+          data={[]}
+          renderItem={() => null}
+          ListHeaderComponent={
+            <View>
+              {/* Mục Nghệ sĩ nghe nhiều dạng Chip text bo tròn */}
+              {popularArtists.length > 0 && (
+                <View style={styles.artistSection}>
+                  <Text style={styles.sectionHeaderTitle}>Nghệ sĩ nghe nhiều</Text>
+                  <View style={styles.chipsWrapper}>
+                      {
+                        popularArtists.map((artist) => (
+                          <Animated.View
+                            key={artist}
+                            style={{
+                              opacity: 1,
+                            }}
+                          >
+                            <TouchableOpacity
+                              style={styles.artistChip}
+                              onPress={() => {
+                                Vibration.vibrate(5);
+                                setRawQuery(artist);
                               }}
+                              activeOpacity={0.75}
                             >
-                              <TouchableOpacity
-                                style={styles.artistChip}
-                                onPress={() => {
-                                  Vibration.vibrate(5);
-                                  setRawQuery(artist);
-                                }}
-                                activeOpacity={0.75}
-                              >
-                                <Text style={styles.artistChipText}>{artist}</Text>
-                              </TouchableOpacity>
-                            </Animated.View>
-                          ))}
+                              <Text style={styles.artistChipText}>{artist}</Text>
+                            </TouchableOpacity>
+                          </Animated.View>
+                        ))
+                      }
                         </View>
-                      </View>
-                    )}
-
-                  {/* Mục Lịch sử tìm kiếm Gần đây */}
-                  {historyTracks.length > 0 && (
-                    <View style={styles.historySection}>
-                      <View style={styles.historyHeaderRow}>
-                        <Text style={styles.sectionHeaderTitle}>Gần đây</Text>
-                        <TouchableOpacity
-                          onPress={handleClearAllHistory}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Text style={styles.historyClearAllLink}>Xóa tất cả</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {historyTracks.map((item) => (
-                        <View key={`hist-${item.id}`}>
-                          {renderHistoryItem({ item })}
-                        </View>
-                      ))}
-                    </View>
-                  )}
                 </View>
-            }
+              )}
+
+              {/* Mục Lịch sử tìm kiếm Gần đây */}
+              {historyTracks.length > 0 && (
+                <View style={styles.historySection}>
+                  <View style={styles.historyHeaderRow}>
+                    <Text style={styles.sectionHeaderTitle}>Gần đây</Text>
+                    <TouchableOpacity
+                      onPress={handleClearAllHistory}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.historyClearAllLink}>Xóa tất cả</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {historyTracks.map((item) => (
+                    <View key={`hist-${item.id}`}>
+                      {renderHistoryItem({ item })}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          }
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: contentPaddingBottom + 20 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        />
+      ) : filteredTracks.length === 0 ? (
+        // Không tìm thấy kết quả
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>Không tìm thấy bài hát</Text>
+            <Text style={styles.emptySubtitle}>
+              Không có kết quả nào khớp với &quot;{debouncedQuery}&quot;. Thử tìm với từ khóa khác.
+            </Text>
+          </View>
+        </TouchableWithoutFeedback>
+      ) : (
+        // Danh sách kết quả tìm kiếm với animation xuất hiện mượt mà
+        <Animated.View style={{ flex: 1, opacity: resultsFadeAnim }}>
+          <FlatList
+            data={filteredTracks}
+            keyExtractor={(item) => item.id}
+            renderItem={renderTrackItem}
             contentContainerStyle={[
-              styles.scrollContent,
+              styles.listContent,
               { paddingBottom: contentPaddingBottom + 20 },
             ]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
-        />
-            ) : filteredTracks.length === 0 ? (
-            // Không tìm thấy kết quả
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyTitle}>Không tìm thấy bài hát</Text>
-                    <Text style={styles.emptySubtitle}>
-                      Không có kết quả nào khớp với &quot;{debouncedQuery}&quot;. Thử tìm với từ khóa khác.
-                    </Text>
-                  </View>
-                </TouchableWithoutFeedback>
-                ) : (
-                // Danh sách kết quả tìm kiếm với animation xuất hiện mượt mà
-                <Animated.View style={{ flex: 1, opacity: resultsFadeAnim }}>
-                  <FlatList
-                    data={filteredTracks}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderTrackItem}
-                    contentContainerStyle={[
-                      styles.listContent,
-                      { paddingBottom: contentPaddingBottom + 20 },
-                    ]}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                    showsVerticalScrollIndicator={false}
-                  />
-                </Animated.View>
+          />
+        </Animated.View>
       )}
 
-                {/* Menu bài hát Bottom Sheet kiểu Apple */}
-                {selectedTrackForMenu && (
-                  <TrackActionSheet
-                    visible={menuVisible}
-                    onClose={() => setMenuVisible(false)}
-                    track={selectedTrackForMenu}
-                    isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
-                    onPlayNext={() => {
-                      playQueue([selectedTrackForMenu, ...filteredTracks], 0);
-                    }}
-                    onToggleFavorite={() => {
-                      toggleFavorite(selectedTrackForMenu.id);
-                    }}
-                    onAddToPlaylist={() => {
-                      router.push({
-                        pathname: '/modal/add-to-playlist',
-                        params: { trackId: selectedTrackForMenu.id },
-                      });
-                    }}
-                    onEditInfo={() => {
-                      router.push({
-                        pathname: '/modal/edit-track',
-                        params: { trackId: selectedTrackForMenu.id },
-                      });
-                    }}
-                    onDeleteFromLibrary={() => {
-                      deleteTrack(selectedTrackForMenu.id);
-                    }}
-                  />
-                )}
-              </View>
-              );
+      {/* Menu bài hát Bottom Sheet kiểu Apple */}
+      {selectedTrackForMenu && (
+        <TrackActionSheet
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          track={selectedTrackForMenu}
+          isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
+          onPlayNext={() => {
+            playQueue([selectedTrackForMenu, ...filteredTracks], 0);
+          }}
+          onToggleFavorite={() => {
+            toggleFavorite(selectedTrackForMenu.id);
+          }}
+          onAddToPlaylist={() => {
+            router.push({
+              pathname: '/modal/add-to-playlist',
+              params: { trackId: selectedTrackForMenu.id },
+            });
+          }}
+          onEditInfo={() => {
+            router.push({
+              pathname: '/modal/edit-track',
+              params: { trackId: selectedTrackForMenu.id },
+            });
+          }}
+          onDeleteFromLibrary={() => {
+            deleteTrack(selectedTrackForMenu.id);
+          }}
+        />
+      )}
+    </View>
+  );
 }
 
-              const styles = StyleSheet.create({
-                container: {
-                flex: 1,
-              backgroundColor: colors.background,
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-              header: {
-                paddingHorizontal: spacing.lg,
-              paddingTop: spacing.sm,
-              paddingBottom: spacing.sm,
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-              searchBarRow: {
-                flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-              searchBar: {
-                flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderRadius: radius.pill,
-              paddingHorizontal: 16,
-              height: 44,
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    height: 44,
   },
-              searchInput: {
-                flex: 1,
-              fontSize: 16,
-              color: colors.textPrimary,
-              paddingVertical: 0,
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.textPrimary,
+    paddingVertical: 0,
   },
-              clearTextLink: {
-                paddingHorizontal: 4,
+  clearTextLink: {
+    paddingHorizontal: 4,
   },
-              clearLinkText: {
-                fontSize: 14,
-              color: colors.textTertiary,
-              fontWeight: fontWeights.medium,
+  clearLinkText: {
+    fontSize: 14,
+    color: colors.textTertiary,
+    fontWeight: fontWeights.medium,
   },
-                cancelBtn: {
-                paddingVertical: 6,
+  cancelBtn: {
+    paddingVertical: 6,
   },
-              cancelBtnText: {
-                fontSize: 16,
-              color: colors.primary,
-              fontWeight: fontWeights.semibold,
+  cancelBtnText: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
   },
-              filterTabsRow: {
-                flexDirection: 'row',
-              gap: 20,
-              marginTop: spacing.md,
-              paddingHorizontal: 4,
+  filterTabsRow: {
+    flexDirection: 'row',
+    gap: 20,
+    marginTop: spacing.md,
+    paddingHorizontal: 4,
   },
-              filterTab: {
-                paddingBottom: 8,
-              position: 'relative',
+  filterTab: {
+    paddingBottom: 8,
+    position: 'relative',
   },
-              filterTabText: {
-                fontSize: 15,
-              fontWeight: fontWeights.medium,
-              color: colors.textTertiary,
+  filterTabText: {
+    fontSize: 15,
+    fontWeight: fontWeights.medium,
+    color: colors.textTertiary,
   },
-              filterTabTextSelected: {
-                color: colors.textPrimary,
-              fontWeight: fontWeights.bold,
+  filterTabTextSelected: {
+    color: colors.textPrimary,
+    fontWeight: fontWeights.bold,
   },
-              filterTabUnderline: {
-                position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 2,
-              backgroundColor: colors.primary,
-              borderRadius: 1,
+  filterTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 1,
   },
-              scrollContent: {
-                paddingTop: spacing.sm,
+  scrollContent: {
+    paddingTop: spacing.sm,
   },
-              artistSection: {
-                paddingHorizontal: spacing.lg,
-              marginBottom: spacing.xl,
+  artistSection: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
-              sectionHeaderTitle: {
-                fontSize: 13,
-              fontWeight: '700',
-              color: colors.textSecondary,
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-              marginBottom: spacing.md,
+  sectionHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing.md,
   },
-              chipsWrapper: {
-                flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 8,
+  chipsWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-              artistChip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.08)',
+  artistChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-              artistChipText: {
-                fontSize: 13,
-              color: colors.textPrimary,
-              fontWeight: fontWeights.medium,
+  artistChipText: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    fontWeight: fontWeights.medium,
   },
-              historySection: {
-                paddingTop: spacing.xs,
+  historySection: {
+    paddingTop: spacing.xs,
   },
-              historyHeaderRow: {
-                flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: spacing.lg,
-              marginBottom: spacing.xs,
+  historyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
   },
-              historyClearAllLink: {
-                fontSize: 13,
-              color: colors.textTertiary,
-              fontWeight: fontWeights.medium,
+  historyClearAllLink: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    fontWeight: fontWeights.medium,
   },
-              listContent: {
-              paddingTop: spacing.xs,
+  listContent: {
+    paddingTop: spacing.xs,
   },
-              loadingContainer: {
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                paddingVertical: 36,
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 36,
   },
-              loadingText: {
-                fontSize: 13,
-                color: colors.textSecondary,
-                fontWeight: fontWeights.medium,
+  loadingText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.medium,
   },
-                trackRow: {
-                flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 10,
-              paddingHorizontal: spacing.lg,
-              backgroundColor: colors.background,
+  trackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-              trackRowActive: {
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  trackRowActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
-              trackCover: {
-                width: 46,
-              height: 46,
-              borderRadius: 8,
-              backgroundColor: colors.surface,
-              marginRight: spacing.md,
+  trackCover: {
+    width: 46,
+    height: 46,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    marginRight: spacing.md,
   },
-                trackInfo: {
-                flex: 1,
-              justifyContent: 'center',
-              marginRight: spacing.sm,
+  trackInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
-              trackTitle: {
-                fontSize: 16,
-              fontWeight: '600',
-              color: colors.textPrimary,
-              letterSpacing: -0.2,
+  trackTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
   },
-                trackTitleActive: {
-                color: colors.primary,
+  trackTitleActive: {
+    color: colors.primary,
   },
-              trackArtist: {
-                fontSize: 13,
-              fontWeight: fontWeights.regular,
-              color: colors.textSecondary,
-              marginTop: 3,
+  trackArtist: {
+    fontSize: 13,
+    fontWeight: fontWeights.regular,
+    color: colors.textSecondary,
+    marginTop: 3,
   },
-              trackDuration: {
-                fontSize: 13,
-              color: colors.textTertiary,
+  trackDuration: {
+    fontSize: 13,
+    color: colors.textTertiary,
   },
-                textHighlight: {
-                color: colors.primary,
-              fontWeight: '700',
+  textHighlight: {
+    color: colors.primary,
+    fontWeight: '700',
   },
-              swipeDeleteHistoryBtn: {
-                width: 80,
-              height: '100%',
-              backgroundColor: '#3B1A1A',
-              alignItems: 'center',
-              justifyContent: 'center',
+  swipeDeleteHistoryBtn: {
+    width: 80,
+    height: '100%',
+    backgroundColor: '#3B1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-              swipeDeleteText: {
-                color: '#FF6B6B',
-              fontSize: 13,
-              fontWeight: '700',
+  swipeDeleteText: {
+    color: '#FF6B6B',
+    fontSize: 13,
+    fontWeight: '700',
   },
-              emptyContainer: {
-                flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: spacing.xxl,
-              paddingBottom: 80,
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: 80,
   },
-              emptyTitle: {
-                fontSize: 20,
-              fontWeight: '700',
-              color: colors.textPrimary,
-              textAlign: 'center',
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
-              emptySubtitle: {
-                fontSize: 14,
-              color: colors.textTertiary,
-              textAlign: 'center',
-              marginTop: 8,
-              lineHeight: 20,
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });

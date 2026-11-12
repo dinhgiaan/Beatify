@@ -25,8 +25,8 @@
 5. **Web Dashboard (tools/dashboard):**
    - Nâng cấp Modal thêm bài hát vào Playlist: mở rộng kích thước rộng rãi (`max-w-4xl`), thêm nút chọn tất cả (Select All) / bỏ chọn tất cả, tích hợp thumbnail ảnh bìa 38x38, hiển thị ngày tải (mtimeMs) và thời lượng.
    - Bổ sung bộ lọc thời gian tải (Tất cả / 24h qua / 7 ngày qua) và tùy chọn sắp xếp (Mới tải gần đây / Tên bài hát A-Z / Nghệ sĩ A-Z), giúp 1-click thêm toàn bộ bài hát vừa tải từ YouTube vào playlist.
-6. **Toàn bộ monorepo:** 270/270 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Đã push lên GitHub nhánh `main`.
-**Cập nhật lần cuối:** 2026-11-12
+6. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning (đã khắc phục triệt để các lỗi ESLint và cập nhật mock PrevIcon trong unit test cho CI).
+**Cập nhật lần cuối:** 2026-11-12 (Fix CI ESLint & Unit tests)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

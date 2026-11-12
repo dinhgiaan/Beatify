@@ -18,6 +18,7 @@ vi.mock('expo-router', () => ({
 
 const mockTogglePlay = vi.fn();
 const mockNext = vi.fn();
+const mockPrevious = vi.fn();
 const mockToggleSmartShuffle = vi.fn();
 const mockUsePlayer = vi.fn();
 
@@ -72,6 +73,10 @@ vi.mock('./Waveform', () => ({
   Waveform: () => null,
 }));
 
+vi.mock('./EqualizerIndicator', () => ({
+  EqualizerIndicator: () => null,
+}));
+
 vi.mock('react-native-svg', () => ({
   default: () => null,
   Rect: () => null,
@@ -81,6 +86,7 @@ vi.mock('../icons/SvgIcons', () => ({
   PlayIcon: () => null,
   PauseIcon: () => null,
   NextIcon: () => null,
+  PrevIcon: () => null,
   DiscIcon: () => null,
   ShuffleIcon: () => null,
 }));
@@ -143,6 +149,32 @@ describe('MiniPlayer Component', () => {
     expect(mockPush).toHaveBeenCalledWith('/now-playing');
   });
 
+  it('nhấn nút Previous kích hoạt previous', () => {
+    mockUsePlayer.mockReturnValue({
+      currentTrack: {
+        id: 'track_2',
+        title: 'Bài 2',
+        artist: 'Đen Vâu',
+      },
+      currentTrackIndex: 1,
+      playerState: { isPlaying: true },
+      togglePlay: mockTogglePlay,
+      previous: mockPrevious,
+      next: mockNext,
+    });
+
+    const element = MiniPlayer();
+    const contentRow = element?.props.children[1];
+    const controlsRow = contentRow?.props.children[2];
+    const prevButton = controlsRow?.props.children[0];
+
+    const stopPropagation = vi.fn();
+    prevButton.props.onPress({ stopPropagation });
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockPrevious).toHaveBeenCalledTimes(1);
+  });
+
   it('nhấn nút Play/Pause kích hoạt togglePlay', () => {
     mockUsePlayer.mockReturnValue({
       currentTrack: {
@@ -150,8 +182,10 @@ describe('MiniPlayer Component', () => {
         title: 'Lối Nhỏ',
         artist: 'Đen Vâu',
       },
+      currentTrackIndex: 0,
       playerState: { isPlaying: false },
       togglePlay: mockTogglePlay,
+      previous: mockPrevious,
       next: mockNext,
       isSmartShuffle: false,
       toggleSmartShuffle: mockToggleSmartShuffle,
@@ -160,7 +194,7 @@ describe('MiniPlayer Component', () => {
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const playButton = controlsRow?.props.children[0];
+    const playButton = controlsRow?.props.children[1];
 
     const stopPropagation = vi.fn();
     playButton.props.onPress({ stopPropagation });
@@ -176,15 +210,17 @@ describe('MiniPlayer Component', () => {
         title: 'Lối Nhỏ',
         artist: 'Đen Vâu',
       },
+      currentTrackIndex: 0,
       playerState: { isPlaying: false },
       togglePlay: mockTogglePlay,
+      previous: mockPrevious,
       next: mockNext,
     });
 
     const element = MiniPlayer();
     const contentRow = element?.props.children[1];
     const controlsRow = contentRow?.props.children[2];
-    const nextButton = controlsRow?.props.children[1];
+    const nextButton = controlsRow?.props.children[2];
 
     const stopPropagation = vi.fn();
     nextButton.props.onPress({ stopPropagation });
@@ -193,21 +229,23 @@ describe('MiniPlayer Component', () => {
     expect(mockNext).toHaveBeenCalledTimes(1);
   });
 
-    it('lược bỏ nút Shuffle khỏi MiniPlayer theo thiết kế tối giản (chỉ giữ Play/Pause và Next)', () => {
+    it('lược bỏ nút Shuffle khỏi MiniPlayer theo thiết kế tối giản (chỉ giữ Prev, Play/Pause và Next)', () => {
       mockUsePlayer.mockReturnValue({
         currentTrack: {
           id: 'track_1',
           title: 'Lối Nhỏ',
           artist: 'Đen Vâu',
         },
+        currentTrackIndex: 0,
         playerState: { isPlaying: false },
         togglePlay: mockTogglePlay,
+        previous: mockPrevious,
         next: mockNext,
       });
 
-      const element = MiniPlayer();
-      const contentRow = element?.props.children[1];
-      const controlsRow = contentRow?.props.children[2];
-      expect(controlsRow?.props.children.length).toBe(2);
-    });
+    const element = MiniPlayer();
+    const contentRow = element?.props.children[1];
+    const controlsRow = contentRow?.props.children[2];
+    expect(controlsRow?.props.children.length).toBe(3);
   });
+});

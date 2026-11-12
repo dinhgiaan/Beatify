@@ -40,11 +40,13 @@ export const DuplicateSongsModal: React.FC<DuplicateSongsModalProps> = ({
       const origIdx = item.duplicateOfIndex;
       const original = items[origIdx];
       if (!original) return;
-      if (!map.has(origIdx)) {
-        map.set(origIdx, { original, originalIndex: origIdx, duplicates: [] });
-      }
-      map.get(origIdx)!.duplicates.push({ item, index: idx });
-    });
+        let group = map.get(origIdx);
+        if (!group) {
+          group = { original, originalIndex: origIdx, duplicates: [] };
+          map.set(origIdx, group);
+        }
+        group.duplicates.push({ item, index: idx });
+      });
     return Array.from(map.values()).sort((a, b) => a.originalIndex - b.originalIndex);
   }, [items]);
 
