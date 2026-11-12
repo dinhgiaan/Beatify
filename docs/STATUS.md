@@ -2,34 +2,34 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tinh chỉnh toàn diện Mobile App & Web Dashboard (Giai đoạn tiếp theo):
-1. **Lời bài hát (Lyrics trên Mobile):**
+**Phase hiện tại:** Hoàn thành tinh chỉnh toàn diện Mobile App & Web Dashboard:
+1. **Tự động tải lại ảnh bìa HD từ YouTube (Đổi 1 bài và Hàng loạt nhiều bài trên Web Dashboard):**
+   - Theo đúng yêu cầu người dùng (tự động cào/tải lại ảnh bìa gốc từ video YouTube chứ không bắt người dùng phải tự tải file từ máy tính):
+     - **Tải ảnh YouTube cho 1 bài:** Tích hợp nút nổi bật **"Lấy ảnh từ YouTube"** trong hộp thoại Sửa bài hát và hộp thoại Xem ảnh lớn HD (`CoverViewerDialog`). Hệ thống tự động xác định videoId (hoặc tìm kiếm thông minh qua `yt-dlp`), tải thumbnail chất lượng cao nhất (`maxresdefault.jpg` / `hqdefault.jpg`), dùng ffmpeg crop tâm vuông 1:1 scale chuẩn 600x600 và đồng bộ ngay lên Cloudflare R2!
+     - **Tải ảnh YouTube hàng loạt (Batch):** Trên thanh Floating Bar và Modal Đổi ảnh bìa hàng loạt, cung cấp nút **"Tải ảnh bìa YouTube (X bài)"** để quét tự động toàn bộ các bài hát đã chọn cùng lúc, không cần thao tác thủ công.
+2. **Khắc phục lỗi nạp lời bài hát (.lrc) trên Web Dashboard:**
+   - Nâng cấp `getDownloadLyrics` và `updateDownloadLyrics` trong `youtubeJobRunner.ts`: Hỗ trợ tìm kiếm file `.lrc` linh hoạt đa nguồn (theo `item.libraryRootPath`, thư mục cấu hình `MUSIC_SOURCE_DIR`, thư mục custom lyrics, và tự động tra cứu fallback LRCLIB nếu trên đĩa chưa có file).
+   - Build lại toàn bộ bundle frontend (`tools/dashboard/dist`) loại bỏ hoàn toàn các lỗi catch ngầm trước đây.
+3. **Sửa lỗi hiển thị widget Dung lượng R2 (0.0 MB / Chờ đồng bộ 802.9 MB):**
+   - Bổ sung cơ chế phòng vệ chống rỗng giả mạo: khi server vừa khởi động hoặc khi S3 gặp độ trễ mạng, hàm `getR2TrackKeys` tự động nạp fallback danh sách các bài đã `uploadedToR2: true` từ lịch sử tải về, đảm bảo widget luôn hiển thị đúng 802.9 MB (242 bài đã dùng).
+   - Bổ sung nút bấm **Làm mới (Refresh)** tức thì ngay cạnh tiêu đề "Dung lượng R2" trên Sidebar và hỗ trợ tham số `/local-api/status?force=true`.
+4. **Lời bài hát (Lyrics trên Mobile):**
    - Sửa lỗi trễ highlight: thêm độ bù thời gian chính xác 0.6s (`LYRICS_OFFSET_SEC`) giúp highlight bám sát giọng hát của ca sĩ.
    - Loại bỏ giật lag khi cuộn và đổi dòng bằng cách cố định padding dòng (`paddingVertical: 9`), giảm độ nảy layout.
    - Giảm font chữ dòng highlight xuống 21px / line 30px (bold), dòng thường 18px / line 26px, cân đối vừa vặn màn hình.
    - Xóa bỏ hoàn toàn tính năng tạo Poster khi mở lyric theo yêu cầu người dùng.
    - Anti-cache HTTP cho lời bài hát (`_t=${Date.now()}` và `no-cache, no-store`), nạp tức thì bản chỉnh sửa mới nhất từ Cloudflare R2 (`lyrics-manual/`).
-2. **Hẹn giờ tắt nhạc (Sleep Timer):**
+5. **Hẹn giờ tắt nhạc (Sleep Timer):**
    - Hiển thị huy hiệu đếm ngược thời gian thực trên Header của màn hình Now Playing (`⏳ Tắt sau mm:ss`) và trên nút Đồng hồ ở bảng điều khiển dưới.
    - Tính toán dựa trên timestamp hệ thống (`targetMs`), lắng nghe sự kiện `AppState` để đảm bảo khi khoá màn hình iOS hay chạy nền thì timer vẫn đếm chính xác và tự động dừng nhạc khi hết giờ.
-3. **Ảnh bìa sắc nét (HD Album Artwork trên Website Dashboard):**
-   - Tích hợp trực tiếp trên Web Dashboard các nút thao tác ảnh bìa chuyên nghiệp:
-     - **Tải ảnh HD về máy:** Tải ngay file ảnh chất lượng cao 1:1 nguyên bản về máy tính với tên file tự động chuẩn `${artist} - ${title} - Cover.jpg`.
-     - **Đổi ảnh bìa mới:** Chọn file ảnh từ máy tính (.jpg, .png, .webp) và tải lên làm bìa mới qua API `/local-api/tracks/:id/cover`, tự động lưu file sidecar bên cạnh bài hát và đồng bộ lên R2.
-     - **Xem ảnh lớn phóng to:** Bổ sung nút xem ảnh bìa phóng to HD trong bảng Thư viện và trang Quản lý bài đã tải (`CoverViewerDialog`).
-     - **Xóa ảnh bìa:** Cho phép hoàn tác về trạng thái mặc định.
-4. **Cấu trúc lại Tab Playlist & Bộ sưu tập:**
+6. **Cấu trúc lại Tab Playlist & Bộ sưu tập:**
    - Tab Playlist (`playlists.tsx`) giờ đây chỉ hiển thị duy nhất các Danh sách phát cá nhân của người dùng, bổ sung đầy đủ bộ công cụ Thêm / Đổi / Xóa ảnh bìa playlist từ thư viện ảnh máy.
    - Xóa bỏ mục "Nghe gần đây" khỏi tab Playlist (vì đã có tab "Vừa nghe" riêng biệt).
    - Tách "Bài hát yêu thích" và "Đã tải về máy" sang màn hình Bộ sưu tập chuyên biệt (`collection.tsx`).
    - Hỗ trợ thêm / xóa 1 hoặc nhiều bài hát vào playlist trực tiếp từ trang Thư viện và trang Playlist trên Website Dashboard, tự động đồng bộ 2 chiều tức thì với iPhone qua Cloudflare R2 (`_meta/state.json`).
-5. **Thanh điều hướng nổi (Floating Tab Bar):**
+7. **Thanh điều hướng nổi (Floating Tab Bar):**
    - Tăng độ đậm và tương phản cho thanh tab bar nổi (`rgba(18, 18, 20, 0.95)`, viền sáng `rgba(255, 255, 255, 0.16)`), hiển thị sắc nét không bị quá trong suốt.
-6. **Kiểm tra và xác minh Web Dashboard & Cloudflare R2:**
-   - Giải thích cơ chế thư mục `lyrics-manual/` trên R2 (bảo toàn lời sửa thủ công của người dùng, không bao giờ bị indexer ghi đè).
-   - Khắc phục lỗi hiển thị widget Dung lượng R2 và cache quét bài hát (`/local-api/status` trả về chính xác 802.9 MB / 242 bài đã đồng bộ).
-   - Xác minh API lấy lời bài hát `.lrc` của các bài tải về (`getDownloadLyrics`) hoạt động 100% trơn tru.
-7. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch sẽ cả 5 packages. Không thay đổi native dependency (không cần build lại .ipa).
+8. **Toàn bộ monorepo:** 260/260 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning. Không thay đổi native dependency (không cần build lại .ipa).
 **Cập nhật lần cuối:** 2026-11-12
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
