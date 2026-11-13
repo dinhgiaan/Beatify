@@ -37,6 +37,8 @@ export interface TrackActionSheetProps {
   isFavorite?: boolean;
   downloadStatus?: DownloadStatus;
   downloadProgress?: number; // 0 - 100
+  /** Danh sách tên các playlist mà bài đã có trong đó (để hiển thị text phù hợp) */
+  playlistNames?: string[];
   onPlayNext?: (track: Track) => void;
   onToggleFavorite?: (track: Track) => void;
   onAddToPlaylist?: (track: Track) => void;
@@ -53,6 +55,7 @@ export const TrackActionSheet: React.FC<TrackActionSheetProps> = ({
   isFavorite = false,
   downloadStatus = 'idle',
   downloadProgress,
+  playlistNames,
   onPlayNext,
   onToggleFavorite,
   onAddToPlaylist,
@@ -191,7 +194,20 @@ export const TrackActionSheet: React.FC<TrackActionSheetProps> = ({
       },
       {
         id: 'add-to-playlist',
-        label: 'Thêm vào playlist',
+        label:
+          playlistNames && playlistNames.length > 0
+            ? 'Đã trong playlist'
+            : 'Thêm vào playlist',
+        secondaryText:
+          playlistNames && playlistNames.length > 0
+            ? playlistNames.length === 1
+              ? playlistNames[0]
+              : `${playlistNames.length} danh sách (${playlistNames[0]}...)`
+            : undefined,
+        secondaryColor:
+          playlistNames && playlistNames.length > 0
+            ? tokens.colors.accent
+            : undefined,
         onPress: () => {
           haptics.tap();
           onClose();
@@ -239,6 +255,7 @@ export const TrackActionSheet: React.FC<TrackActionSheetProps> = ({
   }, [
     track,
     isFavorite,
+    playlistNames,
     downloadStatus,
     downloadProgress,
     onClose,

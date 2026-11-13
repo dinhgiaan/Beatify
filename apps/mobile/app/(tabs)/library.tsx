@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
-  Modal,
-  Alert,
   Vibration,
   StyleSheet,
   Animated,
@@ -29,7 +27,6 @@ import {
 import {
   DiscIcon,
   HeartIcon,
-  PlaylistIcon,
   DownloadIcon,
   HeadphonesIcon,
   MusicNoteIcon,
@@ -48,6 +45,7 @@ import { statsStorage } from '../../src/services/stats/statsStorage';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
 import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
+import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
 
 type LibrarySegment = 'songs' | 'albums' | 'artists';
 
@@ -119,8 +117,8 @@ export default function LibraryScreen() {
   const {
     currentTrack,
     playerState,
-    skipToTrack,
     playQueue,
+    playNext,
     togglePlay,
     setIsSmartShuffle,
     clearRecentTracks,
@@ -165,6 +163,7 @@ export default function LibraryScreen() {
       }
     }).catch(() => { });
   }, [tracks]);
+
 
   // Indicator animated slide chuyển động mượt mà cho thanh filter pills
   const pillIndicatorLeft = useRef(new Animated.Value(0)).current;
@@ -376,13 +375,8 @@ export default function LibraryScreen() {
     if (currentTrack?.id === item.id) {
       togglePlay();
     } else {
-      const currentQueueTracks = tracks.length > 0 ? tracks : filteredTracks;
-      const idx = currentQueueTracks.findIndex((t) => t.id === item.id);
-      if (idx >= 0) {
-        skipToTrack(idx);
-      } else {
-        playQueue(filteredTracks, filteredTracks.findIndex((t) => t.id === item.id));
-      }
+      const idx = filteredTracks.findIndex((t) => t.id === item.id);
+      playQueue(filteredTracks, idx >= 0 ? idx : 0);
     }
   };
 
@@ -413,36 +407,6 @@ export default function LibraryScreen() {
     setAddToPlaylistModalVisible(true);
   };
 
-  const handleSelectPlaylistToAdd = async (playlistId: string) => {
-    if (!selectedTrackForMenu) return;
-    const trackId = selectedTrackForMenu.id;
-    const targetPlaylist = userState.playlists.find((p) => p.id === playlistId);
-    if (!targetPlaylist) return;
-
-    if (targetPlaylist.trackIds.includes(trackId)) {
-      Alert.alert('Đã có trong danh sách', `Bài hát đã có sẵn trong playlist "${targetPlaylist.name}".`);
-      return;
-    }
-
-    Vibration.vibrate(15);
-    await updateUserState((prev) => ({
-      ...prev,
-      playlists: prev.playlists.map((pl) => {
-        if (pl.id === playlistId) {
-          return {
-            ...pl,
-            trackIds: [...pl.trackIds, trackId],
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        return pl;
-      }),
-    }));
-
-    setAddToPlaylistModalVisible(false);
-    Alert.alert('Thành công', `Đã thêm "${selectedTrackForMenu.title}" vào playlist "${targetPlaylist.name}"!`);
-  };
-
   const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
     await saveTrack(trackId, updates);
   };
@@ -455,9 +419,18 @@ export default function LibraryScreen() {
     if (filteredTracks.length === 0) return;
     Vibration.vibrate(15);
     const shuffled = smartShuffle(filteredTracks);
-    setTracks(shuffled);
+    if (activeFilter === 'all') {
+      setTracks(shuffled);
+    }
     setIsSmartShuffle(true);
     playQueue(shuffled, 0);
+  };
+
+  const handleRandomizeList = () => {
+    if (tracks.length === 0) return;
+    Vibration.vibrate(12);
+    const shuffled = smartShuffle(tracks);
+    setTracks(shuffled);
   };
 
   const handlePlayAll = () => {
@@ -703,18 +676,29 @@ export default function LibraryScreen() {
             })}
           </ScrollView>
 
-          {/* 3. Nút Hot Reload R2 tròn nhỏ ở góc phải */}
-          <TouchableOpacity
-            style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
-            onPress={handleHotReload}
-            activeOpacity={0.7}
-            disabled={isSyncing}
-            accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
-          >
-            <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
-              <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
-            </Animated.View>
-          </TouchableOpacity>
+          {/* 3. Cụm nút công cụ nhỏ: Xáo trộn danh sách & Hot Reload R2 */}
+          <View style={styles.headerToolButtonsRow}>
+            <TouchableOpacity
+              style={styles.randomizeListButton}
+              onPress={handleRandomizeList}
+              activeOpacity={0.7}
+              accessibilityLabel="Xáo trộn lại thứ tự bài hát"
+            >
+              <ShuffleIcon size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
+              onPress={handleHotReload}
+              activeOpacity={0.7}
+              disabled={isSyncing}
+              accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
+            >
+              <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
+                <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
@@ -900,49 +884,51 @@ export default function LibraryScreen() {
         )}
       </Animated.View>
 
-        {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}
+      {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}
       <TrackActionSheet
         visible={actionSheetVisible}
-                onClose={() => setActionSheetVisible(false)}
-                track={selectedTrackForMenu}
-                coverUrl={selectedTrackForMenu?.cover || null}
-                isFavorite={selectedTrackForMenu ? userState.favoriteIds.includes(selectedTrackForMenu.id) : false}
-                downloadStatus={
-                  selectedTrackForMenu
-                    ? isDownloading[selectedTrackForMenu.id]
-                      ? 'downloading'
-                      : isTrackOffline(selectedTrackForMenu.id)
-                        ? 'downloaded'
-                        : 'idle'
-                    : 'idle'
-                }
-                onPlayNext={(t) => {
-                  if (!t) return;
-                  const nextTracks = [...tracks];
-                  const currIdx = currentTrack ? tracks.findIndex((item) => item.id === currentTrack.id) : -1;
-                  const insertIdx = currIdx >= 0 ? currIdx + 1 : 0;
-                  nextTracks.splice(insertIdx, 0, t);
-                  setTracks(nextTracks);
-                }}
-                onToggleFavorite={() => {
-                  handleMenuFavorite();
-                }}
-                onAddToPlaylist={() => {
-                  handleOpenAddToPlaylist();
-                }}
-                onDownloadPress={async (t, status) => {
-                  if (status === 'downloaded') {
-                    await deleteOfflineTrack(t.id);
-                  } else if (status === 'idle' || status === 'error') {
-                    await downloadTrack(t);
-                  }
-                }}
-                onEditInfo={() => {
-                  handleMenuEdit();
-                }}
-                onDeleteFromLibrary={async (t) => {
-                  await deleteTrack(t.id, handleTrackDeleted);
-                }}
+        onClose={() => setActionSheetVisible(false)}
+        track={selectedTrackForMenu}
+        coverUrl={selectedTrackForMenu?.cover || null}
+        isFavorite={selectedTrackForMenu ? userState.favoriteIds.includes(selectedTrackForMenu.id) : false}
+        playlistNames={
+          selectedTrackForMenu
+            ? userState.playlists
+              .filter((pl) => pl.trackIds.includes(selectedTrackForMenu.id))
+              .map((pl) => pl.name)
+            : undefined
+        }
+        downloadStatus={
+          selectedTrackForMenu
+            ? isDownloading[selectedTrackForMenu.id]
+              ? 'downloading'
+              : isTrackOffline(selectedTrackForMenu.id)
+                ? 'downloaded'
+                : 'idle'
+            : 'idle'
+        }
+        onPlayNext={(t) => {
+          if (t) playNext(t);
+        }}
+        onToggleFavorite={() => {
+          handleMenuFavorite();
+        }}
+        onAddToPlaylist={() => {
+          handleOpenAddToPlaylist();
+        }}
+        onDownloadPress={async (t, status) => {
+          if (status === 'downloaded') {
+            await deleteOfflineTrack(t.id);
+          } else if (status === 'idle' || status === 'error') {
+            await downloadTrack(t);
+          }
+        }}
+        onEditInfo={() => {
+          handleMenuEdit();
+        }}
+        onDeleteFromLibrary={async (t) => {
+          await deleteTrack(t.id, handleTrackDeleted);
+        }}
       />
 
       {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */}
@@ -978,65 +964,13 @@ export default function LibraryScreen() {
       />
 
       {/* Modal Chọn danh sách phát để thêm bài */}
-      <Modal
+      <AddToPlaylistModal
         visible={addToPlaylistModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setAddToPlaylistModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setAddToPlaylistModalVisible(false)}
-        >
-          <View style={styles.playlistPickerCard} onStartShouldSetResponder={() => true}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Thêm vào playlist</Text>
-              <Text style={styles.sheetSubtitle}>
-                {selectedTrackForMenu ? selectedTrackForMenu.title : ''}
-              </Text>
-            </View>
-
-            {userState.playlists.length === 0 ? (
-              <View style={styles.emptyPlaylistPicker}>
-                <Text style={styles.emptyPlaylistText}>
-                  Bạn chưa có danh sách phát nào. Hãy chuyển qua Tab Playlist để tạo mới.
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={userState.playlists}
-                keyExtractor={(item) => item.id}
-                style={styles.playlistPickerList}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.playlistPickerItem}
-                    onPress={() => handleSelectPlaylistToAdd(item.id)}
-                    activeOpacity={0.7}
-                  >
-                    <PlaylistIcon size={20} color={colors.primary} />
-                    <View style={styles.playlistPickerInfo}>
-                      <Text style={styles.playlistPickerName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <Text style={styles.playlistPickerCount}>
-                        {item.trackIds.length} bài hát
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-
-            <TouchableOpacity
-              style={styles.sheetCancelBtn}
-              onPress={() => setAddToPlaylistModalVisible(false)}
-            >
-              <Text style={styles.sheetCancelBtnText}>Hủy</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        track={selectedTrackForMenu}
+        userState={userState}
+        onClose={() => setAddToPlaylistModalVisible(false)}
+        onUpdateUserState={updateUserState}
+      />
     </View >
   );
 }
@@ -1115,6 +1049,21 @@ const styles = StyleSheet.create({
   filterPillTextActive: {
     color: '#000000',
     fontWeight: fontWeights.bold,
+  },
+  headerToolButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  randomizeListButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hotReloadButton: {
     width: 36,
@@ -1544,48 +1493,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
-  },
-  playlistPickerCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    maxHeight: 400,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  playlistPickerList: {
-    maxHeight: 240,
-  },
-  playlistPickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDivider,
-    gap: spacing.md,
-  },
-  playlistPickerInfo: {
-    flex: 1,
-  },
-  playlistPickerName: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.medium,
-  },
-  playlistPickerCount: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    marginTop: 2,
-  },
-  emptyPlaylistPicker: {
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  emptyPlaylistText: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.subhead,
-    textAlign: 'center',
-    lineHeight: 18,
   },
   recentSection: {
     marginBottom: spacing.sm,

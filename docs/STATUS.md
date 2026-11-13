@@ -36,8 +36,13 @@
    - **Floating TabBar:** Xóa bỏ text label, chỉ giữ lại icon (size 20pt) tối giản thanh lịch; sửa lỗi lệch border bằng cách style viền active pill trực tiếp trên từng tab button, giúp border tab active cân đối đều đặn 100%.
    - **Modal tạo/sửa Playlist:** Bổ sung khoảng cách top (`Math.max(insets.top + 60, 120)`), xóa icon tích ở nút "Tạo ngay", thêm padding đệm dưới cho modalBox và modalActions để các nút bấm không bị dính sát đáy modal.
    - **Now Playing Header:** Lọc bỏ text "Singles" / "Single" / "Đĩa đơn" ở vị trí giữa header, chỉ hiển thị tên album khi bài hát thực sự thuộc về một album chính thức.
-8. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
-**Cập nhật lần cuối:** 2026-11-13 (Tinh chỉnh UI/UX TabBar, Playlist Modal & Now Playing Header)
+8. **Khắc phục 4 vấn đề trải nghiệm phát nhạc & Playlist trên Mobile App:**
+   - **Trạng thái nút "Thêm vào playlist":** Khi bài hát đã nằm trong playlist, `TrackActionSheet` tự động đổi label thành "Đã trong playlist" kèm secondary text hiển thị tên playlist đó (màu xanh lá chuẩn Apple). Xây dựng component dùng chung `AddToPlaylistModal` có badge "Đã có" cho playlist đã chứa bài.
+   - **Hiển thị Media Player trong Playlist Modal:** Nhúng `MiniPlayer` trực tiếp vào `CollectionDetailModal` với vị trí nổi chuẩn safe area đáy màn hình (`bottom: Math.max(insets.bottom, 12)`), giúp người dùng luôn điều khiển được bài hát và mở Now Playing mà không cần tắt playlist.
+   - **Độc lập hàng đợi phát (Active Queue Isolation):** Tách riêng state `activeQueue` trong `PlayerContext` khỏi `tracks` của Thư viện. Khi bấm "Xáo trộn" trong playlist "gang gang", hàng đợi phát và danh sách chờ trong `NowPlayingView` chỉ chứa chính xác các bài hát của playlist đó (không bị trộn lẫn bài từ trang chủ), đồng thời bảo toàn 100% kho nhạc ở trang chủ.
+   - **Xáo trộn ngẫu nhiên danh sách Trang chủ:** Tích hợp `smartShuffle` tự động khi nạp thư viện từ local cache và R2, bổ sung nút icon Xáo trộn danh sách 1 chạm trên Header Trang chủ cạnh nút Cloud Sync, giúp giao diện luôn mới mẻ ngẫu nhiên mỗi lần mở app.
+9. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
+**Cập nhật lần cuối:** 2026-11-13 (Khắc phục 4 vấn đề Playlist, MiniPlayer, Shuffle Queue & Random Trang chủ)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

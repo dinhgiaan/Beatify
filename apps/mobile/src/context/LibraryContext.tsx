@@ -7,7 +7,7 @@ import {
   type UpdateTrack,
   type UserState,
   mergeUserStates,
-  interleaveTracksByArtist,
+  smartShuffle,
 } from '@music-app/shared';
 import { MusicApiClient } from '../services/api/musicApiClient';
 import { parseMobileprovisionExpiration } from '../utils/mobileprovision';
@@ -198,13 +198,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         } else if (result.data) {
           const resolvedTracks = result.data.tracks.map((t) => resolveTrackUrls(t, url, token));
           const resolvedAlbums = (result.data.albums || []).map((a) => resolveAlbumUrls(a, url, token));
-          const balanced = interleaveTracksByArtist(resolvedTracks);
+          const shuffledTracks = smartShuffle(resolvedTracks);
 
-          setTracks(balanced);
-          setOriginalTracks(balanced);
+          setTracks(shuffledTracks);
+          setOriginalTracks(resolvedTracks);
           setAlbums(resolvedAlbums);
           setCurrentEtag(result.etag || null);
-          setSyncStatus(`Đã đồng bộ ${balanced.length} bài hát từ Cloudflare!`);
+          setSyncStatus(`Đã đồng bộ ${shuffledTracks.length} bài hát từ Cloudflare!`);
 
           await saveLibraryCache({
             etag: result.etag || null,
@@ -212,7 +212,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             data: {
               version: result.data.version,
               generatedAt: result.data.generatedAt,
-              tracks: balanced,
+              tracks: resolvedTracks,
               albums: resolvedAlbums,
             },
           });
@@ -281,7 +281,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             const resolvedCachedAlbums = (parsed.data.albums || []).map((a: Album) =>
               resolveAlbumUrls(a, activeUrl, activeToken)
             );
-            setTracks(resolvedCachedTracks);
+            const shuffledCachedTracks = smartShuffle(resolvedCachedTracks);
+            setTracks(shuffledCachedTracks);
             setOriginalTracks(resolvedCachedTracks);
             setAlbums(resolvedCachedAlbums);
             if (parsed.etag) {

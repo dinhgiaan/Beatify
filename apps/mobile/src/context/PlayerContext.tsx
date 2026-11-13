@@ -45,6 +45,7 @@ export interface PlayerContextValue {
   clearRecentTracks: () => Promise<void>;
   removeRecentTrack: (trackId: string) => Promise<void>;
   playQueue: (trackList?: Track[], startIndex?: number) => Promise<void>;
+  playNext: (track: Track) => Promise<void>;
   togglePlay: () => Promise<void>;
   next: () => Promise<void>;
   previous: () => Promise<void>;
@@ -67,7 +68,7 @@ export interface PlayerContextValue {
   sleepTimerMinutes: number | null;
   sleepTimerRemainingSec: number | null;
   setSleepTimer: (minutes: number | null) => void;
-  handleTrackDeleted: (deletedTrackId: string, remaining: Track[]) => Promise<void>;
+  handleTrackDeleted: (deletedTrackId: string, remaining?: Track[]) => Promise<void>;
   gaplessDeltaMs: number | null;
   atomicWriteBranch: string;
   lastMoveError: string | null;
@@ -78,8 +79,14 @@ export interface PlayerContextValue {
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const { tracks, setTracks, originalTracks, setOriginalTracks, serverUrl, serverToken } = useLibrary();
+  const { tracks, originalTracks, setOriginalTracks, serverUrl, serverToken } = useLibrary();
   const { getOfflineAudioUri } = useOffline();
+
+  // Hàng đợi phát độc lập (Active Queue), không làm thay đổi hay mất bài trong Thư viện
+  const [activeQueue, setActiveQueue] = useState<Track[]>([]);
+  const queueTracks = activeQueue.length > 0 ? activeQueue : tracks;
+  const queueTracksRef = useRef<Track[]>(queueTracks);
+  queueTracksRef.current = queueTracks;
 
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
@@ -91,6 +98,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   });
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
+  const currentTrack: Track | null = queueTracks[currentTrackIndex] ?? null;
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
   const [customLoopTarget, setCustomLoopTarget] = useState<number | null>(null);
   const [customLoopRemaining, setCustomLoopRemaining] = useState<number | null>(null);
@@ -170,7 +178,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       });
 
       if (state.activeTrackId) {
-        const idx = tracks.findIndex((t) => t.id === state.activeTrackId);
+        const idx = queueTracksRef.current.findIndex((t) => t.id === state.activeTrackId);
         if (idx !== -1) setCurrentTrackIndex(idx);
       }
 
@@ -246,7 +254,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         lastRecordedTrackRef.current !== state.activeTrackId
       ) {
         lastRecordedTrackRef.current = state.activeTrackId;
-        const t = tracks.find((x) => x.id === state.activeTrackId);
+        const t =
+          queueTracksRef.current.find((x) => x.id === state.activeTrackId) ||
+          tracks.find((x) => x.id === state.activeTrackId);
         if (t) {
           setWriteQueueStatus('Đang ghi (1 tác vụ)...');
           statsStorage.recordTrackListen({
@@ -278,8 +288,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // 3. Handlers điều khiển phát nhạc
   const playQueue = useCallback(
-    async (trackList = tracks, startIndex = currentTrackIndex) => {
+    async (trackList = queueTracks, startIndex = currentTrackIndex) => {
       if (trackList.length === 0) return;
+      // Cập nhật hàng đợi đang phát riêng biệt, giữ nguyên thư viện ở trang chủ
+      setActiveQueue(trackList);
+      setCurrentTrackIndex(startIndex);
+
       const offlineAwareTracks = trackList.map((t) => {
         const localAudio = getOfflineAudioUri(t.id);
         if (localAudio) {
@@ -292,7 +306,39 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       });
       await playerService.playQueue(offlineAwareTracks, startIndex);
     },
-    [tracks, currentTrackIndex, getOfflineAudioUri, serverUrl, serverToken]
+    [queueTracks, currentTrackIndex, getOfflineAudioUri, serverUrl, serverToken]
+  );
+
+  const playNext = useCallback(
+    async (track: Track) => {
+      Vibration.vibrate(10);
+      if (!currentTrack) {
+        await playQueue([track], 0);
+        return;
+      }
+      const insertIdx = currentTrackIndex + 1;
+      const updated = [...queueTracks];
+      // Loại bỏ bài hát nếu nó đã xuất hiện sau vị trí hiện tại
+      const existingIdx = updated.findIndex((t, idx) => t.id === track.id && idx > currentTrackIndex);
+      if (existingIdx !== -1) {
+        updated.splice(existingIdx, 1);
+      }
+      updated.splice(insertIdx, 0, track);
+      setActiveQueue(updated);
+
+      const offlineAwareTracks = updated.map((t) => {
+        const localAudio = getOfflineAudioUri(t.id);
+        if (localAudio) {
+          return {
+            ...t,
+            file: localAudio,
+          };
+        }
+        return resolveTrackUrls(t, serverUrl, serverToken);
+      });
+      await playerService.playQueue(offlineAwareTracks, currentTrackIndex);
+    },
+    [currentTrack, currentTrackIndex, queueTracks, getOfflineAudioUri, serverUrl, serverToken, playQueue]
   );
 
   const togglePlay = useCallback(async () => {
@@ -300,13 +346,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (playerState.isPlaying) {
       await playerService.pause();
     } else {
-      if (!playerState.activeTrackId && tracks.length > 0) {
+      if (!playerState.activeTrackId && queueTracks.length > 0) {
         await playQueue();
       } else if (playerState.activeTrackId) {
         await playerService.play();
       }
     }
-  }, [playerState.isPlaying, playerState.activeTrackId, tracks.length, playQueue]);
+  }, [playerState.isPlaying, playerState.activeTrackId, queueTracks.length, playQueue]);
 
   const next = useCallback(async () => {
     Vibration.vibrate(10);
@@ -315,10 +361,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCustomLoopRemaining(null);
       customLoopRemainingRef.current = null;
     }
-    if (tracks.length > 0) {
+    if (queueTracks.length > 0) {
       await playerService.next();
     }
-  }, [tracks.length, customLoopTarget]);
+  }, [queueTracks.length, customLoopTarget]);
 
   const previous = useCallback(async () => {
     Vibration.vibrate(10);
@@ -327,10 +373,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCustomLoopRemaining(null);
       customLoopRemainingRef.current = null;
     }
-    if (tracks.length > 0) {
+    if (queueTracks.length > 0) {
       await playerService.previous();
     }
-  }, [tracks.length, customLoopTarget]);
+  }, [queueTracks.length, customLoopTarget]);
 
   const skipToTrack = useCallback(async (index: number) => {
     Vibration.vibrate(10);
@@ -340,21 +386,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       customLoopRemainingRef.current = null;
     }
     if (!playerState.activeTrackId) {
-      await playQueue(tracks, index);
+      await playQueue(queueTracks, index);
     } else {
       await playerService.skipToIndex(index);
     }
-  }, [playerState.activeTrackId, tracks, playQueue, customLoopTarget]);
+  }, [playerState.activeTrackId, queueTracks, playQueue, customLoopTarget]);
 
   const seekOffset = useCallback(async (secondsOffset: number) => {
     Vibration.vibrate(10);
-    const currTrack = tracks[currentTrackIndex];
+    const currTrack = queueTracks[currentTrackIndex];
     const totalSec = playerState.durationSec || (currTrack ? currTrack.duration : 0);
     const target = totalSec > 0
       ? Math.min(totalSec, Math.max(0, playerState.positionSec + secondsOffset))
       : Math.max(0, playerState.positionSec + secondsOffset);
     await playerService.seekTo(target);
-  }, [tracks, currentTrackIndex, playerState.durationSec, playerState.positionSec]);
+  }, [queueTracks, currentTrackIndex, playerState.durationSec, playerState.positionSec]);
 
   const seekTo = useCallback(async (seconds: number) => {
     Vibration.vibrate(10);
@@ -405,39 +451,39 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const toggleSmartShuffle = useCallback(async () => {
     Vibration.vibrate(10);
-    if (tracks.length === 0) return;
+    if (queueTracks.length === 0) return;
 
     if (!isSmartShuffle) {
-      setOriginalTracks([...tracks]);
-      const currentTrack = tracks[currentTrackIndex];
-      const shuffled = smartShuffle(tracks, currentTrack?.id);
-      setTracks(shuffled);
+      setOriginalTracks([...queueTracks]);
+      const currTrack = queueTracks[currentTrackIndex];
+      const shuffled = smartShuffle(queueTracks, currTrack?.id);
+      setActiveQueue(shuffled);
       setCurrentTrackIndex(0);
       setIsSmartShuffle(true);
       await playerService.playQueue(shuffled, 0);
     } else {
-      const currentTrack = tracks[currentTrackIndex];
-      const restored = originalTracks.length > 0 ? originalTracks : tracks;
-      const restoredIdx = currentTrack
-        ? Math.max(0, restored.findIndex((t) => t.id === currentTrack.id))
+      const currTrack = queueTracks[currentTrackIndex];
+      const restored = originalTracks.length > 0 ? originalTracks : queueTracks;
+      const restoredIdx = currTrack
+        ? Math.max(0, restored.findIndex((t) => t.id === currTrack.id))
         : 0;
-      setTracks(restored);
+      setActiveQueue(restored);
       setCurrentTrackIndex(restoredIdx);
       setIsSmartShuffle(false);
       await playerService.playQueue(restored, restoredIdx);
     }
-  }, [tracks, currentTrackIndex, isSmartShuffle, originalTracks, setOriginalTracks, setTracks]);
+  }, [queueTracks, currentTrackIndex, isSmartShuffle, originalTracks, setOriginalTracks]);
 
   const applySortMode = useCallback((mode: TrackSortMode) => {
     Vibration.vibrate(10);
     setSortMode(mode);
-    const sorted = sortTracksByMode(tracks, mode);
-    setTracks(sorted);
+    const sorted = sortTracksByMode(queueTracks, mode);
+    setActiveQueue(sorted);
     if (playerState.activeTrackId) {
       const newIdx = sorted.findIndex((t) => t.id === playerState.activeTrackId);
       if (newIdx >= 0) setCurrentTrackIndex(newIdx);
     }
-  }, [tracks, playerState.activeTrackId, setTracks]);
+  }, [queueTracks, playerState.activeTrackId]);
 
   const addCustomTrack = useCallback(async (url: string) => {
     const trimmed = url.trim();
@@ -453,22 +499,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       duration: 0,
     };
 
-    const newTrackList = [...tracks, newTrack];
-    setTracks(newTrackList);
+    const newTrackList = [...queueTracks, newTrack];
+    setActiveQueue(newTrackList);
     if (isSmartShuffle) {
       setOriginalTracks((prev) => [...prev, newTrack]);
     }
     await playQueue(newTrackList, newTrackList.length - 1);
-  }, [tracks, isSmartShuffle, setTracks, setOriginalTracks, playQueue]);
+  }, [queueTracks, isSmartShuffle, setOriginalTracks, playQueue]);
 
   // Xóa bài hát khỏi hàng đợi phát hiện tại
   const removeFromQueue = useCallback(async (index: number) => {
     Vibration.vibrate(10);
-    if (index < 0 || index >= tracks.length) return;
-    const remaining = tracks.filter((_, idx) => idx !== index);
+    if (index < 0 || index >= queueTracks.length) return;
+    const remaining = queueTracks.filter((_, idx) => idx !== index);
 
     if (remaining.length === 0) {
-      setTracks([]);
+      setActiveQueue([]);
       setCurrentTrackIndex(0);
       await playerService.pause();
       return;
@@ -476,31 +522,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     if (index === currentTrackIndex) {
       const nextIdx = Math.min(index, remaining.length - 1);
-      setTracks(remaining);
+      setActiveQueue(remaining);
       setCurrentTrackIndex(nextIdx);
       await playQueue(remaining, nextIdx);
     } else if (index < currentTrackIndex) {
-      setTracks(remaining);
+      setActiveQueue(remaining);
       setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
     } else {
-      setTracks(remaining);
+      setActiveQueue(remaining);
     }
-  }, [tracks, currentTrackIndex, playQueue, setTracks]);
+  }, [queueTracks, currentTrackIndex, playQueue]);
 
   // Di chuyển bài hát trong hàng đợi (Reorder queue)
   const moveQueueItem = useCallback(
     async (fromIndex: number, toIndex: number) => {
       if (
         fromIndex < 0 ||
-        fromIndex >= tracks.length ||
+        fromIndex >= queueTracks.length ||
         toIndex < 0 ||
-        toIndex >= tracks.length ||
+        toIndex >= queueTracks.length ||
         fromIndex === toIndex
       ) {
         return;
       }
       Vibration.vibrate(10);
-      const updated = [...tracks];
+      const updated = [...queueTracks];
       const [moved] = updated.splice(fromIndex, 1);
       if (!moved) return;
       updated.splice(toIndex, 0, moved);
@@ -514,10 +560,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         nextCurrentIndex = currentTrackIndex + 1;
       }
 
-      setTracks(updated);
+      setActiveQueue(updated);
       setCurrentTrackIndex(nextCurrentIndex);
     },
-    [tracks, currentTrackIndex, setTracks]
+    [queueTracks, currentTrackIndex]
   );
 
   // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc) dựa trên wall-clock timestamp an toàn khi khóa màn hình
@@ -564,125 +610,128 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     });
 
-  return () => {
-    clearInterval(interval);
-    sub.remove();
-  };
-}, [sleepTimerMinutes]);
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [sleepTimerMinutes]);
 
-// Xử lý khi bài hát bị xóa khỏi app
-const handleTrackDeleted = useCallback(async (trackId: string, updatedList: Track[]) => {
-  const targetIdx = tracks.findIndex((t) => t.id === trackId);
-  if (tracks[currentTrackIndex]?.id === trackId) {
-    if (updatedList.length > 0) {
-      const nextIdx = Math.min(targetIdx, updatedList.length - 1);
-      setCurrentTrackIndex(nextIdx);
-      await playQueue(updatedList, nextIdx);
-    } else {
-      setCurrentTrackIndex(0);
-      await playerService.pause();
+        // Xử lý khi bài hát bị xóa khỏi app
+        const handleTrackDeleted = useCallback(async (trackId: string, remaining?: Track[]) => {
+          const targetIdx = queueTracks.findIndex((t) => t.id === trackId);
+          const updatedQueue = remaining ?? queueTracks.filter((t) => t.id !== trackId);
+          setActiveQueue(updatedQueue);
+
+          if (queueTracks[currentTrackIndex]?.id === trackId) {
+            if (updatedQueue.length > 0) {
+              const nextIdx = Math.min(targetIdx >= 0 ? targetIdx : 0, updatedQueue.length - 1);
+              setCurrentTrackIndex(nextIdx);
+              await playQueue(updatedQueue, nextIdx);
+            } else {
+              setCurrentTrackIndex(0);
+              await playerService.pause();
+            }
+          } else if (targetIdx >= 0 && targetIdx < currentTrackIndex) {
+            setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+          }
+      }, [queueTracks, currentTrackIndex, playQueue]);
+
+  // Cập nhật giới hạn số lượng bài nghe gần đây
+  const setRecentLimit = useCallback(async (limit: number) => {
+    Vibration.vibrate(10);
+    setRecentTracksData((prev) => {
+      const updated = updateRecentLimit(limit, prev);
+      saveRecentTracks(updated).catch(() => { });
+      return updated;
+    });
+  }, []);
+
+  // Xóa danh sách bài nghe gần đây
+  const clearRecentTracks = useCallback(async () => {
+    Vibration.vibrate(10);
+    setRecentTracksData((prev) => {
+      const updated = { ...prev, trackIds: [] };
+      saveRecentTracks(updated).catch(() => { });
+      return updated;
+    });
+  }, []);
+
+  // Xóa một bài khỏi danh sách nghe gần đây
+  const removeRecentTrack = useCallback(async (trackId: string) => {
+    Vibration.vibrate(5);
+    setRecentTracksData((prev) => {
+      const updated = removeTrackFromRecentList(trackId, prev);
+      saveRecentTracks(updated).catch(() => { });
+      return updated;
+    });
+  }, []);
+
+  // Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
+  const recentTracks = useMemo(() => {
+    const trackMap = new Map<string, Track>();
+    for (const t of tracks) {
+      trackMap.set(t.id, t);
     }
-  } else if (targetIdx < currentTrackIndex) {
-    setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
-  }
-}, [tracks, currentTrackIndex, playQueue]);
+    return recentTracksData.trackIds
+      .map((id) => trackMap.get(id))
+      .filter((t): t is Track => t !== undefined);
+  }, [tracks, recentTracksData.trackIds]);
 
-// Cập nhật giới hạn số lượng bài nghe gần đây
-const setRecentLimit = useCallback(async (limit: number) => {
-  Vibration.vibrate(10);
-  setRecentTracksData((prev) => {
-    const updated = updateRecentLimit(limit, prev);
-    saveRecentTracks(updated).catch(() => { });
-    return updated;
-  });
-}, []);
+  const gaplessDeltaMs = playerService.getGaplessDeltaMs();
 
-// Xóa danh sách bài nghe gần đây
-const clearRecentTracks = useCallback(async () => {
-  Vibration.vibrate(10);
-  setRecentTracksData((prev) => {
-    const updated = { ...prev, trackIds: [] };
-    saveRecentTracks(updated).catch(() => { });
-    return updated;
-  });
-}, []);
-
-// Xóa một bài khỏi danh sách nghe gần đây
-const removeRecentTrack = useCallback(async (trackId: string) => {
-  Vibration.vibrate(5);
-  setRecentTracksData((prev) => {
-    const updated = removeTrackFromRecentList(trackId, prev);
-    saveRecentTracks(updated).catch(() => { });
-    return updated;
-  });
-}, []);
-
-// Dẫn xuất danh sách Track[] hoàn chỉnh từ trackIds
-const recentTracks = useMemo(() => {
-  const trackMap = new Map<string, Track>();
-  for (const t of tracks) {
-    trackMap.set(t.id, t);
-  }
-  return recentTracksData.trackIds
-    .map((id) => trackMap.get(id))
-    .filter((t): t is Track => t !== undefined);
-}, [tracks, recentTracksData.trackIds]);
-
-const currentTrack: Track | null = tracks[currentTrackIndex] ?? null;
-const gaplessDeltaMs = playerService.getGaplessDeltaMs();
-
-return (
-  <PlayerContext.Provider
-    value={{
-      tracks,
-      currentTrackIndex,
-      setCurrentTrackIndex,
-      currentTrack,
-      playerState,
-      repeatMode,
-      isSmartShuffle,
-      setIsSmartShuffle,
-      sortMode,
-      setSortMode,
-      recentTracks,
-      recentLimit: recentTracksData.limit,
-      setRecentLimit,
-      clearRecentTracks,
-      removeRecentTrack,
-      playQueue,
-      togglePlay,
-      next,
-      previous,
-      skipToTrack,
-      seekOffset,
-      seekTo,
-      cycleRepeat,
-      customLoopTarget,
-      customLoopRemaining,
-      setCustomLoopCount,
-      isVinylMode,
-      toggleVinylMode,
-      transitionSettings,
-      updateTransitionSettings,
-      toggleSmartShuffle,
-      applySortMode,
-      addCustomTrack,
-      removeFromQueue,
-      moveQueueItem,
-      sleepTimerMinutes,
-      sleepTimerRemainingSec,
-      setSleepTimer,
-      handleTrackDeleted,
-      gaplessDeltaMs,
-      atomicWriteBranch,
-      lastMoveError,
-      recoveryStatus,
-      writeQueueStatus,
-    }}
-  >
-    {children}
-  </PlayerContext.Provider>
-);
+  return (
+    <PlayerContext.Provider
+      value={{
+        tracks: queueTracks,
+        currentTrackIndex,
+        setCurrentTrackIndex,
+        currentTrack,
+        playerState,
+        repeatMode,
+        isSmartShuffle,
+        setIsSmartShuffle,
+        sortMode,
+        setSortMode,
+        recentTracks,
+        recentLimit: recentTracksData.limit,
+        setRecentLimit,
+        clearRecentTracks,
+        removeRecentTrack,
+        playQueue,
+        playNext,
+        togglePlay,
+        next,
+        previous,
+        skipToTrack,
+        seekOffset,
+        seekTo,
+        cycleRepeat,
+        customLoopTarget,
+        customLoopRemaining,
+        setCustomLoopCount,
+        isVinylMode,
+        toggleVinylMode,
+        transitionSettings,
+        updateTransitionSettings,
+        toggleSmartShuffle,
+        applySortMode,
+        addCustomTrack,
+        removeFromQueue,
+        moveQueueItem,
+        sleepTimerMinutes,
+        sleepTimerRemainingSec,
+        setSleepTimer,
+        handleTrackDeleted,
+        gaplessDeltaMs,
+        atomicWriteBranch,
+        lastMoveError,
+        recoveryStatus,
+        writeQueueStatus,
+      }}
+    >
+      {children}
+    </PlayerContext.Provider>
+  );
 }
 
 export function usePlayer(): PlayerContextValue {

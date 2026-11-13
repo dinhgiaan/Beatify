@@ -15,7 +15,6 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { normalizeText, type Track } from '@music-app/shared';
@@ -31,6 +30,7 @@ import { formatTime } from '../../src/utils/formatTime';
 import { cleanTrackTitle } from '../../src/utils/recentFormatters';
 import { splitMatches } from '../../src/utils/searchHighlight';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
+import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
 import {
   loadSearchHistory,
   saveSearchHistory,
@@ -73,10 +73,9 @@ function HighlightedText({
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const inputRef = useRef<TextInput>(null);
-  const { tracks, userState, toggleFavorite, deleteTrack } = useLibrary();
-  const { currentTrack, playQueue, togglePlay } = usePlayer();
+  const { tracks, userState, toggleFavorite, deleteTrack, updateUserState } = useLibrary();
+  const { currentTrack, playQueue, playNext, togglePlay, handleTrackDeleted } = usePlayer();
   const { contentPaddingBottom } = useTabBarMetrics();
 
   const [rawQuery, setRawQuery] = useState('');
@@ -88,6 +87,7 @@ export default function SearchScreen() {
   // Menu Bottom Sheet cho bài hát
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const resultsFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -408,28 +408,28 @@ export default function SearchScreen() {
                 <View style={styles.artistSection}>
                   <Text style={styles.sectionHeaderTitle}>Nghệ sĩ nghe nhiều</Text>
                   <View style={styles.chipsWrapper}>
-                      {
-                        popularArtists.map((artist) => (
-                          <Animated.View
-                            key={artist}
-                            style={{
-                              opacity: 1,
+                    {
+                      popularArtists.map((artist) => (
+                        <Animated.View
+                          key={artist}
+                          style={{
+                            opacity: 1,
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={styles.artistChip}
+                            onPress={() => {
+                              Vibration.vibrate(5);
+                              setRawQuery(artist);
                             }}
+                            activeOpacity={0.75}
                           >
-                            <TouchableOpacity
-                              style={styles.artistChip}
-                              onPress={() => {
-                                Vibration.vibrate(5);
-                                setRawQuery(artist);
-                              }}
-                              activeOpacity={0.75}
-                            >
-                              <Text style={styles.artistChipText}>{artist}</Text>
-                            </TouchableOpacity>
-                          </Animated.View>
-                        ))
-                      }
-                        </View>
+                            <Text style={styles.artistChipText}>{artist}</Text>
+                          </TouchableOpacity>
+                        </Animated.View>
+                      ))
+                    }
+                  </View>
                 </View>
               )}
 
@@ -498,29 +498,39 @@ export default function SearchScreen() {
           onClose={() => setMenuVisible(false)}
           track={selectedTrackForMenu}
           isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
+          playlistNames={
+            selectedTrackForMenu
+              ? userState.playlists
+                .filter((pl) => pl.trackIds.includes(selectedTrackForMenu.id))
+                .map((pl) => pl.name)
+              : undefined
+          }
           onPlayNext={() => {
-            playQueue([selectedTrackForMenu, ...filteredTracks], 0);
+            if (selectedTrackForMenu) playNext(selectedTrackForMenu);
           }}
           onToggleFavorite={() => {
             toggleFavorite(selectedTrackForMenu.id);
           }}
           onAddToPlaylist={() => {
-            router.push({
-              pathname: '/modal/add-to-playlist',
-              params: { trackId: selectedTrackForMenu.id },
-            });
+            setAddToPlaylistVisible(true);
           }}
           onEditInfo={() => {
-            router.push({
-              pathname: '/modal/edit-track',
-              params: { trackId: selectedTrackForMenu.id },
-            });
+            // Mở màn hình thư viện hoặc thông báo
           }}
           onDeleteFromLibrary={() => {
-            deleteTrack(selectedTrackForMenu.id);
+            deleteTrack(selectedTrackForMenu.id, handleTrackDeleted);
           }}
         />
       )}
+
+      {/* Modal thêm bài hát vào playlist */}
+      <AddToPlaylistModal
+        visible={addToPlaylistVisible}
+        track={selectedTrackForMenu}
+        userState={userState}
+        onClose={() => setAddToPlaylistVisible(false)}
+        onUpdateUserState={updateUserState}
+      />
     </View>
   );
 }

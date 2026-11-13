@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import type { Track } from '@music-app/shared';
 import {
   colors,
@@ -21,6 +22,9 @@ import {
 import { usePlayer, useLibrary, useOffline } from '../context';
 import { formatTime } from '../utils/formatTime';
 import { EqualizerIndicator } from './player/EqualizerIndicator';
+import { MiniPlayer } from './player/MiniPlayer';
+import { TrackActionSheet } from './sheet/TrackActionSheet';
+import { AddToPlaylistModal } from './AddToPlaylistModal';
 import {
   CloseIcon,
   PlayIcon,
@@ -58,10 +62,15 @@ export function CollectionDetailModal({
   onRemoveTrackFromPlaylist,
   onClearRecentTracks,
 }: CollectionDetailModalProps) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currentTrack, playQueue, togglePlay, playerState } = usePlayer();
-  const { userState, toggleFavorite } = useLibrary();
-  const { isTrackOffline } = useOffline();
+  const { currentTrack, playQueue, playNext, togglePlay, playerState, handleTrackDeleted } = usePlayer();
+  const { userState, toggleFavorite, updateUserState, deleteTrack } = useLibrary();
+  const { isTrackOffline, downloadTrack, deleteOfflineTrack, isDownloading } = useOffline();
+
+  const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
 
   const totalDurationSec = useMemo(() => {
     return tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
@@ -69,11 +78,13 @@ export function CollectionDetailModal({
 
   const handlePlayAll = () => {
     if (tracks.length === 0) return;
+    // Phát toàn bộ bài trong collection này (không ảnh hưởng danh sách thư viện toàn cục)
     playQueue(tracks, 0);
   };
 
   const handleShufflePlay = () => {
     if (tracks.length === 0) return;
+    // Shuffle chỉ các bài trong collection này, không phải toàn thư viện
     const shuffled = [...tracks].sort(() => Math.random() - 0.5);
     playQueue(shuffled, 0);
   };
@@ -95,6 +106,11 @@ export function CollectionDetailModal({
       <TouchableOpacity
         style={[styles.trackItem, isCurrent && styles.trackItemActive]}
         onPress={() => handleTrackPress(item, index)}
+        onLongPress={() => {
+          setSelectedTrackForMenu(item);
+          setActionSheetVisible(true);
+        }}
+        delayLongPress={400}
         activeOpacity={0.7}
       >
         {isCurrent ? (
@@ -164,7 +180,7 @@ export function CollectionDetailModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <View style={[styles.container, { paddingTop: Math.max(insets.top, spacing.md) }]}>
@@ -187,7 +203,7 @@ export function CollectionDetailModal({
           renderItem={renderTrackItem}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.xl },
+            { paddingBottom: Math.max(insets.bottom, 16) + (currentTrack ? 90 : 32) },
           ]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
@@ -287,6 +303,75 @@ export function CollectionDetailModal({
             </View>
           }
         />
+
+        {/* MiniPlayer hiển thị bên trong modal để không bị che khuất */}
+        {currentTrack && (
+          <View
+            style={[styles.miniPlayerWrapper, { bottom: Math.max(insets.bottom, 12) }]}
+            pointerEvents="box-none"
+          >
+            <MiniPlayer
+              onPress={() => {
+                onClose();
+                router.push('/now-playing');
+              }}
+            />
+          </View>
+        )}
+
+        {/* Menu bài hát Bottom Sheet kiểu Apple */}
+        {selectedTrackForMenu && (
+          <TrackActionSheet
+            visible={actionSheetVisible}
+            onClose={() => setActionSheetVisible(false)}
+            track={selectedTrackForMenu}
+            isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
+            playlistNames={
+              selectedTrackForMenu
+                ? userState.playlists
+                  .filter((pl) => pl.trackIds.includes(selectedTrackForMenu.id))
+                  .map((pl) => pl.name)
+                : undefined
+            }
+            downloadStatus={
+              selectedTrackForMenu
+                ? isDownloading[selectedTrackForMenu.id]
+                  ? 'downloading'
+                  : isTrackOffline(selectedTrackForMenu.id)
+                    ? 'downloaded'
+                    : 'idle'
+                : 'idle'
+            }
+            onPlayNext={() => {
+              if (selectedTrackForMenu) playNext(selectedTrackForMenu);
+            }}
+            onToggleFavorite={() => {
+              toggleFavorite(selectedTrackForMenu.id);
+            }}
+            onAddToPlaylist={() => {
+              setAddToPlaylistVisible(true);
+            }}
+            onDownloadPress={async (t, status) => {
+              if (status === 'downloaded') {
+                await deleteOfflineTrack(t.id);
+              } else if (status === 'idle' || status === 'error') {
+                await downloadTrack(t);
+              }
+            }}
+            onDeleteFromLibrary={() => {
+              deleteTrack(selectedTrackForMenu.id, handleTrackDeleted);
+            }}
+          />
+        )}
+
+        {/* Modal Thêm vào playlist */}
+        <AddToPlaylistModal
+          visible={addToPlaylistVisible}
+          track={selectedTrackForMenu}
+          userState={userState}
+          onClose={() => setAddToPlaylistVisible(false)}
+          onUpdateUserState={updateUserState}
+        />
       </View>
     </Modal>
   );
@@ -296,6 +381,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  miniPlayerWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    zIndex: 50,
   },
   navBar: {
     flexDirection: 'row',
