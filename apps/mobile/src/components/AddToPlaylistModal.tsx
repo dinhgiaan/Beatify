@@ -144,87 +144,87 @@ export function AddToPlaylistModal({
           onClose();
         }}
       >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.card}
-            onStartShouldSetResponder={() => true}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title}>Thêm vào playlist</Text>
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {track.title} • {track.artist}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  setIsCreatingNew(false);
-                  setNewTitle('');
-                  onClose();
-                }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <CloseIcon size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.card}
+          onStartShouldSetResponder={() => true}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Thêm vào playlist</Text>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {track.title} • {track.artist}
+              </Text>
             </View>
+            <TouchableOpacity
+              onPress={() => {
+                setIsCreatingNew(false);
+                setNewTitle('');
+                onClose();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <CloseIcon size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
-                  {/* Form tạo nhanh playlist mới */ }
+          {/* Form tạo nhanh playlist mới */}
           {isCreatingNew ? (
-                  <View style={styles.createFormBox}>
-                    <Text style={styles.createFormLabel}>Tên playlist mới</Text>
-                    <TextInput
-                      style={styles.createInput}
-                      placeholder="Ví dụ: Chill rap, Nhạc đêm..."
-                      placeholderTextColor={colors.textTertiary}
-                      value={newTitle}
-                      onChangeText={setNewTitle}
-                      autoFocus
-                      maxLength={50}
-                    />
-                    <View style={styles.createFormActions}>
-                      <TouchableOpacity
-                        style={styles.cancelCreateBtn}
-                        onPress={() => {
-                          setIsCreatingNew(false);
-                          setNewTitle('');
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.cancelCreateBtnText}>Hủy</Text>
-                      </TouchableOpacity>
+            <View style={styles.createFormBox}>
+              <Text style={styles.createFormLabel}>Tên playlist mới</Text>
+              <TextInput
+                style={styles.createInput}
+                placeholder="Ví dụ: Chill rap, Nhạc đêm..."
+                placeholderTextColor={colors.textTertiary}
+                value={newTitle}
+                onChangeText={setNewTitle}
+                autoFocus
+                maxLength={50}
+              />
+              <View style={styles.createFormActions}>
+                <TouchableOpacity
+                  style={styles.cancelCreateBtn}
+                  onPress={() => {
+                    setIsCreatingNew(false);
+                    setNewTitle('');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.cancelCreateBtnText}>Hủy</Text>
+                </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.confirmCreateBtn}
-                        onPress={handleCreateAndAdd}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.confirmCreateBtnText}>Tạo & Thêm vào</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                      <>
-                        {/* Nút tạo nhanh playlist */}
-                        <TouchableOpacity
-                          style={styles.newPlaylistTriggerBtn}
-                          onPress={() => setIsCreatingNew(true)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={styles.newPlaylistIconBox}>
-                            <PlusIcon size={18} color={colors.primary} />
-                          </View>
-                          <Text style={styles.newPlaylistTriggerText}>+ Tạo danh sách phát mới</Text>
-                        </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmCreateBtn}
+                  onPress={handleCreateAndAdd}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmCreateBtnText}>Tạo & Thêm vào</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <>
+              {/* Nút tạo nhanh playlist */}
+              <TouchableOpacity
+                style={styles.newPlaylistTriggerBtn}
+                onPress={() => setIsCreatingNew(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.newPlaylistIconBox}>
+                  <PlusIcon size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.newPlaylistTriggerText}>Tạo danh sách phát mới</Text>
+              </TouchableOpacity>
 
-                          {/* Danh sách playlist hiện có */}
-                          {userState.playlists.length === 0 ? (
-                            <View style={styles.emptyBox}>
-                              <Text style={styles.emptyText}>
-                                Bạn chưa có danh sách phát nào. Bấm nút trên để tạo danh sách đầu tiên.
-                              </Text>
-                            </View>
-                          ) : (
+              {/* Danh sách playlist hiện có */}
+              {userState.playlists.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>
+                    Bạn chưa có danh sách phát nào. Bấm nút trên để tạo danh sách đầu tiên.
+                  </Text>
+                </View>
+              ) : (
                 <FlatList
                   data={userState.playlists}
                   keyExtractor={(item) => item.id}
@@ -259,35 +259,35 @@ export function AddToPlaylistModal({
                         </View>
 
                         {isInPlaylist ? (
-                            <View style={styles.badgeIncluded}>
-                              <CheckIcon size={12} color={colors.primary} />
-                              <Text style={styles.badgeText}>Đã có</Text>
-                            </View>
-                          ) : (
-                            <View style={styles.addIconCircle}>
-                              <PlusIcon size={13} color={colors.textSecondary} />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                        );
+                          <View style={styles.badgeIncluded}>
+                            <CheckIcon size={12} color={colors.primary} />
+                            <Text style={styles.badgeText}>Đã có</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.addIconCircle}>
+                            <PlusIcon size={13} color={colors.textSecondary} />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
                   }}
                 />
               )}
-                      </>
+            </>
           )}
 
-                {/* Nút Đóng */}
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => {
-                    setIsCreatingNew(false);
-                    setNewTitle('');
-                    onClose();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.cancelBtnText}>Đóng</Text>
-                </TouchableOpacity>
+          {/* Nút Đóng */}
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={() => {
+              setIsCreatingNew(false);
+              setNewTitle('');
+              onClose();
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cancelBtnText}>Đóng</Text>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </TouchableOpacity>
     </Modal>

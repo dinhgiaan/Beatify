@@ -1,36 +1,40 @@
 /**
- * Tiện ích định dạng và làm sạch văn bản cho danh sách Nghe gần đây
+ * Tiện ích định dạng và làm sạch văn bản cho danh sách Nghe gần đây và Thống kê
  */
 
 /**
- * Lược bỏ các phần thừa trong tên bài hát để hiển thị kiểu poster tối giản:
+ * Lược bỏ các phần rác/thừa từ YouTube trong tên bài hát để hiển thị kiểu poster tối giản Apple:
  * Ví dụ:
  * - "[MV OFFICIAL] Buông Đôi Tay Nhau Ra" -> "Buông Đôi Tay Nhau Ra"
  * - "NOLOVENOLIFE (prod. by Kewtiie)" -> "NOLOVENOLIFE"
- * - "[Lyrics Video] Track 9. Finale..." -> "Finale..."
- * - "Cao Ốc 20 - MV OFFICIAL" -> "Cao Ốc 20"
+ * - "Bài Hát Hay Nhất - Video Lyrics" -> "Bài Hát Hay Nhất"
+ * - "Đừng Làm Trái Tim Anh Đau (Official Video)" -> "Đừng Làm Trái Tim Anh Đau"
+ * - "Cắt Đôi Nỗi Sầu | Review" -> "Cắt Đôi Nỗi Sầu"
  */
 export function cleanTrackTitle(title: string): string {
   if (!title) return '';
 
   let cleaned = title;
 
-  // Lược bỏ các tiền tố/hậu tố trong ngoặc vuông: [MV ...], [OFFICIAL ...], [LYRICS ...], [Track X. ...]
-  cleaned = cleaned.replace(/\[(?:MV|OFFICIAL|LYRIC|LYRICS|AUDIO|TEASER|VIDEO|TRACK\s*\d+)[^\]]*\]/gi, '');
+  // 1. Lược bỏ các tiền tố/hậu tố trong ngoặc vuông: [MV ...], [OFFICIAL ...], [LYRICS ...], [Track X. ...]
+  cleaned = cleaned.replace(/\[(?:MV|OFFICIAL|LYRIC|LYRICS|AUDIO|TEASER|VIDEO|TRACK\s*\d+|4K|HD|REMIX|COVER|VIETSUB)[^\]]*\]/gi, '').trim();
 
-  // Lược bỏ hậu tố "Track 9. " nếu còn sót
-  cleaned = cleaned.replace(/Track\s*\d+[.\s-]+/gi, '');
+  // 2. Lược bỏ "Track X. " nếu còn sót ở đầu
+  cleaned = cleaned.replace(/^Track\s*\d+[.\s-]+/gi, '').trim();
 
-  // Lược bỏ trong ngoặc đơn dạng: (prod. by ...), (Official Video), (Lyrics)
-  cleaned = cleaned.replace(/\((?:prod\.?\s*by|official|lyric|lyrics|audio|mv)[^)]*\)/gi, '');
+  // 3. Lược bỏ trong ngoặc đơn dạng: (prod. by ...), (Official Video), (Lyrics Video), (Audio), (Review), (Reaction)
+  cleaned = cleaned.replace(/\((?:prod\.?\s*by|official(?:\s+music)?\s+video|official(?:\s+audio)?|video\s+lyrics|lyrics?(?:\s+video)?|audio|mv|visualizer|review|reaction|remix|cover|vietsub|live)[^)]*\)/gi, '');
 
-  // Lược bỏ các hậu tố nối bằng gạch ngang: " - MV OFFICIAL", " - Official Music Video"
-  cleaned = cleaned.replace(/\s*[-–—]\s*(?:MV|OFFICIAL|LYRICS|AUDIO|MUSIC VIDEO).*$/gi, '');
+  // 4. Lược bỏ các hậu tố nối bằng gạch ngang, gạch đứng: " - MV OFFICIAL", " | Video Lyrics", " - Review", " | Official Video"
+  cleaned = cleaned.replace(/\s*[-–—|]\s*(?:MV(?:\s+OFFICIAL)?|OFFICIAL(?:\s+MUSIC)?\s+VIDEO|OFFICIAL\s+AUDIO|VIDEO\s+LYRICS|LYRICS?(?:\s+VIDEO)?|AUDIO|MUSIC\s+VIDEO|VISUALIZER|REVIEW|REACTION|LIVE|REMIX|4K|HD).*$/gi, '');
 
-  // Dọn dẹp khoảng trắng kép và khoảng trắng thừa ở hai đầu
+  // 5. Lược bỏ cụm từ rác đứng riêng ở cuối chuỗi: " Video Lyrics", " Official Video" nếu không có dấu gạch
+  cleaned = cleaned.replace(/\s+(?:video\s+lyrics|lyrics?\s+video|official\s+video|official\s+audio)\s*$/gi, '');
+
+  // 6. Dọn dẹp khoảng trắng kép và khoảng trắng thừa ở hai đầu
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
-  // Nếu lỡ xoá hết sạch (hiếm khi), fallback về title gốc
+  // 7. Nếu lỡ xoá hết sạch (hiếm khi), fallback về title gốc
   return cleaned.length > 0 ? cleaned : title.trim();
 }
 

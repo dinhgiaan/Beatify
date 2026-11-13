@@ -41,8 +41,17 @@
    - **Hiển thị Media Player trong Playlist Modal:** Nhúng `MiniPlayer` trực tiếp vào `CollectionDetailModal` với vị trí nổi chuẩn safe area đáy màn hình (`bottom: Math.max(insets.bottom, 12)`), giúp người dùng luôn điều khiển được bài hát và mở Now Playing mà không cần tắt playlist.
    - **Độc lập hàng đợi phát (Active Queue Isolation):** Tách riêng state `activeQueue` trong `PlayerContext` khỏi `tracks` của Thư viện. Khi bấm "Xáo trộn" trong playlist "gang gang", hàng đợi phát và danh sách chờ trong `NowPlayingView` chỉ chứa chính xác các bài hát của playlist đó (không bị trộn lẫn bài từ trang chủ), đồng thời bảo toàn 100% kho nhạc ở trang chủ.
    - **Xáo trộn ngẫu nhiên danh sách Trang chủ:** Tích hợp `smartShuffle` tự động khi nạp thư viện từ local cache và R2, bổ sung nút icon Xáo trộn danh sách 1 chạm trên Header Trang chủ cạnh nút Cloud Sync, giúp giao diện luôn mới mẻ ngẫu nhiên mỗi lần mở app.
-9. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
-**Cập nhật lần cuối:** 2026-11-13 (Khắc phục 4 vấn đề Playlist, MiniPlayer, Shuffle Queue & Random Trang chủ)
+9. **Khắc phục 4 vấn đề trải nghiệm phát nhạc & Playlist trên Mobile App:**
+   - Trạng thái nút "Đã trong playlist" kèm badge hiển thị rõ ràng.
+   - Hiển thị MiniPlayer nổi trong Playlist Modal với safe area chuẩn.
+   - Hàng đợi phát độc lập (Active Queue) cô lập bài của playlist khi Shuffle.
+   - Tự động xáo trộn ngẫu nhiên danh sách Trang chủ khi mở app.
+10. **Thiết kế lại 4 màn hình "Hồ sơ & Cài đặt", "Thống kê (Replay)", "Nhật ký Smart Transition" và "Lưu trữ offline" theo chuẩn Apple Settings:**
+   - Xây dựng hệ thống component dùng chung chuẩn Apple: `ListGroup`, `SettingRow`, `SectionHeader`, `UserAvatar`.
+   - Thống nhất typography, 2 mức surface (`bgBase: #000000`, `bgSurface: #121217`, `bgElevated: #1c1c22`), đường phân cách hairline `StyleSheet.hairlineWidth`.
+   - Khắc phục triệt để 10 lỗi: Cắt cụt chữ mép header (Sticky Tab Bar), Safe-area cộng đôi gây khoảng đen trên sheet, Avatar rỗng chữ cái đầu, Rút gọn nhật ký chuyển bài 1 dòng và ánh xạ tiếng Việt, Hàm làm sạch tiêu đề rác `cleanTrackTitle` có unit test, Thống nhất thuật ngữ "Lượt nghe" / "Phút nghe", Chip chuyển bài mờ khi tắt Switch, Nút xóa Danger bắt buộc Alert, Mô tả chuyển bài trung thực, Bỏ lặp số liệu thống kê.
+   - Toàn bộ monorepo: 272/272 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
+**Cập nhật lần cuối:** 2026-11-13 (Tinh chỉnh UI/UX 4 màn hình Settings, Replay, Transition Logs, Offline theo chuẩn Apple)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

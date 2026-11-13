@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -7,24 +7,52 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TransitionLogEntry } from '@music-app/shared';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 import {
   loadTransitionLogs,
   clearTransitionLogs,
 } from '../services/player/transitionPreferences';
-import { colors } from '../theme/colors';
+import { tokens } from '../theme/tokens';
+import { CloseIcon, DiscIcon } from './icons/SvgIcons';
+import {
+  formatTransitionReason,
+  formatAppState,
+  formatCamelotRelation,
+} from '../constants/labels';
+import { cleanTrackTitle } from '../utils/recentFormatters';
+import { ListGroup, SectionHeader } from './common';
+import { triggerSelectionHaptic } from '../utils/haptics';
 
 interface TransitionLogModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+function formatLogTime(isoStr: string): string {
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
 export function TransitionLogModal({ visible, onClose }: TransitionLogModalProps) {
   const insets = useSafeAreaInsets();
   const [logs, setLogs] = useState<TransitionLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const refreshLogs = useCallback(async () => {
     setIsLoading(true);
@@ -39,326 +67,397 @@ export function TransitionLogModal({ visible, onClose }: TransitionLogModalProps
   useEffect(() => {
     if (visible) {
       refreshLogs();
+      setExpandedLogId(null);
     }
   }, [visible, refreshLogs]);
 
-  const handleClear = async () => {
-    await clearTransitionLogs();
-    setLogs([]);
-  };
+    // Alert xác nhận khi xóa nhật ký (Lỗi 8)
+    const handleClear = () => {
+      triggerSelectionHaptic();
+      Alert.alert(
+        'Xóa toàn bộ nhật ký chuyển bài?',
+        'Dữ liệu chẩn đoán chuyển bài thực tế trên thiết bị sẽ được xóa sạch. Hành động này không thể hoàn tác.',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          {
+            text: 'Xóa nhật ký',
+            style: 'destructive',
+            onPress: async () => {
+              await clearTransitionLogs();
+              setLogs([]);
+              setExpandedLogId(null);
+            },
+          },
+        ]
+      );
+    };
 
-  const getRelationBadge = (relation: string) => {
-    switch (relation) {
-      case 'same':
-        return { label: 'CÙNG TÔNG', bg: '#064E3B', text: '#34D399' };
-      case 'adjacent':
-        return { label: 'BẬC 5 (±1H)', bg: '#164E63', text: '#38BDF8' };
-      case 'relative':
-        return { label: 'ĐỔI HỆ (A/B)', bg: '#3B0764', text: '#C084FC' };
-      case 'energy_boost':
-        return { label: 'ENERGY BOOST (+2H)', bg: '#78350F', text: '#FBBF24' };
-      case 'incompatible':
-        return { label: 'KHÔNG TƯƠNG THÍCH', bg: '#374151', text: '#9CA3AF' };
-      default:
-        return { label: 'CHƯA RÕ', bg: '#1F2937', text: '#9CA3AF' };
-    }
-  };
+      const toggleExpand = (id: string) => {
+        triggerSelectionHaptic();
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedLogId((prev) => (prev === id ? null : id));
+      };
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-          {/* HEADER */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>NHẬT KÝ SMART TRANSITION</Text>
-              <Text style={styles.subtitle}>Chẩn đoán chuyển bài thực tế ({logs.length} bản ghi)</Text>
-            </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+      // Nhóm nhật ký theo ngày (Lỗi 4: Hôm nay, Hôm qua, Ngày...)
+      const groupedLogs = useMemo(() => {
+        const groups: { dateLabel: string; items: TransitionLogEntry[] }[] = [];
+        const dateMap = new Map<string, TransitionLogEntry[]>();
 
-          {/* ACTIONS */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionBtn} onPress={refreshLogs} activeOpacity={0.7}>
-              <Text style={styles.actionBtnText}>Làm mới</Text>
-            </TouchableOpacity>
-            {logs.length > 0 && (
-              <TouchableOpacity style={[styles.actionBtn, styles.clearBtn]} onPress={handleClear} activeOpacity={0.7}>
-                <Text style={[styles.actionBtnText, styles.clearBtnText]}>Xóa nhật ký</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+        const todayStr = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-          {/* BODY */}
-          {isLoading ? (
-            <View style={styles.centerBox}>
-              <ActivityIndicator color={colors.primary} size="large" />
-            </View>
-          ) : logs.length === 0 ? (
-            <View style={styles.centerBox}>
-              <Text style={styles.emptyIcon}>🎛️</Text>
-              <Text style={styles.emptyTitle}>Chưa có bản ghi nào</Text>
-              <Text style={styles.emptyDesc}>
-                Hãy bật Smart Transition và nghe hết bài để hệ thống tự động ghi lại quá trình chuyển bài thực tế trên máy.
-              </Text>
-            </View>
-          ) : (
-            <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-              {logs.map((entry) => {
-                const badge = getRelationBadge(entry.camelotRelation);
-                const formattedTime = new Date(entry.timestamp).toLocaleTimeString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
+        for (const entry of logs) {
+          const d = new Date(entry.timestamp);
+          const ds = d.toDateString();
+          const label =
+            ds === todayStr
+              ? 'Hôm nay'
+              : ds === yesterday
+                ? 'Hôm qua'
+                : d.toLocaleDateString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
                 });
 
-                return (
-                  <View key={entry.id} style={styles.card}>
-                    {/* HÀNG TRÊN: THỜI GIAN & BADGE */}
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.timeText}>{formattedTime}</Text>
-                      <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                        <Text style={[styles.badgeText, { color: badge.text }]}>{badge.label}</Text>
-                      </View>
-                    </View>
+          let arr = dateMap.get(label);
+          if (!arr) {
+            arr = [];
+            dateMap.set(label, arr);
+            groups.push({ dateLabel: label, items: arr });
+          }
+          arr.push(entry);
+        }
 
-                    {/* TÊN BÀI HÁT A -> B */}
-                    <Text style={styles.trackFrom} numberOfLines={1}>
-                      {entry.fromTrackTitle}
-                    </Text>
-                    <View style={styles.arrowRow}>
-                      <Text style={styles.arrowIcon}>↓ chuyển sang</Text>
-                    </View>
-                    <Text style={styles.trackTo} numberOfLines={1}>
-                      {entry.toTrackTitle}
-                    </Text>
+        return groups;
+      }, [logs]);
 
-                    {/* BẢNG CHỈ SỐ KỸ THUẬT */}
-                    <View style={styles.metaGrid}>
-                      <View style={styles.metaItem}>
-                        <Text style={styles.metaLabel}>BPM</Text>
-                        <Text style={styles.metaValue}>
-                          {entry.fromBpm ?? '--'} ➔ {entry.toBpm ?? '--'}
-                          {entry.bpmDeltaPercent !== undefined ? ` (Δ${entry.bpmDeltaPercent}%)` : ''}
-                        </Text>
+      return (
+                  <Modal
+                    visible={visible}
+                    animationType="slide"
+                    presentationStyle="pageSheet"
+                    onRequestClose={onClose}
+                  >
+                    <View style={styles.container}>
+                      {/* Drag indicator chuẩn Apple (Lỗi 2) */}
+                      <View style={styles.grabberBox}>
+                        <View style={styles.grabber} />
                       </View>
-                      <View style={styles.metaItem}>
-                        <Text style={styles.metaLabel}>CAMELOT KEY</Text>
-                        <Text style={styles.metaValue}>
-                          {entry.fromKey ?? '--'} ➔ {entry.toKey ?? '--'}
-                        </Text>
-                      </View>
-                    </View>
 
-                    <View style={styles.metaGrid}>
-                      <View style={styles.metaItem}>
-                        <Text style={styles.metaLabel}>FADE</Text>
-                        <Text style={styles.metaValue}>
-                          {entry.actualFadeDurationSec}s (Cài {entry.configuredDurationSec}s)
-                        </Text>
+                      {/* Header Modal */}
+                      <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Nhật ký chuyển bài</Text>
+                        <TouchableOpacity
+                          style={styles.closeButton}
+                          onPress={onClose}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          accessibilityLabel="Đóng nhật ký"
+                        >
+                          <CloseIcon size={18} color={tokens.colors.textSecondary} />
+                        </TouchableOpacity>
                       </View>
-                      <View style={styles.metaItem}>
-                        <Text style={styles.metaLabel}>APP STATE / SAFE</Text>
-                        <Text style={styles.metaValue}>
-                          {entry.appState.toUpperCase()} | {entry.isSafeMode ? 'SAFE' : 'FADE'}
-                        </Text>
-                      </View>
-                    </View>
 
-                    <View style={styles.footerRow}>
-                      <Text style={styles.reasonText}>Lý do: {entry.reason}</Text>
-                      <Text style={styles.volText}>Vol về: {(entry.finalVolume * 100).toFixed(0)}%</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
-      </View>
-    </Modal>
-  );
+                      {/* Body Scroll */}
+                      {isLoading ? (
+                        <View style={styles.centerBox}>
+                          <ActivityIndicator color={tokens.colors.accent} size="small" />
+                        </View>
+                      ) : logs.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                          <View style={styles.emptyIconBox}>
+                            <DiscIcon size={32} color={tokens.colors.textDim} />
+                          </View>
+                          <Text style={styles.emptyTitle}>Chưa có bản ghi nào</Text>
+                          <Text style={styles.emptyDesc}>
+                            Bật Chuyển bài thông minh và nghe bài hát để hệ thống tự động ghi lại quá trình hòa âm trên máy.
+                          </Text>
+                        </View>
+                      ) : (
+                        <ScrollView
+                          style={styles.scrollContent}
+                          contentContainerStyle={[
+                            styles.scrollInner,
+                            { paddingBottom: Math.max(insets.bottom, tokens.spacing.xl) + tokens.spacing.xl },
+                          ]}
+                          showsVerticalScrollIndicator={false}
+                        >
+                          {groupedLogs.map((group) => (
+                            <View key={group.dateLabel} style={styles.dateGroup}>
+                              <SectionHeader title={group.dateLabel} />
+                              <ListGroup>
+                                {group.items.map((entry) => {
+                                  const isExpanded = expandedLogId === entry.id;
+                                  const fromTitle = cleanTrackTitle(entry.fromTrackTitle);
+                                  const toTitle = cleanTrackTitle(entry.toTrackTitle);
+                                  const timeStr = formatLogTime(entry.timestamp);
+                                  const camelotInfo = formatCamelotRelation(entry.camelotRelation);
+
+                                  // Kiểm tra có dữ liệu BPM hoặc Key không (Lỗi 4: ẩn khi null)
+                                  const hasBpm =
+                                    entry.fromBpm !== undefined || entry.toBpm !== undefined;
+                                  const hasKey =
+                                    Boolean(entry.fromKey) || Boolean(entry.toKey);
+
+                                          return (
+                                            <View key={entry.id} style={styles.logItemContainer}>
+                                              {/* HÀNG RÚT GỌN 1 DÒNG (Lỗi 4) */}
+                                              <TouchableOpacity
+                                                style={styles.singleRow}
+                                                onPress={() => toggleExpand(entry.id)}
+                                                activeOpacity={0.7}
+                                              >
+                                                <View style={styles.singleRowMain}>
+                                                  <Text style={styles.singleRowTitle} numberOfLines={1}>
+                                                    {fromTitle} → {toTitle}
+                                                  </Text>
+                                                  <Text style={styles.singleRowMeta}>
+                                                    {entry.actualFadeDurationSec}s · {timeStr} · {formatTransitionReason(entry.reason)}
+                                                  </Text>
+                                                </View>
+                                                <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
+                                                  ›
+                                                </Text>
+                                              </TouchableOpacity>
+
+                                                {/* PHẦN CHI TIẾT KHI BẤM MỞ RỘNG */}
+                                                {isExpanded && (
+                                                  <View style={styles.detailBox}>
+                                                    <View style={styles.detailGrid}>
+                                                      <View style={styles.detailCol}>
+                                                        <Text style={styles.detailLabel}>Loại hòa âm</Text>
+                                                        <Text style={styles.detailVal}>{formatTransitionReason(entry.reason)}</Text>
+                                                      </View>
+                                                      <View style={styles.detailCol}>
+                                                        <Text style={styles.detailLabel}>Trạng thái app</Text>
+                                                        <Text style={styles.detailVal}>
+                                                          {formatAppState(entry.appState)}
+                                                          {entry.isSafeMode ? ' · Safe Mode' : ''}
+                                                        </Text>
+                                                      </View>
+                                                    </View>
+
+                                                    {/* CHỈ HIỆN BPM NẾU CÓ DỮ LIỆU THỰC TẾ (Lỗi 4: không render -- -> --) */}
+                                                    {hasBpm && (
+                                                      <View style={styles.detailGrid}>
+                                                        <View style={styles.detailCol}>
+                                                          <Text style={styles.detailLabel}>BPM nhịp điệu</Text>
+                                                          <Text style={styles.detailVal}>
+                                                            {entry.fromBpm ?? '--'} → {entry.toBpm ?? '--'}
+                                                            {entry.bpmDeltaPercent !== undefined ? ` (Δ${entry.bpmDeltaPercent}%)` : ''}
+                                                          </Text>
+                                                        </View>
+                                                      </View>
+                                                    )}
+
+                                                    {/* CHỈ HIỆN KHÓA ĐIỆU KEY NẾU CÓ DỮ LIỆU */}
+                                                    {hasKey && (
+                                                      <View style={styles.detailGrid}>
+                                                        <View style={styles.detailCol}>
+                                                          <Text style={styles.detailLabel}>Camelot Key</Text>
+                                                          <Text style={styles.detailVal}>
+                                                            {entry.fromKey ?? '--'} → {entry.toKey ?? '--'} ({camelotInfo.label})
+                                                          </Text>
+                                                        </View>
+                                                      </View>
+                                                    )}
+
+                                                        <View style={styles.detailGrid}>
+                                                          <View style={styles.detailCol}>
+                                                            <Text style={styles.detailLabel}>Thời lượng thực tế</Text>
+                                                            <Text style={styles.detailVal}>
+                                                              {entry.actualFadeDurationSec}s (Cài đặt {entry.configuredDurationSec}s)
+                                                            </Text>
+                                                          </View>
+                                                          <View style={styles.detailCol}>
+                                                            <Text style={styles.detailLabel}>Âm lượng kết thúc</Text>
+                                                            <Text style={styles.detailVal}>
+                                                              {Math.round(entry.finalVolume * 100)}%
+                                                            </Text>
+                                                          </View>
+                                                        </View>
+                                                      </View>
+                        )}
+                                                    </View>
+                                                );
+                  })}
+                                              </ListGroup>
+                                            </View>
+                                          ))}
+
+            {/* NÚT XÓA NHẬT KÝ KIỂU DANGER PHỤ CÓ ALERT XÁC NHẬN (Lỗi 8) */ }
+                            < View style = { styles.footerActionBox } >
+                            <TouchableOpacity
+                              style={styles.clearLogsButton}
+                              onPress={handleClear}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.clearLogsText}>Xóa toàn bộ nhật ký</Text>
+                            </TouchableOpacity>
+            </View>
+          </ScrollView>
+        )}
+                </View>
+              </Modal>
+              );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+              const styles = StyleSheet.create({
+              container: {
+                flex: 1,
+              backgroundColor: tokens.colors.bgBase,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0A',
-    paddingHorizontal: 16,
+              grabberBox: {
+                alignItems: 'center',
+              paddingTop: 8,
+              paddingBottom: 4,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+              grabber: {
+                width: 36,
+              height: 5,
+              borderRadius: 2.5,
+              backgroundColor: tokens.colors.grabber,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+              header: {
+                flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: tokens.spacing.lg,
+              paddingVertical: tokens.spacing.md,
+              borderBottomWidth: tokens.hairlineWidth,
+              borderBottomColor: tokens.colors.separator,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 2,
+                headerTitle: {
+                ...tokens.typography.headline,
+                fontSize: 18,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1F2937',
-    alignItems: 'center',
-    justifyContent: 'center',
+              closeButton: {
+                width: 30,
+              height: 30,
+              borderRadius: 15,
+              backgroundColor: tokens.colors.bgSurface,
+              justifyContent: 'center',
+              alignItems: 'center',
   },
-  closeBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+              scrollContent: {
+                flex: 1,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+              scrollInner: {
+                paddingTop: tokens.spacing.xs,
   },
-  actionBtn: {
-    backgroundColor: '#1F2937',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+              dateGroup: {
+                marginBottom: tokens.spacing.xs,
   },
-  actionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+              logItemContainer: {
+                overflow: 'hidden',
   },
-  clearBtn: {
-    backgroundColor: '#371A1A',
+              singleRow: {
+                minHeight: 52,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: tokens.spacing.sm + 2,
+              paddingHorizontal: tokens.spacing.lg,
   },
-  clearBtnText: {
-    color: '#EF4444',
+                singleRowMain: {
+                flex: 1,
+              paddingRight: tokens.spacing.sm,
   },
-  centerBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
+              singleRowTitle: {
+                ...tokens.typography.body,
+                fontSize: 15,
+              fontWeight: '600',
+              color: tokens.colors.textPrimary,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+              singleRowMeta: {
+                ...tokens.typography.footnote,
+                color: tokens.colors.textSecondary,
+              marginTop: 2,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+              chevron: {
+                fontSize: 18,
+              fontWeight: '600',
+              color: tokens.colors.textDim,
+              transform: [{rotate: '0deg' }],
   },
-  emptyDesc: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 18,
+              chevronExpanded: {
+                transform: [{rotate: '90deg' }],
   },
-  list: {
-    flex: 1,
+              detailBox: {
+                backgroundColor: tokens.colors.bgElevated,
+              paddingHorizontal: tokens.spacing.lg,
+              paddingVertical: tokens.spacing.md,
+              borderTopWidth: tokens.hairlineWidth,
+              borderTopColor: tokens.colors.separator,
   },
-  listContent: {
-    paddingBottom: 24,
-    gap: 12,
+                detailGrid: {
+                flexDirection: 'row',
+              justifyContent: 'space-between',
+              marginVertical: 4,
   },
-  card: {
-    backgroundColor: '#141414',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#262626',
-    padding: 14,
+              detailCol: {
+                flex: 1,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+              detailLabel: {
+                ...tokens.typography.caption,
+                color: tokens.colors.textMuted,
   },
-  timeText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontVariant: ['tabular-nums'],
+              detailVal: {
+                ...tokens.typography.footnote,
+                color: tokens.colors.textPrimary,
+              fontWeight: '500',
+              marginTop: 1,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
+              footerActionBox: {
+                marginTop: tokens.spacing.xl,
+              paddingHorizontal: tokens.spacing.lg,
+              alignItems: 'center',
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+              clearLogsButton: {
+                minHeight: 44,
+              paddingHorizontal: tokens.spacing.xl,
+              borderRadius: tokens.radius.pill,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: tokens.hairlineWidth,
+              borderColor: tokens.colors.dangerBorder,
+              backgroundColor: 'transparent',
   },
-  trackFrom: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#F3F4F6',
+              clearLogsText: {
+                ...tokens.typography.footnote,
+                color: tokens.colors.danger,
+              fontWeight: '600',
   },
-  arrowRow: {
-    paddingVertical: 2,
+              centerBox: {
+                flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
   },
-  arrowIcon: {
-    fontSize: 11,
-    color: '#10B981',
-    fontWeight: '600',
+                emptyContainer: {
+                flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: tokens.spacing.xxl,
   },
-  trackTo: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#10B981',
-    marginBottom: 10,
+              emptyIconBox: {
+                width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: tokens.colors.bgSurface,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: tokens.spacing.md,
   },
-  metaGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 6,
+              emptyTitle: {
+                ...tokens.typography.headline,
+                color: tokens.colors.textPrimary,
+              textAlign: 'center',
+              marginBottom: 6,
   },
-  metaItem: {
-    flex: 1,
-    backgroundColor: '#1C1C1E',
-    padding: 8,
-    borderRadius: 6,
-  },
-  metaLabel: {
-    fontSize: 9,
-    color: '#6B7280',
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  metaValue: {
-    fontSize: 12,
-    color: '#E5E7EB',
-    fontWeight: '600',
-  },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#262626',
-    paddingTop: 8,
-  },
-  reasonText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  volText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#10B981',
+              emptyDesc: {
+                ...tokens.typography.footnote,
+                color: tokens.colors.textMuted,
+              textAlign: 'center',
+              lineHeight: 18,
   },
 });
-

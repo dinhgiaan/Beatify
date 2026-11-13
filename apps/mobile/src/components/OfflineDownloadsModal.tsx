@@ -7,19 +7,11 @@ import {
   FlatList,
   Image,
   Alert,
-  Vibration,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
-import {
-  colors,
-  spacing,
-  radius,
-  fontSizes,
-  fontWeights,
-  lineHeights,
-} from '../theme';
+import { tokens } from '../theme/tokens';
 import { useOffline, usePlayer } from '../context';
 import { formatBytes } from '../services/offline/offlineStorage';
 import {
@@ -27,10 +19,11 @@ import {
   PlayIcon,
   ShuffleIcon,
   TrashIcon,
-  DownloadIcon,
   CheckIcon,
   DiscIcon,
 } from './icons/SvgIcons';
+import { cleanTrackTitle } from '../utils/recentFormatters';
+import { triggerSelectionHaptic } from '../utils/haptics';
 
 export interface OfflineDownloadsModalProps {
   visible: boolean;
@@ -66,7 +59,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   }, [selectedTrackIds, offlineIndex]);
 
   const handleToggleSelectTrack = (trackId: string) => {
-    Vibration.vibrate(10);
+    triggerSelectionHaptic();
     setSelectedTrackIds((prev) => {
       const next = new Set(prev);
       if (next.has(trackId)) {
@@ -79,7 +72,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   };
 
   const handleSelectAll = () => {
-    Vibration.vibrate(10);
+    triggerSelectionHaptic();
     if (selectedTrackIds.size === offlineTracks.length) {
       setSelectedTrackIds(new Set());
     } else {
@@ -88,20 +81,21 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   };
 
   const handleCancelSelect = () => {
+    triggerSelectionHaptic();
     setIsSelectMode(false);
     setSelectedTrackIds(new Set());
   };
 
   // Xóa đơn lẻ 1 bài
   const handleDeleteSingle = (track: Track) => {
-    Vibration.vibrate(10);
+    triggerSelectionHaptic();
     Alert.alert(
       'Xóa bài hát đã tải?',
       `Bạn có chắc chắn muốn xóa bài hát "${track.title}" khỏi bộ nhớ máy không?`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Xóa',
+          text: 'Xóa bài',
           style: 'destructive',
           onPress: async () => {
             await deleteOfflineTrack(track.id);
@@ -111,20 +105,17 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
     );
   };
 
-  // Xóa hàng loạt các bài đã chọn
+  // Xóa nhiều bài đã chọn
   const handleDeleteSelected = () => {
     if (selectedTrackIds.size === 0) return;
-    Vibration.vibrate(15);
-    const count = selectedTrackIds.size;
-    const sizeStr = formatBytes(selectedTotalBytes);
-
+    triggerSelectionHaptic();
     Alert.alert(
-      'Xóa các bài hát đã chọn',
-      `Bạn có chắc chắn muốn xóa ${count} bài hát (${sizeStr}) khỏi điện thoại không?`,
+      'Xóa các bài đã chọn?',
+      `Bạn có chắc chắn muốn xóa ${selectedTrackIds.size} bài hát (${formatBytes(selectedTotalBytes)}) khỏi bộ nhớ máy không?`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: `Xóa ${count} bài`,
+          text: 'Xóa ngay',
           style: 'destructive',
           onPress: async () => {
             await deleteMultipleOfflineTracks(Array.from(selectedTrackIds));
@@ -136,9 +127,9 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
     );
   };
 
-  // Xóa toàn bộ nhạc offline
+  // Xóa sạch toàn bộ
   const handleClearAll = () => {
-    Vibration.vibrate(15);
+    triggerSelectionHaptic();
     Alert.alert(
       'Xóa toàn bộ nhạc đã tải?',
       `Hành động này sẽ giải phóng toàn bộ ${formatBytes(totalSizeBytes)} bộ nhớ trên iPhone.`,
@@ -159,14 +150,14 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
 
   const handlePlayAll = () => {
     if (offlineTracks.length === 0) return;
-    Vibration.vibrate(10);
+    triggerSelectionHaptic();
     playQueue(offlineTracks, 0);
     onClose();
   };
 
   const handleShufflePlay = () => {
     if (offlineTracks.length === 0) return;
-    Vibration.vibrate(10);
+    triggerSelectionHaptic();
     const shuffled = [...offlineTracks].sort(() => Math.random() - 0.5);
     playQueue(shuffled, 0);
     onClose();
@@ -180,9 +171,9 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
     return (
       <TouchableOpacity
         style={[
-          styles.trackCard,
-          isPlayingThis && styles.trackCardPlaying,
-          isSelected && styles.trackCardSelected,
+          styles.trackRow,
+          isPlayingThis && styles.trackRowPlaying,
+          isSelected && styles.trackRowSelected,
         ]}
         activeOpacity={0.7}
         onPress={() => {
@@ -197,7 +188,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
         {/* Checkbox khi ở Select mode */}
         {isSelectMode && (
           <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
-            {isSelected && <CheckIcon size={12} color={colors.textDark} />}
+            {isSelected && <CheckIcon size={11} color="#000000" />}
           </View>
         )}
 
@@ -206,17 +197,18 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           {item.cover ? (
             <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
           ) : (
-            <DiscIcon size={24} color={colors.borderLight} />
+            <DiscIcon size={20} color={tokens.colors.textDim} />
           )}
         </View>
 
-        {/* Thông tin bài hát */}
+        {/* Thông tin bài hát (Lỗi 5: Tiêu đề rác cleanTrackTitle + 2 dòng ellipsize) */}
         <View style={styles.trackInfo}>
           <Text
             style={[styles.trackTitle, isPlayingThis && styles.trackTitlePlaying]}
-            numberOfLines={1}
+            numberOfLines={2}
+            ellipsizeMode="tail"
           >
-            {item.title}
+            {cleanTrackTitle(item.title)}
           </Text>
           <Text style={styles.trackArtist} numberOfLines={1}>
             {item.artist}
@@ -235,10 +227,10 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           <TouchableOpacity
             style={styles.deleteBtn}
             onPress={() => handleDeleteSingle(item)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.7}
           >
-            <TrashIcon size={16} color={colors.textTertiary} />
+            <TrashIcon size={15} color={tokens.colors.textMuted} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -252,408 +244,411 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View
-        style={[
-          styles.container,
-          {
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-          },
-        ]}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Đã tải về máy</Text>
-            <Text style={styles.headerSubtitle}>
-              {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)}
-            </Text>
+        <View style={styles.container}>
+          {/* Drag indicator chuẩn Apple (Lỗi 2) */}
+          <View style={styles.grabberBox}>
+            <View style={styles.grabber} />
           </View>
 
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <CloseIcon size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Thẻ điều khiển & Hành động */}
-        <View style={styles.actionBar}>
-          <View style={styles.actionLeftRow}>
-            {offlineTracks.length > 0 && (
-              <>
-                <TouchableOpacity
-                  style={styles.playMiniBtn}
-                  onPress={handlePlayAll}
-                  activeOpacity={0.8}
-                >
-                  <PlayIcon size={16} color={colors.textDark} />
-                  <Text style={styles.playMiniBtnText}>Phát</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.shuffleMiniBtn}
-                  onPress={handleShufflePlay}
-                  activeOpacity={0.8}
-                >
-                  <ShuffleIcon size={16} color={colors.textPrimary} />
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-
-          <View style={styles.actionRightRow}>
-            {offlineTracks.length > 0 && (
-              <>
-                {isSelectMode ? (
-                  <>
-                    <TouchableOpacity
-                      style={styles.selectTextBtn}
-                      onPress={handleSelectAll}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.selectTextBtnLabel}>
-                        {selectedTrackIds.size === offlineTracks.length ? 'Bỏ chọn' : 'Chọn hết'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.selectTextBtn}
-                      onPress={handleCancelSelect}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.selectTextBtnLabel, { color: colors.dangerLight }]}>
-                        Hủy
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      style={styles.selectToggleBtn}
-                      onPress={() => setIsSelectMode(true)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.selectToggleBtnText}>Chọn bài</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.clearAllBtn}
-                      onPress={handleClearAll}
-                      activeOpacity={0.8}
-                      accessibilityLabel="Xóa toàn bộ nhạc đã tải"
-                    >
-                      <TrashIcon size={16} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                  </>
-                )}
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Danh sách bài hát */}
-        <FlatList
-          data={offlineTracks}
-          keyExtractor={(item) => item.id}
-          renderItem={renderTrackItem}
-          contentContainerStyle={[
-            styles.listContent,
-            isSelectMode && selectedTrackIds.size > 0 && { paddingBottom: 100 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <DownloadIcon size={44} color={colors.borderLight} />
-              </View>
-              <Text style={styles.emptyTitle}>Chưa có bài hát nào</Text>
-              <Text style={styles.emptySubtitle}>
-                Bấm vào nút "•••" tại bất kỳ bài hát nào trong thư viện để tải về và thưởng thức âm nhạc ngoại tuyến không cần mạng.
+          {/* Header Modal */}
+          <View style={styles.header}>
+            <View style={styles.headerTitleWrap}>
+              <Text style={styles.headerTitle}>Lưu trữ ngoại tuyến</Text>
+              <Text style={styles.headerSubtitle}>
+                {offlineTracks.length} bài hát · {formatBytes(totalSizeBytes)}
               </Text>
             </View>
-          }
-        />
 
-        {/* Floating Action Bar khi chọn nhiều bài để xóa */}
-        {isSelectMode && selectedTrackIds.size > 0 && (
-          <View style={[styles.floatingBar, { bottom: Math.max(insets.bottom, spacing.md) }]}>
             <TouchableOpacity
-              style={styles.batchDeleteBtn}
-              onPress={handleDeleteSelected}
-              activeOpacity={0.8}
+              style={styles.closeBtn}
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Đóng lưu trữ ngoại tuyến"
             >
-              <TrashIcon size={18} color={colors.textPrimary} />
-              <Text style={styles.batchDeleteText}>
-                Xóa {selectedTrackIds.size} bài ({formatBytes(selectedTotalBytes)})
-              </Text>
+              <CloseIcon size={18} color={tokens.colors.textSecondary} />
             </TouchableOpacity>
           </View>
+
+          {/* Thanh công cụ hành động (Action Bar) */}
+          <View style={styles.actionBar}>
+            <View style={styles.actionLeftRow}>
+                {
+                  offlineTracks.length > 0 && !isSelectMode && (
+                    <>
+                      <TouchableOpacity
+                        style={styles.playMiniBtn}
+                        onPress={handlePlayAll}
+                        activeOpacity={0.7}
+                      >
+                        <PlayIcon size={14} color="#000000" />
+                        <Text style={styles.playMiniBtnText}>Phát</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.shuffleMiniBtn}
+                        onPress={handleShufflePlay}
+                        activeOpacity={0.7}
+                      >
+                        <ShuffleIcon size={15} color={tokens.colors.textPrimary} />
+                      </TouchableOpacity>
+                    </>
+                  )
+                }
+          </View>
+
+            <View style={styles.actionRightRow}>
+              {offlineTracks.length > 0 && (
+                <>
+                  {isSelectMode ? (
+                    <>
+                      <TouchableOpacity
+                        style={styles.selectTextBtn}
+                        onPress={handleSelectAll}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.selectTextBtnLabel}>
+                          {selectedTrackIds.size === offlineTracks.length ? 'Bỏ chọn' : 'Chọn hết'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.selectTextBtn}
+                        onPress={handleCancelSelect}
+                        activeOpacity={0.7}
+                      >
+                          <Text style={[styles.selectTextBtnLabel, { color: tokens.colors.danger }]}>
+                            Hủy
+                          </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={styles.selectToggleBtn}
+                        onPress={() => {
+                          triggerSelectionHaptic();
+                          setIsSelectMode(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.selectToggleBtnText}>Chọn</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.clearAllBtn}
+                        onPress={handleClearAll}
+                        activeOpacity={0.7}
+                        accessibilityLabel="Xóa toàn bộ nhạc đã tải"
+                      >
+                        <TrashIcon size={15} color={tokens.colors.danger} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Danh sách bài hát */}
+                {offlineTracks.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <View style={styles.emptyIconBox}>
+                      <DiscIcon size={32} color={tokens.colors.textDim} />
+                    </View>
+                    <Text style={styles.emptyTitle}>Chưa có bài hát ngoại tuyến</Text>
+                    <Text style={styles.emptyDesc}>
+                      Bấm biểu tượng Tải xuống ở menu từng bài hát để nghe ngay cả khi không có mạng Internet.
+                    </Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={offlineTracks}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderTrackItem}
+                    contentContainerStyle={[
+                      styles.listContent,
+                      { paddingBottom: Math.max(insets.bottom, tokens.spacing.xl) + 80 },
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                  />
+                )}
+
+                {/* Thanh công cụ cố định đáy khi ở Select Mode */}
+                {isSelectMode && selectedTrackIds.size > 0 && (
+                    <View
+                      style={[
+                        styles.bottomDeleteBar,
+                        { paddingBottom: Math.max(insets.bottom, tokens.spacing.md) },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={styles.bottomDeleteBtn}
+                        onPress={handleDeleteSelected}
+                        activeOpacity={0.8}
+                      >
+                          <TrashIcon size={16} color="#ffffff" />
+                          <Text style={styles.bottomDeleteBtnText}>
+                            Xóa {selectedTrackIds.size} bài ({formatBytes(selectedTotalBytes)})
+                          </Text>
+                      </TouchableOpacity>
+                    </View>
         )}
-      </View>
+                  </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+          const styles = StyleSheet.create({
+            container: {
+            flex: 1,
+          backgroundColor: tokens.colors.bgBase,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDivider,
+          grabberBox: {
+            alignItems: 'center',
+          paddingTop: 8,
+          paddingBottom: 4,
   },
-  headerTitleWrap: {
-    flex: 1,
+          grabber: {
+            width: 36,
+          height: 5,
+          borderRadius: 2.5,
+          backgroundColor: tokens.colors.grabber,
   },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.headline,
-    fontWeight: fontWeights.bold,
+          header: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: tokens.spacing.lg,
+          paddingVertical: tokens.spacing.md,
+          borderBottomWidth: tokens.hairlineWidth,
+          borderBottomColor: tokens.colors.separator,
   },
-  headerSubtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    marginTop: 2,
+          headerTitleWrap: {
+            flex: 1,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.md,
+          headerTitle: {
+          ...tokens.typography.headline,
+          fontSize: 18,
   },
-  actionBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+          headerSubtitle: {
+          ...tokens.typography.footnote,
+          color: tokens.colors.textMuted,
+          marginTop: 2,
   },
-  actionLeftRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+          closeBtn: {
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          backgroundColor: tokens.colors.bgSurface,
+          justifyContent: 'center',
+          alignItems: 'center',
   },
-  playMiniBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
-    gap: 4,
-    minHeight: 34,
+          actionBar: {
+            flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: tokens.spacing.lg,
+          paddingVertical: tokens.spacing.sm,
   },
-  playMiniBtnText: {
-    color: colors.textDark,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.bold,
+          actionLeftRow: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          gap: tokens.spacing.sm,
   },
-  shuffleMiniBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+          playMiniBtn: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: tokens.colors.accent,
+          paddingVertical: 7,
+          paddingHorizontal: tokens.spacing.md,
+          borderRadius: tokens.radius.pill,
   },
-  actionRightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+          playMiniBtnText: {
+          ...tokens.typography.footnote,
+          color: '#000000',
+          fontWeight: '700',
   },
-  selectToggleBtn: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    minHeight: 34,
-    justifyContent: 'center',
+          shuffleMiniBtn: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: tokens.colors.bgSurface,
+          justifyContent: 'center',
+          alignItems: 'center',
   },
-  selectToggleBtnText: {
-    color: colors.primary,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.semibold,
+          actionRightRow: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          gap: tokens.spacing.sm,
   },
-  clearAllBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+          selectToggleBtn: {
+          paddingVertical: 6,
+          paddingHorizontal: tokens.spacing.md,
+          borderRadius: tokens.radius.pill,
+          backgroundColor: tokens.colors.bgSurface,
   },
-  selectTextBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
+          selectToggleBtnText: {
+          ...tokens.typography.footnote,
+          color: tokens.colors.textPrimary,
+          fontWeight: '500',
   },
-  selectTextBtnLabel: {
-    color: colors.primary,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.semibold,
+          clearAllBtn: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: tokens.colors.bgSurface,
+          justifyContent: 'center',
+          alignItems: 'center',
   },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+          selectTextBtn: {
+          paddingVertical: 6,
+          paddingHorizontal: tokens.spacing.sm,
   },
-  trackCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+          selectTextBtnLabel: {
+          ...tokens.typography.footnote,
+          color: tokens.colors.accent,
+          fontWeight: '600',
   },
-  trackCardPlaying: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+          listContent: {
+          paddingHorizontal: tokens.spacing.lg,
+          paddingTop: tokens.spacing.xs,
   },
-  trackCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryMuted,
+            trackRow: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: tokens.colors.bgSurface,
+          paddingVertical: tokens.spacing.sm + 2,
+          paddingHorizontal: tokens.spacing.md,
+          borderRadius: tokens.radius.card - 2,
   },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
+          trackRowPlaying: {
+            backgroundColor: tokens.colors.bgElevated,
   },
-  checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+          trackRowSelected: {
+            borderColor: tokens.colors.accent,
+          borderWidth: 1,
   },
-  coverBox: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.xs,
-    backgroundColor: colors.surfaceElevated,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderDivider,
+          itemSeparator: {
+            height: tokens.spacing.xs,
   },
-  coverImage: {
-    width: '100%',
-    height: '100%',
+          checkbox: {
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: tokens.colors.textMuted,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: tokens.spacing.sm,
   },
-  trackInfo: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    marginRight: spacing.xs,
+          checkboxActive: {
+          backgroundColor: tokens.colors.accent,
+          borderColor: tokens.colors.accent,
   },
-  trackTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.medium,
+          coverBox: {
+            width: 44,
+          height: 44,
+          borderRadius: tokens.radius.cover - 2,
+          backgroundColor: tokens.colors.bgElevated,
+          overflow: 'hidden',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: tokens.spacing.md,
   },
-  trackTitlePlaying: {
-    color: colors.primary,
-    fontWeight: fontWeights.bold,
+          coverImage: {
+            width: '100%',
+          height: '100%',
   },
-  trackArtist: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.caption,
-    marginTop: 2,
+          trackInfo: {
+            flex: 1,
+          paddingRight: tokens.spacing.sm,
   },
-  sizeBadge: {
-    backgroundColor: colors.surfaceElevated,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: radius.xs,
-    borderWidth: 1,
-    borderColor: colors.borderDivider,
-    marginRight: spacing.sm,
+          trackTitle: {
+          ...tokens.typography.body,
+          fontSize: 15,
+          fontWeight: '600',
+          color: tokens.colors.textPrimary,
   },
-  sizeBadgeText: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontWeight: fontWeights.medium,
+          trackTitlePlaying: {
+          color: tokens.colors.accent,
   },
-  deleteBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.xs,
+          trackArtist: {
+          ...tokens.typography.footnote,
+          color: tokens.colors.textSecondary,
+          marginTop: 2,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxxl * 2,
-    paddingHorizontal: spacing.xl,
+          sizeBadge: {
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: tokens.radius.pill,
+          backgroundColor: tokens.colors.bgElevated,
+          marginRight: tokens.spacing.sm,
   },
-  emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+          sizeBadgeText: {
+          ...tokens.typography.caption,
+          color: tokens.colors.textMuted,
+          fontWeight: '500',
   },
-  emptyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.title,
-    fontWeight: fontWeights.bold,
-    marginBottom: spacing.xs,
+          deleteBtn: {
+            width: 32,
+          height: 32,
+          borderRadius: 16,
+          justifyContent: 'center',
+          alignItems: 'center',
   },
-  emptySubtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSizes.subhead,
-    textAlign: 'center',
-    lineHeight: lineHeights.body,
+          bottomDeleteBar: {
+            position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: tokens.colors.bgSurface,
+          borderTopWidth: tokens.hairlineWidth,
+          borderTopColor: tokens.colors.separator,
+          paddingTop: tokens.spacing.md,
+          paddingHorizontal: tokens.spacing.lg,
   },
-  floatingBar: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 99,
+          bottomDeleteBtn: {
+            flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: tokens.spacing.sm,
+          backgroundColor: tokens.colors.danger,
+          minHeight: 46,
+          borderRadius: tokens.radius.pill,
   },
-  batchDeleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.danger,
-    paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-    gap: spacing.xs,
-    shadowColor: colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
+          bottomDeleteBtnText: {
+            ...tokens.typography.body,
+            color: '#ffffff',
+          fontWeight: '700',
+          fontSize: 15,
   },
-  batchDeleteText: {
-    color: colors.textPrimary,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.bold,
+          emptyContainer: {
+            flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: tokens.spacing.xxl,
+  },
+          emptyIconBox: {
+            width: 60,
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: tokens.colors.bgSurface,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: tokens.spacing.md,
+  },
+          emptyTitle: {
+          ...tokens.typography.headline,
+          color: tokens.colors.textPrimary,
+          textAlign: 'center',
+          marginBottom: 6,
+  },
+          emptyDesc: {
+            ...tokens.typography.footnote,
+            color: tokens.colors.textMuted,
+          textAlign: 'center',
+          lineHeight: 18,
   },
 });
