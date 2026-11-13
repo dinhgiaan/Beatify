@@ -80,7 +80,7 @@ Cách dùng:
       if (item) scannedTracks.push(item);
     }
 
-    const { library, coversByAlbumId } = buildLibrary(scannedTracks);
+    const { library, coversByAlbumId, coversByTrackId } = buildLibrary(scannedTracks);
     console.log(`📊 Tạo thành công thư viện: ${library.tracks.length} bài hát, ${library.albums.length} albums.`);
 
     const uploader = new R2Uploader(config);
@@ -95,8 +95,11 @@ Cách dùng:
     }
     console.log(`\n✅ Đã tải xong toàn bộ file nhạc.`);
 
-    // 2. Upload covers
-    console.log(`🖼️ Đang tải ${coversByAlbumId.size} ảnh bìa album...`);
+    // 2. Upload covers (gồm cả ảnh bài hát riêng và ảnh album)
+    console.log(`🖼️ Đang tải ${coversByTrackId.size} ảnh bìa bài hát & ${coversByAlbumId.size} ảnh bìa album...`);
+    for (const [trackId, buffer] of coversByTrackId.entries()) {
+      await uploader.uploadCover(trackId, buffer);
+    }
     for (const [albumId, buffer] of coversByAlbumId.entries()) {
       await uploader.uploadCover(albumId, buffer);
     }

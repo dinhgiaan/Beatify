@@ -8,18 +8,25 @@ import type { ScannedTrack } from './scanner';
 export function buildLibrary(scannedTracks: ScannedTrack[]): {
   library: Library;
   coversByAlbumId: Map<string, Buffer>;
+  coversByTrackId: Map<string, Buffer>;
 } {
   const tracks: Track[] = [];
   const coversByAlbumId = new Map<string, Buffer>();
+  const coversByTrackId = new Map<string, Buffer>();
   const albumsMap = new Map<string, { title: string; artist: string; year?: number; trackIds: string[] }>();
 
   for (const item of scannedTracks) {
-    tracks.push(item.track);
-
     const albumId = item.track.albumId || 'unknown-album';
-    if (item.coverBuffer && !coversByAlbumId.has(albumId)) {
-      coversByAlbumId.set(albumId, item.coverBuffer);
+    if (item.coverBuffer) {
+      coversByTrackId.set(item.track.id, item.coverBuffer);
+      if (!coversByAlbumId.has(albumId)) {
+        coversByAlbumId.set(albumId, item.coverBuffer);
+      }
+      // Đảm bảo mỗi bài hát có ảnh bìa độc lập theo ID riêng
+      item.track.cover = item.track.cover || `covers/${item.track.id}.jpg`;
     }
+
+    tracks.push(item.track);
 
     if (!albumsMap.has(albumId)) {
       albumsMap.set(albumId, {
@@ -57,9 +64,9 @@ export function buildLibrary(scannedTracks: ScannedTrack[]): {
 
   const library = LibrarySchema.parse(rawLibrary);
 
-
   return {
     library,
     coversByAlbumId,
+    coversByTrackId,
   };
 }

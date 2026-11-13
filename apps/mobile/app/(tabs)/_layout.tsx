@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
@@ -12,7 +12,6 @@ import {
 } from '../../src/components/icons/SvgIcons';
 import {
   colors,
-  fontWeights,
   radius,
 } from '../../src/theme';
 
@@ -21,7 +20,7 @@ type TabsTabBarProps = Parameters<
 >[0];
 
 function getTabIcon(routeName: string, color: string) {
-  const size = 16;
+  const size = 20;
   switch (routeName) {
     case 'library':
       return <HomeIcon size={size} color={color} />;
@@ -39,29 +38,11 @@ function getTabIcon(routeName: string, color: string) {
 }
 
 /**
- * Custom Bottom Tab Bar nổi bo tròn dạng Floating Pill
- * Có Icon + Text gọn gàng, và Sliding Indicator mượt mà di chuyển giữa các tab
+ * Custom Bottom Tab Bar nổi bo tròn dạng Floating Pill tối giản
+ * Thuần Icon gọn gàng, viền tab active cân đối hoàn hảo
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(state.index)).current;
-
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: state.index,
-      friction: 8,
-      tension: 65,
-      useNativeDriver: false,
-    }).start();
-  }, [state.index, slideAnim]);
-
-  const numTabs = state.routes.length;
-  const tabWidthPercent = 100 / numTabs;
-
-  const indicatorLeft = slideAnim.interpolate({
-    inputRange: state.routes.map((_, i) => i),
-    outputRange: state.routes.map((_, i) => `${i * tabWidthPercent}%`),
-  });
 
   return (
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
@@ -77,17 +58,6 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           },
         ]}
       >
-        {/* Sliding active pill chuyển động nhẹ nhàng giữa các tab */}
-        <Animated.View
-          style={[
-            styles.activePillIndicator,
-            {
-              width: `${tabWidthPercent}%`,
-              left: indicatorLeft,
-            },
-          ]}
-        />
-
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor?.options ?? {};
@@ -138,20 +108,12 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               onLongPress={onLongPress}
               delayLongPress={500}
               activeOpacity={0.7}
-              style={styles.tabButton}
+              style={[
+                styles.tabButton,
+                isFocused && styles.tabButtonActive,
+              ]}
             >
-              <View style={styles.tabContent}>
-                {getTabIcon(route.name, iconColor)}
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.tabLabel,
-                    isFocused && styles.tabLabelFocused,
-                  ]}
-                >
-                  {label}
-                </Text>
-              </View>
+              {getTabIcon(route.name, iconColor)}
             </TouchableOpacity>
           );
         })}
@@ -213,12 +175,12 @@ const styles = StyleSheet.create({
   },
   floatingDock: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(18, 18, 20, 0.95)', // Tăng độ đậm theo yêu cầu (không còn trong suốt quá mức)
+    backgroundColor: 'rgba(18, 18, 20, 0.95)',
     borderRadius: radius.pill,
     paddingHorizontal: 4,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)', // Viền nổi khối rõ nét
+    borderColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     width: '95%',
@@ -231,39 +193,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  activePillIndicator: {
-    position: 'absolute',
-    top: 4,
-    bottom: 4,
-    backgroundColor: 'rgba(29, 185, 84, 0.16)',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(29, 185, 84, 0.35)',
-    zIndex: 0,
-  },
   tabButton: {
     flex: 1,
-    height: 44,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 2,
     borderRadius: radius.pill,
     zIndex: 1,
     backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  tabContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: fontWeights.medium,
-    color: 'rgba(255, 255, 255, 0.45)',
-  },
-  tabLabelFocused: {
-    color: colors.primary,
-    fontWeight: fontWeights.bold,
+  tabButtonActive: {
+    backgroundColor: 'rgba(29, 185, 84, 0.16)',
+    borderColor: 'rgba(29, 185, 84, 0.45)',
   },
 });

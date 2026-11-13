@@ -343,10 +343,26 @@ app.get('/local-api/library', async (c) => {
   const overrides = await getOverrides();
   cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
 
-  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR
+  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR (ưu tiên theo trackId trước, sau đó mới tới albumId)
   for (const item of cachedScannedTracks) {
+    const trackId = item.track.id;
     const albumId = item.track.albumId;
-    if (albumId) {
+
+    if (trackId && !item.coverBuffer) {
+      const customTrackPath = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
+      if (existsSync(customTrackPath)) {
+        try {
+          const buf = await fs.readFile(customTrackPath);
+          cachedCovers.set(trackId, buf);
+          item.coverBuffer = buf;
+          item.track.cover = `covers/${trackId}.jpg`;
+        } catch {
+          // bỏ qua
+        }
+      }
+    }
+
+    if (albumId && !item.coverBuffer) {
       if (!cachedCovers.has(albumId)) {
         const customPath = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
         if (existsSync(customPath)) {
@@ -354,14 +370,14 @@ app.get('/local-api/library', async (c) => {
             const buf = await fs.readFile(customPath);
             cachedCovers.set(albumId, buf);
             item.coverBuffer = buf;
-            item.track.cover = `covers/${albumId}.jpg`;
+            item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
           } catch {
             // bỏ qua
           }
         }
       } else if (!item.coverBuffer) {
         item.coverBuffer = cachedCovers.get(albumId);
-        item.track.cover = `covers/${albumId}.jpg`;
+        item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
       }
     }
   }
@@ -503,14 +519,33 @@ app.get('/local-api/tracks', async (c) => {
   const overrides = await getOverrides();
   cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
 
-  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR và cachedCovers
+  // Nạp ảnh bìa tùy chỉnh từ CUSTOM_COVERS_DIR và cachedCovers (ưu tiên theo trackId trước)
   for (const item of cachedScannedTracks) {
     const albumId = item.track.albumId;
     const trackId = item.track.id;
 
-    if (albumId) {
+    if (trackId && !item.coverBuffer) {
+      if (cachedCovers.has(trackId)) {
+        item.coverBuffer = cachedCovers.get(trackId);
+        item.track.cover = `covers/${trackId}.jpg`;
+      } else {
+        const customPath = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
+        if (existsSync(customPath)) {
+          try {
+            const buf = await fs.readFile(customPath);
+            cachedCovers.set(trackId, buf);
+            item.coverBuffer = buf;
+            item.track.cover = `covers/${trackId}.jpg`;
+          } catch {
+            // bỏ qua
+          }
+        }
+      }
+    }
+
+    if (albumId && !item.coverBuffer) {
       if (cachedCovers.has(albumId)) {
-        item.coverBuffer = item.coverBuffer || cachedCovers.get(albumId);
+        item.coverBuffer = cachedCovers.get(albumId);
         item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
       } else {
         const customPath = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
@@ -519,26 +554,7 @@ app.get('/local-api/tracks', async (c) => {
             const buf = await fs.readFile(customPath);
             cachedCovers.set(albumId, buf);
             item.coverBuffer = buf;
-            item.track.cover = `covers/${albumId}.jpg`;
-          } catch {
-            // bỏ qua
-          }
-        }
-      }
-    }
-
-    if (trackId && !item.coverBuffer) {
-      if (cachedCovers.has(trackId)) {
-        item.coverBuffer = cachedCovers.get(trackId);
-        if (albumId) item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
-      } else {
-        const customPath = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
-        if (existsSync(customPath)) {
-          try {
-            const buf = await fs.readFile(customPath);
-            cachedCovers.set(trackId, buf);
-            item.coverBuffer = buf;
-            if (albumId) item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
+            item.track.cover = item.track.cover || `covers/${albumId}.jpg`;
           } catch {
             // bỏ qua
           }
@@ -685,23 +701,37 @@ const handleGetCover = async (c: Context) => {
     }
   }
 
-  // 3. Thử tìm trong cachedScannedTracks (khớp albumId hoặc track id)
+  // 3. Thử tìm trong cachedScannedTracks (ưu tiên khớp chính xác track.id trước albumId)
   if (!buf) {
-    const matched = cachedScannedTracks.find(
-      (t) => t.track.albumId === cleanId || t.track.id === cleanId
-    );
+    const matched =
+      cachedScannedTracks.find((t) => t.track.id === cleanId) ||
+      cachedScannedTracks.find((t) => t.track.albumId === cleanId);
+
     if (matched) {
       if (matched.coverBuffer) {
         buf = matched.coverBuffer;
         cachedCovers.set(cleanId, buf);
       } else if (matched.filePath && existsSync(matched.filePath)) {
         try {
+          // Thử đọc từ tag ID3
           const metadata = await mm.parseFile(matched.filePath);
           const picture = metadata.common.picture?.[0];
           if (picture) {
             buf = Buffer.from(picture.data);
             matched.coverBuffer = buf;
             cachedCovers.set(cleanId, buf);
+          } else {
+            // Thử đọc ảnh sidecar (.jpg / .jpeg / .png)
+            const sidecarExts = ['.jpg', '.jpeg', '.png', '.webp'];
+            for (const ext of sidecarExts) {
+              const sidecarPath = matched.filePath.replace(/\.[^/.]+$/, ext);
+              if (existsSync(sidecarPath)) {
+                buf = await fs.readFile(sidecarPath);
+                matched.coverBuffer = buf;
+                cachedCovers.set(cleanId, buf);
+                break;
+              }
+            }
           }
         } catch {
           // Bỏ qua lỗi parse metadata ảnh
@@ -806,11 +836,11 @@ app.post('/local-api/tracks/:id/cover', async (c) => {
   cachedCovers.set(albumId, buffer);
   cachedCovers.set(trackId, buffer);
   scanned.coverBuffer = buffer;
-  scanned.track.cover = `covers/${albumId}.jpg`;
+  scanned.track.cover = `covers/${trackId}.jpg`;
 
   // 4. Lưu ghi đè an toàn vào overrides.json
   try {
-    await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+    await setTrackOverride(trackId, { cover: `covers/${trackId}.jpg` });
   } catch {
     // bỏ qua
   }
@@ -819,7 +849,7 @@ app.post('/local-api/tracks/:id/cover', async (c) => {
     status: 200,
     albumId,
     trackId,
-    coverUrl: `/local-api/covers/${albumId}.jpg?_t=${Date.now()}`,
+    coverUrl: `/local-api/covers/${trackId}.jpg?_t=${Date.now()}`,
     message: 'Đã cập nhật ảnh bìa mới và dọn dẹp ảnh bìa cũ thành công',
   });
 });
@@ -907,10 +937,10 @@ app.post('/local-api/tracks/batch-cover', async (c) => {
     cachedCovers.set(albumId, buffer);
     cachedCovers.set(trackId, buffer);
     scanned.coverBuffer = buffer;
-    scanned.track.cover = `covers/${albumId}.jpg`;
+    scanned.track.cover = `covers/${trackId}.jpg`;
 
     try {
-      await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+      await setTrackOverride(trackId, { cover: `covers/${trackId}.jpg` });
     } catch {
       // bỏ qua
     }
@@ -1072,10 +1102,10 @@ app.post('/local-api/tracks/:id/fetch-yt-cover', async (c) => {
   cachedCovers.set(albumId, buffer);
   cachedCovers.set(trackId, buffer);
   scanned.coverBuffer = buffer;
-  scanned.track.cover = `covers/${albumId}.jpg`;
+  scanned.track.cover = `covers/${trackId}.jpg`;
 
   try {
-    await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+    await setTrackOverride(trackId, { cover: `covers/${trackId}.jpg` });
   } catch {
     // bỏ qua
   }
@@ -1095,7 +1125,7 @@ app.post('/local-api/tracks/:id/fetch-yt-cover', async (c) => {
     status: 200,
     albumId,
     trackId,
-    coverUrl: `/local-api/covers/${albumId}.jpg?_t=${Date.now()}`,
+    coverUrl: `/local-api/covers/${trackId}.jpg?_t=${Date.now()}`,
     message: 'Đã tải và cập nhật ảnh bìa HD từ YouTube thành công!',
   });
 });
@@ -1144,10 +1174,10 @@ app.post('/local-api/tracks/batch-fetch-yt-cover', async (c) => {
       cachedCovers.set(albumId, buffer);
       cachedCovers.set(trackId, buffer);
       scanned.coverBuffer = buffer;
-      scanned.track.cover = `covers/${albumId}.jpg`;
+      scanned.track.cover = `covers/${trackId}.jpg`;
 
       try {
-        await setTrackOverride(trackId, { cover: `covers/${albumId}.jpg` });
+        await setTrackOverride(trackId, { cover: `covers/${trackId}.jpg` });
       } catch {
         // bỏ qua
       }
@@ -1767,28 +1797,50 @@ app.post('/local-api/sync', async (c) => {
     const scannedTracks = applyOverridesToScanned(rawTracks, overrides);
 
     for (const item of scannedTracks) {
+      const trackId = item.track.id;
       const albumId = item.track.albumId;
-      if (albumId && !item.coverBuffer) {
-        const customPath = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
-        if (existsSync(customPath)) {
+      if (!item.coverBuffer) {
+        const customTrackPath = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
+        const customAlbumPath = albumId ? path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`) : null;
+        if (existsSync(customTrackPath)) {
           try {
-            item.coverBuffer = await fs.readFile(customPath);
-            item.track.cover = `covers/${albumId}.jpg`;
+            item.coverBuffer = await fs.readFile(customTrackPath);
+            item.track.cover = `covers/${trackId}.jpg`;
+          } catch {
+            // bỏ qua
+          }
+        } else if (customAlbumPath && existsSync(customAlbumPath)) {
+          try {
+            item.coverBuffer = await fs.readFile(customAlbumPath);
+            item.track.cover = `covers/${trackId}.jpg`;
           } catch {
             // bỏ qua
           }
         }
+      } else {
+        item.track.cover = `covers/${trackId}.jpg`;
       }
     }
 
-    const { library, coversByAlbumId } = buildLibrary(scannedTracks);
+    const { library, coversByAlbumId, coversByTrackId } = buildLibrary(scannedTracks);
     const uploader = new R2Uploader(config);
+
+    // Gộp tất cả ảnh bìa (cả trackId và albumId) để tải lên R2
+    const allCoversToUpload = new Map<string, Buffer>();
+    for (const [tId, buf] of coversByTrackId.entries()) {
+      allCoversToUpload.set(tId, buf);
+    }
+    for (const [aId, buf] of coversByAlbumId.entries()) {
+      if (!allCoversToUpload.has(aId)) {
+        allCoversToUpload.set(aId, buf);
+      }
+    }
 
     // Lấy danh sách keys đã có sẵn trên R2 để đồng bộ vi sai (Incremental Sync)
     const existingR2Keys = await getR2TrackKeys(true);
     const existingCoverKeys = await getR2CoverKeys(true);
 
-    const totalSteps = scannedTracks.length + coversByAlbumId.size + 1;
+    const totalSteps = scannedTracks.length + allCoversToUpload.size + 1;
     let completedSteps = 0;
     let newAudioUploaded = 0;
     let newCoversUploaded = 0;
@@ -1823,32 +1875,32 @@ app.post('/local-api/sync', async (c) => {
     }
 
     let coverIdx = 0;
-    for (const [albumId, buffer] of coversByAlbumId.entries()) {
+    for (const [coverId, buffer] of allCoversToUpload.entries()) {
       coverIdx++;
       completedSteps++;
       const pct = 15 + Math.round((completedSteps / totalSteps) * 70);
-      const coverKey = `covers/${albumId}.jpg`;
+      const coverKey = `covers/${coverId}.jpg`;
       const isCoverOnCloud = existingCoverKeys.has(coverKey);
 
       if (isCoverOnCloud) {
         currentSyncProgress = {
           active: true,
-          step: `Ảnh bìa đã có sẵn trên Cloud (${coverIdx}/${coversByAlbumId.size})...`,
+          step: `Ảnh bìa đã có sẵn trên Cloud (${coverIdx}/${allCoversToUpload.size})...`,
           current: coverIdx,
-          total: coversByAlbumId.size,
+          total: allCoversToUpload.size,
           percent: pct,
           error: null,
         };
       } else {
         currentSyncProgress = {
           active: true,
-          step: `Đang tải ảnh bìa album mới (${coverIdx}/${coversByAlbumId.size})...`,
+          step: `Đang tải ảnh bìa mới (${coverIdx}/${allCoversToUpload.size})...`,
           current: coverIdx,
-          total: coversByAlbumId.size,
+          total: allCoversToUpload.size,
           percent: pct,
           error: null,
         };
-        await uploader.uploadCover(albumId, buffer);
+        await uploader.uploadCover(coverId, buffer);
         newCoversUploaded++;
         existingCoverKeys.add(coverKey);
       }

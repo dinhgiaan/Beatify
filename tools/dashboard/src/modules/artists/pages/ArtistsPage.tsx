@@ -153,7 +153,7 @@ export const ArtistsPage: React.FC<ArtistsPageProps> = ({
         title: first.title,
         artist: artist.name,
         fileUrl: `/local-api/stream/${first.id}`,
-        coverUrl: `/local-api/covers/${first.albumId || first.id}.jpg`,
+        coverUrl: `/local-api/covers/${first.id || first.albumId}.jpg`,
       });
       toast.success(`Đang phát: ${first.title} (${artist.name})`);
     }

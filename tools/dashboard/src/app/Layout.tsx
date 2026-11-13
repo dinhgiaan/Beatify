@@ -274,11 +274,11 @@ export const Layout: React.FC = () => {
       return;
     }
 
-    // Tự động suy luận coverUrl từ albumId hoặc trackId nếu chưa có
+    // Tự động suy luận coverUrl từ trackId hoặc albumId nếu chưa có (ưu tiên trackId trước)
     const resolvedCoverUrl =
       track.coverUrl ||
-      (track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined) ||
-      (track.id ? `/local-api/covers/${track.id}.jpg` : undefined);
+      (track.id ? `/local-api/covers/${track.id}.jpg` : undefined) ||
+      (track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined);
 
     const trackWithCover = {
       ...track,

@@ -242,7 +242,7 @@ export const ArtistHoverCard: React.FC<ArtistHoverCardProps> = ({
       title: track.title,
       artist: artistName || 'Unknown Artist',
       fileUrl: `/local-api/stream/${track.id}`,
-      coverUrl: track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined,
+      coverUrl: track.id ? `/local-api/covers/${track.id}.jpg` : (track.albumId ? `/local-api/covers/${track.albumId}.jpg` : undefined),
     };
 
     window.dispatchEvent(new CustomEvent('beatify-play-track', { detail: payload }));

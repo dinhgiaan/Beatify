@@ -78,7 +78,7 @@ export const ArtistDetailDialog: React.FC<ArtistDetailDialogProps> = ({
       title: track.title,
       artist: artist.name,
       fileUrl: `/local-api/stream/${track.id}`,
-      coverUrl: `/local-api/covers/${track.albumId || track.id}.jpg`,
+      coverUrl: `/local-api/covers/${track.id || track.albumId}.jpg`,
     });
     toast.success(`Đang phát: ${track.title}`);
   };

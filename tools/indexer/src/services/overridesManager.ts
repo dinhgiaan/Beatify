@@ -195,7 +195,7 @@ export function applyOverridesToScanned(
       const albumKey = `${normalizeText(albumArtist)}|${normalizeText(albumTitle)}`;
       updatedTrack.albumId = crypto.createHash('sha1').update(albumKey).digest('hex').slice(0, 12);
       if (updatedTrack.cover) {
-        updatedTrack.cover = `covers/${updatedTrack.albumId}.jpg`;
+        updatedTrack.cover = ov?.cover || updatedTrack.cover || `covers/${updatedTrack.id}.jpg`;
       }
     }
 

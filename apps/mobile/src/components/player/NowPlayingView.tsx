@@ -295,7 +295,9 @@ export function NowPlayingView() {
             >
               <ClockIcon size={18} color={colors.primary} />
             </TouchableOpacity>
-          ) : currentTrack?.album && !showQueue ? (
+          ) : currentTrack?.album &&
+            !['singles', 'single', 'đĩa đơn'].includes(currentTrack.album.trim().toLowerCase()) &&
+            !showQueue ? (
             <Text style={styles.headerSubtitle} numberOfLines={1}>
               {currentTrack.album}
             </Text>

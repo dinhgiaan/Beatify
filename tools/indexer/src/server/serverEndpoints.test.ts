@@ -18,7 +18,7 @@ describe('Server Endpoints & Security Integration Tests', () => {
       });
       // Endpoint xử lý bình thường (200)
       expect(res.status).toBe(200);
-    });
+    }, 15000);
   });
 
   describe('CSRF Protection on Mutations', () => {

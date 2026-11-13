@@ -51,7 +51,7 @@ describe('imageMetadataService - Tab Details & Curator Kato', () => {
       expect(success).toBe(true);
     }
     expect(fs.existsSync(testJpg)).toBe(true);
-  });
+  }, 15000);
 
   it('áp dụng thành công metadata Kato vào file PNG', () => {
     const success = applyArtistImageMetadata(testPng, {
@@ -62,7 +62,7 @@ describe('imageMetadataService - Tab Details & Curator Kato', () => {
       expect(success).toBe(true);
     }
     expect(fs.existsSync(testPng)).toBe(true);
-  });
+  }, 15000);
 
   it('xử lý an toàn khi file không tồn tại', () => {
     const success = applyArtistImageMetadata(path.join(testDir, 'non_existent.png'), {

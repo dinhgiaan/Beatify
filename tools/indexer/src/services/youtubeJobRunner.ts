@@ -1201,9 +1201,14 @@ class YoutubeJobRunner extends EventEmitter {
     // 1. Tải audio lên R2: music/<filename>
     await uploader.uploadAudio(scanned.track.file, audioPath);
 
-    // 2. Tải ảnh bìa lên R2: covers/<albumId>.jpg nếu có
-    if (scanned.coverBuffer && scanned.track.albumId) {
-      await uploader.uploadCover(scanned.track.albumId, scanned.coverBuffer);
+    // 2. Tải ảnh bìa lên R2: covers/<trackId>.jpg và covers/<albumId>.jpg nếu có
+    if (scanned.coverBuffer) {
+      if (scanned.track.id) {
+        await uploader.uploadCover(scanned.track.id, scanned.coverBuffer);
+      }
+      if (scanned.track.albumId) {
+        await uploader.uploadCover(scanned.track.albumId, scanned.coverBuffer);
+      }
     }
 
     // 3. Tải lyrics lên R2: lyrics/<trackId>.lrc nếu có

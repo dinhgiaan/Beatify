@@ -83,6 +83,26 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
     if (picture) {
       coverBuffer = Buffer.from(picture.data);
       coverMime = picture.format || 'image/jpeg';
+    } else {
+      // Fallback: Tìm file ảnh bìa riêng (sidecar) nằm cùng thư mục (ví dụ Song.jpg hoặc Song.png)
+      const extName = path.extname(filePath);
+      const sidecarJpg = filePath.replace(extName, '.jpg');
+      const sidecarPng = filePath.replace(extName, '.png');
+      if (existsSync(sidecarJpg)) {
+        try {
+          coverBuffer = await fs.readFile(sidecarJpg);
+          coverMime = 'image/jpeg';
+        } catch {
+          // bỏ qua
+        }
+      } else if (existsSync(sidecarPng)) {
+        try {
+          coverBuffer = await fs.readFile(sidecarPng);
+          coverMime = 'image/png';
+        } catch {
+          // bỏ qua
+        }
+      }
     }
 
     const ext = path.extname(filePath);
@@ -99,7 +119,7 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
       genre: metadata.common.genre?.[0] ?? undefined,
       file: `music/${id}${ext}`,
       storage: 'r2',
-      cover: coverBuffer ? `covers/${albumId}.jpg` : undefined,
+      cover: coverBuffer ? `covers/${id}.jpg` : undefined,
       loudnessLufs: -18.0,
       replayGain: 0.0,
     };

@@ -376,7 +376,7 @@ export const LibraryPage: React.FC<{
         title: track.title,
         artist: track.artist,
         fileUrl: `/local-api/stream/${track.id}`,
-        coverUrl: track.hasCover ? `/local-api/covers/${track.albumId || track.id}.jpg` : undefined,
+        coverUrl: track.hasCover ? `/local-api/covers/${track.id || track.albumId}.jpg` : undefined,
       }));
 
     onPlayTrack?.(
@@ -386,7 +386,7 @@ export const LibraryPage: React.FC<{
         title: t.title,
         artist: t.artist,
         fileUrl: `/local-api/stream/${t.id}`,
-        coverUrl: t.hasCover ? `/local-api/covers/${t.albumId || t.id}.jpg` : undefined,
+        coverUrl: t.hasCover ? `/local-api/covers/${t.id || t.albumId}.jpg` : undefined,
       },
       currentQueue
     );
@@ -445,7 +445,7 @@ export const LibraryPage: React.FC<{
   // Tải ảnh bìa chất lượng cao về máy tính
   const handleDownloadTrackCover = async (track: TrackItem) => {
     try {
-      const coverUrl = `/local-api/covers/${track.albumId || track.id}.jpg`;
+      const coverUrl = `/local-api/covers/${track.id || track.albumId}.jpg`;
       const res = await fetch(coverUrl);
       if (!res.ok) throw new Error('Bài hát chưa có ảnh bìa hoặc không thể tải từ server');
       const blob = await res.blob();
@@ -1186,7 +1186,7 @@ export const LibraryPage: React.FC<{
                               title: t.title,
                               artist: t.artist,
                               fileUrl: `/local-api/stream/${t.id}`,
-                              coverUrl: t.hasCover ? `/local-api/covers/${t.albumId || t.id}.jpg` : undefined,
+                              coverUrl: t.hasCover ? `/local-api/covers/${t.id || t.albumId}.jpg` : undefined,
                             });
                           }
                         }}
@@ -1194,9 +1194,9 @@ export const LibraryPage: React.FC<{
                       >
                         <Music size={16} className="text-zinc-600 shrink-0" />
                         {
-                          t.hasCover && (t.albumId || t.id) && (
+                          t.hasCover && (t.id || t.albumId) && (
                             <img
-                              src={`/local-api/covers/${t.albumId || t.id}.jpg`}
+                              src={`/local-api/covers/${t.id || t.albumId}.jpg`}
                               alt={t.title}
                               className="w-full h-full object-cover absolute inset-0"
                               onError={(e) => {
@@ -1319,7 +1319,7 @@ export const LibraryPage: React.FC<{
                         <button
                           type="button"
                           onClick={() => {
-                            const coverUrl = `/local-api/covers/${t.albumId || t.id}.jpg?_t=${coverTimestamp}`;
+                            const coverUrl = `/local-api/covers/${t.id || t.albumId}.jpg?_t=${coverTimestamp}`;
                             setViewingCover({
                               isOpen: true,
                               trackId: t.id,
@@ -1601,10 +1601,10 @@ export const LibraryPage: React.FC<{
                     {/* Khung xem ảnh bìa */}
                     <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/50 shrink-0 flex items-center justify-center relative shadow-md group">
                       <Music size={24} className="text-zinc-600 shrink-0" />
-                      {(editingTrack.albumId || editingTrack.id) && (
+                      {(editingTrack.id || editingTrack.albumId) && (
                         <img
                           key={coverTimestamp}
-                          src={`/local-api/covers/${editingTrack.albumId || editingTrack.id}.jpg?_t=${coverTimestamp}`}
+                          src={`/local-api/covers/${editingTrack.id || editingTrack.albumId}.jpg?_t=${coverTimestamp}`}
                           alt={editTitle}
                           className="w-full h-full object-cover absolute inset-0"
                           onError={(e) => {
@@ -1736,9 +1736,9 @@ export const LibraryPage: React.FC<{
                     <div className="p-3.5 rounded-2xl border border-white/10 bg-black/30 flex items-center gap-3.5 shadow-xs">
                       <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0 flex items-center justify-center relative shadow-sm">
                         <Music size={22} className="text-zinc-600 shrink-0" />
-                        {(trashTrack.albumId || trashTrack.id) && (
+                        {(trashTrack.id || trashTrack.albumId) && (
                           <img
-                            src={`/local-api/covers/${trashTrack.albumId || trashTrack.id}.jpg`}
+                            src={`/local-api/covers/${trashTrack.id || trashTrack.albumId}.jpg`}
                             alt={trashTrack.title}
                             className="w-full h-full object-cover absolute inset-0"
                             onError={(e) => {
@@ -1815,9 +1815,9 @@ export const LibraryPage: React.FC<{
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/10 flex items-center justify-center relative">
                           <Music size={13} className="text-zinc-600 shrink-0" />
-                          {(t.albumId || t.id) && (
+                          {(t.id || t.albumId) && (
                             <img
-                              src={`/local-api/covers/${t.albumId || t.id}.jpg`}
+                              src={`/local-api/covers/${t.id || t.albumId}.jpg`}
                               alt={t.title}
                               className="w-full h-full object-cover absolute inset-0"
                               onError={(e) => {

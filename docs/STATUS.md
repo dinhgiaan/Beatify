@@ -25,8 +25,19 @@
 5. **Web Dashboard (tools/dashboard):**
    - Nâng cấp Modal thêm bài hát vào Playlist: mở rộng kích thước rộng rãi (`max-w-4xl`), thêm nút chọn tất cả (Select All) / bỏ chọn tất cả, tích hợp thumbnail ảnh bìa 38x38, hiển thị ngày tải (mtimeMs) và thời lượng.
    - Bổ sung bộ lọc thời gian tải (Tất cả / 24h qua / 7 ngày qua) và tùy chọn sắp xếp (Mới tải gần đây / Tên bài hát A-Z / Nghệ sĩ A-Z), giúp 1-click thêm toàn bộ bài hát vừa tải từ YouTube vào playlist.
-6. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning (đã khắc phục triệt để các lỗi ESLint và cập nhật mock PrevIcon trong unit test cho CI).
-**Cập nhật lần cuối:** 2026-11-12 (Fix CI ESLint & Unit tests)
+6. **Khắc phục triệt để lỗi hiển thị sai và trùng lặp ảnh bìa (Cover Art Isolation by Track ID):**
+   - **Nguyên nhân gốc:** Các bài hát đĩa đơn / tải từ YouTube mặc định gắn tag `album = 'Singles'`. Thuật toán cũ băm `sha1(artist + '|singles')` khiến tất cả bài đơn của cùng một ca sĩ có cùng `albumId`, đồng thời hệ thống chỉ lưu và stream ảnh bìa theo `covers/${albumId}.jpg`. Kết quả là hàng chục bài của 1 nghệ sĩ bị gán đè chung 1 ảnh bìa duy nhất của bài đầu tiên quét được.
+   - **Giải pháp:**
+     - Tách độc lập ảnh bìa theo `track.id`: `track.cover = 'covers/' + track.id + '.jpg'`. Nếu ID3 chưa nhúng ảnh, tự động fallback đọc file ảnh sidecar (`.jpg`/`.png`) cùng thư mục.
+     - `tools/indexer/src/services/libraryBuilder.ts`: Trả về cả `coversByTrackId` và `coversByAlbumId`.
+     - `tools/indexer/src/server/index.ts`: Cập nhật endpoint `/local-api/covers/:id` ưu tiên tìm theo `track.id` trước `albumId`; cập nhật luồng đồng bộ vi sai `/local-api/sync/start` tải toàn bộ ảnh bìa bài hát riêng lẻ lên Cloudflare R2; sửa các API thay đổi ảnh bìa sang `track.id`.
+     - `tools/dashboard`: Cập nhật toàn bộ các trang (`LibraryPage`, `PlaylistsPage`, `Layout`, `ArtistsPage`, `ArtistDetailDialog`, `ArtistHoverCard`) để ưu tiên `/local-api/covers/${t.id || t.albumId}.jpg`.
+7. **Tinh chỉnh UI/UX Mobile App (Floating TabBar, Playlist Modal, Now Playing Header):**
+   - **Floating TabBar:** Xóa bỏ text label, chỉ giữ lại icon (size 20pt) tối giản thanh lịch; sửa lỗi lệch border bằng cách style viền active pill trực tiếp trên từng tab button, giúp border tab active cân đối đều đặn 100%.
+   - **Modal tạo/sửa Playlist:** Bổ sung khoảng cách top (`Math.max(insets.top + 60, 120)`), xóa icon tích ở nút "Tạo ngay", thêm padding đệm dưới cho modalBox và modalActions để các nút bấm không bị dính sát đáy modal.
+   - **Now Playing Header:** Lọc bỏ text "Singles" / "Single" / "Đĩa đơn" ở vị trí giữa header, chỉ hiển thị tên album khi bài hát thực sự thuộc về một album chính thức.
+8. **Toàn bộ monorepo:** 271/271 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
+**Cập nhật lần cuối:** 2026-11-13 (Tinh chỉnh UI/UX TabBar, Playlist Modal & Now Playing Header)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

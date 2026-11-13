@@ -547,7 +547,7 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
         albumId: track.albumId,
         title: track.title,
         artist: track.artist,
-        coverUrl: track.hasCover ? `/local-api/covers/${track.albumId || track.id}.jpg` : undefined,
+        coverUrl: track.hasCover ? `/local-api/covers/${track.id || track.albumId}.jpg` : undefined,
         fileUrl: `/local-api/stream/${track.id}`,
       });
     }
@@ -1375,7 +1375,7 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({
                     <div className="w-9 h-9 rounded-md bg-black/50 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {t.hasCover ? (
                         <img
-                          src={`/local-api/covers/${t.albumId || t.id}.jpg`}
+                          src={`/local-api/covers/${t.id || t.albumId}.jpg`}
                           alt={t.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
