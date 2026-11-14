@@ -6,18 +6,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  LayoutAnimation,
-  Platform,
-  UIManager,
   StyleSheet,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  FadeIn,
+  FadeOut,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TransitionLogEntry } from '@music-app/shared';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 import { tokens } from '../../src/theme/tokens';
 import {
   loadTransitionLogs,
@@ -40,6 +38,115 @@ function formatLogTime(isoStr: string): string {
   } catch {
     return '';
   }
+}
+
+interface LogItemProps {
+  entry: TransitionLogEntry;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+function TransitionLogItem({ entry, isExpanded, onToggle }: LogItemProps) {
+  const fromTitle = cleanTrackTitle(entry.fromTrackTitle);
+  const toTitle = cleanTrackTitle(entry.toTrackTitle);
+  const timeStr = formatLogTime(entry.timestamp);
+  const camelotInfo = formatCamelotRelation(entry.camelotRelation);
+
+  const hasBpm = entry.fromBpm !== undefined || entry.toBpm !== undefined;
+  const hasKey = Boolean(entry.fromKey) || Boolean(entry.toKey);
+
+  const chevronAnim = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(isExpanded ? '90deg' : '0deg', { duration: 180 }) }],
+  }));
+
+  return (
+    <View style={styles.logItemContainer}>
+      <TouchableOpacity
+        style={styles.singleRow}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        <View style={styles.singleRowMain}>
+          <Text style={styles.singleRowTitle} numberOfLines={1}>
+            {fromTitle} <Text style={styles.arrowText}>→</Text> {toTitle}
+          </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.badgeFade}>
+              <Text style={styles.badgeFadeText}>{entry.actualFadeDurationSec}s</Text>
+            </View>
+            <Text style={styles.metaTime}>{timeStr}</Text>
+            <Text style={styles.metaDot}>·</Text>
+            <Text style={styles.metaReason} numberOfLines={1}>
+              {formatTransitionReason(entry.reason)}
+            </Text>
+          </View>
+        </View>
+
+        <Animated.View style={chevronAnim}>
+          <Text style={styles.chevron}>›</Text>
+        </Animated.View>
+      </TouchableOpacity>
+
+      {isExpanded && (
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(120)}
+          style={styles.detailBox}
+        >
+          <View style={styles.detailGrid}>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>LOẠI HÒA ÂM</Text>
+              <Text style={styles.detailVal}>{formatTransitionReason(entry.reason)}</Text>
+            </View>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>TRẠNG THÁI APP</Text>
+              <Text style={styles.detailVal}>
+                {formatAppState(entry.appState)}
+                {entry.isSafeMode ? ' · Safe' : ''}
+              </Text>
+            </View>
+          </View>
+
+          {hasBpm && (
+            <View style={styles.detailGrid}>
+              <View style={styles.detailCol}>
+                <Text style={styles.detailLabel}>BPM NHỊP ĐIỆU</Text>
+                <Text style={styles.detailVal}>
+                  {entry.fromBpm ?? '--'} → {entry.toBpm ?? '--'}
+                  {entry.bpmDeltaPercent !== undefined ? ` (Δ${entry.bpmDeltaPercent}%)` : ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {hasKey && (
+            <View style={styles.detailGrid}>
+              <View style={styles.detailCol}>
+                <Text style={styles.detailLabel}>CAMELOT KEY</Text>
+                <Text style={styles.detailVal}>
+                  {entry.fromKey ?? '--'} → {entry.toKey ?? '--'}
+                  {camelotInfo ? ` · ${camelotInfo.label}` : ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.detailGrid}>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>THỜI LƯỢNG FADE</Text>
+              <Text style={styles.detailVal}>
+                {entry.actualFadeDurationSec}s (Cài đặt {entry.configuredDurationSec}s)
+              </Text>
+            </View>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>ÂM LƯỢNG KẾT THÚC</Text>
+              <Text style={styles.detailVal}>{Math.round(entry.finalVolume * 100)}%</Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+    </View>
+  );
 }
 
 export default function TransitionLogsScreen() {
@@ -84,7 +191,6 @@ export default function TransitionLogsScreen() {
 
   const toggleExpand = (id: string) => {
     triggerSelectionHaptic();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedLogId((prev) => (prev === id ? null : id));
   };
 
@@ -102,8 +208,8 @@ export default function TransitionLogsScreen() {
         ds === todayStr
           ? 'Hôm nay'
           : ds === yesterday
-          ? 'Hôm qua'
-          : d.toLocaleDateString('vi-VN', {
+            ? 'Hôm qua'
+            : d.toLocaleDateString('vi-VN', {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',
@@ -157,90 +263,14 @@ export default function TransitionLogsScreen() {
         <View key={group.dateLabel} style={styles.dateGroup}>
           <SectionHeader title={group.dateLabel} />
           <ListGroup>
-            {group.items.map((entry) => {
-              const isExpanded = expandedLogId === entry.id;
-              const fromTitle = cleanTrackTitle(entry.fromTrackTitle);
-              const toTitle = cleanTrackTitle(entry.toTrackTitle);
-              const timeStr = formatLogTime(entry.timestamp);
-              const camelotInfo = formatCamelotRelation(entry.camelotRelation);
-
-              const hasBpm = entry.fromBpm !== undefined || entry.toBpm !== undefined;
-              const hasKey = Boolean(entry.fromKey) || Boolean(entry.toKey);
-
-              return (
-                <View key={entry.id} style={styles.logItemContainer}>
-                  <TouchableOpacity
-                    style={styles.singleRow}
-                    onPress={() => toggleExpand(entry.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.singleRowMain}>
-                      <Text style={styles.singleRowTitle} numberOfLines={1}>
-                        {fromTitle} → {toTitle}
-                      </Text>
-                      <Text style={styles.singleRowMeta}>
-                        {entry.actualFadeDurationSec}s · {timeStr} · {formatTransitionReason(entry.reason)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>›</Text>
-                  </TouchableOpacity>
-
-                  {isExpanded && (
-                    <View style={styles.detailBox}>
-                      <View style={styles.detailGrid}>
-                        <View style={styles.detailCol}>
-                          <Text style={styles.detailLabel}>Loại hòa âm</Text>
-                          <Text style={styles.detailVal}>{formatTransitionReason(entry.reason)}</Text>
-                        </View>
-                        <View style={styles.detailCol}>
-                          <Text style={styles.detailLabel}>Trạng thái app</Text>
-                          <Text style={styles.detailVal}>
-                            {formatAppState(entry.appState)}
-                            {entry.isSafeMode ? ' · Safe Mode' : ''}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {hasBpm && (
-                        <View style={styles.detailGrid}>
-                          <View style={styles.detailCol}>
-                            <Text style={styles.detailLabel}>BPM nhịp điệu</Text>
-                            <Text style={styles.detailVal}>
-                              {entry.fromBpm ?? '--'} → {entry.toBpm ?? '--'}
-                              {entry.bpmDeltaPercent !== undefined ? ` (Δ${entry.bpmDeltaPercent}%)` : ''}
-                            </Text>
-                          </View>
-                        </View>
-                      )}
-
-                      {hasKey && (
-                        <View style={styles.detailGrid}>
-                          <View style={styles.detailCol}>
-                            <Text style={styles.detailLabel}>Camelot Key</Text>
-                            <Text style={styles.detailVal}>
-                              {entry.fromKey ?? '--'} → {entry.toKey ?? '--'} ({camelotInfo.label})
-                            </Text>
-                          </View>
-                        </View>
-                      )}
-
-                      <View style={styles.detailGrid}>
-                        <View style={styles.detailCol}>
-                          <Text style={styles.detailLabel}>Thời lượng thực tế</Text>
-                          <Text style={styles.detailVal}>
-                            {entry.actualFadeDurationSec}s (Cài đặt {entry.configuredDurationSec}s)
-                          </Text>
-                        </View>
-                        <View style={styles.detailCol}>
-                          <Text style={styles.detailLabel}>Âm lượng kết thúc</Text>
-                          <Text style={styles.detailVal}>{Math.round(entry.finalVolume * 100)}%</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+            {group.items.map((entry) => (
+              <TransitionLogItem
+                key={entry.id}
+                entry={entry}
+                isExpanded={expandedLogId === entry.id}
+                onToggle={() => toggleExpand(entry.id)}
+              />
+            ))}
           </ListGroup>
         </View>
       ))}
@@ -273,7 +303,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   singleRow: {
-    minHeight: 52,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -290,94 +320,127 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: tokens.colors.textPrimary,
   },
-  singleRowMeta: {
-    ...tokens.typography.footnote,
-    color: tokens.colors.textSecondary,
-    marginTop: 2,
-  },
-  chevron: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: tokens.colors.textDim,
-  },
-  chevronExpanded: {
-    transform: [{ rotate: '90deg' }],
-  },
-  detailBox: {
-    backgroundColor: tokens.colors.bgElevated,
-    paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.md,
-    borderTopWidth: tokens.hairlineWidth,
-    borderTopColor: tokens.colors.separator,
-  },
-  detailGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 4,
-  },
-  detailCol: {
-    flex: 1,
-  },
-  detailLabel: {
-    ...tokens.typography.caption,
-    color: tokens.colors.textMuted,
-  },
-  detailVal: {
-    ...tokens.typography.footnote,
-    color: tokens.colors.textPrimary,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  footerActionBox: {
-    marginTop: tokens.spacing.xl,
-    paddingHorizontal: tokens.spacing.lg,
-    alignItems: 'center',
-  },
-  clearLogsButton: {
-    minHeight: 44,
-    paddingHorizontal: tokens.spacing.xl,
-    borderRadius: tokens.radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: tokens.hairlineWidth,
-    borderColor: tokens.colors.dangerBorder,
-  },
-  clearLogsText: {
-    ...tokens.typography.footnote,
-    color: tokens.colors.danger,
-    fontWeight: '600',
-  },
-  centerBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: tokens.spacing.xxl,
-  },
-  emptyIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: tokens.colors.bgSurface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.md,
-  },
-  emptyTitle: {
-    ...tokens.typography.headline,
-    color: tokens.colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  emptyDesc: {
-    ...tokens.typography.footnote,
-    color: tokens.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
-
+    arrowText: {
+      color: tokens.colors.accent,
+      fontWeight: '700',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+      gap: 6,
+    },
+    badgeFade: {
+      backgroundColor: tokens.colors.bgElevated,
+      paddingHorizontal: 6,
+      paddingVertical: 1.5,
+      borderRadius: 4,
+      borderWidth: tokens.hairlineWidth,
+      borderColor: tokens.colors.separator,
+    },
+    badgeFadeText: {
+      ...tokens.typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+      color: tokens.colors.accent,
+    },
+    metaTime: {
+      ...tokens.typography.footnote,
+      fontSize: 13,
+      color: tokens.colors.textSecondary,
+    },
+    metaDot: {
+      color: tokens.colors.textDim,
+      fontSize: 12,
+    },
+    metaReason: {
+      ...tokens.typography.footnote,
+      fontSize: 13,
+      color: tokens.colors.textMuted,
+      flexShrink: 1,
+    },
+    chevron: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: tokens.colors.textDim,
+    },
+    detailBox: {
+      backgroundColor: tokens.colors.bgElevated,
+      paddingHorizontal: tokens.spacing.lg,
+      paddingVertical: tokens.spacing.md,
+      borderTopWidth: tokens.hairlineWidth,
+      borderTopColor: tokens.colors.separator,
+    },
+    detailGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginVertical: 4,
+    },
+    detailCol: {
+      flex: 1,
+    },
+    detailLabel: {
+      ...tokens.typography.caption,
+      fontSize: 10,
+      fontWeight: '600',
+      color: tokens.colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    detailVal: {
+      ...tokens.typography.footnote,
+      color: tokens.colors.textPrimary,
+      fontWeight: '500',
+      marginTop: 2,
+    },
+    footerActionBox: {
+      marginTop: tokens.spacing.xl,
+      paddingHorizontal: tokens.spacing.lg,
+      alignItems: 'center',
+    },
+    clearLogsButton: {
+      minHeight: 44,
+      paddingHorizontal: tokens.spacing.xl,
+      borderRadius: tokens.radius.pill,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: tokens.hairlineWidth,
+      borderColor: tokens.colors.dangerBorder,
+    },
+    clearLogsText: {
+      ...tokens.typography.footnote,
+      color: tokens.colors.danger,
+      fontWeight: '600',
+    },
+    centerBox: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: tokens.spacing.xxl,
+    },
+    emptyIconBox: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: tokens.colors.bgSurface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: tokens.spacing.md,
+    },
+    emptyTitle: {
+      ...tokens.typography.headline,
+      color: tokens.colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: 6,
+    },
+    emptyDesc: {
+      ...tokens.typography.footnote,
+      color: tokens.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+  });

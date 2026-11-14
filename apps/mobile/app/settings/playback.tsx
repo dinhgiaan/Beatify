@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ScrollView,
   View,
@@ -6,12 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
 import { usePlayer } from '../../src/context';
 import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
+
+const DURATIONS = [2, 3, 4, 5, 6, 8] as const;
 
 export default function PlaybackSettingsScreen() {
   const router = useRouter();
@@ -22,6 +29,37 @@ export default function PlaybackSettingsScreen() {
     transitionSettings,
     updateTransitionSettings,
   } = usePlayer();
+
+  const activeIdx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);
+  const activeIndexShared = useSharedValue(activeIdx >= 0 ? activeIdx : 2);
+  const containerWidthShared = useSharedValue(0);
+
+  useEffect(() => {
+    const idx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);
+    if (idx >= 0) {
+      activeIndexShared.value = withSpring(idx, {
+        damping: 18,
+        stiffness: 180,
+        mass: 0.65,
+      });
+    }
+  }, [transitionSettings.durationSec, activeIndexShared]);
+
+  const pillAnimStyle = useAnimatedStyle(() => {
+    const totalItems = DURATIONS.length;
+    // Padding 4px mỗi bên (tổng 8px) của pillTrack
+    const availableWidth = Math.max(0, containerWidthShared.value - 8);
+    const itemWidth = totalItems > 0 ? availableWidth / totalItems : 0;
+    return {
+      width: itemWidth > 0 ? itemWidth : 0,
+      transform: [
+        {
+          translateX: activeIndexShared.value * itemWidth,
+        },
+      ],
+      opacity: containerWidthShared.value > 0 && transitionSettings.enabled ? 1 : 0,
+    };
+  });
 
   return (
     <ScrollView
@@ -59,7 +97,7 @@ export default function PlaybackSettingsScreen() {
           onSwitchChange={(val) => updateTransitionSettings({ enabled: val })}
         />
 
-        {/* Chip thời gian: mờ khi Switch tắt */}
+        {/* Chip thời gian: mờ khi Switch tắt kèm hiệu ứng sliding pill */}
         <View
           style={[
             styles.durationContainer,
@@ -73,55 +111,63 @@ export default function PlaybackSettingsScreen() {
             </Text>
           </View>
 
-          <View style={styles.pillRow}>
-            {([2, 3, 4, 5, 6, 8] as const).map((dur) => {
-              const isSelected = transitionSettings.durationSec === dur;
-              return (
-                <TouchableOpacity
-                  key={dur}
-                  disabled={!transitionSettings.enabled}
-                  style={[
-                    styles.pillBtn,
-                    isSelected && transitionSettings.enabled && styles.pillBtnActive,
-                  ]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    updateTransitionSettings({ durationSec: dur });
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.pillBtnText,
-                      isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
-                    ]}
-                  >
-                    {dur}s
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+              <View
+                style={styles.pillTrack}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) {
+                    containerWidthShared.value = w;
+                  }
+                }}
+              >
+                {/* Nền active di chuyển mượt mà (Sliding Active Pill) */}
+                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+
+                {DURATIONS.map((dur) => {
+                  const isSelected = transitionSettings.durationSec === dur;
+                  return (
+                    <TouchableOpacity
+                      key={dur}
+                      disabled={!transitionSettings.enabled}
+                      style={styles.pillBtn}
+                      onPress={() => {
+                        triggerSelectionHaptic();
+                        updateTransitionSettings({ durationSec: dur });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.pillBtnText,
+                          isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
+                        ]}
+                      >
+                        {dur}s
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
         </View>
 
-        <SettingRow
-          label="Chế độ an toàn (Safe Mode)"
-          description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
-          isSwitch
-          disabled={!transitionSettings.enabled}
-          switchValue={transitionSettings.safeMode}
-          onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
-        />
+          <SettingRow
+            label="Chế độ an toàn (Safe Mode)"
+            description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
+            isSwitch
+            disabled={!transitionSettings.enabled}
+            switchValue={transitionSettings.safeMode}
+            onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
+          />
 
-        <SettingRow
-          label="Xem nhật ký chuyển bài"
-          description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
-          showChevron
-          onPress={() => {
-            triggerSelectionHaptic();
-            router.push('/settings/transition-logs');
-          }}
-        />
+          <SettingRow
+            label="Xem nhật ký chuyển bài"
+            description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
+            showChevron
+            onPress={() => {
+              triggerSelectionHaptic();
+              router.push('/settings/transition-logs');
+            }}
+          />
       </ListGroup>
     </ScrollView>
   );
@@ -155,33 +201,40 @@ const styles = StyleSheet.create({
     color: tokens.colors.textMuted,
     marginTop: 2,
   },
-  pillRow: {
-    flexDirection: 'row',
-    gap: tokens.spacing.sm,
-    marginTop: tokens.spacing.xs,
-  },
-  pillBtn: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.colors.bgElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: tokens.hairlineWidth,
-    borderColor: tokens.colors.separator,
-  },
-  pillBtnActive: {
-    backgroundColor: tokens.colors.accent,
-    borderColor: tokens.colors.accent,
-  },
-  pillBtnText: {
-    ...tokens.typography.footnote,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
-  },
-  pillBtnTextActive: {
-    color: '#000000',
-    fontWeight: '700',
-  },
-});
+    pillTrack: {
+      position: 'relative',
+      flexDirection: 'row',
+      backgroundColor: tokens.colors.bgElevated,
+      borderRadius: tokens.radius.pill,
+      padding: 4,
+      marginTop: tokens.spacing.xs,
+      borderWidth: tokens.hairlineWidth,
+      borderColor: tokens.colors.separator,
+    },
+    slidingActivePill: {
+      position: 'absolute',
+      top: 4,
+      bottom: 4,
+      left: 4,
+      backgroundColor: tokens.colors.accent,
+      borderRadius: tokens.radius.pill,
+    },
+    pillBtn: {
+      flex: 1,
+      minHeight: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: tokens.radius.pill,
+      zIndex: 1,
+    },
+    pillBtnText: {
+      ...tokens.typography.footnote,
+      fontWeight: '600',
+      color: tokens.colors.textSecondary,
+    },
+    pillBtnTextActive: {
+      color: '#000000',
+      fontWeight: '700',
+    },
+  });
 

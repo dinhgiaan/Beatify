@@ -21,6 +21,11 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Middleware xác thực bảo mật
 app.use('*', async (c, next) => {
+  // Cho phép kiểm tra trạng thái /api/health công khai không cần token
+  if (c.req.path === '/api/health') {
+    return next();
+  }
+
   const expectedToken = c.env.API_TOKEN;
 
   // Lấy token từ header Authorization (chuẩn cho /api/*) hoặc query param ?t= / ?token= (cho stream/covers)

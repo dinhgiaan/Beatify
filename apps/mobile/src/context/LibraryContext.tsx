@@ -687,6 +687,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Tự động kiểm tra mạng liên tục và nhận diện tức thì trạng thái online / offline trong thời gian thực
+  const networkStatusRef = useRef(networkStatus);
+  networkStatusRef.current = networkStatus;
+  const failureCountRef = useRef(0);
+
   useEffect(() => {
     let isProbing = false;
 
@@ -700,100 +704,109 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         // 1. Kiểm tra nhanh navigator.onLine nếu khả dụng
         if (typeof navigator !== 'undefined' && typeof (navigator as { onLine?: boolean }).onLine === 'boolean') {
           if (!(navigator as { onLine?: boolean }).onLine) {
-            if (networkStatus !== 'offline') {
-              isOfflineRef.current = true;
-              setNetworkStatus('offline');
+              failureCountRef.current += 1;
+              if (failureCountRef.current >= 2 && networkStatusRef.current !== 'offline') {
+                isOfflineRef.current = true;
+                setNetworkStatus('offline');
+              }
+              return;
             }
-            return;
           }
-        }
 
-        // 2. Thăm dò Cloudflare Worker /api/health với timeout ngắn 1500ms
-        const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 1500);
-        const res = await fetch(`${cleanUrl}/api/health`, {
-          method: 'GET',
-          signal: ctrl.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (res.status >= 200 && res.status < 400) {
-          if (networkStatus === 'offline' || isOfflineRef.current) {
-            isOfflineRef.current = false;
-            setNetworkStatus('reconnected');
-            setTimeout(() => setNetworkStatus('idle'), 2500);
-            // Tự động đồng bộ ngầm khi có mạng trở lại mà không bắt người dùng bấm gì
-            syncLibrary({ silent: true }).catch(() => { });
+          // 2. Thăm dò Cloudflare Worker /api/health với timeout 5000ms (an toàn cho mobile cellular/TLS latency)
+          const ctrl = new AbortController();
+          const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+          const cleanToken = (serverToken || '').trim();
+          const headers: Record<string, string> = {};
+          if (cleanToken) {
+            headers['Authorization'] = `Bearer ${cleanToken}`;
           }
-        } else {
-          throw new Error(`Health check status: ${res.status}`);
-        }
-      } catch {
-        // Mất mạng hoặc ngắt kết nối -> Nhận diện ngay lập tức sang trạng thái offline
-        if (networkStatus !== 'offline') {
-          isOfflineRef.current = true;
-          setNetworkStatus('offline');
-        }
-      } finally {
-        isProbing = false;
-      }
-    };
 
-    // Kiểm tra ngay lập tức khi khởi động
-    probeNetwork();
+          const res = await fetch(`${cleanUrl}/api/health`, {
+            method: 'GET',
+            headers,
+            signal: ctrl.signal,
+          });
+          clearTimeout(timeoutId);
 
-    // Nhịp thăm dò tự động: 1.5s khi offline (để phát hiện có mạng ngay), 2.5s khi online
-    const intervalTime = networkStatus === 'offline' ? 1500 : 2500;
-    const interval = setInterval(probeNetwork, intervalTime);
+          if (res.status >= 200 && res.status < 400) {
+              failureCountRef.current = 0;
+              if (networkStatusRef.current === 'offline' || isOfflineRef.current) {
+                isOfflineRef.current = false;
+                setNetworkStatus('reconnected');
+                setTimeout(() => setNetworkStatus('idle'), 2500);
+                // Tự động đồng bộ ngầm khi có mạng trở lại mà không bắt người dùng bấm gì
+                syncLibrary({ silent: true }).catch(() => { });
+              }
+            } else {
+              throw new Error(`Health check status: ${res.status}`);
+            }
+          } catch {
+              // Chỉ chuyển sang offline khi thất bại liên tiếp 2 lần để tránh giật lag khi mạng chập chờn
+              failureCountRef.current += 1;
+              if (failureCountRef.current >= 2 && networkStatusRef.current !== 'offline') {
+                isOfflineRef.current = true;
+                setNetworkStatus('offline');
+              }
+            } finally {
+              isProbing = false;
+            }
+          };
 
-    // Bắt sự kiện AppState: Khi người dùng kéo Control Center tắt/bật Wi-Fi/Airplane rồi vuốt về app -> Nhận diện tức thì 0ms
-    const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        probeNetwork();
-      }
-    });
+          // Kiểm tra ngay lập tức khi khởi động
+          probeNetwork();
 
-    return () => {
-      clearInterval(interval);
-      sub.remove();
-    };
-  }, [networkStatus, serverUrl, syncLibrary]);
+          // Nhịp thăm dò định kỳ: 10 giây/lần (tránh vòng lặp flapping và tiết kiệm quota request Cloudflare)
+          const interval = setInterval(probeNetwork, 10000);
 
-  return (
-    <LibraryContext.Provider
-      value={{
-        tracks,
-        setTracks,
-        originalTracks,
-        setOriginalTracks,
-        albums,
-        userState,
-        serverUrl,
-        setServerUrl,
-        serverToken,
-        setServerToken,
-        isSyncing,
-        syncStatus,
-        setSyncStatus,
-        expirationDate,
-        lastSyncTime,
-        currentEtag,
-        lastSyncError,
-        syncLibrary,
-        clearLibraryCache,
-        updateUserState,
-        toggleFavorite,
-        fetchLyrics,
-        saveTrack,
-        deleteTrack,
-        networkStatus,
-        isOffline: networkStatus === 'offline',
-        reportNetworkError,
-      }}
-    >
-      {children}
-    </LibraryContext.Provider>
-  );
+          // Bắt sự kiện AppState: Khi người dùng kéo Control Center tắt/bật Wi-Fi/Airplane rồi vuốt về app -> Nhận diện tức thì 0ms
+          const sub = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') {
+              probeNetwork();
+            }
+          });
+
+          return () => {
+            clearInterval(interval);
+            sub.remove();
+          };
+}, [serverUrl, serverToken, syncLibrary]);
+
+return (
+  <LibraryContext.Provider
+    value={{
+      tracks,
+      setTracks,
+      originalTracks,
+      setOriginalTracks,
+      albums,
+      userState,
+      serverUrl,
+      setServerUrl,
+      serverToken,
+      setServerToken,
+      isSyncing,
+      syncStatus,
+      setSyncStatus,
+      expirationDate,
+      lastSyncTime,
+      currentEtag,
+      lastSyncError,
+      syncLibrary,
+      clearLibraryCache,
+      updateUserState,
+      toggleFavorite,
+      fetchLyrics,
+      saveTrack,
+      deleteTrack,
+      networkStatus,
+      isOffline: networkStatus === 'offline',
+      reportNetworkError,
+    }}
+  >
+    {children}
+  </LibraryContext.Provider>
+);
 }
 
 export function useLibrary(): LibraryContextValue {

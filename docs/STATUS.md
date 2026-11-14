@@ -87,7 +87,34 @@
     - **Bảo vệ Lock Screen Artwork:** Trong `rntpPlayerService`, với các track offline (`file://`), trường `artworkUrl` chỉ nhận đường dẫn file cục bộ (`file://`), tuyệt đối không gửi URL remote `https://` để tránh việc `MPNowPlayingInfoCenter` / AVPlayer của iOS kích hoạt NSURLSession khi thiết bị đang ở chế độ Máy bay.
     - **Magic Bytes Self-Healing:** Dò header `ftyp` (M4A/AAC) và `fLaC` để tự động sửa chữa các file bị lưu sai đuôi `.mp3`, đảm bảo native AVPlayer giải mã trơn tru.
     - **Kiểm thử tự động:** Viết bộ test `offlinePlayback.test.ts` chuyên sâu; toàn bộ monorepo đạt 277/277 test pass 100%.
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất kiểm thử và bảo đảm 100% phát nhạc offline khi không có mạng)
+15. **Tối ưu Hiệu năng & UI/UX Cài đặt Nâng cao, Replay, Playback và Vừa nghe:**
+    - **Loại bỏ triệt để giật lag ở màn hình "Nâng cao" & "Nhật ký chuyển bài":**
+      - Chuyển `headerLargeTitle: false` cho toàn bộ các màn hình chi tiết trong `_layout.tsx`, loại bỏ hiện tượng Native Stack Large Title gây tụt khung hình khi cuộn nhanh.
+      - `PlayerContext`: Bọc `contextValue` bằng `useMemo` giúp loại bỏ hoàn toàn các đợt re-render thừa thãi mỗi 250ms lên các màn hình cài đặt khi bài hát đang phát.
+    - **Thiết kế lại Danh sách Nhật ký chuyển bài (`transition-logs.tsx`):**
+      - Thay thế `LayoutAnimation` bằng Reanimated UI-thread component (`TransitionLogItem`), mở rộng/thu gọn mượt mà với `FadeIn(180ms)`/`FadeOut(120ms)` và mũi tên chevron xoay 90° bằng `withTiming`.
+      - UI chuẩn Apple: Hiển thị tên bài gọn gàng, badge thời lượng fade nổi bật (`4.0s`), giờ và loại chuyển; chi tiết hiển thị lưới 2 cột thông số khoa học, sạch sẽ.
+    - **Sửa lỗi Header & Metric Banner Thống kê Replay (`replay.tsx`):**
+      - Title "Thống kê Replay" nằm cùng hàng với nút icon Back `‹`, không còn bị Large Title chiếm chỗ hay đè lên Segmented Bar.
+      - Thiết kế lại `metricBanner` với border hairline, padding cân đối giúp hai chỉ số "Phút nghe" và "Lượt nghe" hiển thị rõ ràng, không bị che khuất.
+      - Thêm animation sliding active pill mượt mà cho Segmented Control ('Tuần này' | 'Tháng này' | 'Năm nay' | 'Kỷ niệm').
+    - **Animation Sliding Pill cho Chip Thời gian chuyển bài (`playback.tsx`):**
+      - Tích hợp nền active dạng trượt di chuyển theo chip thời lượng đã chọn (2s, 3s, 4s, 5s, 6s, 8s) bằng spring physics Reanimated giống 100% Floating Tab Bar.
+    - **Cập nhật tức thì bài đang nghe ở tab "Vừa nghe" (`recent.tsx` & `PlayerContext.tsx`):**
+      - Loại bỏ độ trễ 5 giây (`pos >= 5`): ngay khi bài hát mới bắt đầu phát (`activeTrackId` thay đổi), hệ thống tự động ghi nhận tức thì vào `recentTracksData`.
+      - Mở rộng tra cứu bài hát trong `recentTracks` qua cả `tracks`, `originalTracks`, và `activeQueue`, giúp Hero Card và danh sách "Vừa nghe" cập nhật vị trí top ngay lập tức trong thời gian thực mà không cần reload.
+16. **Sửa triệt để lỗi Flapping giật chớp nháy và mất danh sách bài hát khi reload:**
+    - **Nguyên nhân gốc:**
+      1. Health check `/api/health` trước đây không gửi kèm Authorization Bearer token, bị Cloudflare Worker trả về 401 Unauthorized dẫn đến việc app liên tục phán đoán sai là mất mạng (`offline`).
+      2. Timeout 1.5s quá ngắn cho kết nối di động/TLS handshake lúc khởi động, gây timeout giả.
+      3. Vòng lặp re-render (Flapping loop) trong `useEffect` của `LibraryContext` do chứa `networkStatus` trong dependency array khiến việc đổi trạng thái mạng tự kích hoạt thăm dò lại liên tục 2-3 lần.
+      4. Màn hình `library.tsx` trước đây tự động lọc `tracks.filter(isTrackOffline)` khi `isOffline = true`. Khi người dùng chưa tải bài về máy, toàn bộ danh sách bị biến mất và hiện thông báo trống, gây chớp nháy liên tục khi mạng dao động.
+    - **Giải pháp:**
+      - Endpoint `/api/health` trên Worker được cấu hình public, đồng thời client vẫn gửi kèm token bảo mật nếu có.
+      - Nâng timeout thăm dò lên 5000ms và chỉ chuyển sang `offline` khi thất bại liên tiếp 2 lần (`failureCountRef >= 2`).
+      - Bỏ `networkStatus` khỏi dependency array của `useEffect` và nâng nhịp thăm dò lên 10s/lần, chấm dứt hoàn toàn vòng lặp flapping.
+      - Bảo toàn 100% kho nhạc cached trên trang chủ `library.tsx`, bài hát không bao giờ bị biến mất; thông báo "Chưa có bài hát tải về máy" chỉ hiện khi người dùng chọn tab lọc "Đã tải".
+**Cập nhật lần cuối:** 2026-11-14 (Sửa triệt để lỗi chớp giật flapping mạng và bảo toàn danh sách bài hát trên trang chủ)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

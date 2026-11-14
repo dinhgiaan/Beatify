@@ -54,42 +54,42 @@ export default function SettingsLayout() {
         name="profile"
         options={{
           title: 'Hồ sơ',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
       <Stack.Screen
         name="replay"
         options={{
           title: 'Thống kê Replay',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
       <Stack.Screen
         name="playback"
         options={{
           title: 'Phát nhạc',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
       <Stack.Screen
         name="storage"
         options={{
           title: 'Lưu trữ & Lịch sử',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
       <Stack.Screen
         name="advanced"
         options={{
           title: 'Nâng cao',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
       <Stack.Screen
         name="transition-logs"
         options={{
           title: 'Nhật ký chuyển bài',
-          headerLargeTitle: true,
+          headerLargeTitle: false,
         }}
       />
     </Stack>
