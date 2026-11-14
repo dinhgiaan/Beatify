@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   StyleSheet,
+  Dimensions,
   type StyleProp,
   type ViewStyle,
   type TextStyle,
@@ -141,7 +142,36 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState('');
   const [avatarKey, setAvatarKey] = useState('headphones');
+  const [avatarMode, setAvatarMode] = useState<'badges' | 'custom'>('badges');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Reanimated sliding active pill cho tab chuyển đổi phong cách avatar
+  const avatarModeIdx = avatarMode === 'badges' ? 0 : 1;
+  const avatarModeShared = useSharedValue(avatarModeIdx);
+  const screenWidth = Dimensions.get('window').width;
+  const tabTrackWidthShared = useSharedValue(Math.max(screenWidth - 64, 280));
+
+  useEffect(() => {
+    avatarModeShared.value = withSpring(avatarMode === 'badges' ? 0 : 1, {
+      damping: 20,
+      stiffness: 150,
+      mass: 0.7,
+    });
+  }, [avatarMode, avatarModeShared]);
+
+  const modePillAnimStyle = useAnimatedStyle(() => {
+    const availableWidth = Math.max(0, tabTrackWidthShared.value - 8);
+    const itemWidth = availableWidth / 2;
+    return {
+      width: itemWidth > 0 ? itemWidth : 0,
+      transform: [
+        {
+          translateX: avatarModeShared.value * itemWidth,
+        },
+      ],
+      opacity: tabTrackWidthShared.value > 0 ? 1 : 0,
+    };
+  });
 
   useEffect(() => {
     statsStorage.loadUserProfile().then((profile) => {
@@ -150,6 +180,9 @@ export default function ProfileScreen() {
       setBio(profile.bio);
       setAvatarUri(profile.avatarUri || '');
       setAvatarKey(profile.avatarKey || 'headphones');
+      if (profile.avatarUri) {
+        setAvatarMode('custom');
+      }
     }).catch(() => {});
   }, []);
 
@@ -174,6 +207,7 @@ export default function ProfileScreen() {
         const dest = `${FileSystem.documentDirectory || ''}avatar_${Date.now()}.jpg`;
         await FileSystem.copyAsync({ from: result.assets[0].uri, to: dest });
         setAvatarUri(dest);
+        setAvatarMode('custom');
       }
     } catch {
       Alert.alert('Không thể chọn ảnh', 'Đã xảy ra lỗi khi chọn ảnh.');
@@ -201,6 +235,7 @@ export default function ProfileScreen() {
         const dest = `${FileSystem.documentDirectory || ''}avatar_${Date.now()}.jpg`;
         await FileSystem.copyAsync({ from: result.assets[0].uri, to: dest });
         setAvatarUri(dest);
+        setAvatarMode('custom');
       }
     } catch {
       Alert.alert('Không thể chụp ảnh', 'Đã xảy ra lỗi khi khởi động máy ảnh.');
@@ -210,7 +245,6 @@ export default function ProfileScreen() {
   const handleSelectBadge = (key: string) => {
     triggerSelectionHaptic();
     setAvatarKey(key);
-    // Nếu đang có ảnh tải lên, xóa ảnh để áp dụng biểu tượng huy hiệu
     if (avatarUri) {
       setAvatarUri('');
     }
@@ -254,69 +288,122 @@ export default function ProfileScreen() {
       <ListGroup>
         <View style={styles.avatarSection}>
           <UserAvatar
-            avatarUri={avatarUri}
+            avatarUri={avatarMode === 'custom' ? avatarUri : ''}
             displayName={displayName || 'Người Yêu Nhạc'}
             avatarKey={avatarKey}
-            size={84}
+            size={88}
           />
-
-          <View style={styles.avatarBtnRow}>
-            <SpringButton style={styles.pillBtn} onPress={handleTakePhoto}>
-              <CameraIcon size={16} color={tokens.colors.textPrimary} />
-              <Text style={styles.pillBtnText}>Chụp ảnh</Text>
-            </SpringButton>
-
-            <SpringButton style={styles.pillBtn} onPress={handlePickImage}>
-              <DiscIcon size={16} color={tokens.colors.textPrimary} />
-              <Text style={styles.pillBtnText}>Thư viện ảnh</Text>
-            </SpringButton>
-
-            {Boolean(avatarUri) && (
-              <SpringButton
-                style={[styles.pillBtn, styles.clearBtn]}
-                onPress={() => setAvatarUri('')}
-              >
-                <Text style={styles.clearBtnText}>Gỡ ảnh</Text>
-              </SpringButton>
-            )}
-          </View>
         </View>
       </ListGroup>
 
-      {/* BIỂU TƯỢNG HUY HIỆU ĐẠI DIỆN VỚI HIỆU ỨNG CHẠM NHÚN LÒ XO */}
+      {/* PHÂN ĐOẠN TAB CHUYỂN ĐỔI PHONG CÁCH VỚI HIỆU ỨNG SLIDING ACTIVE PILL */}
       <SectionHeader
-        title="BIỂU TƯỢNG HUY HIỆU"
-        subtitle="Chọn biểu tượng đại diện âm nhạc cho trang chủ và hồ sơ"
+        title="PHONG CÁCH ĐẠI DIỆN"
+        subtitle="Chọn giữa biểu tượng huy hiệu âm nhạc hoặc ảnh cá nhân"
       />
       <ListGroup>
-        <View style={styles.badgesGrid}>
-          {AVATAR_BADGES.map((badge) => {
-            const isSelected = !avatarUri && avatarKey === badge.key;
-            return (
-              <SpringButton
-                key={badge.key}
+        <View style={styles.tabTrackContainer}>
+          <View
+            style={styles.tabTrack}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) {
+                tabTrackWidthShared.value = w;
+              }
+            }}
+          >
+            {/* Nền active di chuyển mượt mà dạng trượt (Sliding Active Pill) */}
+            <Animated.View style={[styles.slidingActivePill, modePillAnimStyle]} pointerEvents="none" />
+
+            <Pressable
+              style={styles.modeTabBtn}
+              onPress={() => {
+                triggerSelectionHaptic();
+                setAvatarMode('badges');
+              }}
+            >
+              <Text
                 style={[
-                  styles.badgeItem,
-                  isSelected && styles.badgeItemSelected,
+                  styles.modeTabBtnText,
+                  avatarMode === 'badges' && styles.modeTabBtnTextActive,
                 ]}
-                onPress={() => handleSelectBadge(badge.key)}
               >
-                <View style={[styles.badgeIconCircle, isSelected && styles.badgeIconCircleSelected]}>
-                  {badge.renderIcon(22, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
-                </View>
-                <Text
-                  style={[
-                    styles.badgeItemText,
-                    isSelected && styles.badgeItemTextSelected,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {badge.label}
-                </Text>
-              </SpringButton>
-            );
-          })}
+                Huy hiệu âm nhạc
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.modeTabBtn}
+              onPress={() => {
+                triggerSelectionHaptic();
+                setAvatarMode('custom');
+              }}
+            >
+              <Text
+                style={[
+                  styles.modeTabBtnText,
+                  avatarMode === 'custom' && styles.modeTabBtnTextActive,
+                ]}
+              >
+                Ảnh cá nhân
+              </Text>
+            </Pressable>
+          </View>
         </View>
+
+        {avatarMode === 'badges' ? (
+          <View style={styles.badgesGrid}>
+            {AVATAR_BADGES.map((badge) => {
+              const isSelected = avatarKey === badge.key;
+              return (
+                <SpringButton
+                  key={badge.key}
+                  style={[
+                    styles.badgeItem,
+                    isSelected && styles.badgeItemSelected,
+                  ]}
+                  onPress={() => handleSelectBadge(badge.key)}
+                >
+                  <View style={[styles.badgeIconCircle, isSelected && styles.badgeIconCircleSelected]}>
+                    {badge.renderIcon(22, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
+                  </View>
+                  <Text
+                    style={[
+                      styles.badgeItemText,
+                      isSelected && styles.badgeItemTextSelected,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {badge.label}
+                  </Text>
+                </SpringButton>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.customPhotoSection}>
+            <View style={styles.avatarBtnRow}>
+              <SpringButton style={styles.pillBtn} onPress={handleTakePhoto}>
+                <CameraIcon size={16} color={tokens.colors.textPrimary} />
+                <Text style={styles.pillBtnText}>Chụp ảnh</Text>
+              </SpringButton>
+
+              <SpringButton style={styles.pillBtn} onPress={handlePickImage}>
+                <DiscIcon size={16} color={tokens.colors.textPrimary} />
+                <Text style={styles.pillBtnText}>Thư viện ảnh</Text>
+              </SpringButton>
+
+              {Boolean(avatarUri) && (
+                <SpringButton
+                  style={[styles.pillBtn, styles.clearBtn]}
+                  onPress={() => setAvatarUri('')}
+                >
+                  <Text style={styles.clearBtnText}>Gỡ ảnh</Text>
+                </SpringButton>
+              )}
+            </View>
+          </View>
+        )}
       </ListGroup>
 
       <SectionHeader title="THÔNG TIN CÁ NHÂN" />
@@ -365,17 +452,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: tokens.spacing.lg,
   },
+  tabTrackContainer: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingTop: tokens.spacing.md,
+  },
+  tabTrack: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: tokens.colors.bgElevated,
+    borderRadius: tokens.radius.pill,
+    padding: 4,
+    borderWidth: tokens.hairlineWidth,
+    borderColor: tokens.colors.separator,
+  },
+  slidingActivePill: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    backgroundColor: tokens.colors.accent,
+    borderRadius: tokens.radius.pill,
+  },
+  modeTabBtn: {
+    flex: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: tokens.radius.pill,
+    zIndex: 1,
+  },
+  modeTabBtnText: {
+    ...tokens.typography.footnote,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+  },
+  modeTabBtnTextActive: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+  customPhotoSection: {
+    padding: tokens.spacing.lg,
+    alignItems: 'center',
+  },
   avatarBtnRow: {
     flexDirection: 'row',
     gap: tokens.spacing.sm,
-    marginTop: tokens.spacing.md,
   },
   pillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: tokens.colors.bgElevated,
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: tokens.spacing.md,
     borderRadius: tokens.radius.pill,
     borderWidth: tokens.hairlineWidth,
