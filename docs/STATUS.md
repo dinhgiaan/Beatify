@@ -181,9 +181,12 @@
         - Tách thành các component chuyên trách: `TabBar.tsx`, `TabBarItem.tsx`, `TabIndicator.tsx`.
         - Chỉ dùng MỘT `TabIndicator` duy nhất (`position: 'absolute'`) chạy 100% trên UI thread bằng `useSharedValue` + `useAnimatedStyle`.
         - Đo đạc chính xác tọa độ từng tab qua `onLayout`, lưu `x` và `width` thực tế. Lần đầu khởi tạo đặt ngay vị trí tab active (không animate từ 0).
-        - Khi chuyển tab (`state.index`), kích hoạt `withSpring(targetLayout.x, { damping: 20, stiffness: 180, mass: 0.8 })` trượt mượt mà.
+        - Khi chuyển tab (`state.index`), kích hoạt `withSpring(targetLayout.x, TAB_SPRING_CONFIG)` trượt mượt mà.
         - Tích hợp haptic phản hồi nhẹ (`expo-haptics`, `ImpactFeedbackStyle.Light`).
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất tái cấu trúc TabBar, TabBarItem, TabIndicator và sửa plugin worklets)
+        - **Khắc phục triệt để lỗi không có frame trung gian (nhảy tức thì do Reduce Motion & Lifecycle React):**
+          - Ép buộc chạy toàn bộ frames animation bằng `reduceMotion: ReduceMotion.Never` trong `TAB_SPRING_CONFIG`, ngăn chặn Reanimated bỏ qua animation khi iOS ở chế độ Tiết kiệm pin hoặc Trợ năng Giảm chuyển động.
+          - Kích hoạt spring trực tiếp trong `onPress` của `TabBarItem` ngay khoảnh khắc ngón tay vừa chạm để zero latency, kết hợp đồng bộ trong `useEffect` cho các trường hợp đổi route từ bên ngoài.
+**Cập nhật lần cuối:** 2026-11-15 (Khắc phục triệt để animation trượt Tab Bar: ReduceMotion.Never và trigger spring tức thì trong onPress)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
