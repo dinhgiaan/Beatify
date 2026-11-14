@@ -77,16 +77,16 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
     }
 
     activeIndex.value = withSpring(state.index, {
-      damping: 18,
-      stiffness: 140,
-      mass: 0.65,
+      damping: 15,
+      stiffness: 95,
+      mass: 0.75,
     });
 
-    // Chỉ chốt previousTabIndex sau khi animation đã lướt hoàn tất ổn định (350ms)
+    // Chỉ chốt previousTabIndex sau khi animation đã lướt hoàn tất ổn định (400ms)
     // Ngăn chặn các lần remount giữa chừng làm mất vị trí xuất phát ban đầu
     const timer = setTimeout(() => {
       previousTabIndex = state.index;
-    }, 350);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [state.index, activeIndex]);
@@ -151,16 +151,17 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             setOptimisticIndex(toIndex);
 
             // 1. Kích hoạt hiệu ứng trượt NGAY TỨC THÌ trên UI-thread
-            // Mắt người dùng lập tức thấy viên thuốc lướt êm ái sang tab mới
+            // Mắt người dùng lập tức thấy viên thuốc lướt êm ái, đầm tay sang tab mới
             activeIndex.value = withSpring(toIndex, {
-              damping: 18,
-              stiffness: 140,
-              mass: 0.65,
+              damping: 15,
+              stiffness: 95,
+              mass: 0.75,
             });
 
-            // 2. Chuyển màn hình sau một nhịp trễ rất ngắn (60ms)
-            // Đảm bảo viên thuốc đã lướt đi được nửa quãng đường trước khi luồng JS bắt đầu render
-            // cây component màn hình mới, loại bỏ hoàn toàn hiện tượng drop frame / giật khựng
+            // 2. Chuyển màn hình sau nhịp trễ 130ms:
+            // Đảm bảo viên thuốc đã lướt đi được hơn 60% quãng đường trước mắt người dùng
+            // trước khi luồng JS bắt đầu render cây component màn hình mới,
+            // giúp mắt bắt trọn đường lướt mượt mà chuẩn iOS không bị drop frame
             if (pendingNavigationTimer) {
               clearTimeout(pendingNavigationTimer);
             }
@@ -174,7 +175,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               if (!event.defaultPrevented) {
                 navigation.navigate(route.name);
               }
-            }, 60);
+            }, 130);
           };
 
           const onLongPress = () => {

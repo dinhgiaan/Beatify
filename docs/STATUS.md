@@ -175,9 +175,9 @@
       - **Nguyên nhân gốc:** (1) `lastKnownTabIndex` bị hook `useEffect` ghi đè ngay lập tức trước khi Tab Bar mới kịp mount, làm giá trị khởi tạo bị gán thẳng bằng tab đích khiến viên thuốc đứng yên. (2) `navigation.navigate` kích hoạt đồng thời làm nghẽn luồng UI do phải render màn hình mới nặng nề, drop toàn bộ khung hình chuyển động ở giữa.
       - **Giải pháp triệt để:**
         - Sử dụng cơ chế lưu vết 2 tầng `previousTabIndex` & `currentTabIndex` ở cấp độ module, khởi tạo `useSharedValue(previousTabIndex)`. Chỉ cập nhật `previousTabIndex` sau 350ms khi animation lò xo đã hoàn tất ổn định, ngăn chặn hoàn toàn việc remount giữa chừng làm mất vị trí xuất phát.
-        - Tách nhịp chuyển trang 60ms (`pendingNavigationTimer`): Kích hoạt `withSpring` lướt ngay tức thì 0ms trên UI-thread, giúp mắt người dùng thấy viên thuốc lướt được 40-50% quãng đường trước khi luồng JS bắt đầu nạp màn hình mới.
+        - Tách nhịp chuyển trang 130ms (`pendingNavigationTimer`): Kích hoạt `withSpring({ damping: 15, stiffness: 95, mass: 0.75 })` lướt ngay tức thì 0ms trên UI-thread kéo dài ~260-280ms, giúp mắt người dùng thấy rõ ràng viên thuốc lướt được hơn 60% quãng đường trước khi luồng JS nạp màn hình mới, loại bỏ hoàn toàn cảm giác giật cục hoặc quá nhanh.
         - Tích hợp `optimisticIndex` giúp icon tab đích sáng màu xanh tức thì ngay khi ngón tay vừa chạm.
-**Cập nhật lần cuối:** 2026-11-14 (Khắc phục triệt để animation trượt Floating Tab Bar)
+**Cập nhật lần cuối:** 2026-11-14 (Tinh chỉnh thông số lò xo đầm 280ms & nhịp trễ 130ms cho Floating Tab Bar)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
