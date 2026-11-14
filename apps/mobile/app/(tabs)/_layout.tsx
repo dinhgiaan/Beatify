@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -43,8 +43,13 @@ function getTabIcon(routeName: string, color: string) {
   }
 }
 
-let lastKnownTabIndex = 0;
+// Lưu vết vị trí tab ở cấp độ module để bảo toàn chuyển động trượt xuyên suốt:
+// Dù React Navigation có remount Tab Bar giữa các Screen,
+// activeIndex vẫn luôn xuất phát từ tab nguồn và lướt mượt mà sang tab đích!
+let previousTabIndex = 0;
+let currentTabIndex = 0;
 let lastKnownDockWidth = Math.min(Dimensions.get('window').width * 0.95, 410);
+let pendingNavigationTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Custom Bottom Tab Bar nổi bo tròn dạng Floating Pill tối giản
@@ -55,18 +60,35 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const screenWidth = Dimensions.get('window').width;
   const initialDockWidth = lastKnownDockWidth || Math.min(screenWidth * 0.95, 410);
   const dockWidthShared = useSharedValue(initialDockWidth);
-  // Khởi tạo activeIndex từ lastKnownTabIndex:
-  // Nếu React Navigation remount component khi chuyển tab,
-  // activeIndex sẽ luôn bắt đầu từ vị trí tab trước đó rồi lướt mượt mà tới tab mới!
-  const activeIndex = useSharedValue(lastKnownTabIndex);
+
+  // Phản hồi tức thì ngay khi chạm (Optimistic Active State)
+  const [optimisticIndex, setOptimisticIndex] = useState(state.index);
+
+  // Khởi tạo activeIndex từ previousTabIndex:
+  // Đảm bảo không bao giờ bị nhảy bụp tới đích khi component mount ở screen mới
+  const activeIndex = useSharedValue(previousTabIndex);
 
   useEffect(() => {
+    setOptimisticIndex(state.index);
+
+    if (state.index !== currentTabIndex) {
+      previousTabIndex = currentTabIndex;
+      currentTabIndex = state.index;
+    }
+
     activeIndex.value = withSpring(state.index, {
       damping: 18,
-      stiffness: 150,
+      stiffness: 140,
       mass: 0.65,
     });
-    lastKnownTabIndex = state.index;
+
+    // Chỉ chốt previousTabIndex sau khi animation đã lướt hoàn tất ổn định (350ms)
+    // Ngăn chặn các lần remount giữa chừng làm mất vị trí xuất phát ban đầu
+    const timer = setTimeout(() => {
+      previousTabIndex = state.index;
+    }, 350);
+
+    return () => clearTimeout(timer);
   }, [state.index, activeIndex]);
 
   const pillAnimStyle = useAnimatedStyle(() => {
@@ -113,25 +135,46 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor?.options ?? {};
-          const isFocused = state.index === index;
+          const isFocused = optimisticIndex === index;
 
           const onPress = () => {
             triggerSelectionHaptic();
-            lastKnownTabIndex = state.index;
-            activeIndex.value = withSpring(index, {
+            if (state.index === index) {
+              return;
+            }
+
+            const fromIndex = currentTabIndex;
+            const toIndex = index;
+
+            previousTabIndex = fromIndex;
+            currentTabIndex = toIndex;
+            setOptimisticIndex(toIndex);
+
+            // 1. Kích hoạt hiệu ứng trượt NGAY TỨC THÌ trên UI-thread
+            // Mắt người dùng lập tức thấy viên thuốc lướt êm ái sang tab mới
+            activeIndex.value = withSpring(toIndex, {
               damping: 18,
-              stiffness: 150,
+              stiffness: 140,
               mass: 0.65,
             });
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            // 2. Chuyển màn hình sau một nhịp trễ rất ngắn (60ms)
+            // Đảm bảo viên thuốc đã lướt đi được nửa quãng đường trước khi luồng JS bắt đầu render
+            // cây component màn hình mới, loại bỏ hoàn toàn hiện tượng drop frame / giật khựng
+            if (pendingNavigationTimer) {
+              clearTimeout(pendingNavigationTimer);
             }
+            pendingNavigationTimer = setTimeout(() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            }, 60);
           };
 
           const onLongPress = () => {

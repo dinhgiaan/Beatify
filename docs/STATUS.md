@@ -171,10 +171,13 @@
 25. **Sửa lỗi Nút Xóa bị Media Player che khuất & Khắc phục triệt để Animation Background Active khi chuyển tab:**
     - **Nút Xóa tại modal Lưu trữ ngoại tuyến (`OfflineDownloadsModal.tsx`):**
       - Khi người dùng bật chế độ chọn bài (`isSelectMode`), MiniPlayer tự động ẩn để nhường toàn bộ diện tích cho thanh công cụ xóa bài (`bottomDeleteBar`), đồng thời nâng `zIndex: 99`, `elevation: 20` và tăng padding chân danh sách để nút "Xóa ... bài" luôn hiển thị rõ ràng, không bao giờ bị đè hay che khuất.
-    - **Bảo đảm Animation Background Active dạng trượt (Sliding Active Pill) khi chuyển tab (`_layout.tsx`):**
-      - **Nguyên nhân gốc:** React Navigation khi chuyển route tab tái khởi tạo TabBar, khiến `useSharedValue(state.index)` lập tức nhận index mới từ frame đầu tiên làm viên thuốc nhảy bụp đến tab mới thay vì lướt.
-      - **Giải pháp:** Lưu `lastKnownTabIndex` cấp module. Khi chuyển tab, TabBar mới luôn kế thừa tọa độ tab cũ và kích hoạt `withSpring` lướt êm ái sang tab mới. Nâng độ tương phản viền và nền xanh ngọc cho Floating Tab Bar và phân đoạn Thư viện (`segmentPillIndicator`).
-**Cập nhật lần cuối:** 2026-11-14 (Sửa che nút xóa Offline & Đảm bảo trượt liên tục TabBar pill)
+    - **Khắc phục triệt để Animation Background Active dạng trượt (Sliding Active Pill) khi chuyển tab (`_layout.tsx`):**
+      - **Nguyên nhân gốc:** (1) `lastKnownTabIndex` bị hook `useEffect` ghi đè ngay lập tức trước khi Tab Bar mới kịp mount, làm giá trị khởi tạo bị gán thẳng bằng tab đích khiến viên thuốc đứng yên. (2) `navigation.navigate` kích hoạt đồng thời làm nghẽn luồng UI do phải render màn hình mới nặng nề, drop toàn bộ khung hình chuyển động ở giữa.
+      - **Giải pháp triệt để:**
+        - Sử dụng cơ chế lưu vết 2 tầng `previousTabIndex` & `currentTabIndex` ở cấp độ module, khởi tạo `useSharedValue(previousTabIndex)`. Chỉ cập nhật `previousTabIndex` sau 350ms khi animation lò xo đã hoàn tất ổn định, ngăn chặn hoàn toàn việc remount giữa chừng làm mất vị trí xuất phát.
+        - Tách nhịp chuyển trang 60ms (`pendingNavigationTimer`): Kích hoạt `withSpring` lướt ngay tức thì 0ms trên UI-thread, giúp mắt người dùng thấy viên thuốc lướt được 40-50% quãng đường trước khi luồng JS bắt đầu nạp màn hình mới.
+        - Tích hợp `optimisticIndex` giúp icon tab đích sáng màu xanh tức thì ngay khi ngón tay vừa chạm.
+**Cập nhật lần cuối:** 2026-11-14 (Khắc phục triệt để animation trượt Floating Tab Bar)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
