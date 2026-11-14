@@ -21,18 +21,19 @@ describe('Bảo toàn Tuyệt đối Hiệu ứng Animation UI/UX Cốt lõi', (
   const rootMobileDir = path.resolve(__dirname, '../..');
 
   it('1. Floating Tab Bar phải luôn có Animation Background Active dạng trượt (Sliding Active Pill)', () => {
-    const layoutPath = path.join(rootMobileDir, 'app/(tabs)/_layout.tsx');
-    expect(fs.existsSync(layoutPath)).toBe(true);
-    const content = fs.readFileSync(layoutPath, 'utf8');
+    const tabBarPath = path.join(rootMobileDir, 'src/components/navigation/TabBar.tsx');
+    const indicatorPath = path.join(rootMobileDir, 'src/components/navigation/TabIndicator.tsx');
+    expect(fs.existsSync(tabBarPath)).toBe(true);
+    expect(fs.existsSync(indicatorPath)).toBe(true);
+    const tabBarContent = fs.readFileSync(tabBarPath, 'utf8');
+    const indicatorContent = fs.readFileSync(indicatorPath, 'utf8');
 
     // Kiểm tra Reanimated shared values và animation
-    expect(content).toContain('useSharedValue');
-    expect(content).toContain('withSpring');
-    expect(content).toContain('useAnimatedStyle');
-    expect(content).toContain('dockWidthShared');
-    expect(content).toContain('activeIndex');
-    expect(content).toContain('slidingActivePill');
-    expect(content).toContain('pillAnimStyle');
+    expect(tabBarContent).toContain('useSharedValue');
+    expect(tabBarContent).toContain('withSpring');
+    expect(indicatorContent).toContain('useAnimatedStyle');
+    expect(indicatorContent).toContain('slidingActivePill');
+    expect(indicatorContent).toContain('pillAnimStyle');
   });
 
   it('2. Thống kê Replay phải luôn có Animation Background Active cho các Tab', () => {

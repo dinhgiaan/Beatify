@@ -171,13 +171,19 @@
 25. **Sửa lỗi Nút Xóa bị Media Player che khuất & Khắc phục triệt để Animation Background Active khi chuyển tab:**
     - **Nút Xóa tại modal Lưu trữ ngoại tuyến (`OfflineDownloadsModal.tsx`):**
       - Khi người dùng bật chế độ chọn bài (`isSelectMode`), MiniPlayer tự động ẩn để nhường toàn bộ diện tích cho thanh công cụ xóa bài (`bottomDeleteBar`), đồng thời nâng `zIndex: 99`, `elevation: 20` và tăng padding chân danh sách để nút "Xóa ... bài" luôn hiển thị rõ ràng, không bao giờ bị đè hay che khuất.
-    - **Khắc phục triệt để Animation Background Active dạng trượt (Sliding Active Pill) khi chuyển tab (`_layout.tsx`):**
-      - **Nguyên nhân gốc:** (1) `lastKnownTabIndex` bị hook `useEffect` ghi đè ngay lập tức trước khi Tab Bar mới kịp mount, làm giá trị khởi tạo bị gán thẳng bằng tab đích khiến viên thuốc đứng yên. (2) `navigation.navigate` kích hoạt đồng thời làm nghẽn luồng UI do phải render màn hình mới nặng nề, drop toàn bộ khung hình chuyển động ở giữa.
-      - **Giải pháp triệt để:**
-        - Sử dụng cơ chế lưu vết 2 tầng `previousTabIndex` & `currentTabIndex` ở cấp độ module, khởi tạo `useSharedValue(previousTabIndex)`. Chỉ cập nhật `previousTabIndex` sau 350ms khi animation lò xo đã hoàn tất ổn định, ngăn chặn hoàn toàn việc remount giữa chừng làm mất vị trí xuất phát.
-        - Tách nhịp chuyển trang 130ms (`pendingNavigationTimer`): Kích hoạt `withSpring({ damping: 15, stiffness: 95, mass: 0.75 })` lướt ngay tức thì 0ms trên UI-thread kéo dài ~260-280ms, giúp mắt người dùng thấy rõ ràng viên thuốc lướt được hơn 60% quãng đường trước khi luồng JS nạp màn hình mới, loại bỏ hoàn toàn cảm giác giật cục hoặc quá nhanh.
-        - Tích hợp `optimisticIndex` giúp icon tab đích sáng màu xanh tức thì ngay khi ngón tay vừa chạm.
-**Cập nhật lần cuối:** 2026-11-14 (Tinh chỉnh thông số lò xo đầm 280ms & nhịp trễ 130ms cho Floating Tab Bar)
+    - **Tái cấu trúc Floating Tab Bar chuẩn Liquid Glass Capsule và khắc phục triệt để animation trượt:**
+      - **Nguyên nhân gốc:**
+        1. `babel.config.js` dùng sai plugin `'react-native-reanimated/plugin'` thay vì `'react-native-worklets/plugin'` của Reanimated 4, khiến mã worklet không được biên dịch sang runtime worklet mới.
+        2. `app.config.ts` thiếu khai báo `newArchEnabled: true` theo yêu cầu của Reanimated 4.
+        3. Thanh Tab Bar chưa đo đạc tọa độ thực tế `x` và `width` của từng tab bằng `onLayout` mà tính giả định chia đều, gây lệch tọa độ và mất đồng bộ animation.
+      - **Giải pháp hoàn chỉnh:**
+        - Cập nhật `babel.config.js` sang `'react-native-worklets/plugin'` và bật `newArchEnabled: true` trong `app.config.ts`.
+        - Tách thành các component chuyên trách: `TabBar.tsx`, `TabBarItem.tsx`, `TabIndicator.tsx`.
+        - Chỉ dùng MỘT `TabIndicator` duy nhất (`position: 'absolute'`) chạy 100% trên UI thread bằng `useSharedValue` + `useAnimatedStyle`.
+        - Đo đạc chính xác tọa độ từng tab qua `onLayout`, lưu `x` và `width` thực tế. Lần đầu khởi tạo đặt ngay vị trí tab active (không animate từ 0).
+        - Khi chuyển tab (`state.index`), kích hoạt `withSpring(targetLayout.x, { damping: 20, stiffness: 180, mass: 0.8 })` trượt mượt mà.
+        - Tích hợp haptic phản hồi nhẹ (`expo-haptics`, `ImpactFeedbackStyle.Light`).
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất tái cấu trúc TabBar, TabBarItem, TabIndicator và sửa plugin worklets)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
