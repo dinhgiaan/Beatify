@@ -120,7 +120,20 @@
     - **Tối ưu hóa re-render diện rộng với `useMemo` trong `LibraryContext`:** Bọc toàn bộ `contextValue` của `LibraryProvider` bằng `useMemo`, ngăn chặn re-render thừa lan tỏa toàn bộ cây component khi thư viện sync hoặc cập nhật trạng thái.
     - **Phòng vệ tua bài `seekOffset` và `seekTo`:** Kiểm tra kẹp giá trị `pos` và `offset` luôn là số hữu hạn, chặn `NaN` hoặc số âm khi duration/position chưa kịp load.
     - **Minh chứng kiểm thử:** Viết mới unit test cho timeout và phòng vệ ReplayGain; toàn bộ monorepo đạt 278/278 test pass 100%, typecheck và lint sạch 0 lỗi.
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn thành kiểm tra toàn diện, bổ sung phòng vệ lỗi tiềm ẩn và tối ưu re-render toàn app)
+18. **Khắc phục lỗi Header Offline, Nâng cấp Đồng bộ Animation Sliding Pill & Nút Cuộn Scroll To Top:**
+    - **Xử lý triệt để lỗi UI/UX chỗ text "Offline" trên Header:**
+      - Xóa bỏ khung badge chữ `OFFLINE` chật chội ở thanh Header hàng ngang. Không còn hiện tượng đè ép làm co hẹp ScrollView dẫn đến việc cắt cụt chữ "Nghe nhiều nhất" thành "Nghe nh".
+      - Nút Cloud Sync R2 tự động mờ và vô hiệu hóa (`opacity: 0.38`, `disabled`) khi mất mạng, tránh gây hiểu lầm đồng bộ đám mây khi ngoại tuyến.
+    - **Đồng bộ hiệu ứng animation background active trượt (Sliding Active Pill) cho 4 vị trí:**
+      - **Floating Tab Bar:** Kích hoạt `withSpring` trực tiếp ngay trong `onPress` (0ms delay), viên thuốc trượt tức thì và êm ái theo nhịp ngón tay.
+      - **Thống kê Replay:** Tăng độ tương phản cho viên thuốc trượt (`#26262c`, viền `rgba(255, 255, 255, 0.16)` và bóng đổ), kích hoạt trượt tức thì khi chạm tab (Tuần này / Tháng này / Năm nay / Kỷ niệm).
+      - **Thời gian chuyển bài (Phát nhạc):** Kích hoạt trượt tức thì khi chọn thời gian (2s, 3s, 4s, 5s, 6s, 8s).
+      - **Số bài lưu tối đa (Lưu trữ & Lịch sử):** Tích hợp mới toàn diện `slidingActivePill` với Reanimated spring lướt mượt mà giữa các lựa chọn [10, 20, 30, 40, 50].
+      - **Mở rộng/thu gọn Nhật ký chuyển bài:** Tích hợp `LayoutAnimation.configureNext` với đường cong ease-in-out chuẩn iOS, các mục chi tiết giãn nở và thu cuộn theo chiều dọc mượt mà như accordion native.
+    - **Nâng cấp Button Scroll To Top:**
+      - Sửa lỗi dao động mũi tên: dùng `withRepeat` chuẩn hàm sin dao động liên tục [-6px .. 0px], mũi tên nhấp nhô nhịp nhàng khi cuộn sâu.
+      - Thay đổi icon: bổ sung icon mới `ArrowUpIcon` có cả thân/chân mũi tên đứng (`↑`, chuẩn SF Symbols / Lucide) thay cho chevron không chân trước đây.
+**Cập nhật lần cuối:** 2026-11-14 (Sửa lỗi cắt cụt header Offline, đồng bộ sliding pill toàn app và nâng cấp ScrollToTopButton)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

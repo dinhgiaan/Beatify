@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ScrollView,
   View,
@@ -7,6 +7,11 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
 import { useOffline, usePlayer } from '../../src/context';
@@ -14,10 +19,43 @@ import { formatBytes } from '../../src/services/offline/offlineStorage';
 import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
 
+const LIMIT_OPTIONS = [10, 20, 30, 40, 50] as const;
+
 export default function StorageSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { offlineTracks, totalSizeBytes, clearAllOffline } = useOffline();
   const { recentLimit, setRecentLimit, clearRecentTracks } = usePlayer();
+
+  const currentLimitIdx = LIMIT_OPTIONS.indexOf(recentLimit as (typeof LIMIT_OPTIONS)[number]);
+  const activeIndexShared = useSharedValue(currentLimitIdx >= 0 ? currentLimitIdx : 0);
+  const containerWidthShared = useSharedValue(0);
+
+  useEffect(() => {
+    const idx = LIMIT_OPTIONS.indexOf(recentLimit as (typeof LIMIT_OPTIONS)[number]);
+    if (idx >= 0) {
+      activeIndexShared.value = withSpring(idx, {
+        damping: 20,
+        stiffness: 150,
+        mass: 0.7,
+      });
+    }
+  }, [recentLimit, activeIndexShared]);
+
+  const pillAnimStyle = useAnimatedStyle(() => {
+    const totalItems = LIMIT_OPTIONS.length;
+    // Padding 4px mỗi bên (tổng 8px) của pillTrack
+    const availableWidth = Math.max(0, containerWidthShared.value - 8);
+    const itemWidth = totalItems > 0 ? availableWidth / totalItems : 0;
+    return {
+      width: itemWidth > 0 ? itemWidth : 0,
+      transform: [
+        {
+          translateX: activeIndexShared.value * itemWidth,
+        },
+      ],
+      opacity: containerWidthShared.value > 0 ? 1 : 0,
+    };
+  });
 
   const handleClearAllOffline = () => {
     triggerSelectionHaptic();
@@ -92,34 +130,53 @@ export default function StorageSettingsScreen() {
       <ListGroup>
         <View style={styles.limitBox}>
           <Text style={styles.limitLabel}>Số bài lưu tối đa</Text>
-          <View style={styles.pillRow}>
-            {([10, 20, 30, 40, 50] as const).map((limitOption) => {
-              const isActive = recentLimit === limitOption;
-              return (
-                <TouchableOpacity
-                  key={limitOption}
-                  style={[styles.pillBtn, isActive && styles.pillBtnActive]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setRecentLimit(limitOption);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
-                    {limitOption}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+              <View
+                style={styles.pillTrack}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) {
+                    containerWidthShared.value = w;
+                  }
+                }}
+              >
+                {/* Nền active di chuyển dạng trượt (Sliding Active Pill) */}
+                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+
+                {LIMIT_OPTIONS.map((limitOption) => {
+                  const isActive = recentLimit === limitOption;
+                  return (
+                    <TouchableOpacity
+                      key={limitOption}
+                      style={styles.pillBtn}
+                      onPress={() => {
+                        triggerSelectionHaptic();
+                        const idx = LIMIT_OPTIONS.indexOf(limitOption);
+                        if (idx >= 0) {
+                          activeIndexShared.value = withSpring(idx, {
+                            damping: 20,
+                            stiffness: 150,
+                            mass: 0.7,
+                          });
+                        }
+                        setRecentLimit(limitOption);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                        {limitOption}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
         </View>
 
-        <SettingRow
-          label="Xóa toàn bộ lịch sử nghe"
-          description="Làm trống danh sách bài hát vừa nghe"
-          isDanger
-          onPress={handleClearRecent}
-        />
+          <SettingRow
+            label="Xóa toàn bộ lịch sử nghe"
+            description="Làm trống danh sách bài hát vừa nghe"
+            isDanger
+            onPress={handleClearRecent}
+          />
       </ListGroup>
     </ScrollView>
   );
@@ -143,33 +200,40 @@ const styles = StyleSheet.create({
     color: tokens.colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
-  pillRow: {
-    flexDirection: 'row',
-    gap: tokens.spacing.sm,
-    marginTop: tokens.spacing.xs,
-  },
-  pillBtn: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.colors.bgElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: tokens.hairlineWidth,
-    borderColor: tokens.colors.separator,
-  },
-  pillBtnActive: {
-    backgroundColor: tokens.colors.accent,
-    borderColor: tokens.colors.accent,
-  },
-  pillBtnText: {
-    ...tokens.typography.footnote,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
-  },
-  pillBtnTextActive: {
-    color: '#000000',
-    fontWeight: '700',
-  },
-});
+    pillTrack: {
+      position: 'relative',
+      flexDirection: 'row',
+      backgroundColor: tokens.colors.bgElevated,
+      borderRadius: tokens.radius.pill,
+      padding: 4,
+      marginTop: tokens.spacing.xs,
+      borderWidth: tokens.hairlineWidth,
+      borderColor: tokens.colors.separator,
+    },
+    slidingActivePill: {
+      position: 'absolute',
+      top: 4,
+      bottom: 4,
+      left: 4,
+      backgroundColor: tokens.colors.accent,
+      borderRadius: tokens.radius.pill,
+    },
+    pillBtn: {
+      flex: 1,
+      minHeight: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: tokens.radius.pill,
+      zIndex: 1,
+    },
+    pillBtnText: {
+      ...tokens.typography.footnote,
+      fontWeight: '600',
+      color: tokens.colors.textSecondary,
+    },
+    pillBtnTextActive: {
+      color: '#000000',
+      fontWeight: '700',
+    },
+  });
 

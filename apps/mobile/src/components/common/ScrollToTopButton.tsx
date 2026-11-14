@@ -9,7 +9,7 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
-import { ChevronUpIcon } from '../icons/SvgIcons';
+import { ArrowUpIcon } from '../icons/SvgIcons';
 import { colors } from '../../theme';
 import { triggerSelectionHaptic } from '../../utils/haptics';
 import { usePlayer } from '../../context';
@@ -62,12 +62,9 @@ export function ScrollToTopButton({
       opacity.value = withTiming(1, { duration: 250 });
       scale.value = withSpring(1, { damping: 18, stiffness: 200 });
 
-      // Bắt đầu animation nhịp nhàng mũi tên nhảy lên nhảy xuống
+      // Bắt đầu animation nhịp nhàng mũi tên nhảy lên nhảy xuống liên tục (dao động sin mượt mà)
       translateY.value = withRepeat(
-        withSequence(
-          withTiming(-4, { duration: 600, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 600, easing: Easing.inOut(Easing.quad) })
-        ),
+        withTiming(-6, { duration: 650, easing: Easing.inOut(Easing.sin) }),
         -1,
         true
       );
@@ -117,7 +114,7 @@ export function ScrollToTopButton({
         accessibilityLabel="Cuộn lên đầu trang"
       >
         <Animated.View style={iconAnimStyle}>
-          <ChevronUpIcon size={20} color={colors.primary} />
+          <ArrowUpIcon size={20} color={colors.primary} />
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>

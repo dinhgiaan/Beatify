@@ -54,9 +54,9 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
 
   useEffect(() => {
     activeIndex.value = withSpring(state.index, {
-      damping: 18,
-      stiffness: 180,
-      mass: 0.65,
+      damping: 20,
+      stiffness: 150,
+      mass: 0.7,
     });
   }, [state.index, activeIndex]);
 
@@ -92,10 +92,10 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
         ]}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
-            if (w > 0) {
-              dockWidthShared.value = w;
-            }
+          if (w > 0) {
+            dockWidthShared.value = w;
           }
+        }
         }
       >
         {/* Nền active di chuyển mượt mà dạng trượt (Sliding Pill) */}
@@ -108,6 +108,11 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
 
           const onPress = () => {
             triggerSelectionHaptic();
+            activeIndex.value = withSpring(index, {
+              damping: 20,
+              stiffness: 150,
+              mass: 0.7,
+            });
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,

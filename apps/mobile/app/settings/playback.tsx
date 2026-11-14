@@ -38,9 +38,9 @@ export default function PlaybackSettingsScreen() {
     const idx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);
     if (idx >= 0) {
       activeIndexShared.value = withSpring(idx, {
-        damping: 18,
-        stiffness: 180,
-        mass: 0.65,
+        damping: 20,
+        stiffness: 150,
+        mass: 0.7,
       });
     }
   }, [transitionSettings.durationSec, activeIndexShared]);
@@ -111,63 +111,71 @@ export default function PlaybackSettingsScreen() {
             </Text>
           </View>
 
-              <View
-                style={styles.pillTrack}
-                onLayout={(e) => {
-                  const w = e.nativeEvent.layout.width;
-                  if (w > 0) {
-                    containerWidthShared.value = w;
-                  }
-                }}
-              >
-                {/* Nền active di chuyển mượt mà (Sliding Active Pill) */}
-                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+          <View
+            style={styles.pillTrack}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) {
+                containerWidthShared.value = w;
+              }
+            }}
+          >
+            {/* Nền active di chuyển mượt mà (Sliding Active Pill) */}
+            <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
 
-                {DURATIONS.map((dur) => {
-                  const isSelected = transitionSettings.durationSec === dur;
-                  return (
-                    <TouchableOpacity
-                      key={dur}
-                      disabled={!transitionSettings.enabled}
-                      style={styles.pillBtn}
-                      onPress={() => {
-                        triggerSelectionHaptic();
-                        updateTransitionSettings({ durationSec: dur });
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.pillBtnText,
-                          isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
-                        ]}
-                      >
-                        {dur}s
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {DURATIONS.map((dur) => {
+              const isSelected = transitionSettings.durationSec === dur;
+              return (
+                <TouchableOpacity
+                  key={dur}
+                  disabled={!transitionSettings.enabled}
+                  style={styles.pillBtn}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    const idx = DURATIONS.indexOf(dur);
+                    if (idx >= 0) {
+                      activeIndexShared.value = withSpring(idx, {
+                        damping: 20,
+                        stiffness: 150,
+                        mass: 0.7,
+                      });
+                    }
+                    updateTransitionSettings({ durationSec: dur });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.pillBtnText,
+                      isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
+                    ]}
+                  >
+                    {dur}s
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-          <SettingRow
-            label="Chế độ an toàn (Safe Mode)"
-            description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
-            isSwitch
-            disabled={!transitionSettings.enabled}
-            switchValue={transitionSettings.safeMode}
-            onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
-          />
+        <SettingRow
+          label="Chế độ an toàn (Safe Mode)"
+          description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
+          isSwitch
+          disabled={!transitionSettings.enabled}
+          switchValue={transitionSettings.safeMode}
+          onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
+        />
 
-          <SettingRow
-            label="Xem nhật ký chuyển bài"
-            description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
-            showChevron
-            onPress={() => {
-              triggerSelectionHaptic();
-              router.push('/settings/transition-logs');
-            }}
-          />
+        <SettingRow
+          label="Xem nhật ký chuyển bài"
+          description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
+          showChevron
+          onPress={() => {
+            triggerSelectionHaptic();
+            router.push('/settings/transition-logs');
+          }}
+        />
       </ListGroup>
     </ScrollView>
   );
@@ -201,40 +209,40 @@ const styles = StyleSheet.create({
     color: tokens.colors.textMuted,
     marginTop: 2,
   },
-    pillTrack: {
-      position: 'relative',
-      flexDirection: 'row',
-      backgroundColor: tokens.colors.bgElevated,
-      borderRadius: tokens.radius.pill,
-      padding: 4,
-      marginTop: tokens.spacing.xs,
-      borderWidth: tokens.hairlineWidth,
-      borderColor: tokens.colors.separator,
-    },
-    slidingActivePill: {
-      position: 'absolute',
-      top: 4,
-      bottom: 4,
-      left: 4,
-      backgroundColor: tokens.colors.accent,
-      borderRadius: tokens.radius.pill,
-    },
-    pillBtn: {
-      flex: 1,
-      minHeight: 36,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: tokens.radius.pill,
-      zIndex: 1,
-    },
-    pillBtnText: {
-      ...tokens.typography.footnote,
-      fontWeight: '600',
-      color: tokens.colors.textSecondary,
-    },
-    pillBtnTextActive: {
-      color: '#000000',
-      fontWeight: '700',
-    },
-  });
+  pillTrack: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: tokens.colors.bgElevated,
+    borderRadius: tokens.radius.pill,
+    padding: 4,
+    marginTop: tokens.spacing.xs,
+    borderWidth: tokens.hairlineWidth,
+    borderColor: tokens.colors.separator,
+  },
+  slidingActivePill: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    backgroundColor: tokens.colors.accent,
+    borderRadius: tokens.radius.pill,
+  },
+  pillBtn: {
+    flex: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: tokens.radius.pill,
+    zIndex: 1,
+  },
+  pillBtnText: {
+    ...tokens.typography.footnote,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+  },
+  pillBtnTextActive: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+});
 

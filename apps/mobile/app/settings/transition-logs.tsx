@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  LayoutAnimation,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -191,6 +192,7 @@ export default function TransitionLogsScreen() {
 
   const toggleExpand = (id: string) => {
     triggerSelectionHaptic();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedLogId((prev) => (prev === id ? null : id));
   };
 

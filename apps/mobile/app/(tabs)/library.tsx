@@ -329,53 +329,53 @@ export default function LibraryScreen() {
       const g = activeFilter.replace('genre_', '').toLowerCase();
       return baseTracks.filter((t) => (t.genre || '').toLowerCase() === g);
     }
-  return baseTracks;
-}, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
+    return baseTracks;
+  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
 
 
-    // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
-    const artistGroups = useMemo(() => {
-      const map = new Map<string, Track[]>();
-      for (const track of tracks) {
-        const artist = track.artist || 'Chưa rõ nghệ sĩ';
-        const existing = map.get(artist);
-        if (existing) {
-          existing.push(track);
-        } else {
-          map.set(artist, [track]);
-        }
+  // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
+  const artistGroups = useMemo(() => {
+    const map = new Map<string, Track[]>();
+    for (const track of tracks) {
+      const artist = track.artist || 'Chưa rõ nghệ sĩ';
+      const existing = map.get(artist);
+      if (existing) {
+        existing.push(track);
+      } else {
+        map.set(artist, [track]);
       }
-      return Array.from(map.entries()).map(([artist, artistTracks]) => ({
-        artist,
-        tracks: artistTracks,
-        trackCount: artistTracks.length,
-        cover: artistTracks.find((t) => t.cover)?.cover,
-      }));
+    }
+    return Array.from(map.entries()).map(([artist, artistTracks]) => ({
+      artist,
+      tracks: artistTracks,
+      trackCount: artistTracks.length,
+      cover: artistTracks.find((t) => t.cover)?.cover,
+    }));
   }, [tracks]);
 
-    // Lọc chỉ những Album thực sự
-    const realAlbums = useMemo(() => {
-      return (albums || []).filter((album) => {
-        if (!album || !album.title) return false;
-        const t = album.title.trim().toLowerCase();
-        if (
-          t === 'singles' ||
-          t === 'single' ||
-          t === 'đĩa đơn' ||
-          t === 'unknown album' ||
-          t === 'chưa rõ album'
-        ) {
-          return false;
-        }
-        const albumTracks = (tracks || []).filter((track) =>
-          track.albumId && album.id ? track.albumId === album.id : track.album === album.title
-        );
-        // Album thực thụ phải có từ 2 bài trở lên (1 bài là Single / đĩa đơn)
-        if (albumTracks.length <= 1) {
-          return false;
-        }
-        return true;
-      });
+  // Lọc chỉ những Album thực sự
+  const realAlbums = useMemo(() => {
+    return (albums || []).filter((album) => {
+      if (!album || !album.title) return false;
+      const t = album.title.trim().toLowerCase();
+      if (
+        t === 'singles' ||
+        t === 'single' ||
+        t === 'đĩa đơn' ||
+        t === 'unknown album' ||
+        t === 'chưa rõ album'
+      ) {
+        return false;
+      }
+      const albumTracks = (tracks || []).filter((track) =>
+        track.albumId && album.id ? track.albumId === album.id : track.album === album.title
+      );
+      // Album thực thụ phải có từ 2 bài trở lên (1 bài là Single / đĩa đơn)
+      if (albumTracks.length <= 1) {
+        return false;
+      }
+      return true;
+    });
   }, [albums, tracks]);
 
   const handleTrackPress = (item: Track) => {
@@ -675,19 +675,18 @@ export default function LibraryScreen() {
             })}
           </ScrollView>
 
-          {/* 3. Nút Hot Reload R2 & Chỉ báo Ngoại tuyến */}
+          {/* 3. Nút Hot Reload R2 (Đồng bộ thư viện) */}
           <View style={styles.headerToolButtonsRow}>
-            {isOffline && (
-              <View style={styles.offlineHeaderBadge}>
-                <Text style={styles.offlineHeaderBadgeText}>OFFLINE</Text>
-              </View>
-            )}
             <TouchableOpacity
-              style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
+              style={[
+                styles.hotReloadButton,
+                isSyncing && styles.hotReloadButtonSyncing,
+                isOffline && { opacity: 0.38 },
+              ]}
               onPress={handleHotReload}
               activeOpacity={0.7}
-              disabled={isSyncing}
-              accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
+              disabled={isSyncing || isOffline}
+              accessibilityLabel={isOffline ? "Ngoại tuyến - không thể đồng bộ R2" : "Đồng bộ lại từ Cloudflare R2"}
             >
               <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
                 <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
@@ -815,88 +814,88 @@ export default function LibraryScreen() {
               />
             }
             ListEmptyComponent={
-            activeFilter === 'offline' ? (
-            <View style={styles.emptyContainer}>
-              <DownloadIcon size={44} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>Chưa có bài hát tải về máy</Text>
-              <Text style={styles.emptySubText}>
-                Hãy kết nối mạng và tải các bài hát yêu thích để nghe bất cứ khi nào không có Internet.
-              </Text>
-            </View>
-          ) : tracks.length > 0 ? (
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={44} color={colors.borderLight} />
-              <Text style={styles.emptyText}>Chưa có bài hát trong mục này</Text>
-              <Text style={styles.emptySubText}>
-                Không tìm thấy bài hát nào thuộc bộ lọc "{filterOptions.find((f) => f.id === activeFilter)?.label}".
-              </Text>
-              <TouchableOpacity
-                style={styles.resetFilterButton}
-                onPress={() => {
-                  Vibration.vibrate(8);
-                  setActiveFilter('all');
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.resetFilterButtonText}>Xem tất cả bài hát</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
-              <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
-              <Text style={styles.emptySubText}>
-                Kéo xuống hoặc bấm nút Cloud trên thanh tiêu đề để đồng bộ bài hát từ Cloudflare R2.
-              </Text>
-            </View>
-          )
-          }
-        />
+              activeFilter === 'offline' ? (
+                <View style={styles.emptyContainer}>
+                  <DownloadIcon size={44} color={colors.textTertiary} />
+                  <Text style={styles.emptyText}>Chưa có bài hát tải về máy</Text>
+                  <Text style={styles.emptySubText}>
+                    Hãy kết nối mạng và tải các bài hát yêu thích để nghe bất cứ khi nào không có Internet.
+                  </Text>
+                </View>
+              ) : tracks.length > 0 ? (
+                <View style={styles.emptyContainer}>
+                  <DiscIcon size={44} color={colors.borderLight} />
+                  <Text style={styles.emptyText}>Chưa có bài hát trong mục này</Text>
+                  <Text style={styles.emptySubText}>
+                    Không tìm thấy bài hát nào thuộc bộ lọc "{filterOptions.find((f) => f.id === activeFilter)?.label}".
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.resetFilterButton}
+                    onPress={() => {
+                      Vibration.vibrate(8);
+                      setActiveFilter('all');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.resetFilterButtonText}>Xem tất cả bài hát</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <DiscIcon size={48} color={colors.borderLight} />
+                  <Text style={styles.emptyText}>Thư viện chưa có bài hát nào</Text>
+                  <Text style={styles.emptySubText}>
+                    Kéo xuống hoặc bấm nút Cloud trên thanh tiêu đề để đồng bộ bài hát từ Cloudflare R2.
+                  </Text>
+                </View>
+              )
+            }
+          />
         ) : activeSegment === 'albums' ? (
-        <FlatList
-          key="flatlist-albums"
-          data={realAlbums}
-          keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
-          renderItem={renderAlbumItem}
-          numColumns={2}
-          columnWrapperStyle={styles.albumColumnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: contentPaddingBottom },
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
+          <FlatList
+            key="flatlist-albums"
+            data={realAlbums}
+            keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
+            renderItem={renderAlbumItem}
+            numColumns={2}
+            columnWrapperStyle={styles.albumColumnWrapper}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <DiscIcon size={48} color={colors.borderLight} />
                 <Text style={styles.emptyText}>Chưa có Album nào</Text>
                 <Text style={styles.emptySubText}>
                   Kéo xuống để đồng bộ các album bài hát từ Cloudflare R2.
                 </Text>
-            </View>
-          }
-        />
+              </View>
+            }
+          />
         ) : (
-        <FlatList
-          key="flatlist-artists"
-          data={artistGroups}
-          keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
-          renderItem={renderArtistItem}
-          numColumns={2}
-          columnWrapperStyle={styles.artistColumnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: contentPaddingBottom },
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <DiscIcon size={48} color={colors.borderLight} />
+          <FlatList
+            key="flatlist-artists"
+            data={artistGroups}
+            keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
+            renderItem={renderArtistItem}
+            numColumns={2}
+            columnWrapperStyle={styles.artistColumnWrapper}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <DiscIcon size={48} color={colors.borderLight} />
                 <Text style={styles.emptyText}>Chưa có Nghệ sĩ nào</Text>
                 <Text style={styles.emptySubText}>
                   Kéo xuống để đồng bộ danh sách nghệ sĩ từ Cloudflare R2.
                 </Text>
-            </View>
-          }
-        />
-      )}
+              </View>
+            }
+          />
+        )}
       </Animated.View>
 
       {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}

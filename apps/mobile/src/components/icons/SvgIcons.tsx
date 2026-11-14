@@ -546,12 +546,27 @@ export function ChevronDownIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
-// Chevron Up Icon (Mũi tên lên cuộn về đầu trang)
+// Chevron Up Icon (Mũi tên lên cuộn về đầu trang không chân)
 export function ChevronUpIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         d="M18 15l-6-6-6 6"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// Arrow Up Icon (Mũi tên lên có cả chân mũi tên chuẩn Apple SF Symbols / Lucide)
+export function ArrowUpIcon({ size = 24, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 19V5M5 12l7-7 7 7"
         stroke={color}
         strokeWidth="2.5"
         strokeLinecap="round"
