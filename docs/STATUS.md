@@ -168,7 +168,13 @@
     - Vô hiệu hóa `triggerSelectionHaptic()` (`expo-haptics`) trên toàn hệ thống.
     - Dọn dẹp sạch toàn bộ các lệnh `Vibration.vibrate(...)` trong `PlayerContext`, `Library`, `Search`, `Playlists`, `Recent`, `Collection`, `AddToPlaylistModal`.
     - Chặn rung toàn cục ở cấp độ app root (`Vibration.vibrate = () => {}` trong `app/_layout.tsx`), giúp mọi thao tác chạm, chuyển bài, lướt tab, điều khiển âm nhạc hoàn toàn êm ái, không còn rung giật motor thiết bị.
-**Cập nhật lần cuối:** 2026-11-14 (Tắt hoàn toàn rung haptic và vibration trên toàn app)
+25. **Sửa lỗi Nút Xóa bị Media Player che khuất & Khắc phục triệt để Animation Background Active khi chuyển tab:**
+    - **Nút Xóa tại modal Lưu trữ ngoại tuyến (`OfflineDownloadsModal.tsx`):**
+      - Khi người dùng bật chế độ chọn bài (`isSelectMode`), MiniPlayer tự động ẩn để nhường toàn bộ diện tích cho thanh công cụ xóa bài (`bottomDeleteBar`), đồng thời nâng `zIndex: 99`, `elevation: 20` và tăng padding chân danh sách để nút "Xóa ... bài" luôn hiển thị rõ ràng, không bao giờ bị đè hay che khuất.
+    - **Bảo đảm Animation Background Active dạng trượt (Sliding Active Pill) khi chuyển tab (`_layout.tsx`):**
+      - **Nguyên nhân gốc:** React Navigation khi chuyển route tab tái khởi tạo TabBar, khiến `useSharedValue(state.index)` lập tức nhận index mới từ frame đầu tiên làm viên thuốc nhảy bụp đến tab mới thay vì lướt.
+      - **Giải pháp:** Lưu `lastKnownTabIndex` cấp module. Khi chuyển tab, TabBar mới luôn kế thừa tọa độ tab cũ và kích hoạt `withSpring` lướt êm ái sang tab mới. Nâng độ tương phản viền và nền xanh ngọc cho Floating Tab Bar và phân đoạn Thư viện (`segmentPillIndicator`).
+**Cập nhật lần cuối:** 2026-11-14 (Sửa che nút xóa Offline & Đảm bảo trượt liên tục TabBar pill)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
