@@ -154,4 +154,29 @@ describe('Bảo toàn Tuyệt đối Hiệu ứng Animation UI/UX Cốt lõi', (
     expect(content).toContain('animatedProgress');
     expect(content).toContain('withTiming');
   });
-});
+
+    it('11. Màn hình Hồ sơ phải có hiệu ứng nhún lò xo (SpringButton), trượt tab (slidingActivePill) và bộ chọn biểu tượng huy hiệu', () => {
+      const profilePath = path.join(rootMobileDir, 'app/settings/profile.tsx');
+      expect(fs.existsSync(profilePath)).toBe(true);
+      const content = fs.readFileSync(profilePath, 'utf8');
+
+      expect(content).toContain('SpringButton');
+      expect(content).toContain('withSpring');
+      expect(content).toContain('AVATAR_BADGES');
+      expect(content).toContain('AnimatedInput');
+      expect(content).toContain('slidingActivePill');
+      expect(content).toContain('modePillAnimStyle');
+      expect(content).toContain('tabTrackWidthShared');
+    });
+
+    it('12. Thẻ Hồ sơ tại Cài đặt phải có hiệu ứng nhún lò xo (SpringHeroCard) và thanh Level lướt mượt', () => {
+      const settingsPath = path.join(rootMobileDir, 'app/settings/index.tsx');
+      expect(fs.existsSync(settingsPath)).toBe(true);
+      const content = fs.readFileSync(settingsPath, 'utf8');
+
+      expect(content).toContain('SpringHeroCard');
+      expect(content).toContain('withSpring');
+      expect(content).toContain('animatedProgress');
+      expect(content).toContain('withTiming');
+    });
+  });

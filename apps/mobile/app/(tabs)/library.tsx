@@ -34,6 +34,7 @@ import {
 import {
   DiscIcon,
   HeartIcon,
+  CheckIcon,
   DownloadIcon,
   HeadphonesIcon,
   MusicNoteIcon,
@@ -505,11 +506,13 @@ export default function LibraryScreen() {
               {item.title}
             </Text>
             {isFav && <HeartIcon size={12} color={colors.primary} fill={colors.primary} />}
-            {isTrackOffline(item.id) && (
-              <DownloadIcon size={11} color={colors.primary} />
-            )}
           </View>
           <View style={styles.artistSubRow}>
+            {isTrackOffline(item.id) && (
+              <View style={styles.offlineCheckBadge}>
+                <CheckIcon size={9} color="#000000" />
+              </View>
+            )}
             <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
               {item.artist}
               {item.album && !['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())
@@ -1330,6 +1333,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 2,
+  },
+  offlineCheckBadge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
   },
   miniSingleBadge: {
     paddingHorizontal: 4,

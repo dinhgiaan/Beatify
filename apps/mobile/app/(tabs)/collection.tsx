@@ -48,63 +48,64 @@ function SpringCard({
   }));
 
   return (
-    <Animated.View style={animStyle}>
-      <Pressable
-        onPressIn={() => {
-          scale.value = withSpring(0.965, { damping: 16, stiffness: 280 });
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { damping: 16, stiffness: 280 });
-        }}
-        onPress={onPress}
-        style={style}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
+  <Animated.View style={animStyle}>
+    <Pressable
+      onPressIn={() => {
+        scale.value = withSpring(0.965, { damping: 16, stiffness: 280 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 16, stiffness: 280 });
+      }}
+      onPress={onPress}
+      style={style}
+    >
+      {children}
+    </Pressable>
+  </Animated.View>
   );
 }
 
-export default function CollectionScreen() {
-  const insets = useSafeAreaInsets();
-  const { contentPaddingBottom } = useTabBarMetrics();
-  const { tracks, userState } = useLibrary();
-  const { offlineTracks, totalSizeBytes } = useOffline();
+  export default function CollectionScreen() {
+    const insets = useSafeAreaInsets();
+    const { contentPaddingBottom } = useTabBarMetrics();
+    const { tracks, userState } = useLibrary();
+    const { offlineTracks, totalSizeBytes } = useOffline();
 
-  const [offlineModalVisible, setOfflineModalVisible] = useState(false);
-  const [selectedCollection, setSelectedCollection] = useState<{
-    visible: boolean;
-    title: string;
-    subtitle?: string;
-    tracks: Track[];
-    type: 'favorites';
-  }>({
-    visible: false,
-    title: '',
-    tracks: [],
-    type: 'favorites',
-  });
+      const [offlineModalVisible, setOfflineModalVisible] = useState(false);
+      const [selectedCollection, setSelectedCollection] = useState<{
+        visible: boolean;
+        title: string;
+        subtitle?: string;
+        tracks: Track[];
+        type: 'favorites';
+      }>({
+        visible: false,
+        title: '',
+        tracks: [],
+        type: 'favorites',
+      });
 
-  const tracksMap = useMemo(() => {
-    const map = new Map<string, Track>();
-    for (const t of tracks) {
-      map.set(t.id, t);
-    }
-    return map;
-  }, [tracks]);
+      const tracksMap = useMemo(() => {
+        const map = new Map<string, Track>();
+          for (const t of tracks) {
+            map.set(t.id, t);
+          }
+          return map;
+        }, [tracks]);
 
-  const favoriteTracks = useMemo(() => {
-    return userState.favoriteIds
-      .map((id) => tracksMap.get(id))
-      .filter((t): t is Track => t !== undefined);
-  }, [userState.favoriteIds, tracksMap]);
+      const favoriteTracks = useMemo(() => {
+        return userState.favoriteIds
+          .map((id) => tracksMap.get(id))
+          .filter((t): t is Track => t !== undefined);
+      }, [userState.favoriteIds, tracksMap]);
 
-  const handleOpenFavorites = () => {
-    Vibration.vibrate(10);
-    setSelectedCollection({
-      visible: true,
-      title: 'Bài hát yêu thích',
-      subtitle: `${favoriteTracks.length} bài hát đã thích`,
+      const handleOpenFavorites = () => {
+          Vibration.vibrate(10);
+          setSelectedCollection({
+            visible: true,
+            title: 'Bài hát yêu thích',
+            subtitle: `${favoriteTracks.length
+        } bài hát đã thích`,
       tracks: favoriteTracks,
       type: 'favorites',
     });

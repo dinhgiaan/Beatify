@@ -183,7 +183,7 @@ export default function ProfileScreen() {
       if (profile.avatarUri) {
         setAvatarMode('custom');
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const handlePickImage = async () => {
@@ -319,6 +319,11 @@ export default function ProfileScreen() {
               style={styles.modeTabBtn}
               onPress={() => {
                 triggerSelectionHaptic();
+                avatarModeShared.value = withSpring(0, {
+                  damping: 18,
+                  stiffness: 180,
+                  mass: 0.65,
+                });
                 setAvatarMode('badges');
               }}
             >
@@ -336,6 +341,11 @@ export default function ProfileScreen() {
               style={styles.modeTabBtn}
               onPress={() => {
                 triggerSelectionHaptic();
+                avatarModeShared.value = withSpring(1, {
+                  damping: 18,
+                  stiffness: 180,
+                  mass: 0.65,
+                });
                 setAvatarMode('custom');
               }}
             >
@@ -356,17 +366,16 @@ export default function ProfileScreen() {
             {AVATAR_BADGES.map((badge) => {
               const isSelected = avatarKey === badge.key;
               return (
-                <SpringButton
-                  key={badge.key}
-                  style={[
-                    styles.badgeItem,
-                    isSelected && styles.badgeItemSelected,
-                  ]}
-                  onPress={() => handleSelectBadge(badge.key)}
-                >
-                  <View style={[styles.badgeIconCircle, isSelected && styles.badgeIconCircleSelected]}>
-                    {badge.renderIcon(22, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
-                  </View>
+                <View key={badge.key} style={styles.badgeCol}>
+                  <SpringButton
+                    style={[
+                      styles.badgeCircleBtn,
+                      isSelected && styles.badgeCircleBtnSelected,
+                    ]}
+                    onPress={() => handleSelectBadge(badge.key)}
+                  >
+                    {badge.renderIcon(26, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
+                  </SpringButton>
                   <Text
                     style={[
                       styles.badgeItemText,
@@ -376,7 +385,7 @@ export default function ProfileScreen() {
                   >
                     {badge.label}
                   </Text>
-                </SpringButton>
+                </View>
               );
             })}
           </View>
@@ -435,8 +444,8 @@ export default function ProfileScreen() {
             <Text style={styles.saveBtnText}>{isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}</Text>
           </SpringButton>
         </View>
-      </ListGroup>
-    </ScrollView>
+      </ListGroup >
+    </ScrollView >
   );
 }
 
@@ -525,39 +534,37 @@ const styles = StyleSheet.create({
   badgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: tokens.spacing.md,
-    gap: tokens.spacing.sm,
-  },
-  badgeItem: {
-    width: '23%',
-    alignItems: 'center',
     paddingVertical: tokens.spacing.md,
-    borderRadius: tokens.radius.card,
-    backgroundColor: tokens.colors.bgElevated,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    paddingHorizontal: tokens.spacing.xs,
   },
-  badgeItemSelected: {
-    backgroundColor: 'rgba(29, 185, 84, 0.14)',
-    borderColor: tokens.colors.accent,
+  badgeCol: {
+    width: '25%',
+    alignItems: 'center',
+    paddingVertical: tokens.spacing.xs,
+    marginBottom: tokens.spacing.sm,
   },
-  badgeIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  badgeCircleBtn: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  badgeIconCircleSelected: {
+  badgeCircleBtnSelected: {
     backgroundColor: 'rgba(29, 185, 84, 0.22)',
+    borderColor: tokens.colors.accent,
+    borderWidth: 2.5,
   },
   badgeItemText: {
     ...tokens.typography.caption,
-    fontSize: 11,
+    fontSize: 11.5,
     color: tokens.colors.textMuted,
     fontWeight: '500',
+    textAlign: 'center',
   },
   badgeItemTextSelected: {
     color: tokens.colors.accent,
@@ -572,34 +579,34 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
   },
-  inputWrapper: {
-    backgroundColor: tokens.colors.bgElevated,
-    borderRadius: tokens.radius.card - 4,
-  },
-  textInputInner: {
-    ...tokens.typography.body,
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 10,
-    color: tokens.colors.textPrimary,
-  },
-  bioInput: {
-    minHeight: 70,
-    textAlignVertical: 'top',
-  },
-  saveBtn: {
-    minHeight: 46,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: tokens.spacing.xs,
-  },
-  saveBtnText: {
-    ...tokens.typography.body,
-    color: '#000000',
-    fontWeight: '700',
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-});
+    inputWrapper: {
+      backgroundColor: tokens.colors.bgElevated,
+      borderRadius: tokens.radius.card - 4,
+    },
+    textInputInner: {
+      ...tokens.typography.body,
+      paddingHorizontal: tokens.spacing.md,
+      paddingVertical: 10,
+      color: tokens.colors.textPrimary,
+    },
+    bioInput: {
+      minHeight: 70,
+      textAlignVertical: 'top',
+    },
+    saveBtn: {
+      minHeight: 46,
+      borderRadius: tokens.radius.pill,
+      backgroundColor: tokens.colors.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: tokens.spacing.xs,
+    },
+    saveBtnText: {
+      ...tokens.typography.body,
+      color: '#000000',
+      fontWeight: '700',
+    },
+    btnDisabled: {
+      opacity: 0.5,
+    },
+  });

@@ -160,7 +160,11 @@
     - **Viền sáng tương tác ô nhập liệu (AnimatedInput):** Hiệu ứng viền chuyển tiếp mượt mà khi focus/blur ô Tên và Bio.
     - **Thanh tiến độ Level lướt mượt mà:** Thanh Level tại Cài đặt trượt từ 0% tới % tiến độ bằng Reanimated `withTiming`.
     - **Khóa bằng test hồi quy:** Tăng số lượng test trong `uiRegression.test.ts` lên 12 bài test tự động. Toàn bộ monorepo đạt **290/290 tests pass 100%**.
-**Cập nhật lần cuối:** 2026-11-14 (Bổ sung toàn diện animation tương tác & bộ chọn huy hiệu phần Hồ sơ)
+23. **Chuẩn hóa Bố cục Lưới Huy hiệu Hồ sơ & Đổi Icon Check Offline Chuẩn Spotify:**
+    - **Sửa triệt để lỗi méo lưới huy hiệu Avatar (`profile.tsx`):** Chuyển sang bố cục lưới 4 cột đều đặn (4x2), mỗi huy hiệu là một nút tròn 58×58px kèm nhãn đầy đủ rõ nét bên dưới, không còn tình trạng viên nhộng co thắt méo mó hay chữ bị cắt cụt.
+    - **Trượt mượt mà tức thì Tab Phong cách Đại diện:** Kích hoạt `avatarModeShared.value = withSpring` trực tiếp tại `onPress` khi chạm, đảm bảo viên thuốc xanh lướt trượt liền mạch tức thì giữa "Huy hiệu âm nhạc" và "Ảnh cá nhân".
+    - **Icon Offline Check chuẩn Spotify (`library.tsx`, `CollectionDetailModal.tsx`):** Loại bỏ hoàn toàn icon download nằm bên phải tên bài hát. Chuyển sang huy hiệu tròn xanh ngọc kèm dấu check trắng (`offlineCheckBadge` + `CheckIcon`) đặt ngay đầu dòng thông tin nghệ sĩ, giúp tiêu đề bài hát thoáng đãng, dễ đọc 100%.
+**Cập nhật lần cuối:** 2026-11-14 (Sửa lưới Avatar Badges 4x2 & Chuyển icon download sang CheckIcon chuẩn Spotify)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

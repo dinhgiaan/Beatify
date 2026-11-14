@@ -35,7 +35,7 @@ import {
   HeartIcon,
   TrashIcon,
   ClockIcon,
-  DownloadIcon,
+  CheckIcon,
   MoreHorizontalIcon,
 } from './icons/SvgIcons';
 
@@ -137,18 +137,22 @@ export function CollectionDetailModal({
         </View>
 
         <View style={styles.trackInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Text
-              style={[styles.trackTitle, isCurrent && styles.trackTitleActive, { flexShrink: 1 }]}
-              numberOfLines={1}
-            >
-              {item.title}
-            </Text>
-            {isTrackOffline(item.id) && <DownloadIcon size={11} color={colors.primary} />}
-          </View>
-          <Text style={styles.trackArtist} numberOfLines={1}>
-            {item.artist} {item.album ? `• ${item.album}` : ''}
+          <Text
+            style={[styles.trackTitle, isCurrent && styles.trackTitleActive]}
+            numberOfLines={1}
+          >
+            {item.title}
           </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+            {isTrackOffline(item.id) && (
+              <View style={styles.offlineCheckBadge}>
+                <CheckIcon size={9} color="#000000" />
+              </View>
+            )}
+            <Text style={styles.trackArtist} numberOfLines={1}>
+              {item.artist} {item.album ? `• ${item.album}` : ''}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.trackActions}>
@@ -598,6 +602,15 @@ const styles = StyleSheet.create({
   trackTitleActive: {
     color: colors.primary,
     fontWeight: fontWeights.bold,
+  },
+  offlineCheckBadge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   trackArtist: {
     color: colors.textSecondary,

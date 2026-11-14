@@ -80,8 +80,8 @@ export default function SettingsMainScreen() {
   const [replayReport, setReplayReport] = useState<FullReplayReport | null>(null);
 
   useEffect(() => {
-    statsStorage.loadUserProfile().then(setUserProfile).catch(() => {});
-    statsStorage.getReplayReport().then(setReplayReport).catch(() => {});
+    statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+    statsStorage.getReplayReport().then(setReplayReport).catch(() => { });
   }, []);
 
   const totalPlays = replayReport?.allTime.totalPlays || 0;
@@ -134,7 +134,7 @@ export default function SettingsMainScreen() {
     >
       {/* THẺ HỒ SƠ TÓM TẮT & THANH TIẾN ĐỘ LEVEL */}
       <View style={styles.profileHeroCard}>
-        <SpringHeroCard
+          <SpringHeroCard
           style={styles.profileHeroTouch}
           onPress={() => navigateTo('/settings/profile')}
         >
@@ -169,23 +169,23 @@ export default function SettingsMainScreen() {
               </View>
             </View>
           </View>
-        </SpringHeroCard>
+      </SpringHeroCard>
 
-        {/* 2 SỐ LIỆU CHÍNH TÓM TẮT (LƯỢT NGHE & PHÚT NGHE) */}
-        <View style={styles.heroStatsRow}>
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatValue}>{totalPlays}</Text>
-            <Text style={styles.heroStatLabel}>{STATS_LABELS.PLAYS}</Text>
-          </View>
-          <View style={styles.heroStatDivider} />
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatValue}>{totalMinutes}</Text>
-            <Text style={styles.heroStatLabel}>{STATS_LABELS.MINUTES}</Text>
-          </View>
+      {/* 2 SỐ LIỆU CHÍNH TÓM TẮT (LƯỢT NGHE & PHÚT NGHE) */}
+      <View style={styles.heroStatsRow}>
+        <View style={styles.heroStatItem}>
+          <Text style={styles.heroStatValue}>{totalPlays}</Text>
+          <Text style={styles.heroStatLabel}>{STATS_LABELS.PLAYS}</Text>
+        </View>
+        <View style={styles.heroStatDivider} />
+        <View style={styles.heroStatItem}>
+          <Text style={styles.heroStatValue}>{totalMinutes}</Text>
+          <Text style={styles.heroStatLabel}>{STATS_LABELS.MINUTES}</Text>
         </View>
       </View>
+    </View>
 
-      {/* DANH SÁCH CÁC NHÓM CÀI ĐẶT GROUPED LIST (iOS SETTINGS) */}
+      {/* DANH SÁCH CÁC NHÓM CÀI ĐẶT GROUPED LIST (iOS SETTINGS) */ }
       <SectionHeader title="TÙY CHỌN ỨNG DỤNG" />
       <ListGroup>
         <SettingRow
@@ -232,11 +232,11 @@ export default function SettingsMainScreen() {
         />
       </ListGroup>
 
-      {/* FOOTER THÔNG TIN APP */}
-      <View style={styles.footerBox}>
-        <Text style={styles.footerText}>Beatify · {tracks.length} bài hát trong kho</Text>
-      </View>
-    </ScrollView>
+  {/* FOOTER THÔNG TIN APP */ }
+  <View style={styles.footerBox}>
+    <Text style={styles.footerText}>Beatify · {tracks.length} bài hát trong kho</Text>
+  </View>
+    </ScrollView >
   );
 }
 
