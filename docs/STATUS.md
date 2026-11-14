@@ -146,7 +146,11 @@
     - **Kiểm tra Rò rỉ Bộ nhớ (Memory Leak Audit):**
       - Tất cả các animation đều sử dụng Reanimated shared values thuần túy hoặc lifecycle hooks chuẩn, không để sót interval/timeout hay event listener treo ngầm.
       - Mở rộng bộ test `uiRegression.test.ts` lên 10 bài test tự động bảo vệ toàn bộ các animation mới. Toàn bộ monorepo đạt **288/288 tests pass 100%**.
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn thành nâng cấp 4 hiệu ứng animation cao cấp, khóa bằng test hồi quy và kiểm tra 0 rò rỉ bộ nhớ)
+20. **Cập nhật App Icon Chuẩn Apple iOS (Full-bleed 1024×1024):**
+    - Thay thế `icon.png` bằng thiết kế Phương án 1 (Apple Minimalist Neon) độ phân giải 1024×1024.
+    - Nền đen tuyền tràn viền 100%, xóa bỏ hoàn toàn khung bo góc nhân tạo bên trong, cho phép iOS tự động cắt bo góc Apple Squircle đồng bộ hoàn hảo với các app lớn (Twitter, Threads, Claude).
+    - Dọn dẹp sạch sẽ toàn bộ các file ảnh preview tạm.
+**Cập nhật lần cuối:** 2026-11-14 (Cập nhật App Icon mới chuẩn Full-bleed Apple iOS)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
