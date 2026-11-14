@@ -76,7 +76,13 @@
     - Tối ưu `rntpPlayerService`: tự động lưu và cập nhật ngay lập tức metadata hẹn giờ ngủ (Lock Screen Timer) khi bài hát tự chuyển sang bài mới mà không cần đợi chu kỳ đếm giây tiếp theo.
     - Xác nhận giải phóng 100% dung lượng iPhone khi xóa nhạc offline (`FileSystem.deleteAsync`).
     - Kiểm thử tự động: `pnpm typecheck` PASS 5/5 packages, `pnpm lint` 0 lỗi, `pnpm test` PASS 272/272 tests toàn monorepo.
-**Cập nhật lần cuối:** 2026-11-14 (Rà soát toàn diện và tối ưu hóa logic Mobile App)
+13. **Khắc phục 4 vấn đề nâng cao (Scroll to Top, Tab Bar Animation, Phát nhạc Offline & Chế độ Ngoại tuyến):**
+    - **Tự động tính vị trí ScrollToTopButton:** Khi Media Player xuất hiện, nút tự động nâng cao thêm 64px bằng animation Reanimated mượt mà, không bao giờ bị che khuất dưới player.
+    - **Floating Tab Bar Animation:** Chuyển đổi hoàn toàn sang Reanimated UI-thread không phụ thuộc state React, tinh chỉnh spring `{ damping: 18, stiffness: 180, mass: 0.65 }` di chuyển nhịp nhàng, êm ái cùng phản hồi xúc giác nhẹ (Haptics).
+    - **Sửa triệt để lỗi không phát được nhạc offline khi tắt/bật mạng:** Nhận diện chính xác định dạng âm thanh thực qua HEAD Content-Type và cơ chế tự phục hồi Magic Bytes (M4A/AAC `ftyp` vs MP3) tránh lỗi `kAudioFileUnsupportedFileTypeError` trên iOS AVPlayer; khôi phục trạng thái player sạch khi chuyển mạng.
+    - **Chế độ Ngoại tuyến & Thông báo Tinh tế:** Thiết kế lại `NetworkStatusBanner` dạng viên thuốc Dark Glass siêu tối giản, tự động ẩn sau 3.2s; khi mất mạng, Trang chủ tự động chỉ hiển thị các bài hát đã tải về máy; nếu chưa có bài nào tải thì hiển thị thông báo hướng dẫn thân thiện, sạch sẽ.
+    - **Nhận diện Mạng Tức Thì (Real-Time Auto Network Detection):** Tích hợp bộ dò mạng 2 tầng (Dual-Speed Heartbeat 1.5s/2.5s) kết hợp lắng nghe `AppState` khi kéo Control Center tắt/bật Wi-Fi/Cellular (0ms delay) và bộ bắt lỗi mạng toàn cục `reportNetworkError`. Ứng dụng tự động chuyển đổi giữa Online và Offline tức thì trong thời gian thực mà người dùng hoàn toàn không phải load lại thủ công bằng tay.
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất nhận diện mạng tức thì, Scroll to Top, Tab Bar, Offline Audio & Chế độ Ngoại tuyến)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

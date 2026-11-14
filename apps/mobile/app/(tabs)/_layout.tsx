@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
+import { triggerSelectionHaptic } from '../../src/utils/haptics';
 import {
   HomeIcon,
   SearchIcon,
@@ -44,22 +49,21 @@ function getTabIcon(routeName: string, color: string) {
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
-  const [dockWidth, setDockWidth] = useState(0);
-
+  const dockWidthShared = useSharedValue(0);
   const activeIndex = useSharedValue(state.index);
 
   useEffect(() => {
     activeIndex.value = withSpring(state.index, {
-      damping: 24,
-      stiffness: 240,
-      mass: 0.7,
+      damping: 18,
+      stiffness: 180,
+      mass: 0.65,
     });
   }, [state.index, activeIndex]);
 
   const pillAnimStyle = useAnimatedStyle(() => {
     const totalTabs = state.routes.length || 5;
     // Trừ 8px paddingHorizontal (4px mỗi bên) của floatingDock
-    const availableWidth = Math.max(0, dockWidth - 8);
+    const availableWidth = Math.max(0, dockWidthShared.value - 8);
     const tabWidth = availableWidth / totalTabs;
 
     return {
@@ -69,7 +73,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           translateX: activeIndex.value * tabWidth,
         },
       ],
-      opacity: dockWidth > 0 ? 1 : 0,
+      opacity: dockWidthShared.value > 0 ? 1 : 0,
     };
   });
 
@@ -88,10 +92,11 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
         ]}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
-          if (w > 0 && Math.abs(w - dockWidth) > 1) {
-            setDockWidth(w);
+            if (w > 0) {
+              dockWidthShared.value = w;
+            }
           }
-        }}
+        }
       >
         {/* Nền active di chuyển mượt mà dạng trượt (Sliding Pill) */}
         <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
@@ -102,6 +107,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           const isFocused = state.index === index;
 
           const onPress = () => {
+            triggerSelectionHaptic();
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -237,16 +243,16 @@ const styles = StyleSheet.create({
     zIndex: 2,
     backgroundColor: 'transparent',
   },
-    slidingActivePill: {
-      position: 'absolute',
-      left: 4,
-      top: 4,
-      bottom: 4,
-      height: 42,
-      backgroundColor: 'rgba(29, 185, 84, 0.16)',
-      borderColor: 'rgba(29, 185, 84, 0.45)',
-      borderWidth: 1,
-      borderRadius: radius.pill,
-      zIndex: 1,
-    },
-  });
+  slidingActivePill: {
+    position: 'absolute',
+    left: 4,
+    top: 4,
+    bottom: 4,
+    height: 42,
+    backgroundColor: 'rgba(29, 185, 84, 0.16)',
+    borderColor: 'rgba(29, 185, 84, 0.45)',
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    zIndex: 1,
+  },
+});

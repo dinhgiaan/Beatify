@@ -115,6 +115,7 @@ export default function LibraryScreen() {
     saveTrack,
     deleteTrack,
     fetchLyrics,
+    isOffline,
   } = useLibrary();
 
   const {
@@ -299,41 +300,44 @@ export default function LibraryScreen() {
     return list;
   }, [tracks, isTrackOffline]);
 
-  // Lọc danh sách bài hát theo Tag đã chọn
+  // Lọc danh sách bài hát theo Tag đã chọn và chế độ mạng (Khi ngoại tuyến: chỉ hiển thị bài đã tải về máy)
   const filteredTracks = useMemo(() => {
-    if (activeFilter === 'all') return tracks;
+    const baseTracks = isOffline ? tracks.filter((t) => isTrackOffline(t.id)) : tracks;
+
+    if (activeFilter === 'all') return baseTracks;
     if (activeFilter === 'favorites') {
-      return tracks.filter((t) => userState.favoriteIds.includes(t.id));
+      return baseTracks.filter((t) => userState.favoriteIds.includes(t.id));
     }
     if (activeFilter === 'top_played') {
-      if (topTrackIds.length === 0) return tracks;
+      if (topTrackIds.length === 0) return baseTracks;
       const rankMap = new Map<string, number>();
       topTrackIds.forEach((id, idx) => rankMap.set(id, idx));
-      const listened = tracks.filter((t) => rankMap.has(t.id));
+      const listened = baseTracks.filter((t) => rankMap.has(t.id));
       listened.sort((a, b) => (rankMap.get(a.id) ?? 9999) - (rankMap.get(b.id) ?? 9999));
-      const rest = tracks.filter((t) => !rankMap.has(t.id));
+      const rest = baseTracks.filter((t) => !rankMap.has(t.id));
       return [...listened, ...rest];
     }
     if (activeFilter === 'offline') {
-      return tracks.filter((t) => isTrackOffline(t.id));
+      return baseTracks.filter((t) => isTrackOffline(t.id));
     }
     if (activeFilter === 'singles') {
-      return tracks.filter(
+      return baseTracks.filter(
         (t) => t.album && ['singles', 'single', 'đĩa đơn'].includes(t.album.trim().toLowerCase())
       );
     }
     if (activeFilter.startsWith('genre_')) {
       const g = activeFilter.replace('genre_', '').toLowerCase();
-      return tracks.filter((t) => (t.genre || '').toLowerCase() === g);
+      return baseTracks.filter((t) => (t.genre || '').toLowerCase() === g);
     }
-    return tracks;
-  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
+  return baseTracks;
+}, [tracks, isOffline, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
 
 
-  // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
-  const artistGroups = useMemo(() => {
-    const map = new Map<string, Track[]>();
-    for (const track of tracks) {
+// Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists' (Tự động lọc bài offline khi không có mạng)
+const artistGroups = useMemo(() => {
+  const sourceTracks = isOffline ? tracks.filter((t) => isTrackOffline(t.id)) : tracks;
+  const map = new Map<string, Track[]>();
+    for (const track of sourceTracks) {
       const artist = track.artist || 'Chưa rõ nghệ sĩ';
       const existing = map.get(artist);
       if (existing) {
@@ -348,466 +352,480 @@ export default function LibraryScreen() {
       trackCount: artistTracks.length,
       cover: artistTracks.find((t) => t.cover)?.cover,
     }));
-  }, [tracks]);
+  }, [tracks, isOffline, isTrackOffline]);
 
-  // Lọc chỉ những Album thực sự (loại bỏ Singles / Single / Đĩa đơn hoặc album chỉ có 1 bài đơn lẻ)
-  const realAlbums = useMemo(() => {
-    return (albums || []).filter((album) => {
-      if (!album || !album.title) return false;
-      const t = album.title.trim().toLowerCase();
-      if (
-        t === 'singles' ||
-        t === 'single' ||
-        t === 'đĩa đơn' ||
-        t === 'unknown album' ||
-        t === 'chưa rõ album'
-      ) {
-        return false;
-      }
-      const albumTracks = (tracks || []).filter((track) =>
-        track.albumId && album.id ? track.albumId === album.id : track.album === album.title
-      );
+// Lọc chỉ những Album thực sự (Tự động lọc bài offline khi không có mạng)
+const realAlbums = useMemo(() => {
+  const sourceTracks = isOffline ? tracks.filter((t) => isTrackOffline(t.id)) : tracks;
+  return (albums || []).filter((album) => {
+    if (!album || !album.title) return false;
+    const t = album.title.trim().toLowerCase();
+    if (
+      t === 'singles' ||
+      t === 'single' ||
+      t === 'đĩa đơn' ||
+      t === 'unknown album' ||
+      t === 'chưa rõ album'
+    ) {
+      return false;
+    }
+      const albumTracks = (sourceTracks || []).filter((track) =>
+      track.albumId && album.id ? track.albumId === album.id : track.album === album.title
+    );
       // Album thực thụ phải có từ 2 bài trở lên (1 bài là Single / đĩa đơn)
       if (albumTracks.length <= 1) {
         return false;
       }
       return true;
     });
-  }, [albums, tracks]);
+}, [albums, tracks, isOffline, isTrackOffline]);
 
-  const handleTrackPress = (item: Track) => {
-    if (currentTrack?.id === item.id) {
-      togglePlay();
-    } else {
-      const idx = filteredTracks.findIndex((t) => t.id === item.id);
-      playQueue(filteredTracks, idx >= 0 ? idx : 0);
-    }
-  };
+const handleTrackPress = (item: Track) => {
+  if (currentTrack?.id === item.id) {
+    togglePlay();
+  } else {
+    const idx = filteredTracks.findIndex((t) => t.id === item.id);
+    playQueue(filteredTracks, idx >= 0 ? idx : 0);
+  }
+};
 
-  const handleOpenMenu = (e: { stopPropagation?: () => void }, item: Track) => {
-    e.stopPropagation?.();
-    setSelectedTrackForMenu(item);
-    setActionSheetVisible(true);
-  };
+const handleOpenMenu = (e: { stopPropagation?: () => void }, item: Track) => {
+  e.stopPropagation?.();
+  setSelectedTrackForMenu(item);
+  setActionSheetVisible(true);
+};
 
-  const handleMenuFavorite = () => {
-    if (selectedTrackForMenu) {
-      toggleFavorite(selectedTrackForMenu.id);
-      setActionSheetVisible(false);
-    }
-  };
-
-  const handleMenuEdit = () => {
-    if (selectedTrackForMenu) {
-      const trackToEdit = selectedTrackForMenu;
-      setActionSheetVisible(false);
-      setEditingTrack(trackToEdit);
-      setEditModalVisible(true);
-    }
-  };
-
-  const handleOpenAddToPlaylist = () => {
+const handleMenuFavorite = () => {
+  if (selectedTrackForMenu) {
+    toggleFavorite(selectedTrackForMenu.id);
     setActionSheetVisible(false);
-    setAddToPlaylistModalVisible(true);
-  };
+  }
+};
 
-  const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
-    await saveTrack(trackId, updates);
-  };
+const handleMenuEdit = () => {
+  if (selectedTrackForMenu) {
+    const trackToEdit = selectedTrackForMenu;
+    setActionSheetVisible(false);
+    setEditingTrack(trackToEdit);
+    setEditModalVisible(true);
+  }
+};
 
-  const handleDeleteFromModal = async (trackId: string) => {
-    await deleteTrack(trackId, handleTrackDeleted);
-  };
+const handleOpenAddToPlaylist = () => {
+  setActionSheetVisible(false);
+  setAddToPlaylistModalVisible(true);
+};
 
-  const handleShufflePlayAll = () => {
-    if (filteredTracks.length === 0) return;
-    Vibration.vibrate(15);
-    const shuffled = smartShuffle(filteredTracks);
-    if (activeFilter === 'all') {
-      setTracks(shuffled);
-    }
-    setIsSmartShuffle(true);
-    playQueue(shuffled, 0);
-  };
+const handleSaveTrack = async (trackId: string, updates: UpdateTrack) => {
+  await saveTrack(trackId, updates);
+};
 
-  const handlePlayAll = () => {
-    if (filteredTracks.length === 0) return;
-    Vibration.vibrate(15);
-    setIsSmartShuffle(false);
-    playQueue(filteredTracks, 0);
-  };
+const handleDeleteFromModal = async (trackId: string) => {
+  await deleteTrack(trackId, handleTrackDeleted);
+};
 
-  // Render mục Bài hát
-  const renderTrackItem = ({ item }: { item: Track }) => {
-    const isCurrent = currentTrack?.id === item.id;
-    const isFav = userState.favoriteIds.includes(item.id);
+const handleShufflePlayAll = () => {
+  if (filteredTracks.length === 0) return;
+  Vibration.vibrate(15);
+  const shuffled = smartShuffle(filteredTracks);
+  if (activeFilter === 'all') {
+    setTracks(shuffled);
+  }
+  setIsSmartShuffle(true);
+  playQueue(shuffled, 0);
+};
 
-    return (
-      <TouchableOpacity
-        style={[styles.trackItem, isCurrent && styles.trackItemActive]}
-        onPress={() => handleTrackPress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.coverWrapper}>
-          {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.coverPlaceholder}>
-              <DiscIcon size={20} color={colors.borderLight} />
-            </View>
-          )}
-          {isCurrent && (
-            <View style={styles.playingOverlay}>
-              <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
-            </View>
-          )}
-        </View>
+const handlePlayAll = () => {
+  if (filteredTracks.length === 0) return;
+  Vibration.vibrate(15);
+  setIsSmartShuffle(false);
+  playQueue(filteredTracks, 0);
+};
 
-        <View style={styles.infoWrapper}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[styles.titleText, isCurrent && styles.titleActive]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {item.title}
-            </Text>
-            {isFav && <HeartIcon size={12} color={colors.primary} fill={colors.primary} />}
-            {isTrackOffline(item.id) && (
-              <DownloadIcon size={11} color={colors.primary} />
-            )}
-          </View>
-          <View style={styles.artistSubRow}>
-            <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
-              {item.artist}
-              {item.album && !['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())
-                ? ` • ${item.album}`
-                : ''}
-            </Text>
-            {Boolean(item.album && ['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())) && (
-              <View style={styles.miniSingleBadge}>
-                <Text style={styles.miniSingleBadgeText}>Single</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Thời lượng bài hát + Nút ba chấm (...) mở menu */}
-        <View style={styles.rightActionCol}>
-          {item.duration > 0 && (
-            <Text style={styles.trackDurationText}>{formatTime(item.duration)}</Text>
-          )}
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={(e) => handleOpenMenu(e, item)}
-            activeOpacity={0.6}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="button"
-            accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
-          >
-            <MoreHorizontalIcon size={18} color={colors.textTertiary} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // Render mục Album
-  const renderAlbumItem = ({ item }: { item: (typeof albums)[0] }) => {
-    if (!item) return null;
-    const albumTitle = item.title || 'Chưa rõ Album';
-    const albumArtist = item.artist || 'Chưa rõ nghệ sĩ';
-    const albumTracks = (tracks || []).filter((t) =>
-      t.albumId && item.id ? t.albumId === item.id : t.album === albumTitle
-    );
-    return (
-      <TouchableOpacity
-        style={styles.albumItem}
-        activeOpacity={0.7}
-        onPress={() => {
-          Vibration.vibrate(10);
-          setSelectedCollection({
-            visible: true,
-            title: albumTitle,
-            subtitle: `${albumArtist} • ${albumTracks.length} bài hát`,
-            coverUrl: item.cover,
-            tracks: albumTracks,
-            type: 'album',
-          });
-        }}
-      >
-        <View style={styles.albumCoverWrapper}>
-          {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.coverPlaceholder}>
-              <DiscIcon size={32} color={colors.borderLight} />
-            </View>
-          )}
-        </View>
-        <Text style={styles.albumTitleText} numberOfLines={1}>
-          {albumTitle}
-        </Text>
-        <Text style={styles.albumSubtitleText} numberOfLines={1}>
-          {albumArtist} • {albumTracks.length} bài
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  // Render mục Nghệ sĩ dạng thẻ nghệ thuật Grid 2 cột (Modern Artist Card)
-  const renderArtistItem = ({ item }: { item: (typeof artistGroups)[0] }) => {
-    return (
-      <TouchableOpacity
-        style={styles.artistCard}
-        activeOpacity={0.75}
-        onPress={() => {
-          Vibration.vibrate(10);
-          setSelectedCollection({
-            visible: true,
-            title: item.artist,
-            subtitle: `${item.trackCount} tác phẩm trong thư viện`,
-            coverUrl: item.cover,
-            tracks: item.tracks,
-            type: 'artist',
-          });
-        }}
-      >
-        <View style={styles.artistAvatarGlowRing}>
-          {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.artistCardAvatar} resizeMode="cover" />
-          ) : (
-            <View style={styles.artistCardPlaceholder}>
-              <DiscIcon size={36} color={colors.borderLight} />
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.artistCardName} numberOfLines={1}>
-          {item.artist}
-        </Text>
-
-        <View style={styles.artistTrackBadge}>
-          <Text style={styles.artistTrackBadgeText}>
-            {item.trackCount} BÀI HÁT
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+// Render mục Bài hát
+const renderTrackItem = ({ item }: { item: Track }) => {
+  const isCurrent = currentTrack?.id === item.id;
+  const isFav = userState.favoriteIds.includes(item.id);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Trang chủ: Button Profile + Dải Filter Tags ngang hàng + Button Hot Reload R2 */}
-      <View style={styles.header}>
-        <View style={styles.topHeaderRow}>
-          {/* 1. Button Profile tròn góc trái */}
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => {
-              triggerSelectionHaptic();
-              router.push('/settings');
-            }}
-            activeOpacity={0.75}
-            accessibilityLabel="Mở Cài đặt và Hồ sơ người dùng"
-          >
-            <View style={styles.profileAvatarWrapper}>
-              {renderUserAvatar(userProfile, 17)}
-            </View>
-          </TouchableOpacity>
-
-          {/* 2. Dải Filter Tags ngang hàng (Tất cả, Yêu thích, Nghe nhiều nhất...) */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterPillsScroll}
-            style={styles.filterScrollView}
-          >
-            {/* Lớp nền viên thuốc động lướt mượt mà giữa các filter tags */}
-            {hasIndicatorLayout && (
-              <Animated.View
-                style={[
-                  styles.filterPillActiveIndicator,
-                  {
-                    left: pillIndicatorLeft,
-                    width: pillIndicatorWidth,
-                  },
-                ]}
-                pointerEvents="none"
-              />
-            )}
-
-            {filterOptions.map((filter) => {
-              const isSelected = activeFilter === filter.id;
-              return (
-                <TouchableOpacity
-                  key={filter.id}
-                  onLayout={(e) => {
-                    const { x, width } = e.nativeEvent.layout;
-                    pillLayouts.current[filter.id] = { x, width };
-                    if (filter.id === activeFilter) {
-                      updatePillIndicator(filter.id, hasIndicatorLayout);
-                    }
-                  }}
-                  style={[
-                    styles.filterPill,
-                    isSelected ? styles.filterPillSelected : styles.filterPillUnselected,
-                  ]}
-                  onPress={() => {
-                    Vibration.vibrate(8);
-                    setActiveFilter(filter.id);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.filterPillText,
-                      isSelected && styles.filterPillTextActive,
-                    ]}
-                  >
-                    {filter.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* 3. Nút Hot Reload R2 */}
-          <View style={styles.headerToolButtonsRow}>
-            <TouchableOpacity
-              style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
-              onPress={handleHotReload}
-              activeOpacity={0.7}
-              disabled={isSyncing}
-              accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
-            >
-              <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
-                <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
-        {filteredTracks.length > 0 && (
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              style={styles.shufflePlayButton}
-              onPress={handleShufflePlayAll}
-              activeOpacity={0.8}
-            >
-              <ShuffleIcon size={17} color="#000000" />
-              <Text style={styles.shufflePlayButtonText}>Phát ngẫu nhiên</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.playAllButton}
-              onPress={handlePlayAll}
-              activeOpacity={0.7}
-            >
-              <PlayIcon size={15} color={colors.textPrimary} />
-              <Text style={styles.playAllButtonText}>Phát tất cả</Text>
-            </TouchableOpacity>
+    <TouchableOpacity
+      style={[styles.trackItem, isCurrent && styles.trackItemActive]}
+      onPress={() => handleTrackPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.coverWrapper}>
+        {item.cover ? (
+          <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <DiscIcon size={20} color={colors.borderLight} />
           </View>
         )}
+        {isCurrent && (
+          <View style={styles.playingOverlay}>
+            <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
+          </View>
+        )}
+      </View>
 
-        {/* Thanh chọn phân đoạn Segmented Control với hiệu ứng trượt mượt mà (Smooth Sliding Active Pill) */}
-        <View
-          style={styles.segmentContainer}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0) {
-              setSegmentWidth((w - 6) / 3);
-            }
-          }}
+      <View style={styles.infoWrapper}>
+        <View style={styles.titleRow}>
+          <Text
+            style={[styles.titleText, isCurrent && styles.titleActive]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.title}
+          </Text>
+          {isFav && <HeartIcon size={12} color={colors.primary} fill={colors.primary} />}
+          {isTrackOffline(item.id) && (
+            <DownloadIcon size={11} color={colors.primary} />
+          )}
+        </View>
+        <View style={styles.artistSubRow}>
+          <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
+            {item.artist}
+            {item.album && !['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())
+              ? ` • ${item.album}`
+              : ''}
+          </Text>
+          {Boolean(item.album && ['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())) && (
+            <View style={styles.miniSingleBadge}>
+              <Text style={styles.miniSingleBadgeText}>Single</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Thời lượng bài hát + Nút ba chấm (...) mở menu */}
+      <View style={styles.rightActionCol}>
+        {item.duration > 0 && (
+          <Text style={styles.trackDurationText}>{formatTime(item.duration)}</Text>
+        )}
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={(e) => handleOpenMenu(e, item)}
+          activeOpacity={0.6}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
         >
-          {segmentWidth > 0 && (
+          <MoreHorizontalIcon size={18} color={colors.textTertiary} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// Render mục Album
+const renderAlbumItem = ({ item }: { item: (typeof albums)[0] }) => {
+  if (!item) return null;
+  const albumTitle = item.title || 'Chưa rõ Album';
+  const albumArtist = item.artist || 'Chưa rõ nghệ sĩ';
+  const albumTracks = (tracks || []).filter((t) =>
+    t.albumId && item.id ? t.albumId === item.id : t.album === albumTitle
+  );
+  return (
+    <TouchableOpacity
+      style={styles.albumItem}
+      activeOpacity={0.7}
+      onPress={() => {
+        Vibration.vibrate(10);
+        setSelectedCollection({
+          visible: true,
+          title: albumTitle,
+          subtitle: `${albumArtist} • ${albumTracks.length} bài hát`,
+          coverUrl: item.cover,
+          tracks: albumTracks,
+          type: 'album',
+        });
+      }}
+    >
+      <View style={styles.albumCoverWrapper}>
+        {item.cover ? (
+          <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <DiscIcon size={32} color={colors.borderLight} />
+          </View>
+        )}
+      </View>
+      <Text style={styles.albumTitleText} numberOfLines={1}>
+        {albumTitle}
+      </Text>
+      <Text style={styles.albumSubtitleText} numberOfLines={1}>
+        {albumArtist} • {albumTracks.length} bài
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// Render mục Nghệ sĩ dạng thẻ nghệ thuật Grid 2 cột (Modern Artist Card)
+const renderArtistItem = ({ item }: { item: (typeof artistGroups)[0] }) => {
+  return (
+    <TouchableOpacity
+      style={styles.artistCard}
+      activeOpacity={0.75}
+      onPress={() => {
+        Vibration.vibrate(10);
+        setSelectedCollection({
+          visible: true,
+          title: item.artist,
+          subtitle: `${item.trackCount} tác phẩm trong thư viện`,
+          coverUrl: item.cover,
+          tracks: item.tracks,
+          type: 'artist',
+        });
+      }}
+    >
+      <View style={styles.artistAvatarGlowRing}>
+        {item.cover ? (
+          <Image source={{ uri: item.cover }} style={styles.artistCardAvatar} resizeMode="cover" />
+        ) : (
+          <View style={styles.artistCardPlaceholder}>
+            <DiscIcon size={36} color={colors.borderLight} />
+          </View>
+        )}
+      </View>
+
+      <Text style={styles.artistCardName} numberOfLines={1}>
+        {item.artist}
+      </Text>
+
+      <View style={styles.artistTrackBadge}>
+        <Text style={styles.artistTrackBadgeText}>
+          {item.trackCount} BÀI HÁT
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+return (
+  <View style={[styles.container, { paddingTop: insets.top }]}>
+    {/* Header Trang chủ: Button Profile + Dải Filter Tags ngang hàng + Button Hot Reload R2 */}
+    <View style={styles.header}>
+      <View style={styles.topHeaderRow}>
+        {/* 1. Button Profile tròn góc trái */}
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => {
+            triggerSelectionHaptic();
+            router.push('/settings');
+          }}
+          activeOpacity={0.75}
+          accessibilityLabel="Mở Cài đặt và Hồ sơ người dùng"
+        >
+          <View style={styles.profileAvatarWrapper}>
+            {renderUserAvatar(userProfile, 17)}
+          </View>
+        </TouchableOpacity>
+
+        {/* 2. Dải Filter Tags ngang hàng (Tất cả, Yêu thích, Nghe nhiều nhất...) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterPillsScroll}
+          style={styles.filterScrollView}
+        >
+          {/* Lớp nền viên thuốc động lướt mượt mà giữa các filter tags */}
+          {hasIndicatorLayout && (
             <Animated.View
               style={[
-                styles.segmentPillIndicator,
+                styles.filterPillActiveIndicator,
                 {
-                  width: segmentWidth,
-                  transform: [{ translateX: segmentSlideAnim }],
+                  left: pillIndicatorLeft,
+                  width: pillIndicatorWidth,
                 },
               ]}
+              pointerEvents="none"
             />
           )}
 
-          <TouchableOpacity
-            style={styles.segmentButton}
-            onPress={() => setActiveSegment('songs')}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'songs' && styles.segmentTextActive,
-              ]}
-            >
-              Bài hát
-            </Text>
-          </TouchableOpacity>
+          {filterOptions.map((filter) => {
+            const isSelected = activeFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                onLayout={(e) => {
+                  const { x, width } = e.nativeEvent.layout;
+                  pillLayouts.current[filter.id] = { x, width };
+                  if (filter.id === activeFilter) {
+                    updatePillIndicator(filter.id, hasIndicatorLayout);
+                  }
+                }}
+                style={[
+                  styles.filterPill,
+                  isSelected ? styles.filterPillSelected : styles.filterPillUnselected,
+                ]}
+                onPress={() => {
+                  Vibration.vibrate(8);
+                  setActiveFilter(filter.id);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    isSelected && styles.filterPillTextActive,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
+        {/* 3. Nút Hot Reload R2 & Chỉ báo Ngoại tuyến */}
+        <View style={styles.headerToolButtonsRow}>
+          {isOffline && (
+            <View style={styles.offlineHeaderBadge}>
+              <Text style={styles.offlineHeaderBadgeText}>OFFLINE</Text>
+            </View>
+          )}
           <TouchableOpacity
-            style={styles.segmentButton}
-            onPress={() => setActiveSegment('albums')}
+            style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
+            onPress={handleHotReload}
             activeOpacity={0.7}
+            disabled={isSyncing}
+            accessibilityLabel="Đồng bộ lại từ Cloudflare R2"
           >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'albums' && styles.segmentTextActive,
-              ]}
-            >
-              Album ({realAlbums.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.segmentButton}
-            onPress={() => setActiveSegment('artists')}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'artists' && styles.segmentTextActive,
-              ]}
-            >
-              Nghệ sĩ ({artistGroups.length})
-            </Text>
+            <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
+              <CloudSyncIcon size={17} color={isSyncing ? colors.primary : colors.textPrimary} />
+            </Animated.View>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Nội dung danh sách theo phân đoạn đã chọn (chuyển cảnh fade mượt mà) */}
-      < Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
-        {activeSegment === 'songs' ? (
-          <FlatList
-            ref={songsListRef}
-            key="flatlist-songs"
-            data={filteredTracks}
-            keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
-            renderItem={renderTrackItem}
-            onScroll={(e) => {
-              const y = e.nativeEvent.contentOffset.y;
-              setShowScrollTop(y > 350);
-            }}
-            scrollEventThrottle={16}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: contentPaddingBottom },
+      {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
+      {filteredTracks.length > 0 && (
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={styles.shufflePlayButton}
+            onPress={handleShufflePlayAll}
+            activeOpacity={0.8}
+          >
+            <ShuffleIcon size={17} color="#000000" />
+            <Text style={styles.shufflePlayButtonText}>Phát ngẫu nhiên</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.playAllButton}
+            onPress={handlePlayAll}
+            activeOpacity={0.7}
+          >
+            <PlayIcon size={15} color={colors.textPrimary} />
+            <Text style={styles.playAllButtonText}>Phát tất cả</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Thanh chọn phân đoạn Segmented Control với hiệu ứng trượt mượt mà (Smooth Sliding Active Pill) */}
+      <View
+        style={styles.segmentContainer}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0) {
+            setSegmentWidth((w - 6) / 3);
+          }
+        }}
+      >
+        {segmentWidth > 0 && (
+          <Animated.View
+            style={[
+              styles.segmentPillIndicator,
+              {
+                width: segmentWidth,
+                transform: [{ translateX: segmentSlideAnim }],
+              },
             ]}
-            refreshControl={
-              <RefreshControl
-                refreshing={isSyncing}
-                onRefresh={() => syncLibrary({ silent: false, force: true })}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            ListEmptyComponent={
-              tracks.length > 0 ? (
+          />
+        )}
+
+        <TouchableOpacity
+          style={styles.segmentButton}
+          onPress={() => setActiveSegment('songs')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              activeSegment === 'songs' && styles.segmentTextActive,
+            ]}
+          >
+            Bài hát
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.segmentButton}
+          onPress={() => setActiveSegment('albums')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              activeSegment === 'albums' && styles.segmentTextActive,
+            ]}
+          >
+            Album ({realAlbums.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.segmentButton}
+          onPress={() => setActiveSegment('artists')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              activeSegment === 'artists' && styles.segmentTextActive,
+            ]}
+          >
+            Nghệ sĩ ({artistGroups.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+
+    {/* Nội dung danh sách theo phân đoạn đã chọn (chuyển cảnh fade mượt mà) */}
+    < Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
+      {activeSegment === 'songs' ? (
+        <FlatList
+          ref={songsListRef}
+          key="flatlist-songs"
+          data={filteredTracks}
+          keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
+          renderItem={renderTrackItem}
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            setShowScrollTop(y > 350);
+          }}
+          scrollEventThrottle={16}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isSyncing}
+              onRefresh={() => syncLibrary({ silent: false, force: true })}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+              isOffline ? (
+                <View style={styles.emptyContainer}>
+                  <DownloadIcon size={44} color={colors.textTertiary} />
+                  <Text style={styles.emptyText}>Chưa có bài hát tải về máy</Text>
+                  <Text style={styles.emptySubText}>
+                    Bạn đang ở chế độ ngoại tuyến. Hãy kết nối mạng và tải các bài hát yêu thích để nghe bất cứ khi nào không có Internet.
+                  </Text>
+                </View>
+              ) : tracks.length > 0 ? (
                 <View style={styles.emptyContainer}>
                   <DiscIcon size={44} color={colors.borderLight} />
                   <Text style={styles.emptyText}>Chưa có bài hát trong mục này</Text>
@@ -835,134 +853,148 @@ export default function LibraryScreen() {
                 </View>
               )
             }
-          />
-        ) : activeSegment === 'albums' ? (
-          <FlatList
-            key="flatlist-albums"
-            data={realAlbums}
-            keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
-            renderItem={renderAlbumItem}
-            numColumns={2}
-            columnWrapperStyle={styles.albumColumnWrapper}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: contentPaddingBottom },
-            ]}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <DiscIcon size={48} color={colors.borderLight} />
-                <Text style={styles.emptyText}>Chưa có Album nào</Text>
-              </View>
-            }
-          />
-        ) : (
-          <FlatList
-            key="flatlist-artists"
-            data={artistGroups}
-            keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
-            renderItem={renderArtistItem}
-            numColumns={2}
-            columnWrapperStyle={styles.artistColumnWrapper}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: contentPaddingBottom },
-            ]}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <DiscIcon size={48} color={colors.borderLight} />
-                <Text style={styles.emptyText}>Chưa có Nghệ sĩ nào</Text>
-              </View>
-            }
-          />
-        )}
-      </Animated.View>
-
-      {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}
-      <TrackActionSheet
-        visible={actionSheetVisible}
-        onClose={() => setActionSheetVisible(false)}
-        track={selectedTrackForMenu}
-        coverUrl={selectedTrackForMenu?.cover || null}
-        isFavorite={selectedTrackForMenu ? userState.favoriteIds.includes(selectedTrackForMenu.id) : false}
-        playlistNames={
-          selectedTrackForMenu
-            ? userState.playlists
-              .filter((pl) => pl.trackIds.includes(selectedTrackForMenu.id))
-              .map((pl) => pl.name)
-            : undefined
-        }
-        downloadStatus={
-          selectedTrackForMenu
-            ? isDownloading[selectedTrackForMenu.id]
-              ? 'downloading'
-              : isTrackOffline(selectedTrackForMenu.id)
-                ? 'downloaded'
-                : 'idle'
-            : 'idle'
-        }
-        onPlayNext={(t) => {
-          if (t) playNext(t);
-        }}
-        onToggleFavorite={() => {
-          handleMenuFavorite();
-        }}
-        onAddToPlaylist={() => {
-          handleOpenAddToPlaylist();
-        }}
-        onDownloadPress={async (t, status) => {
-          if (status === 'downloaded') {
-            await deleteOfflineTrack(t.id);
-          } else if (status === 'idle' || status === 'error') {
-            await downloadTrack(t);
+        />
+      ) : activeSegment === 'albums' ? (
+        <FlatList
+          key="flatlist-albums"
+          data={realAlbums}
+          keyExtractor={(item, index) => (item?.id ? `album-${item.id}` : `album-${index}`)}
+          renderItem={renderAlbumItem}
+          numColumns={2}
+          columnWrapperStyle={styles.albumColumnWrapper}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <DiscIcon size={48} color={colors.borderLight} />
+              <Text style={styles.emptyText}>
+                {isOffline ? 'Chưa có Album tải về máy' : 'Chưa có Album nào'}
+              </Text>
+              {isOffline && (
+                <Text style={styles.emptySubText}>
+                  Khi kết nối mạng, hãy tải các bài hát trong Album để nghe ngoại tuyến.
+                </Text>
+              )}
+            </View>
           }
-        }}
-        onEditInfo={() => {
-          handleMenuEdit();
-        }}
-        onDeleteFromLibrary={async (t) => {
-          await deleteTrack(t.id, handleTrackDeleted);
-        }}
-      />
+        />
+      ) : (
+        <FlatList
+          key="flatlist-artists"
+          data={artistGroups}
+          keyExtractor={(item, index) => (item?.artist ? `artist-${item.artist}` : `artist-${index}`)}
+          renderItem={renderArtistItem}
+          numColumns={2}
+          columnWrapperStyle={styles.artistColumnWrapper}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <DiscIcon size={48} color={colors.borderLight} />
+              <Text style={styles.emptyText}>
+                {isOffline ? 'Chưa có Nghệ sĩ tải về máy' : 'Chưa có Nghệ sĩ nào'}
+              </Text>
+              {isOffline && (
+                <Text style={styles.emptySubText}>
+                  Khi kết nối mạng, hãy tải các bài hát của Nghệ sĩ để nghe ngoại tuyến.
+                </Text>
+              )}
+            </View>
+          }
+        />
+      )}
+    </Animated.View>
 
-      {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */}
-      <EditTrackModal
-        visible={editModalVisible}
-        track={editingTrack}
-        onClose={() => setEditModalVisible(false)}
-        onSave={handleSaveTrack}
-        onDelete={handleDeleteFromModal}
-        onFetchLyrics={fetchLyrics}
-      />
+    {/* Action Sheet Menu bài hát phong cách tối giản Apple / Hip-hop */}
+    <TrackActionSheet
+      visible={actionSheetVisible}
+      onClose={() => setActionSheetVisible(false)}
+      track={selectedTrackForMenu}
+      coverUrl={selectedTrackForMenu?.cover || null}
+      isFavorite={selectedTrackForMenu ? userState.favoriteIds.includes(selectedTrackForMenu.id) : false}
+      playlistNames={
+        selectedTrackForMenu
+          ? userState.playlists
+            .filter((pl) => pl.trackIds.includes(selectedTrackForMenu.id))
+            .map((pl) => pl.name)
+          : undefined
+      }
+      downloadStatus={
+        selectedTrackForMenu
+          ? isDownloading[selectedTrackForMenu.id]
+            ? 'downloading'
+            : isTrackOffline(selectedTrackForMenu.id)
+              ? 'downloaded'
+              : 'idle'
+          : 'idle'
+      }
+      onPlayNext={(t) => {
+        if (t) playNext(t);
+      }}
+      onToggleFavorite={() => {
+        handleMenuFavorite();
+      }}
+      onAddToPlaylist={() => {
+        handleOpenAddToPlaylist();
+      }}
+      onDownloadPress={async (t, status) => {
+        if (status === 'downloaded') {
+          await deleteOfflineTrack(t.id);
+        } else if (status === 'idle' || status === 'error') {
+          await downloadTrack(t);
+        }
+      }}
+      onEditInfo={() => {
+        handleMenuEdit();
+      }}
+      onDeleteFromLibrary={async (t) => {
+        await deleteTrack(t.id, handleTrackDeleted);
+      }}
+    />
 
-      {/* Modal Chi tiết Album / Nghệ sĩ */}
-      <CollectionDetailModal
-        visible={selectedCollection.visible}
-        onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
-        title={selectedCollection.title}
-        subtitle={selectedCollection.subtitle}
-        coverUrl={selectedCollection.coverUrl}
-        tracks={selectedCollection.tracks}
-        type={selectedCollection.type}
-        onClearRecentTracks={clearRecentTracks}
-      />
+    {/* Modal Chỉnh sửa bài hát (tái dùng EditTrackModal) */}
+    <EditTrackModal
+      visible={editModalVisible}
+      track={editingTrack}
+      onClose={() => setEditModalVisible(false)}
+      onSave={handleSaveTrack}
+      onDelete={handleDeleteFromModal}
+      onFetchLyrics={fetchLyrics}
+    />
 
-      {/* Modal Chọn danh sách phát để thêm bài */}
-      <AddToPlaylistModal
-        visible={addToPlaylistModalVisible}
-        track={selectedTrackForMenu}
-        userState={userState}
-        onClose={() => setAddToPlaylistModalVisible(false)}
-        onUpdateUserState={updateUserState}
-      />
-      {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */ }
-  <ScrollToTopButton
-    visible={showScrollTop}
-    onPress={() => {
-      songsListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }}
-  />
-    </View >
-  );
+    {/* Modal Chi tiết Album / Nghệ sĩ */}
+    <CollectionDetailModal
+      visible={selectedCollection.visible}
+      onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
+      title={selectedCollection.title}
+      subtitle={selectedCollection.subtitle}
+      coverUrl={selectedCollection.coverUrl}
+      tracks={selectedCollection.tracks}
+      type={selectedCollection.type}
+      onClearRecentTracks={clearRecentTracks}
+    />
+
+    {/* Modal Chọn danh sách phát để thêm bài */}
+    <AddToPlaylistModal
+      visible={addToPlaylistModalVisible}
+      track={selectedTrackForMenu}
+      userState={userState}
+      onClose={() => setAddToPlaylistModalVisible(false)}
+      onUpdateUserState={updateUserState}
+    />
+    {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */}
+    <ScrollToTopButton
+      visible={showScrollTop}
+      onPress={() => {
+        songsListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }}
+    />
+  </View >
+);
 }
 
 const styles = StyleSheet.create({
@@ -1044,6 +1076,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  offlineHeaderBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  offlineHeaderBadgeText: {
+    color: colors.textSecondary,
+    fontSize: 9.5,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.5,
   },
   randomizeListButton: {
     width: 36,

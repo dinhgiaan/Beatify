@@ -81,7 +81,7 @@ const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { tracks, originalTracks, setOriginalTracks, serverUrl, serverToken } = useLibrary();
-  const { getOfflineAudioUri } = useOffline();
+  const { getOfflineAudioUri, getOfflineCoverUri } = useOffline();
 
   // Hàng đợi phát độc lập (Active Queue), không làm thay đổi hay mất bài trong Thư viện
   const [activeQueue, setActiveQueue] = useState<Track[]>([]);
@@ -298,16 +298,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const offlineAwareTracks = trackList.map((t) => {
         const localAudio = getOfflineAudioUri(t.id);
         if (localAudio) {
+          const localCover = getOfflineCoverUri(t.id);
           return {
             ...t,
             file: localAudio,
+            cover: localCover || undefined,
           };
         }
         return resolveTrackUrls(t, serverUrl, serverToken);
       });
       await playerService.playQueue(offlineAwareTracks, startIndex);
     },
-    [queueTracks, currentTrackIndex, getOfflineAudioUri, serverUrl, serverToken]
+    [queueTracks, currentTrackIndex, getOfflineAudioUri, getOfflineCoverUri, serverUrl, serverToken]
   );
 
   const playNext = useCallback(
@@ -330,16 +332,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const offlineAwareTracks = updated.map((t) => {
         const localAudio = getOfflineAudioUri(t.id);
         if (localAudio) {
+          const localCover = getOfflineCoverUri(t.id);
           return {
             ...t,
             file: localAudio,
+            cover: localCover || undefined,
           };
         }
         return resolveTrackUrls(t, serverUrl, serverToken);
       });
       await playerService.playQueue(offlineAwareTracks, currentTrackIndex);
     },
-    [currentTrack, currentTrackIndex, queueTracks, getOfflineAudioUri, serverUrl, serverToken, playQueue]
+    [currentTrack, currentTrackIndex, queueTracks, getOfflineAudioUri, getOfflineCoverUri, serverUrl, serverToken, playQueue]
   );
 
   const togglePlay = useCallback(async () => {

@@ -59,7 +59,7 @@ function getIndexFilePath(): string {
 }
 
 /**
- * Nạp chỉ mục nhạc offline từ đĩa (atomic read)
+ * Nạp chỉ mục nhạc offline từ đĩa (atomic read) kèm cơ chế tự phục hồi định dạng file (Magic Bytes)
  */
 export async function loadOfflineIndex(): Promise<OfflineIndex> {
   const indexPath = getIndexFilePath();
@@ -70,7 +70,48 @@ export async function loadOfflineIndex(): Promise<OfflineIndex> {
     }
     const content = await FileSystem.readAsStringAsync(indexPath);
     const parsed = JSON.parse(content) as OfflineIndex;
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    if (!parsed || typeof parsed !== 'object') return {};
+
+    // Tự động kiểm tra và phục hồi extension thật của file âm thanh (sửa lỗi AVPlayer không mở được M4A bị đổi đuôi .mp3)
+    let hasRepaired = false;
+    for (const [trackId, meta] of Object.entries(parsed)) {
+      if (!meta.audioRelPath) continue;
+      const currentAbs = getAbsoluteOfflineUri(meta.audioRelPath);
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(currentAbs);
+        if (fileInfo.exists) {
+          const headerB64 = await FileSystem.readAsStringAsync(currentAbs, {
+            encoding: FileSystem.EncodingType.Base64,
+            length: 32,
+          });
+          if (typeof atob === 'function') {
+            const headerBin = atob(headerB64);
+            let correctExt: string | null = null;
+            if (headerBin.includes('ftyp') && !meta.audioRelPath.endsWith('.m4a')) {
+              correctExt = 'm4a';
+            } else if (headerBin.startsWith('fLaC') && !meta.audioRelPath.endsWith('.flac')) {
+              correctExt = 'flac';
+            }
+
+            if (correctExt) {
+              const newRelPath = `${OFFLINE_DIR_NAME}/${trackId}/audio.${correctExt}`;
+              const newAbsPath = getAbsoluteOfflineUri(newRelPath);
+              await FileSystem.moveAsync({ from: currentAbs, to: newAbsPath });
+              meta.audioRelPath = newRelPath;
+              hasRepaired = true;
+            }
+          }
+        }
+      } catch {
+        // Bỏ qua lỗi kiểm tra file đơn lẻ
+      }
+    }
+
+    if (hasRepaired) {
+      await saveOfflineIndex(parsed).catch(() => { });
+    }
+
+    return parsed;
   } catch (err) {
     console.warn('[offlineStorage] Không đọc được chỉ mục offline, khởi tạo rỗng:', err);
     return {};
@@ -121,164 +162,214 @@ export async function downloadTrackOffline(
   const cleanServerUrl = serverUrl.trim().replace(/\/+$/, '');
   const tokenParam = serverToken.trim() ? `?token=${encodeURIComponent(serverToken.trim())}` : '';
 
-  // 1. Tải file âm thanh (nhận diện đúng file extension của track gốc: .m4a, .flac, .mp3)
+  // 1. Tải file âm thanh (nhận diện đúng định dạng m4a / flac / mp3 qua extension, HEAD Content-Type hoặc magic bytes)
+  let ext = 'mp3';
   const extMatch = (track.file || '').match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
-  const ext = extMatch?.[1] ? extMatch[1].toLowerCase() : 'mp3';
-  const streamUrl = `${cleanServerUrl}/api/stream/${track.id}${tokenParam}`;
-  const audioRelPath = `${trackFolderRel}/audio.${ext}`;
-  const audioAbsPath = `${cleanDoc}${audioRelPath}`;
-
-    if (onProgress && typeof FileSystem.createDownloadResumable === 'function') {
-      const downloadResumable = FileSystem.createDownloadResumable(
-        streamUrl,
-        audioAbsPath,
-        {},
-        (downloadProgress) => {
-          const total = downloadProgress.totalBytesExpectedToWrite;
-          const written = downloadProgress.totalBytesWritten;
-          if (total > 0) {
-            const pct = Math.min(100, Math.max(0, (written / total) * 100));
-            onProgress(pct);
-          }
-        }
-      );
-      const downloadResult = await downloadResumable.downloadAsync();
-      if (!downloadResult || downloadResult.status < 200 || downloadResult.status >= 300) {
-        throw new Error(`Tải file âm thanh thất bại (HTTP ${downloadResult?.status || 500})`);
-      }
-    } else {
-      onProgress?.(40);
-      const audioDownloadResult = await FileSystem.downloadAsync(streamUrl, audioAbsPath);
-      if (audioDownloadResult.status < 200 || audioDownloadResult.status >= 300) {
-        throw new Error(`Tải file âm thanh thất bại (HTTP ${audioDownloadResult.status})`);
-      }
-    }
-
-    onProgress?.(85);
-
-    let totalBytes = 0;
-    const audioInfo = await FileSystem.getInfoAsync(audioAbsPath);
-    if (audioInfo.exists && typeof audioInfo.size === 'number') {
-      totalBytes += audioInfo.size;
-    }
-
-    // 2. Tải ảnh bìa (nếu có)
-    let coverRelPath: string | undefined;
-    if (track.cover) {
-      try {
-        const coverUrl = track.cover.startsWith('http')
-          ? track.cover
-          : `${cleanServerUrl}/${track.cover.replace(/^\/+/, '')}${tokenParam}`;
-        const cRel = `${trackFolderRel}/cover.jpg`;
-        const cAbs = `${cleanDoc}${cRel}`;
-        const coverResult = await FileSystem.downloadAsync(coverUrl, cAbs);
-        if (coverResult.status >= 200 && coverResult.status < 300) {
-          coverRelPath = cRel;
-          const cInfo = await FileSystem.getInfoAsync(cAbs);
-          if (cInfo.exists && typeof cInfo.size === 'number') {
-            totalBytes += cInfo.size;
-          }
-        }
-      } catch (coverErr) {
-        console.warn('[offlineStorage] Không tải được ảnh bìa, tiếp tục không có bìa:', coverErr);
-      }
-    }
-
-    // 3. Lưu file lời bài hát (nếu có)
-    let lyricsRelPath: string | undefined;
-    if (lyricsContent && lyricsContent.trim().length > 0) {
-      try {
-        const lRel = `${trackFolderRel}/lyrics.lrc`;
-        const lAbs = `${cleanDoc}${lRel}`;
-        await FileSystem.writeAsStringAsync(lAbs, lyricsContent.trim());
-        lyricsRelPath = lRel;
-        const lInfo = await FileSystem.getInfoAsync(lAbs);
-        if (lInfo.exists && typeof lInfo.size === 'number') {
-          totalBytes += lInfo.size;
-        }
-      } catch (lrcErr) {
-        console.warn('[offlineStorage] Không lưu được file lời, tiếp tục:', lrcErr);
-      }
-    }
-
-    const meta: OfflineTrackMeta = {
-      trackId: track.id,
-      title: track.title,
-      artist: track.artist,
-      album: track.album,
-      duration: track.duration,
-      audioRelPath,
-      coverRelPath,
-      lyricsRelPath,
-      sizeBytes: totalBytes,
-      downloadedAt: new Date().toISOString(),
-    };
-
-    // Cập nhật và lưu chỉ mục
-    const currentIndex = await loadOfflineIndex();
-    currentIndex[track.id] = meta;
-    await saveOfflineIndex(currentIndex);
-
-    return meta;
+  if (extMatch?.[1] && !['stream', 'api'].includes(extMatch[1].toLowerCase())) {
+    ext = extMatch[1].toLowerCase();
   }
 
-  /**
-   * Xóa 1 bài hát đã tải về máy
-   */
-  export async function deleteTrackOffline(trackId: string): Promise<OfflineIndex> {
-    const docDir = FileSystem.documentDirectory || '';
-    const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
-    const trackFolderAbs = `${cleanDoc}${OFFLINE_DIR_NAME}/${trackId}`;
+  const streamUrl = `${cleanServerUrl}/api/stream/${track.id}${tokenParam}`;
 
+        if (ext === 'mp3') {
+          try {
+            const headRes = await fetch(streamUrl, { method: 'HEAD' });
+            const ct = (headRes.headers.get('content-type') || '').toLowerCase();
+            if (ct.includes('mp4') || ct.includes('m4a') || ct.includes('aac')) {
+              ext = 'm4a';
+            } else if (ct.includes('flac')) {
+              ext = 'flac';
+            } else if (ct.includes('ogg')) {
+              ext = 'ogg';
+            }
+          } catch {
+            // Bỏ qua lỗi HEAD thăm dò
+          }
+        }
+
+        let audioRelPath = `${trackFolderRel}/audio.${ext}`;
+        let audioAbsPath = `${cleanDoc}${audioRelPath}`;
+
+        if (onProgress && typeof FileSystem.createDownloadResumable === 'function') {
+          const downloadResumable = FileSystem.createDownloadResumable(
+            streamUrl,
+            audioAbsPath,
+            {},
+            (downloadProgress) => {
+              const total = downloadProgress.totalBytesExpectedToWrite;
+              const written = downloadProgress.totalBytesWritten;
+              if (total > 0) {
+                const pct = Math.min(100, Math.max(0, (written / total) * 100));
+                onProgress(pct);
+              }
+          }
+    );
+    const downloadResult = await downloadResumable.downloadAsync();
+    if (!downloadResult || downloadResult.status < 200 || downloadResult.status >= 300) {
+      throw new Error(`Tải file âm thanh thất bại (HTTP ${downloadResult?.status || 500})`);
+    }
+  } else {
+    onProgress?.(40);
+    const audioDownloadResult = await FileSystem.downloadAsync(streamUrl, audioAbsPath);
+    if (audioDownloadResult.status < 200 || audioDownloadResult.status >= 300) {
+      throw new Error(`Tải file âm thanh thất bại (HTTP ${audioDownloadResult.status})`);
+    }
+  }
+
+  // Hậu kiểm Magic Bytes để bảo vệ 100% không bị sai định dạng file âm thanh native iOS
+  try {
+    const headerB64 = await FileSystem.readAsStringAsync(audioAbsPath, {
+      encoding: FileSystem.EncodingType.Base64,
+      length: 32,
+    });
+    if (typeof atob === 'function') {
+      const headerBin = atob(headerB64);
+      let realExt = ext;
+      if (headerBin.includes('ftyp')) {
+        realExt = 'm4a';
+      } else if (headerBin.startsWith('fLaC')) {
+        realExt = 'flac';
+      } else if (headerBin.startsWith('OggS')) {
+        realExt = 'ogg';
+      }
+
+      if (realExt !== ext) {
+        const correctRelPath = `${trackFolderRel}/audio.${realExt}`;
+        const correctAbsPath = `${cleanDoc}${correctRelPath}`;
+        await FileSystem.moveAsync({ from: audioAbsPath, to: correctAbsPath });
+        audioRelPath = correctRelPath;
+        audioAbsPath = correctAbsPath;
+      }
+    }
+  } catch {
+    // Bỏ qua lỗi hậu kiểm
+  }
+
+  onProgress?.(85);
+
+  let totalBytes = 0;
+  const audioInfo = await FileSystem.getInfoAsync(audioAbsPath);
+  if (audioInfo.exists && typeof audioInfo.size === 'number') {
+    totalBytes += audioInfo.size;
+  }
+
+  // 2. Tải ảnh bìa (nếu có)
+  let coverRelPath: string | undefined;
+  if (track.cover) {
+    try {
+      const coverUrl = track.cover.startsWith('http')
+        ? track.cover
+        : `${cleanServerUrl}/${track.cover.replace(/^\/+/, '')}${tokenParam}`;
+      const cRel = `${trackFolderRel}/cover.jpg`;
+      const cAbs = `${cleanDoc}${cRel}`;
+      const coverResult = await FileSystem.downloadAsync(coverUrl, cAbs);
+      if (coverResult.status >= 200 && coverResult.status < 300) {
+        coverRelPath = cRel;
+        const cInfo = await FileSystem.getInfoAsync(cAbs);
+        if (cInfo.exists && typeof cInfo.size === 'number') {
+          totalBytes += cInfo.size;
+        }
+      }
+    } catch (coverErr) {
+      console.warn('[offlineStorage] Không tải được ảnh bìa, tiếp tục không có bìa:', coverErr);
+    }
+  }
+
+  // 3. Lưu file lời bài hát (nếu có)
+  let lyricsRelPath: string | undefined;
+  if (lyricsContent && lyricsContent.trim().length > 0) {
+    try {
+      const lRel = `${trackFolderRel}/lyrics.lrc`;
+      const lAbs = `${cleanDoc}${lRel}`;
+      await FileSystem.writeAsStringAsync(lAbs, lyricsContent.trim());
+      lyricsRelPath = lRel;
+      const lInfo = await FileSystem.getInfoAsync(lAbs);
+      if (lInfo.exists && typeof lInfo.size === 'number') {
+        totalBytes += lInfo.size;
+      }
+    } catch (lrcErr) {
+      console.warn('[offlineStorage] Không lưu được file lời, tiếp tục:', lrcErr);
+    }
+  }
+
+  const meta: OfflineTrackMeta = {
+    trackId: track.id,
+    title: track.title,
+    artist: track.artist,
+    album: track.album,
+    duration: track.duration,
+    audioRelPath,
+    coverRelPath,
+    lyricsRelPath,
+    sizeBytes: totalBytes,
+    downloadedAt: new Date().toISOString(),
+  };
+
+  // Cập nhật và lưu chỉ mục
+  const currentIndex = await loadOfflineIndex();
+  currentIndex[track.id] = meta;
+  await saveOfflineIndex(currentIndex);
+
+  return meta;
+}
+
+/**
+ * Xóa 1 bài hát đã tải về máy
+ */
+export async function deleteTrackOffline(trackId: string): Promise<OfflineIndex> {
+  const docDir = FileSystem.documentDirectory || '';
+  const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
+  const trackFolderAbs = `${cleanDoc}${OFFLINE_DIR_NAME}/${trackId}`;
+
+  try {
+    await FileSystem.deleteAsync(trackFolderAbs, { idempotent: true });
+  } catch (err) {
+    console.warn(`[offlineStorage] Lỗi xóa thư mục bài ${trackId}:`, err);
+  }
+
+  const currentIndex = await loadOfflineIndex();
+  Reflect.deleteProperty(currentIndex, trackId);
+  await saveOfflineIndex(currentIndex);
+  return currentIndex;
+}
+
+/**
+ * Xóa nhiều bài hát đã chọn (Batch delete)
+ */
+export async function deleteMultipleTracksOffline(trackIds: string[]): Promise<OfflineIndex> {
+  const docDir = FileSystem.documentDirectory || '';
+  const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
+
+  for (const trackId of trackIds) {
+    const trackFolderAbs = `${cleanDoc}${OFFLINE_DIR_NAME}/${trackId}`;
     try {
       await FileSystem.deleteAsync(trackFolderAbs, { idempotent: true });
     } catch (err) {
       console.warn(`[offlineStorage] Lỗi xóa thư mục bài ${trackId}:`, err);
     }
+  }
 
-    const currentIndex = await loadOfflineIndex();
+  const currentIndex = await loadOfflineIndex();
+  for (const trackId of trackIds) {
     Reflect.deleteProperty(currentIndex, trackId);
-    await saveOfflineIndex(currentIndex);
-    return currentIndex;
+  }
+  await saveOfflineIndex(currentIndex);
+  return currentIndex;
+}
+
+/**
+ * Xóa toàn bộ nhạc đã tải về và reset chỉ mục
+ */
+export async function clearAllOfflineTracks(): Promise<void> {
+  const docDir = FileSystem.documentDirectory || '';
+  const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
+  const offlineDirAbs = `${cleanDoc}${OFFLINE_DIR_NAME}`;
+
+  try {
+    await FileSystem.deleteAsync(offlineDirAbs, { idempotent: true });
+  } catch (err) {
+    console.warn('[offlineStorage] Lỗi xóa toàn bộ thư mục offline:', err);
   }
 
-  /**
-   * Xóa nhiều bài hát đã chọn (Batch delete)
-   */
-  export async function deleteMultipleTracksOffline(trackIds: string[]): Promise<OfflineIndex> {
-    const docDir = FileSystem.documentDirectory || '';
-    const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
-
-    for (const trackId of trackIds) {
-      const trackFolderAbs = `${cleanDoc}${OFFLINE_DIR_NAME}/${trackId}`;
-      try {
-        await FileSystem.deleteAsync(trackFolderAbs, { idempotent: true });
-      } catch (err) {
-        console.warn(`[offlineStorage] Lỗi xóa thư mục bài ${trackId}:`, err);
-      }
-    }
-
-    const currentIndex = await loadOfflineIndex();
-    for (const trackId of trackIds) {
-      Reflect.deleteProperty(currentIndex, trackId);
-    }
-    await saveOfflineIndex(currentIndex);
-    return currentIndex;
-  }
-
-  /**
-   * Xóa toàn bộ nhạc đã tải về và reset chỉ mục
-   */
-  export async function clearAllOfflineTracks(): Promise<void> {
-    const docDir = FileSystem.documentDirectory || '';
-    const cleanDoc = docDir.endsWith('/') ? docDir : `${docDir}/`;
-    const offlineDirAbs = `${cleanDoc}${OFFLINE_DIR_NAME}`;
-
-    try {
-      await FileSystem.deleteAsync(offlineDirAbs, { idempotent: true });
-    } catch (err) {
-      console.warn('[offlineStorage] Lỗi xóa toàn bộ thư mục offline:', err);
-    }
-
-    await saveOfflineIndex({});
-  }
+  await saveOfflineIndex({});
+}

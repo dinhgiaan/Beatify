@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Linking, Vibration, Alert } from 'react-native';
+import { Linking, Vibration, Alert, AppState } from 'react-native';
 import {
   type Track,
   type Album,
@@ -43,6 +43,7 @@ export interface LibraryContextValue {
   deleteTrack: (trackId: string, onDeleted?: (trackId: string, remaining: Track[]) => Promise<void> | void) => Promise<void>;
   networkStatus: 'offline' | 'reconnected' | 'idle';
   isOffline: boolean;
+  reportNetworkError: () => void;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -240,33 +241,33 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         if (!isCancelled) {
           setLastSyncError(msg);
 
-            // Nhận diện lỗi ngoại tuyến (offline / mạng chập chờn)
-            const isNetError =
-              lower.includes('fetch failed') ||
-              lower.includes('network') ||
-              lower.includes('unexpectedexception') ||
-              lower.includes('offline') ||
-              lower.includes('enotfound') ||
-              lower.includes('timeout') ||
-              lower.includes('failed to fetch');
+          // Nhận diện lỗi ngoại tuyến (offline / mạng chập chờn)
+          const isNetError =
+            lower.includes('fetch failed') ||
+            lower.includes('network') ||
+            lower.includes('unexpectedexception') ||
+            lower.includes('offline') ||
+            lower.includes('enotfound') ||
+            lower.includes('timeout') ||
+            lower.includes('failed to fetch');
 
-            if (isNetError) {
-              isOfflineRef.current = true;
-              setNetworkStatus('offline');
-              setSyncStatus('Đang ngoại tuyến • Nhạc lưu trên máy sẵn sàng');
-            } else {
-              setSyncStatus(`Lỗi đồng bộ: ${msg}`);
-              if (!silent) {
-                Alert.alert('Lỗi đồng bộ Cloudflare', msg);
-              }
+          if (isNetError) {
+            isOfflineRef.current = true;
+            setNetworkStatus('offline');
+            setSyncStatus('Đang ngoại tuyến • Nhạc lưu trên máy sẵn sàng');
+          } else {
+            setSyncStatus(`Lỗi đồng bộ: ${msg}`);
+            if (!silent) {
+              Alert.alert('Lỗi đồng bộ Cloudflare', msg);
             }
           }
-        } finally {
-          setIsSyncing(false);
-          isSyncingRef.current = false;
         }
-      },
-      []
+      } finally {
+        setIsSyncing(false);
+        isSyncingRef.current = false;
+      }
+    },
+    []
   );
 
   // 1. Tự động nạp cấu hình server & bộ nhớ đệm thư viện từ beatify_library_cache.json (Zero Flash)
@@ -678,19 +679,38 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   }, [serverUrl, serverToken]);
 
-  // Tự động kiểm tra mạng phục hồi khi đang ở trạng thái ngoại tuyến
-  useEffect(() => {
-    if (networkStatus !== 'offline') return;
+  const reportNetworkError = useCallback(() => {
+    if (!isOfflineRef.current) {
+      isOfflineRef.current = true;
+      setNetworkStatus('offline');
+    }
+  }, []);
 
+  // Tự động kiểm tra mạng liên tục và nhận diện tức thì trạng thái online / offline trong thời gian thực
+  useEffect(() => {
     let isProbing = false;
+
     const probeNetwork = async () => {
       if (isProbing) return;
       isProbing = true;
       try {
         const cleanUrl = (serverUrl || '').trim().replace(/\/+$/, '');
         if (!cleanUrl) return;
+
+        // 1. Kiểm tra nhanh navigator.onLine nếu khả dụng
+        if (typeof navigator !== 'undefined' && typeof (navigator as { onLine?: boolean }).onLine === 'boolean') {
+          if (!(navigator as { onLine?: boolean }).onLine) {
+            if (networkStatus !== 'offline') {
+              isOfflineRef.current = true;
+              setNetworkStatus('offline');
+            }
+            return;
+          }
+        }
+
+        // 2. Thăm dò Cloudflare Worker /api/health với timeout ngắn 1500ms
         const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 3000);
+        const timeoutId = setTimeout(() => ctrl.abort(), 1500);
         const res = await fetch(`${cleanUrl}/api/health`, {
           method: 'GET',
           signal: ctrl.signal,
@@ -698,21 +718,45 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
 
         if (res.status >= 200 && res.status < 400) {
-          isOfflineRef.current = false;
-          setNetworkStatus('reconnected');
-          setTimeout(() => setNetworkStatus('idle'), 2500);
-          // Tự động đồng bộ ngầm khi có mạng lại
-          syncLibrary({ silent: true }).catch(() => { });
+          if (networkStatus === 'offline' || isOfflineRef.current) {
+            isOfflineRef.current = false;
+            setNetworkStatus('reconnected');
+            setTimeout(() => setNetworkStatus('idle'), 2500);
+            // Tự động đồng bộ ngầm khi có mạng trở lại mà không bắt người dùng bấm gì
+            syncLibrary({ silent: true }).catch(() => { });
+          }
+        } else {
+          throw new Error(`Health check status: ${res.status}`);
         }
       } catch {
-        // Vẫn đang ngoại tuyến
+        // Mất mạng hoặc ngắt kết nối -> Nhận diện ngay lập tức sang trạng thái offline
+        if (networkStatus !== 'offline') {
+          isOfflineRef.current = true;
+          setNetworkStatus('offline');
+        }
       } finally {
         isProbing = false;
       }
     };
 
-    const interval = setInterval(probeNetwork, 4000);
-    return () => clearInterval(interval);
+    // Kiểm tra ngay lập tức khi khởi động
+    probeNetwork();
+
+    // Nhịp thăm dò tự động: 1.5s khi offline (để phát hiện có mạng ngay), 2.5s khi online
+    const intervalTime = networkStatus === 'offline' ? 1500 : 2500;
+    const interval = setInterval(probeNetwork, intervalTime);
+
+    // Bắt sự kiện AppState: Khi người dùng kéo Control Center tắt/bật Wi-Fi/Airplane rồi vuốt về app -> Nhận diện tức thì 0ms
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        probeNetwork();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
   }, [networkStatus, serverUrl, syncLibrary]);
 
   return (
@@ -744,6 +788,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         deleteTrack,
         networkStatus,
         isOffline: networkStatus === 'offline',
+        reportNetworkError,
       }}
     >
       {children}

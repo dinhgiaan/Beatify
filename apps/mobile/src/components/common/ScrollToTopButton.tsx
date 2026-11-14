@@ -12,18 +12,21 @@ import Animated, {
 import { ChevronUpIcon } from '../icons/SvgIcons';
 import { colors } from '../../theme';
 import { triggerSelectionHaptic } from '../../utils/haptics';
+import { usePlayer } from '../../context';
 
 export interface ScrollToTopButtonProps {
   visible: boolean;
   onPress: () => void;
   bottomOffset?: number;
   rightOffset?: number;
+  autoAdjustForPlayer?: boolean;
   style?: ViewStyle;
 }
 
 /**
  * Nút Cuộn lên đầu trang (Scroll to Top) phong cách Apple
  * - Tự động hiển thị khi cuộn xuống sâu
+ * - Tự động nâng cao vị trí khi MiniPlayer xuất hiện để không bao giờ bị che khuất
  * - Icon mũi tên có animation nhảy lên nhảy xuống nhẹ nhàng, mượt mà
  * - Nhấn vào kích hoạt haptic và cuộn êm ái lên đầu trang
  */
@@ -32,11 +35,26 @@ export function ScrollToTopButton({
   onPress,
   bottomOffset = 115,
   rightOffset = 20,
+  autoAdjustForPlayer = true,
   style,
 }: ScrollToTopButtonProps) {
+  const { currentTrack } = usePlayer();
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.7);
   const translateY = useSharedValue(0);
+
+  // Tính toán vị trí đáy tự động: Nếu Media Player đang xuất hiện thì nâng thêm 64px
+  const hasPlayer = Boolean(currentTrack);
+  const targetBottom = autoAdjustForPlayer && hasPlayer ? bottomOffset + 64 : bottomOffset;
+  const animatedBottom = useSharedValue(targetBottom);
+
+  useEffect(() => {
+    animatedBottom.value = withSpring(targetBottom, {
+      damping: 20,
+      stiffness: 220,
+      mass: 0.8,
+    });
+  }, [targetBottom, animatedBottom]);
 
   // Hiệu ứng hiện / ẩn mượt mà
   useEffect(() => {
@@ -63,6 +81,7 @@ export function ScrollToTopButton({
   const containerAnimStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ scale: scale.value }],
+    bottom: animatedBottom.value,
     display: opacity.value === 0 ? 'none' : 'flex',
   }));
 
@@ -84,7 +103,7 @@ export function ScrollToTopButton({
     <Animated.View
       style={[
         styles.container,
-        { bottom: bottomOffset, right: rightOffset },
+        { right: rightOffset },
         containerAnimStyle,
         style,
       ]}

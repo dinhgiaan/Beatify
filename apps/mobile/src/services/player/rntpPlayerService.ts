@@ -118,9 +118,18 @@ export class RntpPlayerService implements IPlayerService {
 
     const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
 
-    // Tối ưu hoá độ trễ: Nếu danh sách bài hát không đổi so với hàng đợi hiện tại,
+    // Tối ưu hoá độ trễ: Nếu danh sách bài hát không đổi so với hàng đợi hiện tại và player không bị lỗi,
     // chỉ cần gọi skipToIndex thay vì nạp lại toàn bộ mediaItems qua bridge Native
+    let isPlayerInError: boolean;
+    try {
+      const playbackState = TrackPlayer.getPlaybackState();
+      isPlayerInError = playbackState === PlaybackState.Error || playbackState === PlaybackState.Idle;
+    } catch {
+      isPlayerInError = true;
+    }
+
     const isSameQueue =
+      !isPlayerInError &&
       this.currentTracks.length === validTracks.length &&
       this.currentTracks.every((t, idx) => t.id === validTracks[idx]?.id);
 
@@ -136,40 +145,48 @@ export class RntpPlayerService implements IPlayerService {
         return;
       }
 
-        const mediaItems = validTracks.map((track) => ({
-          mediaId: track.id,
-          url: track.file,
-          title: track.title,
-          artist: track.artist,
-          albumTitle: track.album,
-          duration: track.duration,
-          artworkUrl:
-            track.cover &&
-              (track.cover.startsWith('http://') ||
-                track.cover.startsWith('https://') ||
-                track.cover.startsWith('file://'))
-              ? track.cover
-              : undefined,
-        }));
+      const mediaItems = validTracks.map((track) => ({
+        mediaId: track.id,
+        url: track.file,
+        title: track.title,
+        artist: track.artist,
+        albumTitle: track.album,
+        duration: track.duration,
+        artworkUrl:
+          track.cover &&
+            (track.cover.startsWith('http://') ||
+              track.cover.startsWith('https://') ||
+              track.cover.startsWith('file://'))
+            ? track.cover
+            : undefined,
+      }));
 
-        TrackPlayer.setMediaItems(mediaItems, safeIndex);
-        TrackPlayer.play();
-        this.startProgressTimer();
-        transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
-      } catch (err) {
-        console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
-      }
-      this.notifyListeners();
+      TrackPlayer.setMediaItems(mediaItems, safeIndex);
+      TrackPlayer.play();
+      this.startProgressTimer();
+      transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
+    } catch (err) {
+      console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
     }
+    this.notifyListeners();
+  }
 
   async play(): Promise < void> {
-      await this.setup();
-      try {
-        TrackPlayer.play();
-        this.startProgressTimer();
-      } catch(err) {
-        console.warn('[RNTP] Lỗi play():', err);
-      }
+        await this.setup();
+        try {
+          TrackPlayer.play();
+          this.startProgressTimer();
+        } catch(err) {
+          console.warn('[RNTP] Lỗi play():', err);
+          // Nếu play thất bại do lỗi trạng thái native AVPlayer, nạp lại mediaItems hiện tại
+          if (this.currentTracks.length > 0) {
+            const activeItem = TrackPlayer.getActiveMediaItem();
+            const activeIdx = activeItem
+              ? Math.max(0, this.currentTracks.findIndex((t) => t.id === activeItem.mediaId))
+              : 0;
+            await this.playQueue(this.currentTracks, activeIdx);
+          }
+        }
     this.notifyListeners();
     }
 

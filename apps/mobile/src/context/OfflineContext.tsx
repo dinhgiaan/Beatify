@@ -26,6 +26,7 @@ export interface OfflineContextValue {
   clearAllOffline: () => Promise<void>;
   isTrackOffline: (trackId: string) => boolean;
   getOfflineAudioUri: (trackId: string) => string | null;
+  getOfflineCoverUri: (trackId: string) => string | null;
   getOfflineLyrics: (trackId: string) => Promise<string | null>;
 }
 
@@ -86,6 +87,15 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       const meta = offlineIndex[trackId];
       if (!meta) return null;
       return getAbsoluteOfflineUri(meta.audioRelPath);
+    },
+    [offlineIndex]
+  );
+
+  const getOfflineCoverUri = useCallback(
+    (trackId: string): string | null => {
+      const meta = offlineIndex[trackId];
+      if (!meta || !meta.coverRelPath) return null;
+      return getAbsoluteOfflineUri(meta.coverRelPath);
     },
     [offlineIndex]
   );
@@ -186,6 +196,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       clearAllOffline,
       isTrackOffline,
       getOfflineAudioUri,
+      getOfflineCoverUri,
       getOfflineLyrics,
     }),
     [
@@ -200,6 +211,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       clearAllOffline,
       isTrackOffline,
       getOfflineAudioUri,
+      getOfflineCoverUri,
       getOfflineLyrics,
     ]
   );
