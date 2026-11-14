@@ -127,4 +127,21 @@ describe('MusicApiClient', () => {
 
     await expect(client.updateTrack('invalid-id', { title: 'Tên' })).rejects.toThrow('Invalid track id');
   });
+
+  it('hủy request và ném thông báo timeout tiếng Việt thân thiện khi request quá hạn', async () => {
+    client.setTimeoutMs(50);
+    globalThis.fetch = vi.fn().mockImplementation((_url, init) => {
+      return new Promise((_resolve, reject) => {
+        if (init?.signal) {
+          init.signal.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }
+      });
+    });
+
+    await expect(client.fetchLibrary()).rejects.toThrow('Yêu cầu mạng hết thời gian chờ sau 0s');
+  });
 });

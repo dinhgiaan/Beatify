@@ -114,7 +114,13 @@
       - Nâng timeout thăm dò lên 5000ms và chỉ chuyển sang `offline` khi thất bại liên tiếp 2 lần (`failureCountRef >= 2`).
       - Bỏ `networkStatus` khỏi dependency array của `useEffect` và nâng nhịp thăm dò lên 10s/lần, chấm dứt hoàn toàn vòng lặp flapping.
       - Bảo toàn 100% kho nhạc cached trên trang chủ `library.tsx`, bài hát không bao giờ bị biến mất; thông báo "Chưa có bài hát tải về máy" chỉ hiện khi người dùng chọn tab lọc "Đã tải".
-**Cập nhật lần cuối:** 2026-11-14 (Sửa triệt để lỗi chớp giật flapping mạng và bảo toàn danh sách bài hát trên trang chủ)
+17. **Kiểm tra Toàn diện Codebase & Phòng vệ Lỗi Tiềm ẩn (Audit & Zero-Defect Defense):**
+    - **Phòng vệ `gainToVolume` chống crash âm thanh:** Thêm kiểm tra phòng vệ `null`, `NaN`, `!isFinite`, `typeof !== 'number'` trả về an toàn hệ số 1, ngăn chặn giá trị `NaN` truyền xuống native bridge `TrackPlayer.setVolume(NaN)` gây crash AVPlayer hoặc mất tiếng.
+    - **Cơ chế Timeout 15s cho `MusicApiClient`:** Tích hợp `AbortController` timeout cho mọi API call (`fetchLibraryWithETag`, `updateTrack`, `deleteTrack`, `fetchLyrics`, `fetchUserState`, `saveUserState`), hủy request và trả về thông báo tiếng Việt thân thiện thay vì để app bị treo vô tận khi kết nối chập chờn.
+    - **Tối ưu hóa re-render diện rộng với `useMemo` trong `LibraryContext`:** Bọc toàn bộ `contextValue` của `LibraryProvider` bằng `useMemo`, ngăn chặn re-render thừa lan tỏa toàn bộ cây component khi thư viện sync hoặc cập nhật trạng thái.
+    - **Phòng vệ tua bài `seekOffset` và `seekTo`:** Kiểm tra kẹp giá trị `pos` và `offset` luôn là số hữu hạn, chặn `NaN` hoặc số âm khi duration/position chưa kịp load.
+    - **Minh chứng kiểm thử:** Viết mới unit test cho timeout và phòng vệ ReplayGain; toàn bộ monorepo đạt 278/278 test pass 100%, typecheck và lint sạch 0 lỗi.
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn thành kiểm tra toàn diện, bổ sung phòng vệ lỗi tiềm ẩn và tối ưu re-render toàn app)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

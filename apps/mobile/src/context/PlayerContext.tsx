@@ -450,16 +450,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seekOffset = useCallback(async (secondsOffset: number) => {
     Vibration.vibrate(10);
     const currTrack = queueTracks[currentTrackIndex];
-    const totalSec = playerState.durationSec || (currTrack ? currTrack.duration : 0);
-    const target = totalSec > 0
-      ? Math.min(totalSec, Math.max(0, playerState.positionSec + secondsOffset))
-      : Math.max(0, playerState.positionSec + secondsOffset);
+    const totalSec = Math.max(0, isFinite(playerState.durationSec) && playerState.durationSec > 0 ? playerState.durationSec : (currTrack?.duration ?? 0));
+    const pos = isFinite(playerState.positionSec) ? playerState.positionSec : 0;
+    const offset = isFinite(secondsOffset) ? secondsOffset : 0;
+    const rawTarget = Math.max(0, pos + offset);
+    const target = totalSec > 0 ? Math.min(totalSec, rawTarget) : rawTarget;
     await playerService.seekTo(target);
   }, [queueTracks, currentTrackIndex, playerState.durationSec, playerState.positionSec]);
 
   const seekTo = useCallback(async (seconds: number) => {
     Vibration.vibrate(10);
-    await playerService.seekTo(seconds);
+    const safeSec = !isFinite(seconds) || isNaN(seconds) || seconds < 0 ? 0 : seconds;
+    await playerService.seekTo(safeSec);
   }, []);
 
   const cycleRepeat = useCallback(async () => {
@@ -743,119 +745,119 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return recentTracksData.trackIds
       .map((id) => trackMap.get(id))
       .filter((t): t is Track => t !== undefined);
-}, [tracks, originalTracks, activeQueue, recentTracksData.trackIds]);
+  }, [tracks, originalTracks, activeQueue, recentTracksData.trackIds]);
 
-const gaplessDeltaMs = playerService.getGaplessDeltaMs();
+  const gaplessDeltaMs = playerService.getGaplessDeltaMs();
 
-const contextValue = useMemo<PlayerContextValue>(
-  () => ({
-    tracks: queueTracks,
-    currentTrackIndex,
-    setCurrentTrackIndex,
-    currentTrack,
-    playerState,
-    repeatMode,
-    isSmartShuffle,
-    setIsSmartShuffle,
-    sortMode,
-    setSortMode,
-    recentTracks,
-    recentLimit: recentTracksData.limit,
-    setRecentLimit,
-    clearRecentTracks,
-    removeRecentTrack,
-    playQueue,
-    playNext,
-    togglePlay,
-    next,
-    previous,
-    skipToTrack,
-    seekOffset,
-    seekTo,
-    cycleRepeat,
-    customLoopTarget,
-    customLoopRemaining,
-    setCustomLoopCount,
-    isVinylMode,
-    toggleVinylMode,
-    transitionSettings,
-    updateTransitionSettings,
-    toggleSmartShuffle,
-    applySortMode,
-    addCustomTrack,
-    removeFromQueue,
-    moveQueueItem,
-    sleepTimerMinutes,
-    sleepTimerRemainingSec,
-    setSleepTimer,
-    handleTrackDeleted,
-    gaplessDeltaMs,
-    atomicWriteBranch,
-    lastMoveError,
-    recoveryStatus,
-    writeQueueStatus,
-  }),
-  [
-    queueTracks,
-    currentTrackIndex,
-    setCurrentTrackIndex,
-    currentTrack,
-    playerState,
-    repeatMode,
-    isSmartShuffle,
-    setIsSmartShuffle,
-    sortMode,
-    setSortMode,
-    recentTracks,
-    recentTracksData.limit,
-    setRecentLimit,
-    clearRecentTracks,
-    removeRecentTrack,
-    playQueue,
-    playNext,
-    togglePlay,
-    next,
-    previous,
-    skipToTrack,
-    seekOffset,
-    seekTo,
-    cycleRepeat,
-    customLoopTarget,
-    customLoopRemaining,
-    setCustomLoopCount,
-    isVinylMode,
-    toggleVinylMode,
-    transitionSettings,
-    updateTransitionSettings,
-    toggleSmartShuffle,
-    applySortMode,
-    addCustomTrack,
-    removeFromQueue,
-    moveQueueItem,
-    sleepTimerMinutes,
-    sleepTimerRemainingSec,
-    setSleepTimer,
-    handleTrackDeleted,
-    gaplessDeltaMs,
-    atomicWriteBranch,
-    lastMoveError,
-    recoveryStatus,
-    writeQueueStatus,
-  ]
-);
+  const contextValue = useMemo<PlayerContextValue>(
+    () => ({
+      tracks: queueTracks,
+      currentTrackIndex,
+      setCurrentTrackIndex,
+      currentTrack,
+      playerState,
+      repeatMode,
+      isSmartShuffle,
+      setIsSmartShuffle,
+      sortMode,
+      setSortMode,
+      recentTracks,
+      recentLimit: recentTracksData.limit,
+      setRecentLimit,
+      clearRecentTracks,
+      removeRecentTrack,
+      playQueue,
+      playNext,
+      togglePlay,
+      next,
+      previous,
+      skipToTrack,
+      seekOffset,
+      seekTo,
+      cycleRepeat,
+      customLoopTarget,
+      customLoopRemaining,
+      setCustomLoopCount,
+      isVinylMode,
+      toggleVinylMode,
+      transitionSettings,
+      updateTransitionSettings,
+      toggleSmartShuffle,
+      applySortMode,
+      addCustomTrack,
+      removeFromQueue,
+      moveQueueItem,
+      sleepTimerMinutes,
+      sleepTimerRemainingSec,
+      setSleepTimer,
+      handleTrackDeleted,
+      gaplessDeltaMs,
+      atomicWriteBranch,
+      lastMoveError,
+      recoveryStatus,
+      writeQueueStatus,
+    }),
+    [
+      queueTracks,
+      currentTrackIndex,
+      setCurrentTrackIndex,
+      currentTrack,
+      playerState,
+      repeatMode,
+      isSmartShuffle,
+      setIsSmartShuffle,
+      sortMode,
+      setSortMode,
+      recentTracks,
+      recentTracksData.limit,
+      setRecentLimit,
+      clearRecentTracks,
+      removeRecentTrack,
+      playQueue,
+      playNext,
+      togglePlay,
+      next,
+      previous,
+      skipToTrack,
+      seekOffset,
+      seekTo,
+      cycleRepeat,
+      customLoopTarget,
+      customLoopRemaining,
+      setCustomLoopCount,
+      isVinylMode,
+      toggleVinylMode,
+      transitionSettings,
+      updateTransitionSettings,
+      toggleSmartShuffle,
+      applySortMode,
+      addCustomTrack,
+      removeFromQueue,
+      moveQueueItem,
+      sleepTimerMinutes,
+      sleepTimerRemainingSec,
+      setSleepTimer,
+      handleTrackDeleted,
+      gaplessDeltaMs,
+      atomicWriteBranch,
+      lastMoveError,
+      recoveryStatus,
+      writeQueueStatus,
+    ]
+  );
 
-return (
+  return (
     <PlayerContext.Provider value={contextValue}>
       {children}
     </PlayerContext.Provider>
-    );
+  );
 }
 
-    export function usePlayer(): PlayerContextValue {
+export function usePlayer(): PlayerContextValue {
   const context = useContext(PlayerContext);
-    if (!context) {
+  if (!context) {
     throw new Error('usePlayer phải được sử dụng bên trong PlayerProvider');
   }
-    return context;
+  return context;
 }
 
