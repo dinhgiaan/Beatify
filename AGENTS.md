@@ -29,6 +29,19 @@ Nếu công cụ của bạn không tự nạp skill, hãy mở file `.agents/sk
 - Giao diện (màn hình, tab, bố cục) theo `docs/SCREENS.md`. Không tự bịa màn hình.
 - Test dùng dữ liệu mẫu trong `@music-app/shared/testing` và `fixtures/`, không dùng dữ liệu thật của người dùng.
 
+## Quy tắc bảo vệ UI/UX cốt lõi (BẢO TOÀN TUYỆT ĐỐI - KHÔNG ĐƯỢC XÓA)
+1. **Hiệu ứng Animation Background Active dạng trượt (Sliding Active Pill):**
+   - Floating Tab Bar (`apps/mobile/app/(tabs)/_layout.tsx`)
+   - Segmented Tabs Thống kê Replay (`apps/mobile/app/settings/replay.tsx`)
+   - Chip thời gian chuyển bài (`apps/mobile/app/settings/playback.tsx`)
+   - Chip số bài lưu tối đa (`apps/mobile/app/settings/storage.tsx`)
+   *Bắt buộc phải giữ nguyên hiệu ứng viên thuốc trượt Reanimated (`slidingActivePill`, `withSpring`, `useSharedValue`), TUYỆT ĐỐI KHÔNG ĐƯỢC XÓA hoặc hạ cấp về nút bấm tĩnh trong bất kỳ tác vụ nào.*
+2. **Nút Cuộn Đầu Trang (ScrollToTopButton):**
+   - Luôn giữ icon mũi tên có chân đứng (`ArrowUpIcon`), tự động nâng cao khi có player, và animation nhấp nhô nhịp nhàng (`withRepeat`).
+3. **Mở rộng / Thu gọn Accordion:**
+   - Nhật ký chuyển bài (`apps/mobile/app/settings/transition-logs.tsx`) phải giữ `LayoutAnimation.configureNext` để co giãn chiều dọc mượt mà.
+*Toàn bộ các quy tắc này được giám sát tự động bằng bộ test `uiRegression.test.ts`. Nếu làm mất hiệu ứng, `pnpm test` sẽ FAIL.*
+
 ## Ngôn ngữ
 - Trả lời người dùng bằng **tiếng Việt**, ngắn gọn, đi thẳng vào vấn đề. Người dùng không code nên tránh thuật ngữ khi không cần, và hướng dẫn thao tác thủ công theo từng bước đánh số.
 - Tên hàm, biến, class, keyword giữ **tiếng Anh**. Chuỗi hiển thị trong app bằng tiếng Việt.
