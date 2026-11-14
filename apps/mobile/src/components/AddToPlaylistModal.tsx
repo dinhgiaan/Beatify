@@ -8,7 +8,6 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  Vibration,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -44,7 +43,6 @@ export function AddToPlaylistModal({
       return;
     }
 
-    Vibration.vibrate(15);
     const nowIso = new Date().toISOString();
     const newPlaylist: Playlist = {
       id: `pl-${Date.now()}`,
@@ -74,7 +72,6 @@ export function AddToPlaylistModal({
 
     const isAlreadyIn = targetPlaylist.trackIds.includes(track.id);
 
-    Vibration.vibrate(15);
     const nowIso = new Date().toISOString();
 
     if (isAlreadyIn) {

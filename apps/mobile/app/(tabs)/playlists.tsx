@@ -8,7 +8,6 @@ import {
   TextInput,
   Alert,
   StyleSheet,
-  Vibration,
   Image,
   Keyboard,
   TouchableWithoutFeedback,
@@ -77,7 +76,6 @@ export default function PlaylistsScreen() {
 
   // Mở chi tiết playlist
   const handleOpenPlaylist = (playlist: Playlist) => {
-    Vibration.vibrate(10);
     const playlistTracks = playlist.trackIds
       .map((id) => tracksMap.get(id))
       .filter((t): t is Track => t !== undefined);
@@ -128,7 +126,6 @@ export default function PlaylistsScreen() {
 
       if (!result.canceled && result.assets && result.assets[0]?.uri) {
         setPlaylistCover(result.assets[0].uri);
-        Vibration.vibrate(10);
       }
     } catch (err) {
       Alert.alert('Không thể mở thư viện ảnh', String(err));
@@ -138,7 +135,6 @@ export default function PlaylistsScreen() {
   // Xóa ảnh bìa playlist đang chọn
   const handleRemoveCover = () => {
     setPlaylistCover(undefined);
-    Vibration.vibrate(10);
   };
 
   // Mở modal tạo mới
@@ -209,7 +205,6 @@ export default function PlaylistsScreen() {
     setPlaylistCover(undefined);
     setEditingPlaylist(null);
     setCreateModalVisible(false);
-    Vibration.vibrate(15);
   };
 
   // Xóa một playlist

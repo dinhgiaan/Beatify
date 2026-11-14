@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -67,7 +66,6 @@ export default function RecentScreen() {
   const coverColor = useCoverColor(heroTrack?.cover);
 
   const handleClearHistory = () => {
-    Vibration.vibrate(10);
     Alert.alert(
       'Xóa lịch sử nghe?',
       'Toàn bộ danh sách bài hát vừa nghe sẽ được làm trống.',
@@ -85,7 +83,6 @@ export default function RecentScreen() {
   };
 
   const handleTrackPress = (track: Track, index: number) => {
-    Vibration.vibrate(10);
     if (currentTrack?.id === track.id) {
       router.push('/now-playing');
       return;
@@ -95,14 +92,12 @@ export default function RecentScreen() {
 
   const handlePlayAll = () => {
     if (recentTracks.length === 0) return;
-    Vibration.vibrate(15);
     setIsSmartShuffle?.(false);
     playQueue(recentTracks, 0);
   };
 
   const handleShufflePlayAll = () => {
     if (recentTracks.length === 0) return;
-    Vibration.vibrate(15);
     const shuffled = smartShuffle(recentTracks);
     setIsSmartShuffle?.(true);
     playQueue(shuffled, 0);
@@ -110,7 +105,6 @@ export default function RecentScreen() {
   };
 
   const openTrackMenu = (track: Track) => {
-    Vibration.vibrate(15);
     setSelectedTrackForMenu(track);
     setMenuVisible(true);
   };
@@ -123,7 +117,6 @@ export default function RecentScreen() {
         <TouchableOpacity
           style={[styles.swipeActionBtn, styles.swipeFavBtn]}
           onPress={() => {
-            Vibration.vibrate(10);
             toggleFavorite(item.id);
           }}
           activeOpacity={0.8}
@@ -134,7 +127,6 @@ export default function RecentScreen() {
         <TouchableOpacity
           style={[styles.swipeActionBtn, styles.swipeDeleteBtn]}
           onPress={() => {
-            Vibration.vibrate(10);
             removeRecentTrack?.(item.id);
           }}
           activeOpacity={0.8}
@@ -198,7 +190,6 @@ export default function RecentScreen() {
           <TouchableOpacity
             style={styles.heroPlayCircle}
             onPress={() => {
-              Vibration.vibrate(10);
               if (isHeroCurrent) {
                 togglePlay();
               } else {

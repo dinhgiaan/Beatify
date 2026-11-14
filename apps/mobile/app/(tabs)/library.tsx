@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
-  Vibration,
   StyleSheet,
   Animated,
   Dimensions,
@@ -105,7 +104,6 @@ export default function LibraryScreen() {
   useEffect(() => {
     // Lắng nghe sự kiện nhấn giữ tab Thư viện ở đáy màn hình
     const unsubscribe = navigation.addListener('tabLongPress' as never, () => {
-      Vibration.vibrate([0, 50, 50, 50]);
       router.push('/settings');
     });
     return unsubscribe;
@@ -171,7 +169,6 @@ export default function LibraryScreen() {
   });
 
   const handleSelectSegment = (segment: LibrarySegment) => {
-    Vibration.vibrate(10);
     const idx = segment === 'songs' ? 0 : segment === 'albums' ? 1 : 2;
     segmentIndexShared.value = withSpring(idx, {
       damping: 20,
@@ -289,7 +286,6 @@ export default function LibraryScreen() {
   });
 
   const handleHotReload = async () => {
-    Vibration.vibrate(20);
     try {
       await syncLibrary({ force: true });
     } catch {
@@ -454,7 +450,6 @@ export default function LibraryScreen() {
 
   const handleShufflePlayAll = () => {
     if (filteredTracks.length === 0) return;
-    Vibration.vibrate(15);
     const shuffled = smartShuffle(filteredTracks);
     if (activeFilter === 'all') {
       setTracks(shuffled);
@@ -465,7 +460,6 @@ export default function LibraryScreen() {
 
   const handlePlayAll = () => {
     if (filteredTracks.length === 0) return;
-    Vibration.vibrate(15);
     setIsSmartShuffle(false);
     playQueue(filteredTracks, 0);
   };
@@ -560,7 +554,6 @@ export default function LibraryScreen() {
         style={styles.albumItem}
         activeOpacity={0.7}
         onPress={() => {
-          Vibration.vibrate(10);
           setSelectedCollection({
             visible: true,
             title: albumTitle,
@@ -597,7 +590,6 @@ export default function LibraryScreen() {
         style={styles.artistCard}
         activeOpacity={0.75}
         onPress={() => {
-          Vibration.vibrate(10);
           setSelectedCollection({
             visible: true,
             title: item.artist,
@@ -689,7 +681,6 @@ export default function LibraryScreen() {
                     isSelected ? styles.filterPillSelected : styles.filterPillUnselected,
                   ]}
                   onPress={() => {
-                    Vibration.vibrate(8);
                     updatePillIndicator(filter.id, true);
                     setActiveFilter(filter.id);
                   }}
@@ -856,7 +847,6 @@ export default function LibraryScreen() {
                   <TouchableOpacity
                     style={styles.resetFilterButton}
                     onPress={() => {
-                      Vibration.vibrate(8);
                       setActiveFilter('all');
                     }}
                     activeOpacity={0.7}

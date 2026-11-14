@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
-import { Vibration, AppState, Alert } from 'react-native';
+import { AppState, Alert } from 'react-native';
 import {
   type Track,
   smartShuffle,
@@ -345,7 +345,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playNext = useCallback(
     async (track: Track) => {
-      Vibration.vibrate(10);
       if (isOffline && !getOfflineAudioUri(track.id)) {
         Alert.alert(
           'Chưa tải bài hát',
@@ -386,7 +385,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   const togglePlay = useCallback(async () => {
-    Vibration.vibrate(10);
     if (playerState.isPlaying) {
       await playerService.pause();
     } else {
@@ -410,7 +408,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [playerState.isPlaying, playerState.activeTrackId, queueTracks, currentTrackIndex, playQueue, isOffline, getOfflineAudioUri]);
 
   const next = useCallback(async () => {
-    Vibration.vibrate(10);
     if (customLoopTarget !== null) {
       setCustomLoopTarget(null);
       setCustomLoopRemaining(null);
@@ -422,7 +419,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queueTracks.length, customLoopTarget]);
 
   const previous = useCallback(async () => {
-    Vibration.vibrate(10);
     if (customLoopTarget !== null) {
       setCustomLoopTarget(null);
       setCustomLoopRemaining(null);
@@ -434,7 +430,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queueTracks.length, customLoopTarget]);
 
   const skipToTrack = useCallback(async (index: number) => {
-    Vibration.vibrate(10);
     if (customLoopTarget !== null) {
       setCustomLoopTarget(null);
       setCustomLoopRemaining(null);
@@ -448,7 +443,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [playerState.activeTrackId, queueTracks, playQueue, customLoopTarget]);
 
   const seekOffset = useCallback(async (secondsOffset: number) => {
-    Vibration.vibrate(10);
     const currTrack = queueTracks[currentTrackIndex];
     const totalSec = Math.max(0, isFinite(playerState.durationSec) && playerState.durationSec > 0 ? playerState.durationSec : (currTrack?.duration ?? 0));
     const pos = isFinite(playerState.positionSec) ? playerState.positionSec : 0;
@@ -459,13 +453,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queueTracks, currentTrackIndex, playerState.durationSec, playerState.positionSec]);
 
   const seekTo = useCallback(async (seconds: number) => {
-    Vibration.vibrate(10);
     const safeSec = !isFinite(seconds) || isNaN(seconds) || seconds < 0 ? 0 : seconds;
     await playerService.seekTo(safeSec);
   }, []);
 
   const cycleRepeat = useCallback(async () => {
-    Vibration.vibrate(10);
     if (customLoopTarget !== null) {
       setCustomLoopTarget(null);
       setCustomLoopRemaining(null);
@@ -481,7 +473,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [repeatMode, customLoopTarget]);
 
   const setCustomLoopCount = useCallback(async (count: number | null) => {
-    Vibration.vibrate(10);
     if (count === null || count <= 0) {
       setCustomLoopTarget(null);
       setCustomLoopRemaining(null);
@@ -498,7 +489,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleVinylMode = useCallback(() => {
-    Vibration.vibrate(12);
     setIsVinylMode((prev) => {
       const nextVal = !prev;
       saveVinylModePreference(nextVal).catch(() => { });
@@ -507,7 +497,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleSmartShuffle = useCallback(async () => {
-    Vibration.vibrate(10);
     if (queueTracks.length === 0) return;
 
     if (!isSmartShuffle) {
@@ -532,7 +521,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queueTracks, currentTrackIndex, isSmartShuffle, originalTracks, setOriginalTracks]);
 
   const applySortMode = useCallback((mode: TrackSortMode) => {
-    Vibration.vibrate(10);
     setSortMode(mode);
     const sorted = sortTracksByMode(queueTracks, mode);
     setActiveQueue(sorted);
@@ -566,7 +554,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Xóa bài hát khỏi hàng đợi phát hiện tại
   const removeFromQueue = useCallback(async (index: number) => {
-    Vibration.vibrate(10);
     if (index < 0 || index >= queueTracks.length) return;
     const remaining = queueTracks.filter((_, idx) => idx !== index);
 
@@ -602,7 +589,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       ) {
         return;
       }
-      Vibration.vibrate(10);
       const updated = [...queueTracks];
       const [moved] = updated.splice(fromIndex, 1);
       if (!moved) return;
@@ -627,7 +613,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const sleepTimerTargetMsRef = useRef<number | null>(null);
 
   const setSleepTimer = useCallback((minutes: number | null) => {
-    Vibration.vibrate(10);
     if (minutes === null || minutes <= 0) {
       sleepTimerTargetMsRef.current = null;
       setSleepTimerMinutes(null);
@@ -658,7 +643,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setSleepTimerRemainingSec(null);
         sleepTimerTargetMsRef.current = null;
         playerService.updateLockScreenTimer?.(null);
-        Vibration.vibrate([0, 100, 50, 100]);
       } else {
         const remainingSec = Math.ceil(diffMs / 1000);
         setSleepTimerRemainingSec(remainingSec);
@@ -702,7 +686,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Cập nhật giới hạn số lượng bài nghe gần đây
   const setRecentLimit = useCallback(async (limit: number) => {
-    Vibration.vibrate(10);
     setRecentTracksData((prev) => {
       const updated = updateRecentLimit(limit, prev);
       saveRecentTracks(updated).catch(() => { });
@@ -712,7 +695,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Xóa danh sách bài nghe gần đây
   const clearRecentTracks = useCallback(async () => {
-    Vibration.vibrate(10);
     setRecentTracksData((prev) => {
       const updated = { ...prev, trackIds: [] };
       saveRecentTracks(updated).catch(() => { });
@@ -722,7 +704,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Xóa một bài khỏi danh sách nghe gần đây
   const removeRecentTrack = useCallback(async (trackId: string) => {
-    Vibration.vibrate(5);
     setRecentTracksData((prev) => {
       const updated = removeTrackFromRecentList(trackId, prev);
       saveRecentTracks(updated).catch(() => { });

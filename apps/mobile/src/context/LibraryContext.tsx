@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Linking, Vibration, Alert, AppState } from 'react-native';
+import { Linking, Alert, AppState } from 'react-native';
 import {
   type Track,
   type Album,
@@ -464,7 +464,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
               JSON.stringify({ serverUrl: cleanUrl })
             ).catch((e) => console.warn('Lỗi ghi file cấu hình server:', e));
 
-            Vibration.vibrate([0, 80, 50, 80]);
             Alert.alert(
               'Kết nối thành công!',
               `Đã nhận cấu hình máy chủ từ mã QR của Beatify Dashboard:\n\nServer: ${cleanUrl}\n\nĐang tự động đồng bộ thư viện nhạc...`
@@ -528,7 +527,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   // 6. Toggle Favorite
   const toggleFavorite = useCallback(async (trackId: string) => {
-    Vibration.vibrate(10);
     await updateUserState((prev) => {
       const isFav = prev.favoriteIds.includes(trackId);
       return {

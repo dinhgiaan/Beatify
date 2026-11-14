@@ -1,5 +1,9 @@
 import React from 'react';
+import { Vibration } from 'react-native';
 import { Stack } from 'expo-router';
+
+// Vô hiệu hóa rung toàn cục theo yêu cầu người dùng
+Vibration.vibrate = () => {};
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

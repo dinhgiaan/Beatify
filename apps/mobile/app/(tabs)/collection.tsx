@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Vibration,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -100,7 +99,6 @@ function SpringCard({
       }, [userState.favoriteIds, tracksMap]);
 
       const handleOpenFavorites = () => {
-          Vibration.vibrate(10);
           setSelectedCollection({
             visible: true,
             title: 'Bài hát yêu thích',
@@ -157,7 +155,6 @@ function SpringCard({
         <SpringCard
           style={[styles.collectionCard, styles.offlineCard]}
           onPress={() => {
-            Vibration.vibrate(10);
             setOfflineModalVisible(true);
           }}
         >

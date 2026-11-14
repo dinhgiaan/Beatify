@@ -1,13 +1,8 @@
-import * as Haptics from 'expo-haptics';
-
 /**
- * Kích hoạt rung phản hồi xúc giác nhẹ (Haptics) khi tương tác UI chuẩn iOS
+ * Vô hiệu hóa rung phản hồi xúc giác (Haptics) trên toàn app theo yêu cầu người dùng
  */
 export function triggerSelectionHaptic(): void {
-  try {
-    void Haptics.selectionAsync();
-  } catch {
-    // Bỏ qua nếu thiết bị không hỗ trợ hoặc chạy trên môi trường test
-  }
+  // Đã tắt rung hoàn toàn
 }
+
 

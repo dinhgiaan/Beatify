@@ -8,7 +8,6 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   StyleSheet,
-  Vibration,
   ActivityIndicator,
   Animated,
   type StyleProp,
@@ -213,7 +212,6 @@ export default function SearchScreen() {
   }, []);
 
   const handleTrackPress = (item: Track, queueContext: Track[]) => {
-    Vibration.vibrate(10);
     recordToHistory(item.id);
 
     if (currentTrack?.id === item.id) {
@@ -237,13 +235,11 @@ export default function SearchScreen() {
   };
 
   const handleClearAllHistory = () => {
-    Vibration.vibrate(10);
     setHistoryData({ trackIds: [] });
     clearSearchHistory();
   };
 
   const handleRemoveHistoryItem = (trackId: string) => {
-    Vibration.vibrate(5);
     setHistoryData((prev) => {
       const next = removeTrackFromSearchHistory(trackId, prev);
       saveSearchHistory(next);
@@ -252,7 +248,6 @@ export default function SearchScreen() {
   };
 
   const openTrackMenu = (track: Track) => {
-    Vibration.vibrate(15);
     setSelectedTrackForMenu(track);
     setMenuVisible(true);
   };
@@ -467,7 +462,6 @@ export default function SearchScreen() {
                           <TouchableOpacity
                             style={styles.artistChip}
                             onPress={() => {
-                              Vibration.vibrate(5);
                               setRawQuery(artist);
                             }}
                             activeOpacity={0.75}
