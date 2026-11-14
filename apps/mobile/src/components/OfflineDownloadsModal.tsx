@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import type { Track } from '@music-app/shared';
+import { type Track, smartShuffle } from '@music-app/shared';
 import { tokens } from '../theme/tokens';
 import { useOffline, usePlayer } from '../context';
 import { formatBytes } from '../services/offline/offlineStorage';
@@ -163,7 +163,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   const handleShufflePlay = () => {
     if (offlineTracks.length === 0) return;
     triggerSelectionHaptic();
-    const shuffled = [...offlineTracks].sort(() => Math.random() - 0.5);
+    const shuffled = smartShuffle(offlineTracks);
     playQueue(shuffled, 0);
   };
 

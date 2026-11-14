@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ import {
   EditIcon,
 } from '../../src/components/icons/SvgIcons';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
+import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
 
 export default function PlaylistsScreen() {
   const insets = useSafeAreaInsets();
@@ -62,6 +63,8 @@ export default function PlaylistsScreen() {
   const [playlistTitle, setPlaylistTitle] = useState('');
   const [playlistDesc, setPlaylistDesc] = useState('');
   const [playlistCover, setPlaylistCover] = useState<string | undefined>(undefined);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   // Map nhanh trackId -> Track
   const tracksMap = useMemo(() => {
@@ -313,9 +316,14 @@ export default function PlaylistsScreen() {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={userState.playlists}
         keyExtractor={(item) => item.id}
         renderItem={renderPlaylistItem}
+        onScroll={(e) => {
+          setShowScrollTop(e.nativeEvent.contentOffset.y > 350);
+        }}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: contentPaddingBottom },
@@ -449,6 +457,14 @@ export default function PlaylistsScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Nút cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống */}
+      <ScrollToTopButton
+        visible={showScrollTop}
+        onPress={() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
+      />
     </View>
   );
 }

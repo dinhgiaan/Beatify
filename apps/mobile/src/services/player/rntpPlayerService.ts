@@ -17,6 +17,7 @@ export class RntpPlayerService implements IPlayerService {
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
   private currentTracks: Track[] = [];
+  private currentLockScreenTimerText: string | null = null;
   private listeners: Set<(state: PlayerState) => void> = new Set();
   private lastTrackEndTime: number | null = null;
   private gaplessDeltaMs: number | null = null;
@@ -60,6 +61,9 @@ export class RntpPlayerService implements IPlayerService {
             TrackPlayer.setVolume(volume);
           }
           transitionManager.updateQueue(this.currentTracks, event.item.mediaId);
+          if (this.currentLockScreenTimerText) {
+            this.updateLockScreenTimer(this.currentLockScreenTimerText);
+          }
         }
         this.notifyListeners();
       });
@@ -252,6 +256,7 @@ export class RntpPlayerService implements IPlayerService {
    * Cập nhật hiển thị thời gian đếm ngược hẹn giờ (Sleep Timer) kín đáo ở góc ngoài màn hình khóa (Lock Screen)
    */
   updateLockScreenTimer(timerText: string | null): void {
+    this.currentLockScreenTimerText = timerText;
     try {
       const activeItem = TrackPlayer.getActiveMediaItem();
       if (!activeItem) return;

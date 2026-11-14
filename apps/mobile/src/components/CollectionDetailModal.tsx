@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import type { Track } from '@music-app/shared';
+import { type Track, smartShuffle } from '@music-app/shared';
 import {
   colors,
   spacing,
@@ -88,8 +88,8 @@ export function CollectionDetailModal({
 
   const handleShufflePlay = () => {
     if (tracks.length === 0) return;
-    // Shuffle chỉ các bài trong collection này, không phải toàn thư viện
-    const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+    // Shuffle công bằng (Uniform Random Distribution) chỉ các bài trong collection này
+    const shuffled = smartShuffle(tracks);
     playQueue(shuffled, 0);
   };
 

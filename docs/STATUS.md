@@ -69,7 +69,14 @@
     - **Hiển thị Timer ngoài Lock Screen:** Cập nhật thông tin đếm ngược kín đáo ở góc ngoài màn hình khóa (`Tên Album • ⏳ mm:ss`) qua `TrackPlayer.updateMetadata` mà không ngắt nhạc.
     - **Tối ưu tốc độ chuyển bài:** Tối ưu hóa `playQueue` dùng `skipToIndex` khi chuyển bài trong cùng một queue, giảm độ trễ từ ~800ms xuống dưới 100ms tức thì.
     - **Xử lý mạng thông minh:** Thay thế log lỗi kỹ thuật thô bằng `NetworkStatusBanner` chuyển động dạng Dynamic Island; tự động thăm dò và đồng bộ ngầm ngay khi có mạng trở lại mà người dùng không cần reload thủ công.
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất 9 hạng mục nâng cấp & tinh chỉnh trải nghiệm Mobile App)
+12. **Rà soát & Kiểm thử toàn diện toàn bộ Mobile App (Comprehensive Code & Logic Audit):**
+    - Rà soát chi tiết tất cả các màn hình chính (`library.tsx`, `search.tsx`, `collection.tsx`, `recent.tsx`, `playlists.tsx`, `now-playing.tsx`, `settings/*`).
+    - Bổ sung `ScrollToTopButton` đồng bộ trên tab `playlists.tsx` khi danh sách playlist dài.
+    - Áp dụng thuật toán `smartShuffle` phân bổ đồng đều công bằng cho nút "Xáo trộn" trong `CollectionDetailModal` và `OfflineDownloadsModal`.
+    - Tối ưu `rntpPlayerService`: tự động lưu và cập nhật ngay lập tức metadata hẹn giờ ngủ (Lock Screen Timer) khi bài hát tự chuyển sang bài mới mà không cần đợi chu kỳ đếm giây tiếp theo.
+    - Xác nhận giải phóng 100% dung lượng iPhone khi xóa nhạc offline (`FileSystem.deleteAsync`).
+    - Kiểm thử tự động: `pnpm typecheck` PASS 5/5 packages, `pnpm lint` 0 lỗi, `pnpm test` PASS 272/272 tests toàn monorepo.
+**Cập nhật lần cuối:** 2026-11-14 (Rà soát toàn diện và tối ưu hóa logic Mobile App)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
