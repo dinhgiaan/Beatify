@@ -124,7 +124,6 @@ vi.mock('./transitionManager', () => ({
 import {
   downloadTrackOffline,
   loadOfflineIndex,
-  saveOfflineIndex,
   type OfflineIndex,
 } from './offlineStorage';
 import { RntpPlayerService } from '../player/rntpPlayerService';
