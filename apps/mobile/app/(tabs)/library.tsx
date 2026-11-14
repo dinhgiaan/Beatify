@@ -10,6 +10,7 @@ import {
   Vibration,
   StyleSheet,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
@@ -143,7 +144,8 @@ export default function LibraryScreen() {
     activeSegment === 'songs' ? 0 : activeSegment === 'albums' ? 1 : 2;
 
   const segmentIndexShared = useSharedValue(segmentIndex);
-  const segmentBarWidthShared = useSharedValue(0);
+  const screenWidth = Dimensions.get('window').width;
+  const segmentBarWidthShared = useSharedValue(Math.max(screenWidth - 32, 300));
 
   useEffect(() => {
   segmentIndexShared.value = withSpring(segmentIndex, {

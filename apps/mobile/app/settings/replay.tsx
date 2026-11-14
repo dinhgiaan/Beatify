@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -75,7 +76,8 @@ export default function ReplayScreen() {
 
   const activeTabIdx = REPLAY_TABS.findIndex((t) => t.key === activeTab);
   const activeTabShared = useSharedValue(activeTabIdx >= 0 ? activeTabIdx : 0);
-  const barWidthShared = useSharedValue(0);
+  const screenWidth = Dimensions.get('window').width;
+  const barWidthShared = useSharedValue(Math.max(screenWidth - 32, 300));
 
   useEffect(() => {
     const idx = REPLAY_TABS.findIndex((t) => t.key === activeTab);

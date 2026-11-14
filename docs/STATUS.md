@@ -150,7 +150,11 @@
     - Thay thế `icon.png` bằng thiết kế Phương án 1 (Apple Minimalist Neon) độ phân giải 1024×1024.
     - Nền đen tuyền tràn viền 100%, xóa bỏ hoàn toàn khung bo góc nhân tạo bên trong, cho phép iOS tự động cắt bo góc Apple Squircle đồng bộ hoàn hảo với các app lớn (Twitter, Threads, Claude).
     - Dọn dẹp sạch sẽ toàn bộ các file ảnh preview tạm.
-**Cập nhật lần cuối:** 2026-11-14 (Cập nhật App Icon mới chuẩn Full-bleed Apple iOS)
+21. **Khắc phục Triệt để Lỗi UI/UX Bộ sưu tập & Bảo đảm Kích hoạt 100% Animation Background Active:**
+    - **Sửa lỗi vỡ layout trang Bộ sưu tập (`collection.tsx`):** Chuyển style container `styles.collectionCard` trực tiếp vào `Pressable` thay vì bao bọc bên ngoài `Animated.View`, trả lại layout chuẩn `flexDirection: 'row'`, đưa icon trái tim / icon tải về, thông tin bài và mũi tên chuyển trang về đúng hàng ngang, khôi phục hiệu ứng ánh sáng nền `cardGlowGreen` và khối `hintBox` "Nghe nhạc không cần mạng".
+    - **Đảm bảo Animation trượt không bao giờ biến mất:** Khởi tạo giá trị ban đầu cho các shared value kích thước (`dockWidthShared`, `segmentBarWidthShared`, `barWidthShared`, `containerWidthShared`) từ `Dimensions.get('window').width` ngay Frame 0, loại bỏ triệt để hiện tượng `opacity = 0` hoặc kẹt layout trên iOS New Architecture.
+    - **Tăng độ sắc nét viên thuốc trượt Tab Bar (`_layout.tsx`):** Nâng độ tương phản viền và nền (`rgba(29, 185, 84, 0.22)`, border 1.5px) giúp viên thuốc trượt hiển thị rõ nét, mượt mà chuẩn 60/120fps.
+**Cập nhật lần cuối:** 2026-11-14 (Sửa triệt để layout Bộ sưu tập & Kích hoạt toàn bộ animation ngay Frame 0)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

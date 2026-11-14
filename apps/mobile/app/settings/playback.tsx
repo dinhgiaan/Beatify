@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -32,7 +33,8 @@ export default function PlaybackSettingsScreen() {
 
   const activeIdx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);
   const activeIndexShared = useSharedValue(activeIdx >= 0 ? activeIdx : 2);
-  const containerWidthShared = useSharedValue(0);
+  const screenWidth = Dimensions.get('window').width;
+  const containerWidthShared = useSharedValue(Math.max(screenWidth - 64, 260));
 
   useEffect(() => {
     const idx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);

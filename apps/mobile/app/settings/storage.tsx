@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -28,7 +29,8 @@ export default function StorageSettingsScreen() {
 
   const currentLimitIdx = LIMIT_OPTIONS.indexOf(recentLimit as (typeof LIMIT_OPTIONS)[number]);
   const activeIndexShared = useSharedValue(currentLimitIdx >= 0 ? currentLimitIdx : 0);
-  const containerWidthShared = useSharedValue(0);
+  const screenWidth = Dimensions.get('window').width;
+  const containerWidthShared = useSharedValue(Math.max(screenWidth - 64, 260));
 
   useEffect(() => {
     const idx = LIMIT_OPTIONS.indexOf(recentLimit as (typeof LIMIT_OPTIONS)[number]);

@@ -48,7 +48,7 @@ function SpringCard({
   }));
 
   return (
-    <Animated.View style={[style, animStyle]}>
+    <Animated.View style={animStyle}>
       <Pressable
         onPressIn={() => {
           scale.value = withSpring(0.965, { damping: 16, stiffness: 280 });
@@ -57,7 +57,7 @@ function SpringCard({
           scale.value = withSpring(1, { damping: 16, stiffness: 280 });
         }}
         onPress={onPress}
-        style={{ width: '100%' }}
+        style={style}
       >
         {children}
       </Pressable>
@@ -114,6 +114,11 @@ export default function CollectionScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Brand Header */}
       <View style={styles.header}>
+        <View style={styles.brandRow}>
+          <View style={styles.brandBadge}>
+            <Text style={styles.brandBadgeText}>BEATIFY</Text>
+          </View>
+        </View>
         <Text style={styles.headerTitle}>Bộ sưu tập</Text>
         <Text style={styles.headerSubtitle}>
           Kho lưu trữ bài hát yêu thích và bản nhạc ngoại tuyến của bạn
@@ -127,7 +132,7 @@ export default function CollectionScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-          {/* Card 1: Bài hát yêu thích với hiệu ứng nhún lò xo phản hồi chạm */}
+        {/* Card 1: Bài hát yêu thích với hiệu ứng nhún lò xo phản hồi chạm */}
         <SpringCard
           style={styles.collectionCard}
           onPress={handleOpenFavorites}
@@ -145,48 +150,55 @@ export default function CollectionScreen() {
           <View style={styles.cardArrow}>
             <Text style={styles.arrowText}>→</Text>
           </View>
-      </SpringCard>
+        </SpringCard>
 
         {/* Card 2: Đã tải về máy (Offline) với hiệu ứng nhún lò xo phản hồi chạm */}
         <SpringCard
-        style={[styles.collectionCard, styles.offlineCard]}
-        onPress={() => {
-          Vibration.vibrate(10);
-          setOfflineModalVisible(true);
-        }}
-      >
-        <View style={styles.iconCircleDownload}>
-          <DownloadIcon size={26} color={colors.primary} />
-        </View>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>Đã tải về máy</Text>
-          <Text style={styles.cardDesc}>
-            {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)} đã lưu
+          style={[styles.collectionCard, styles.offlineCard]}
+          onPress={() => {
+            Vibration.vibrate(10);
+            setOfflineModalVisible(true);
+          }}
+        >
+          <View style={styles.iconCircleDownload}>
+            <DownloadIcon size={26} color={colors.primary} />
+          </View>
+          <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle}>Đã tải về máy</Text>
+            <Text style={styles.cardDesc}>
+              {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)} đã lưu
+            </Text>
+          </View>
+          <View style={styles.cardArrow}>
+            <Text style={styles.arrowText}>→</Text>
+          </View>
+        </SpringCard>
+
+        {/* Gợi ý tính năng */}
+        <View style={styles.hintBox}>
+          <Text style={styles.hintTitle}>Nghe nhạc không cần mạng</Text>
+          <Text style={styles.hintDesc}>
+            Các bài hát đã tải về máy sẽ được lưu trữ an toàn trong bộ nhớ máy. Khi ra ngoài không có Wi-Fi hoặc 4G, bạn vẫn có thể mở phát nhạc mượt mà.
           </Text>
         </View>
-        <View style={styles.cardArrow}>
-          <Text style={styles.arrowText}>→</Text>
-        </View>
-    </SpringCard>
-      </ScrollView >
+      </ScrollView>
 
-    {/* Modal chi tiết bài hát yêu thích */ }
-    < CollectionDetailModal
-  visible = { selectedCollection.visible }
-  onClose = {() => setSelectedCollection((prev) => ({ ...prev, visible: false }))
-}
-title = { selectedCollection.title }
-subtitle = { selectedCollection.subtitle }
-tracks = { selectedCollection.tracks }
-type = { selectedCollection.type }
-  />
-
-  {/* Modal quản lý tải offline */ }
-  < OfflineDownloadsModal
-visible = { offlineModalVisible }
-onClose = {() => setOfflineModalVisible(false)}
+      {/* Modal chi tiết bài hát yêu thích */}
+      <CollectionDetailModal
+        visible={selectedCollection.visible}
+        onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
+        title={selectedCollection.title}
+        subtitle={selectedCollection.subtitle}
+        tracks={selectedCollection.tracks}
+        type={selectedCollection.type}
       />
-    </View >
+
+      {/* Modal quản lý tải offline */}
+      <OfflineDownloadsModal
+        visible={offlineModalVisible}
+        onClose={() => setOfflineModalVisible(false)}
+      />
+    </View>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -49,7 +49,9 @@ function getTabIcon(routeName: string, color: string) {
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
-  const dockWidthShared = useSharedValue(0);
+  const screenWidth = Dimensions.get('window').width;
+  const initialDockWidth = Math.min(screenWidth * 0.95, 410);
+  const dockWidthShared = useSharedValue(initialDockWidth);
   const activeIndex = useSharedValue(state.index);
 
   useEffect(() => {
@@ -254,9 +256,9 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     height: 42,
-    backgroundColor: 'rgba(29, 185, 84, 0.16)',
-    borderColor: 'rgba(29, 185, 84, 0.45)',
-    borderWidth: 1,
+    backgroundColor: 'rgba(29, 185, 84, 0.22)',
+    borderColor: 'rgba(29, 185, 84, 0.55)',
+    borderWidth: 1.5,
     borderRadius: radius.pill,
     zIndex: 1,
   },
