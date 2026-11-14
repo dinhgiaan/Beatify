@@ -7,6 +7,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { radius } from '../../theme';
+import { logTabDebug } from '../../utils/debugLogger';
 
 export const DOCK_BORDER_WIDTH = 1;
 
@@ -17,7 +18,7 @@ export interface TabIndicatorProps {
 }
 
 const logTranslateX = (val: number) => {
-  console.log('[TabIndicator] translateX =', val);
+  logTabDebug('[TabIndicator] translateX =', Math.round(val * 100) / 100);
 };
 
 /**

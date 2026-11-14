@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Share,
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ import { useLibrary, usePlayer } from '../../src/context';
 import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
 import { CheckIcon } from '../../src/components/icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
+import { getTabDebugLogs, clearTabDebugLogs } from '../../src/utils/debugLogger';
 
 export default function AdvancedSettingsScreen() {
   const router = useRouter();
@@ -229,6 +231,33 @@ export default function AdvancedSettingsScreen() {
           description="Xóa bộ nhớ đệm và nạp lại toàn bộ kho nhạc"
           onPress={handleClearCache}
           disabled={isSyncing}
+        />
+      </ListGroup>
+
+      {/* CHẨN ĐOÁN & NHẬT KÝ TAB BAR */}
+      <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ TAB BAR" />
+      <ListGroup>
+        <SettingRow
+          label="Sao chép / Chia sẻ Log Tab Bar"
+          description="Lấy toàn bộ log layout & translateX để gửi chẩn đoán"
+          onPress={() => {
+            triggerSelectionHaptic();
+            const logs = getTabDebugLogs();
+            if (!logs) {
+              Alert.alert('Chưa có log', 'Hãy chuyển qua lại các tab ở màn hình chính trước để ghi nhận dữ liệu.');
+              return;
+            }
+            Share.share({ message: logs, title: 'Beatify TabBar Debug Logs' }).catch(() => {});
+          }}
+        />
+        <SettingRow
+          label="Xóa bộ nhớ Log Tab Bar"
+          description="Làm sạch bộ nhớ đệm log để đo lại từ đầu"
+          onPress={() => {
+            triggerSelectionHaptic();
+            clearTabDebugLogs();
+            Alert.alert('Đã xóa', 'Bộ nhớ đệm log Tab Bar đã được làm sạch.');
+          }}
         />
       </ListGroup>
 

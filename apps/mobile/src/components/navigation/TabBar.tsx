@@ -8,6 +8,7 @@ import { MiniPlayer } from '../player/MiniPlayer';
 import { TabIndicator, DOCK_BORDER_WIDTH } from './TabIndicator';
 import { TabBarItem, type TabRoute } from './TabBarItem';
 import { radius } from '../../theme';
+import { logTabDebug } from '../../utils/debugLogger';
 
 export type BottomTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -32,7 +33,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Callback nhận tọa độ thực tế khi tab hoàn tất onLayout
   const handleTabLayout = (index: number, x: number, width: number) => {
     // Log debug tạm thời để kiểm tra tọa độ
-    console.log('[TabBar] layout', index, x, width, 'activeIndex=', state.index);
+    logTabDebug('[TabBar] layout', index, x, width, 'activeIndex=', state.index);
     tabLayoutsRef.current[index] = { x, width };
 
     // Nếu là tab đang active
@@ -53,7 +54,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Khi chuyển tab (state.index đổi) -> animate mượt mà sang tab mới
   useEffect(() => {
-    console.log('[TabBar] effect', state.index, JSON.stringify(tabLayoutsRef.current));
+    logTabDebug('[TabBar] effect', state.index, JSON.stringify(tabLayoutsRef.current));
     const targetLayout = tabLayoutsRef.current[state.index];
     if (targetLayout) {
       if (!hasInitializedRef.current) {
