@@ -8,7 +8,6 @@ import { MiniPlayer } from '../player/MiniPlayer';
 import { TabIndicator, DOCK_BORDER_WIDTH } from './TabIndicator';
 import { TabBarItem, type TabRoute } from './TabBarItem';
 import { radius } from '../../theme';
-import { logTabDebug } from '../../utils/debugLogger';
 
 export type BottomTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -21,9 +20,10 @@ export type BottomTabBarProps = Parameters<
  *   không bị hệ thống iOS (chế độ tiết kiệm pin / trợ năng) cắt bỏ thành nhảy tức thì.
  */
 export const TAB_SPRING_CONFIG = {
-  damping: 18,
-  stiffness: 120,
-  mass: 0.8,
+  damping: 24,
+  stiffness: 220,
+  mass: 0.6,
+  overshootClamping: true,
   reduceMotion: ReduceMotion.Never,
 };
 
@@ -42,10 +42,10 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Lưu tọa độ x và width thực tế của từng tab item
   const tabLayoutsRef = useRef<{ [index: number]: { x: number; width: number } }>({});
   const hasInitializedRef = useRef(false);
+  const currentTabRef = useRef(state.index);
 
   // Callback nhận tọa độ thực tế khi tab hoàn tất onLayout
   const handleTabLayout = (index: number, x: number, width: number) => {
-    logTabDebug('[TabBar] layout', index, x, width, 'activeIndex=', state.index);
     tabLayoutsRef.current[index] = { x, width };
 
     // Nếu là tab đang active
@@ -64,9 +64,14 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     }
   };
 
-  // Đồng bộ vị trí khi state.index đổi (ví dụ deep link hoặc router.replace)
+  // Đồng bộ vị trí khi state.index đổi từ bên ngoài (ví dụ deep link hoặc router.replace)
   useEffect(() => {
-    logTabDebug('[TabBar] effect', state.index, JSON.stringify(tabLayoutsRef.current));
+    // Nếu tab đã được kích hoạt trượt bởi onPress rồi thì bỏ qua để không trigger đè spring
+    if (currentTabRef.current === state.index && hasInitializedRef.current) {
+      return;
+    }
+    currentTabRef.current = state.index;
+
     const targetLayout = tabLayoutsRef.current[state.index];
     if (targetLayout) {
       if (!hasInitializedRef.current) {
@@ -76,7 +81,11 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         hasInitializedRef.current = true;
       } else {
         indicatorX.value = withSpring(targetLayout.x, TAB_SPRING_CONFIG);
-        indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
+        if (Math.abs(indicatorWidth.value - targetLayout.width) > 1) {
+          indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
+        } else {
+          indicatorWidth.value = targetLayout.width;
+        }
       }
     }
   }, [state.index, indicatorX, indicatorWidth, indicatorOpacity]);
@@ -119,8 +128,13 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 // không chờ chu kỳ re-render / useEffect của React
                 const targetLayout = tabLayoutsRef.current[index];
                 if (targetLayout) {
+                  currentTabRef.current = index;
                   indicatorX.value = withSpring(targetLayout.x, TAB_SPRING_CONFIG);
-                  indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
+                  if (Math.abs(indicatorWidth.value - targetLayout.width) > 1) {
+                    indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
+                  } else {
+                    indicatorWidth.value = targetLayout.width;
+                  }
                 }
               }
 
