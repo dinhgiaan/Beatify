@@ -18,7 +18,7 @@ export interface TabIndicatorProps {
 }
 
 const logTranslateX = (val: number) => {
-  logTabDebug('[TabIndicator] translateX =', Math.round(val * 100) / 100);
+  logTabDebug('[TabIndicator] translateX =', Math.round(val * 10) / 10);
 };
 
 /**
@@ -27,7 +27,7 @@ const logTranslateX = (val: number) => {
  */
 export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) {
   useAnimatedReaction(
-    () => translateX.value,
+    () => Math.round(translateX.value * 10) / 10,
     (current, previous) => {
       if (current !== previous) {
         runOnJS(logTranslateX)(current);

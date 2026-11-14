@@ -23,3 +23,4 @@ export function getTabDebugLogs(): string {
 export function clearTabDebugLogs(): void {
   tabDebugLogs.length = 0;
 }
+

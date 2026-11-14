@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useSharedValue, withSpring } from 'react-native-reanimated';
+import { useSharedValue, withSpring, ReduceMotion } from 'react-native-reanimated';
 import type { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -13,6 +13,19 @@ import { logTabDebug } from '../../utils/debugLogger';
 export type BottomTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
 >[0];
+
+/**
+ * Cấu hình spring chuẩn iOS Liquid Glass:
+ * - damping 18, stiffness 120, mass 0.8: độ trôi và nẩy nhẹ nhàng, rõ ràng
+ * - reduceMotion: ReduceMotion.Never: bắt buộc chạy đầy đủ các frame animation,
+ *   không bị hệ thống iOS (chế độ tiết kiệm pin / trợ năng) cắt bỏ thành nhảy tức thì.
+ */
+export const TAB_SPRING_CONFIG = {
+  damping: 18,
+  stiffness: 120,
+  mass: 0.8,
+  reduceMotion: ReduceMotion.Never,
+};
 
 /**
  * TabBar: Thanh điều hướng nổi dạng Liquid Glass Capsule chuẩn iOS
@@ -32,7 +45,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Callback nhận tọa độ thực tế khi tab hoàn tất onLayout
   const handleTabLayout = (index: number, x: number, width: number) => {
-    // Log debug tạm thời để kiểm tra tọa độ
     logTabDebug('[TabBar] layout', index, x, width, 'activeIndex=', state.index);
     tabLayoutsRef.current[index] = { x, width };
 
@@ -52,7 +64,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     }
   };
 
-  // Khi chuyển tab (state.index đổi) -> animate mượt mà sang tab mới
+  // Đồng bộ vị trí khi state.index đổi (ví dụ deep link hoặc router.replace)
   useEffect(() => {
     logTabDebug('[TabBar] effect', state.index, JSON.stringify(tabLayoutsRef.current));
     const targetLayout = tabLayoutsRef.current[state.index];
@@ -63,16 +75,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         indicatorOpacity.value = 1;
         hasInitializedRef.current = true;
       } else {
-        indicatorX.value = withSpring(targetLayout.x, {
-          damping: 20,
-          stiffness: 180,
-          mass: 0.8,
-        });
-        indicatorWidth.value = withSpring(targetLayout.width, {
-          damping: 20,
-          stiffness: 180,
-          mass: 0.8,
-        });
+        indicatorX.value = withSpring(targetLayout.x, TAB_SPRING_CONFIG);
+        indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
       }
     }
   }, [state.index, indicatorX, indicatorWidth, indicatorOpacity]);
@@ -110,6 +114,14 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               if (!isFocused) {
                 // Rung phản hồi nhẹ chuẩn iOS
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+                // Kích hoạt animation trượt ngay lập tức tại khoảnh khắc ngón tay chạm,
+                // không chờ chu kỳ re-render / useEffect của React
+                const targetLayout = tabLayoutsRef.current[index];
+                if (targetLayout) {
+                  indicatorX.value = withSpring(targetLayout.x, TAB_SPRING_CONFIG);
+                  indicatorWidth.value = withSpring(targetLayout.width, TAB_SPRING_CONFIG);
+                }
               }
 
               const event = navigation.emit({
