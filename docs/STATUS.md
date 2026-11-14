@@ -164,7 +164,11 @@
     - **Sửa triệt để lỗi méo lưới huy hiệu Avatar (`profile.tsx`):** Chuyển sang bố cục lưới 4 cột đều đặn (4x2), mỗi huy hiệu là một nút tròn 58×58px kèm nhãn đầy đủ rõ nét bên dưới, không còn tình trạng viên nhộng co thắt méo mó hay chữ bị cắt cụt.
     - **Trượt mượt mà tức thì Tab Phong cách Đại diện:** Kích hoạt `avatarModeShared.value = withSpring` trực tiếp tại `onPress` khi chạm, đảm bảo viên thuốc xanh lướt trượt liền mạch tức thì giữa "Huy hiệu âm nhạc" và "Ảnh cá nhân".
     - **Icon Offline Check chuẩn Spotify (`library.tsx`, `CollectionDetailModal.tsx`):** Loại bỏ hoàn toàn icon download nằm bên phải tên bài hát. Chuyển sang huy hiệu tròn xanh ngọc kèm dấu check trắng (`offlineCheckBadge` + `CheckIcon`) đặt ngay đầu dòng thông tin nghệ sĩ, giúp tiêu đề bài hát thoáng đãng, dễ đọc 100%.
-**Cập nhật lần cuối:** 2026-11-14 (Sửa lưới Avatar Badges 4x2 & Chuyển icon download sang CheckIcon chuẩn Spotify)
+24. **Tắt hoàn toàn phản hồi rung (Haptic / Vibration) trên toàn bộ ứng dụng theo yêu cầu người dùng:**
+    - Vô hiệu hóa `triggerSelectionHaptic()` (`expo-haptics`) trên toàn hệ thống.
+    - Dọn dẹp sạch toàn bộ các lệnh `Vibration.vibrate(...)` trong `PlayerContext`, `Library`, `Search`, `Playlists`, `Recent`, `Collection`, `AddToPlaylistModal`.
+    - Chặn rung toàn cục ở cấp độ app root (`Vibration.vibrate = () => {}` trong `app/_layout.tsx`), giúp mọi thao tác chạm, chuyển bài, lướt tab, điều khiển âm nhạc hoàn toàn êm ái, không còn rung giật motor thiết bị.
+**Cập nhật lần cuối:** 2026-11-14 (Tắt hoàn toàn rung haptic và vibration trên toàn app)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
