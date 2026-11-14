@@ -3,6 +3,8 @@ import { StyleSheet } from 'react-native';
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
+  runOnJS,
 } from 'react-native-reanimated';
 import { radius } from '../../theme';
 
@@ -14,11 +16,24 @@ export interface TabIndicatorProps {
   opacity: SharedValue<number>;
 }
 
+const logTranslateX = (val: number) => {
+  console.log('[TabIndicator] translateX =', val);
+};
+
 /**
  * TabIndicator: Nền active dạng viên thuốc (Liquid Glass / Capsule)
  * Chạy hoàn toàn trên UI-thread qua SharedValue và useAnimatedStyle
  */
 export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) {
+  useAnimatedReaction(
+    () => translateX.value,
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(logTranslateX)(current);
+      }
+    }
+  );
+
   const pillAnimStyle = useAnimatedStyle(() => {
     return {
       width: width.value > 0 ? width.value : 0,
@@ -43,7 +58,7 @@ const styles = StyleSheet.create({
   slidingActivePill: {
     position: 'absolute',
     left: 0,
-    top: 3,
+    top: 4,
     height: 42,
     backgroundColor: 'rgba(29, 185, 84, 0.28)',
     borderColor: 'rgba(29, 185, 84, 0.85)',

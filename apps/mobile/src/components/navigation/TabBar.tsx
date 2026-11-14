@@ -53,6 +53,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Khi chuyển tab (state.index đổi) -> animate mượt mà sang tab mới
   useEffect(() => {
+    console.log('[TabBar] effect', state.index, JSON.stringify(tabLayoutsRef.current));
     const targetLayout = tabLayoutsRef.current[state.index];
     if (targetLayout) {
       if (!hasInitializedRef.current) {
