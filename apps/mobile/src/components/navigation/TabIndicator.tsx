@@ -6,6 +6,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { radius } from '../../theme';
 
+export const DOCK_BORDER_WIDTH = 1;
+
 export interface TabIndicatorProps {
   translateX: SharedValue<number>;
   width: SharedValue<number>;
@@ -22,7 +24,7 @@ export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) 
       width: width.value > 0 ? width.value : 0,
       transform: [
         {
-          translateX: translateX.value,
+          translateX: translateX.value - DOCK_BORDER_WIDTH,
         },
       ],
       opacity: opacity.value,
@@ -40,8 +42,8 @@ export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) 
 const styles = StyleSheet.create({
   slidingActivePill: {
     position: 'absolute',
-    top: 4,
-    bottom: 4,
+    left: 0,
+    top: 3,
     height: 42,
     backgroundColor: 'rgba(29, 185, 84, 0.28)',
     borderColor: 'rgba(29, 185, 84, 0.85)',

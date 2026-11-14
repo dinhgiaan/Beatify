@@ -5,7 +5,7 @@ import type { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MiniPlayer } from '../player/MiniPlayer';
-import { TabIndicator } from './TabIndicator';
+import { TabIndicator, DOCK_BORDER_WIDTH } from './TabIndicator';
 import { TabBarItem, type TabRoute } from './TabBarItem';
 import { radius } from '../../theme';
 
@@ -31,6 +31,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Callback nhận tọa độ thực tế khi tab hoàn tất onLayout
   const handleTabLayout = (index: number, x: number, width: number) => {
+    // Log debug tạm thời để kiểm tra tọa độ
+    console.log('[TabBar] layout', index, x, width, 'activeIndex=', state.index);
     tabLayoutsRef.current[index] = { x, width };
 
     // Nếu là tab đang active
@@ -78,65 +80,68 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
       <MiniPlayer />
 
-      {/* Thanh Tab Bar dạng viên thuốc nổi bo tròn (Capsule) */}
+      {/* View ngoài: Chịu trách nhiệm đổ bóng và bo góc (không bị clip shadow trên iOS) */}
       <View
         style={[
-          styles.floatingDock,
+          styles.dockShadowContainer,
           {
             marginBottom: Math.max(insets.bottom, 12),
           },
         ]}
       >
-        {/* Một indicator duy nhất trượt mượt mà phía sau các icon */}
-        <TabIndicator
-          translateX={indicatorX}
-          width={indicatorWidth}
-          opacity={indicatorOpacity}
-        />
+        {/* View trong: Chịu trách nhiệm overflow: 'hidden', border, background và chứa các tab item */}
+        <View style={styles.dockInner}>
+          {/* Một indicator duy nhất trượt mượt mà phía sau các icon */}
+          <TabIndicator
+            translateX={indicatorX}
+            width={indicatorWidth}
+            opacity={indicatorOpacity}
+          />
 
-        {/* Danh sách các tab items */}
-        {state.routes.map((route: TabRoute, index: number) => {
-          const descriptor = descriptors[route.key];
-          const options = descriptor?.options ?? {};
-          const isFocused = state.index === index;
+          {/* Danh sách các tab items */}
+          {state.routes.map((route: TabRoute, index: number) => {
+            const descriptor = descriptors[route.key];
+            const options = descriptor?.options ?? {};
+            const isFocused = state.index === index;
 
-          const onPress = () => {
-            if (!isFocused) {
-              // Rung phản hồi nhẹ chuẩn iOS
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            }
+            const onPress = () => {
+              if (!isFocused) {
+                // Rung phản hồi nhẹ chuẩn iOS
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              }
 
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
-          const onLongPress = () => {
-            navigation.emit({
-              type: 'tabLongPress',
-              target: route.key,
-            });
-          };
+            const onLongPress = () => {
+              navigation.emit({
+                type: 'tabLongPress',
+                target: route.key,
+              });
+            };
 
-          return (
-            <TabBarItem
-              key={route.key}
-              route={route}
-              index={index}
-              isFocused={isFocused}
-              options={options}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              onLayout={handleTabLayout}
-            />
-          );
-        })}
+            return (
+              <TabBarItem
+                key={route.key}
+                route={route}
+                index={index}
+                isFocused={isFocused}
+                options={options}
+                onPress={onPress}
+                onLongPress={onLongPress}
+                onLayout={handleTabLayout}
+              />
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -151,24 +156,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'center',
   },
-  floatingDock: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(18, 18, 20, 0.95)',
-    borderRadius: radius.pill,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  dockShadowContainer: {
     width: '95%',
     maxWidth: 410,
+    borderRadius: radius.pill,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.65,
     shadowRadius: 20,
     elevation: 20,
-    position: 'relative',
+  },
+  dockInner: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(18, 18, 20, 0.95)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderWidth: DOCK_BORDER_WIDTH,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    alignItems: 'center',
     overflow: 'hidden',
+    position: 'relative',
+    width: '100%',
   },
 });

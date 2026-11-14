@@ -2,7 +2,7 @@ import type { ExpoConfig } from 'expo/config';
 
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
-const config: ExpoConfig & { newArchEnabled?: boolean } = {
+const config: ExpoConfig = {
   name: IS_DEV ? 'Beatify Dev' : 'Beatify',
   slug: 'music-app',
   scheme: 'beatify',
@@ -10,7 +10,6 @@ const config: ExpoConfig & { newArchEnabled?: boolean } = {
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
   icon: './assets/icon.png',
-  newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: IS_DEV ? 'com.dinhgiaan.beatify.dev' : 'com.dinhgiaan.beatify',
