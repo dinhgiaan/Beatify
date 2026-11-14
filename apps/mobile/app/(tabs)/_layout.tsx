@@ -43,6 +43,9 @@ function getTabIcon(routeName: string, color: string) {
   }
 }
 
+let lastKnownTabIndex = 0;
+let lastKnownDockWidth = Math.min(Dimensions.get('window').width * 0.95, 410);
+
 /**
  * Custom Bottom Tab Bar nổi bo tròn dạng Floating Pill tối giản
  * Thuần Icon gọn gàng, có hiệu ứng viên thuốc trượt mượt mà (Sliding Active Pill) theo tab đang chọn
@@ -50,16 +53,20 @@ function getTabIcon(routeName: string, color: string) {
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get('window').width;
-  const initialDockWidth = Math.min(screenWidth * 0.95, 410);
+  const initialDockWidth = lastKnownDockWidth || Math.min(screenWidth * 0.95, 410);
   const dockWidthShared = useSharedValue(initialDockWidth);
-  const activeIndex = useSharedValue(state.index);
+  // Khởi tạo activeIndex từ lastKnownTabIndex:
+  // Nếu React Navigation remount component khi chuyển tab,
+  // activeIndex sẽ luôn bắt đầu từ vị trí tab trước đó rồi lướt mượt mà tới tab mới!
+  const activeIndex = useSharedValue(lastKnownTabIndex);
 
   useEffect(() => {
     activeIndex.value = withSpring(state.index, {
-      damping: 20,
+      damping: 18,
       stiffness: 150,
-      mass: 0.7,
+      mass: 0.65,
     });
+    lastKnownTabIndex = state.index;
   }, [state.index, activeIndex]);
 
   const pillAnimStyle = useAnimatedStyle(() => {
@@ -96,9 +103,9 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
           const w = e.nativeEvent.layout.width;
           if (w > 0) {
             dockWidthShared.value = w;
+            lastKnownDockWidth = w;
           }
-        }
-        }
+        }}
       >
         {/* Nền active di chuyển mượt mà dạng trượt (Sliding Pill) */}
         <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
@@ -110,10 +117,11 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
 
           const onPress = () => {
             triggerSelectionHaptic();
+            lastKnownTabIndex = state.index;
             activeIndex.value = withSpring(index, {
-              damping: 20,
+              damping: 18,
               stiffness: 150,
-              mass: 0.7,
+              mass: 0.65,
             });
             const event = navigation.emit({
               type: 'tabPress',
@@ -260,8 +268,8 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     height: 42,
-    backgroundColor: 'rgba(29, 185, 84, 0.22)',
-    borderColor: 'rgba(29, 185, 84, 0.55)',
+    backgroundColor: 'rgba(29, 185, 84, 0.28)',
+    borderColor: 'rgba(29, 185, 84, 0.85)',
     borderWidth: 1.5,
     borderRadius: radius.pill,
     zIndex: 1,

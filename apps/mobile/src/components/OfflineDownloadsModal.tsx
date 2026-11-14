@@ -378,7 +378,8 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
               styles.listContent,
               {
                 paddingBottom:
-                  Math.max(insets.bottom, tokens.spacing.xl) + (currentTrack ? 90 : 30),
+                  Math.max(insets.bottom, tokens.spacing.xl) +
+                  (isSelectMode ? 96 : currentTrack ? 90 : 30),
               },
             ]}
             showsVerticalScrollIndicator={false}
@@ -386,8 +387,8 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           />
         )}
 
-        {/* MiniPlayer nổi khi có bài đang phát */}
-        {currentTrack && (
+        {/* MiniPlayer nổi khi có bài đang phát (ẩn khi đang ở chế độ chọn để xóa để không che nút Xóa) */}
+        {currentTrack && !isSelectMode && (
           <View
             style={[
               styles.miniPlayerWrapper,
@@ -407,7 +408,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
         {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */}
         <ScrollToTopButton
           visible={showScrollTop}
-          bottomOffset={currentTrack ? 85 : 25}
+          bottomOffset={isSelectMode ? 85 : currentTrack ? 85 : 25}
           onPress={() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }}
@@ -647,6 +648,8 @@ const styles = StyleSheet.create({
     borderTopColor: tokens.colors.separator,
     paddingTop: tokens.spacing.md,
     paddingHorizontal: tokens.spacing.lg,
+    zIndex: 99,
+    elevation: 20,
   },
   bottomDeleteBtn: {
     flexDirection: 'row',
