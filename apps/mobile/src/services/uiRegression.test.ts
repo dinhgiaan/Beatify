@@ -89,4 +89,44 @@ describe('Bảo toàn Tuyệt đối Hiệu ứng Animation UI/UX Cốt lõi', (
     expect(content).toContain('LayoutAnimation');
     expect(content).toContain('LayoutAnimation.configureNext');
   });
+
+  it('7. Màn hình Tìm kiếm phải luôn có gạch chân trượt mượt mà (Sliding Tab Underline) cho Filter Tabs', () => {
+    const searchPath = path.join(rootMobileDir, 'app/(tabs)/search.tsx');
+    expect(fs.existsSync(searchPath)).toBe(true);
+    const content = fs.readFileSync(searchPath, 'utf8');
+
+    expect(content).toContain('slidingTabUnderline');
+    expect(content).toContain('withSpring');
+    expect(content).toContain('indicatorX');
+    expect(content).toContain('indicatorWidth');
+  });
+
+  it('8. Trang chủ phải luôn có Segmented Control chạy trên Reanimated UI thread', () => {
+    const libraryPath = path.join(rootMobileDir, 'app/(tabs)/library.tsx');
+    expect(fs.existsSync(libraryPath)).toBe(true);
+    const content = fs.readFileSync(libraryPath, 'utf8');
+
+    expect(content).toContain('segmentIndexShared');
+    expect(content).toContain('segmentBarWidthShared');
+    expect(content).toContain('segmentPillIndicator');
+    expect(content).toContain('withSpring');
+  });
+
+  it('9. MiniPlayer phải có animation xuất hiện / ẩn trượt nhẹ từ dưới lên (FadeInDown/FadeOutDown)', () => {
+    const miniPlayerPath = path.join(rootMobileDir, 'src/components/player/MiniPlayer.tsx');
+    expect(fs.existsSync(miniPlayerPath)).toBe(true);
+    const content = fs.readFileSync(miniPlayerPath, 'utf8');
+
+    expect(content).toContain('FadeInDown');
+    expect(content).toContain('FadeOutDown');
+  });
+
+  it('10. Tab Bộ sưu tập phải có hiệu ứng nhún lò xo phản hồi chạm (SpringCard)', () => {
+    const collectionPath = path.join(rootMobileDir, 'app/(tabs)/collection.tsx');
+    expect(fs.existsSync(collectionPath)).toBe(true);
+    const content = fs.readFileSync(collectionPath, 'utf8');
+
+    expect(content).toContain('SpringCard');
+    expect(content).toContain('withSpring');
+  });
 });

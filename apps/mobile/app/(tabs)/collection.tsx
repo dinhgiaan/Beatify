@@ -2,11 +2,18 @@ import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   StyleSheet,
   Vibration,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
 import { useLibrary, useOffline } from '../../src/context';
@@ -25,6 +32,38 @@ import {
 } from '../../src/components/icons/SvgIcons';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
 import { OfflineDownloadsModal } from '../../src/components/OfflineDownloadsModal';
+
+function SpringCard({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[style, animStyle]}>
+      <Pressable
+        onPressIn={() => {
+          scale.value = withSpring(0.965, { damping: 16, stiffness: 280 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 16, stiffness: 280 });
+        }}
+        onPress={onPress}
+        style={{ width: '100%' }}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export default function CollectionScreen() {
   const insets = useSafeAreaInsets();
@@ -88,11 +127,10 @@ export default function CollectionScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Card 1: Bài hát yêu thích */}
-        <TouchableOpacity
+          {/* Card 1: Bài hát yêu thích với hiệu ứng nhún lò xo phản hồi chạm */}
+        <SpringCard
           style={styles.collectionCard}
           onPress={handleOpenFavorites}
-          activeOpacity={0.8}
         >
           <View style={styles.cardGlowGreen} />
           <View style={styles.iconCircleHeart}>
@@ -107,48 +145,48 @@ export default function CollectionScreen() {
           <View style={styles.cardArrow}>
             <Text style={styles.arrowText}>→</Text>
           </View>
-        </TouchableOpacity>
+      </SpringCard>
 
-        {/* Card 2: Đã tải về máy (Offline) */}
-        <TouchableOpacity
-          style={[styles.collectionCard, styles.offlineCard]}
-          onPress={() => {
-            Vibration.vibrate(10);
-            setOfflineModalVisible(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={styles.iconCircleDownload}>
-            <DownloadIcon size={26} color={colors.primary} />
-          </View>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>Đã tải về máy</Text>
-            <Text style={styles.cardDesc}>
-              {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)} đã lưu
-            </Text>
-          </View>
-          <View style={styles.cardArrow}>
-            <Text style={styles.arrowText}>→</Text>
-          </View>
-        </TouchableOpacity>
-      </ScrollView>
+        {/* Card 2: Đã tải về máy (Offline) với hiệu ứng nhún lò xo phản hồi chạm */}
+        <SpringCard
+        style={[styles.collectionCard, styles.offlineCard]}
+        onPress={() => {
+          Vibration.vibrate(10);
+          setOfflineModalVisible(true);
+        }}
+      >
+        <View style={styles.iconCircleDownload}>
+          <DownloadIcon size={26} color={colors.primary} />
+        </View>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle}>Đã tải về máy</Text>
+          <Text style={styles.cardDesc}>
+            {offlineTracks.length} bài hát • {formatBytes(totalSizeBytes)} đã lưu
+          </Text>
+        </View>
+        <View style={styles.cardArrow}>
+          <Text style={styles.arrowText}>→</Text>
+        </View>
+    </SpringCard>
+      </ScrollView >
 
-      {/* Modal chi tiết bài hát yêu thích */}
-      <CollectionDetailModal
-        visible={selectedCollection.visible}
-        onClose={() => setSelectedCollection((prev) => ({ ...prev, visible: false }))}
-        title={selectedCollection.title}
-        subtitle={selectedCollection.subtitle}
-        tracks={selectedCollection.tracks}
-        type={selectedCollection.type}
+    {/* Modal chi tiết bài hát yêu thích */ }
+    < CollectionDetailModal
+  visible = { selectedCollection.visible }
+  onClose = {() => setSelectedCollection((prev) => ({ ...prev, visible: false }))
+}
+title = { selectedCollection.title }
+subtitle = { selectedCollection.subtitle }
+tracks = { selectedCollection.tracks }
+type = { selectedCollection.type }
+  />
+
+  {/* Modal quản lý tải offline */ }
+  < OfflineDownloadsModal
+visible = { offlineModalVisible }
+onClose = {() => setOfflineModalVisible(false)}
       />
-
-      {/* Modal quản lý tải offline */}
-      <OfflineDownloadsModal
-        visible={offlineModalVisible}
-        onClose={() => setOfflineModalVisible(false)}
-      />
-    </View>
+    </View >
   );
 }
 

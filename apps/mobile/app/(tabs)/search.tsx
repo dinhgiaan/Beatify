@@ -16,6 +16,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { normalizeText, type Track } from '@music-app/shared';
 import { useLibrary, usePlayer } from '../../src/context';
@@ -29,6 +34,7 @@ import {
 import { formatTime } from '../../src/utils/formatTime';
 import { cleanTrackTitle } from '../../src/utils/recentFormatters';
 import { splitMatches } from '../../src/utils/searchHighlight';
+import { triggerSelectionHaptic } from '../../src/utils/haptics';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
 import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
@@ -93,6 +99,34 @@ export default function SearchScreen() {
   const resultsListRef = useRef<FlatList>(null);
   const [isSearching, setIsSearching] = useState(false);
   const resultsFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Animation gạch chân trượt mượt mà (Sliding Tab Underline) cho các filter tabs
+  const tabLayouts = useRef<{ [key in SearchFilterTab]?: { x: number; width: number } }>({});
+  const indicatorX = useSharedValue(0);
+  const indicatorWidth = useSharedValue(0);
+
+  const updateTabIndicator = useCallback((tab: SearchFilterTab, animated = true) => {
+    const layout = tabLayouts.current[tab];
+    if (layout && layout.width > 0) {
+      if (animated) {
+        indicatorX.value = withSpring(layout.x, { damping: 20, stiffness: 180, mass: 0.7 });
+        indicatorWidth.value = withSpring(layout.width, { damping: 20, stiffness: 180, mass: 0.7 });
+      } else {
+        indicatorX.value = layout.x;
+        indicatorWidth.value = layout.width;
+      }
+    }
+  }, [indicatorX, indicatorWidth]);
+
+  useEffect(() => {
+    updateTabIndicator(selectedFilter, true);
+  }, [selectedFilter, updateTabIndicator]);
+
+  const underlineAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+    width: indicatorWidth.value,
+    opacity: indicatorWidth.value > 0 ? 1 : 0,
+  }));
 
   // Debounce query và hiệu ứng loading 0.6s khi tìm kiếm
   useEffect(() => {
@@ -361,9 +395,10 @@ export default function SearchScreen() {
           )}
         </View>
 
-        {/* Filter Tabs dạng text với gạch chân xanh 2px khi có kết quả */}
+        {/* Filter Tabs dạng text với gạch chân xanh trượt mượt mà (Sliding Tab Underline) */}
         {debouncedQuery.length > 0 && (
           <View style={styles.filterTabsRow}>
+            <Reanimated.View style={[styles.slidingTabUnderline, underlineAnimStyle]} pointerEvents="none" />
             {(['all', 'tracks', 'artists'] as SearchFilterTab[]).map((tab) => {
               const isSelected = selectedFilter === tab;
               const label =
@@ -373,7 +408,18 @@ export default function SearchScreen() {
                 <TouchableOpacity
                   key={tab}
                   style={styles.filterTab}
-                  onPress={() => setSelectedFilter(tab)}
+                  onLayout={(e) => {
+                    const { x, width } = e.nativeEvent.layout;
+                    tabLayouts.current[tab] = { x, width };
+                    if (tab === selectedFilter) {
+                      updateTabIndicator(tab, false);
+                    }
+                  }}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setSelectedFilter(tab);
+                    updateTabIndicator(tab, true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -384,7 +430,6 @@ export default function SearchScreen() {
                   >
                     {label}
                   </Text>
-                  {isSelected && <View style={styles.filterTabUnderline} />}
                 </TouchableOpacity>
               );
             })}
@@ -597,10 +642,20 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
   },
   filterTabsRow: {
+    position: 'relative',
     flexDirection: 'row',
     gap: 20,
     marginTop: spacing.md,
     paddingHorizontal: 4,
+  },
+  slidingTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 4,
+    height: 2.5,
+    backgroundColor: colors.primary,
+    borderRadius: 1.5,
+    zIndex: 1,
   },
   filterTab: {
     paddingBottom: 8,

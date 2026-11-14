@@ -30,16 +30,21 @@ Nếu công cụ của bạn không tự nạp skill, hãy mở file `.agents/sk
 - Test dùng dữ liệu mẫu trong `@music-app/shared/testing` và `fixtures/`, không dùng dữ liệu thật của người dùng.
 
 ## Quy tắc bảo vệ UI/UX cốt lõi (BẢO TOÀN TUYỆT ĐỐI - KHÔNG ĐƯỢC XÓA)
-1. **Hiệu ứng Animation Background Active dạng trượt (Sliding Active Pill):**
+1. **Hiệu ứng Animation Background Active dạng trượt (Sliding Active Pill / Underline):**
    - Floating Tab Bar (`apps/mobile/app/(tabs)/_layout.tsx`)
    - Segmented Tabs Thống kê Replay (`apps/mobile/app/settings/replay.tsx`)
    - Chip thời gian chuyển bài (`apps/mobile/app/settings/playback.tsx`)
    - Chip số bài lưu tối đa (`apps/mobile/app/settings/storage.tsx`)
+   - Gạch chân trượt Filter Tabs Tìm kiếm (`apps/mobile/app/(tabs)/search.tsx`)
+   - Phân đoạn Bài hát/Album/Nghệ sĩ Trang chủ (`apps/mobile/app/(tabs)/library.tsx`)
    *Bắt buộc phải giữ nguyên hiệu ứng viên thuốc trượt Reanimated (`slidingActivePill`, `withSpring`, `useSharedValue`), TUYỆT ĐỐI KHÔNG ĐƯỢC XÓA hoặc hạ cấp về nút bấm tĩnh trong bất kỳ tác vụ nào.*
 2. **Nút Cuộn Đầu Trang (ScrollToTopButton):**
    - Luôn giữ icon mũi tên có chân đứng (`ArrowUpIcon`), tự động nâng cao khi có player, và animation nhấp nhô nhịp nhàng (`withRepeat`).
 3. **Mở rộng / Thu gọn Accordion:**
    - Nhật ký chuyển bài (`apps/mobile/app/settings/transition-logs.tsx`) phải giữ `LayoutAnimation.configureNext` để co giãn chiều dọc mượt mà.
+4. **MiniPlayer & Thẻ Bộ sưu tập:**
+   - MiniPlayer xuất hiện / ẩn nhẹ nhàng (`FadeInDown`, `FadeOutDown`).
+   - Thẻ Bộ sưu tập phản hồi chạm nhún lò xo (`SpringCard`).
 *Toàn bộ các quy tắc này được giám sát tự động bằng bộ test `uiRegression.test.ts`. Nếu làm mất hiệu ứng, `pnpm test` sẽ FAIL.*
 
 ## Ngôn ngữ

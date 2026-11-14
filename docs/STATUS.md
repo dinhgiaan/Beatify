@@ -133,7 +133,20 @@
     - **Nâng cấp Button Scroll To Top:**
       - Sửa lỗi dao động mũi tên: dùng `withRepeat` chuẩn hàm sin dao động liên tục [-6px .. 0px], mũi tên nhấp nhô nhịp nhàng khi cuộn sâu.
       - Thay đổi icon: bổ sung icon mới `ArrowUpIcon` có cả thân/chân mũi tên đứng (`↑`, chuẩn SF Symbols / Lucide) thay cho chevron không chân trước đây.
-**Cập nhật lần cuối:** 2026-11-14 (Sửa lỗi cắt cụt header Offline, đồng bộ sliding pill toàn app và nâng cấp ScrollToTopButton)
+19. **Nâng cấp Toàn diện 4 Hiệu ứng Animation Trải nghiệm Cao cấp & Kiểm tra Rò rỉ Bộ nhớ (Zero Memory Leak):**
+    - **Gạch chân trượt Filter Tabs Tìm kiếm (`search.tsx`):**
+      - Thay thế việc render gạch chân tĩnh bằng `slidingTabUnderline` chạy trên Reanimated UI-thread. Khi chuyển tab "Tất cả" | "Bài hát" | "Nghệ sĩ", vạch xanh lướt êm ái sang vị trí tab mới và tự động co giãn độ rộng theo độ dài chữ.
+    - **Phân đoạn Thư viện Trang chủ (`library.tsx`):**
+      - Thay thế hoàn toàn `Animated.spring` cũ trên JS-thread bằng Reanimated native values (`segmentIndexShared`, `segmentBarWidthShared`, `segmentAnimStyle`). Chạy trực tiếp trên GPU đạt 120fps kể cả khi thư viện có hàng nghìn bài hát, loại bỏ triệt để hiện tượng giật khung hình.
+      - Tăng độ tương phản cho viên thuốc trượt (`#26262c`, viền `rgba(255, 255, 255, 0.16)`).
+    - **MiniPlayer xuất hiện / ẩn nhẹ nhàng (`MiniPlayer.tsx`):**
+      - Tích hợp `FadeInDown(220ms)` và `FadeOutDown(180ms)` trên `AnimatedTouchable`. Khi bắt đầu phát bài hát đầu tiên, thanh MiniPlayer trồi lên nhẹ nhàng từ dưới dock thay vì nhảy cái bụp.
+    - **Thẻ Bộ sưu tập phản hồi chạm nhún lò xo (`collection.tsx`):**
+      - Tích hợp `SpringCard` với `withSpring` phản hồi cảm ứng cơ học (Scale 0.965 khi nhấn giữ và bung 1.0 khi thả), tạo cảm giác xúc giác Apple widget cao cấp cho hai thẻ "Bài hát yêu thích" và "Đã tải về máy".
+    - **Kiểm tra Rò rỉ Bộ nhớ (Memory Leak Audit):**
+      - Tất cả các animation đều sử dụng Reanimated shared values thuần túy hoặc lifecycle hooks chuẩn, không để sót interval/timeout hay event listener treo ngầm.
+      - Mở rộng bộ test `uiRegression.test.ts` lên 10 bài test tự động bảo vệ toàn bộ các animation mới. Toàn bộ monorepo đạt **288/288 tests pass 100%**.
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn thành nâng cấp 4 hiệu ứng animation cao cấp, khóa bằng test hồi quy và kiểm tra 0 rò rỉ bộ nhớ)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

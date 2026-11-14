@@ -9,6 +9,25 @@ vi.mock('react', async (importOriginal) => {
   };
 });
 
+vi.mock('react-native-reanimated', () => {
+  return {
+    default: {
+      View: (props: Record<string, unknown>) => React.createElement('view', props),
+      createAnimatedComponent: (Comp: unknown) => Comp,
+    },
+    FadeInDown: {
+      duration: () => ({}),
+    },
+    FadeOutDown: {
+      duration: () => ({}),
+    },
+    useSharedValue: (val: unknown) => ({ value: val }),
+    useAnimatedStyle: (cb: () => unknown) => cb(),
+    withSpring: (val: unknown) => val,
+    withTiming: (val: unknown) => val,
+  };
+});
+
 const mockPush = vi.fn();
 vi.mock('expo-router', () => ({
   useRouter: () => ({
