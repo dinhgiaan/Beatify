@@ -3,9 +3,17 @@ import {
   ScrollView,
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { UserProfile, FullReplayReport } from '@music-app/shared';
@@ -28,6 +36,38 @@ import {
   MysteryIcon,
 } from '../../src/components/icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
+
+function SpringHeroCard({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        onPressIn={() => {
+          scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        }}
+        onPress={onPress}
+        style={style}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export default function SettingsMainScreen() {
   const router = useRouter();
@@ -67,6 +107,16 @@ export default function SettingsMainScreen() {
     nextLevelText = `${totalPlays}/500 lượt nghe tới LV.4`;
   }
 
+  const animatedProgress = useSharedValue(0);
+
+  useEffect(() => {
+    animatedProgress.value = withTiming(progressPercent, { duration: 750 });
+  }, [progressPercent, animatedProgress]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${animatedProgress.value}%`,
+  }));
+
   const navigateTo = (path: string) => {
     triggerSelectionHaptic();
     router.push(path as never);
@@ -84,14 +134,14 @@ export default function SettingsMainScreen() {
     >
       {/* THẺ HỒ SƠ TÓM TẮT & THANH TIẾN ĐỘ LEVEL */}
       <View style={styles.profileHeroCard}>
-        <TouchableOpacity
+        <SpringHeroCard
           style={styles.profileHeroTouch}
           onPress={() => navigateTo('/settings/profile')}
-          activeOpacity={0.7}
         >
           <UserAvatar
             avatarUri={userProfile?.avatarUri}
             displayName={userProfile?.displayName || 'Người Yêu Nhạc'}
+            avatarKey={userProfile?.avatarKey}
             size={64}
           />
           <View style={styles.profileHeroTextCol}>
@@ -115,11 +165,11 @@ export default function SettingsMainScreen() {
                 <Text style={styles.levelProgressLabel}>{nextLevelText}</Text>
               </View>
               <View style={styles.progressBarTrack}>
-                <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+                <Animated.View style={[styles.progressBarFill, progressStyle]} />
               </View>
             </View>
           </View>
-        </TouchableOpacity>
+        </SpringHeroCard>
 
         {/* 2 SỐ LIỆU CHÍNH TÓM TẮT (LƯỢT NGHE & PHÚT NGHE) */}
         <View style={styles.heroStatsRow}>

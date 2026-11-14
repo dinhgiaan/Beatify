@@ -132,53 +132,53 @@ export default function StorageSettingsScreen() {
       <ListGroup>
         <View style={styles.limitBox}>
           <Text style={styles.limitLabel}>Số bài lưu tối đa</Text>
-              <View
-                style={styles.pillTrack}
-                onLayout={(e) => {
-                  const w = e.nativeEvent.layout.width;
-                  if (w > 0) {
-                    containerWidthShared.value = w;
-                  }
-                }}
-              >
-                {/* Nền active di chuyển dạng trượt (Sliding Active Pill) */}
-                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+          <View
+            style={styles.pillTrack}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) {
+                containerWidthShared.value = w;
+              }
+            }}
+          >
+            {/* Nền active di chuyển dạng trượt (Sliding Active Pill) */}
+            <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
 
-                {LIMIT_OPTIONS.map((limitOption) => {
-                  const isActive = recentLimit === limitOption;
-                  return (
-                    <TouchableOpacity
-                      key={limitOption}
-                      style={styles.pillBtn}
-                      onPress={() => {
-                        triggerSelectionHaptic();
-                        const idx = LIMIT_OPTIONS.indexOf(limitOption);
-                        if (idx >= 0) {
-                          activeIndexShared.value = withSpring(idx, {
-                            damping: 20,
-                            stiffness: 150,
-                            mass: 0.7,
-                          });
-                        }
-                        setRecentLimit(limitOption);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
-                        {limitOption}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {LIMIT_OPTIONS.map((limitOption) => {
+              const isActive = recentLimit === limitOption;
+              return (
+                <TouchableOpacity
+                  key={limitOption}
+                  style={styles.pillBtn}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    const idx = LIMIT_OPTIONS.indexOf(limitOption);
+                    if (idx >= 0) {
+                      activeIndexShared.value = withSpring(idx, {
+                        damping: 20,
+                        stiffness: 150,
+                        mass: 0.7,
+                      });
+                    }
+                    setRecentLimit(limitOption);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                    {limitOption}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-          <SettingRow
-            label="Xóa toàn bộ lịch sử nghe"
-            description="Làm trống danh sách bài hát vừa nghe"
-            isDanger
-            onPress={handleClearRecent}
-          />
+        <SettingRow
+          label="Xóa toàn bộ lịch sử nghe"
+          description="Làm trống danh sách bài hát vừa nghe"
+          isDanger
+          onPress={handleClearRecent}
+        />
       </ListGroup>
     </ScrollView>
   );
@@ -202,40 +202,40 @@ const styles = StyleSheet.create({
     color: tokens.colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
-    pillTrack: {
-      position: 'relative',
-      flexDirection: 'row',
-      backgroundColor: tokens.colors.bgElevated,
-      borderRadius: tokens.radius.pill,
-      padding: 4,
-      marginTop: tokens.spacing.xs,
-      borderWidth: tokens.hairlineWidth,
-      borderColor: tokens.colors.separator,
-    },
-    slidingActivePill: {
-      position: 'absolute',
-      top: 4,
-      bottom: 4,
-      left: 4,
-      backgroundColor: tokens.colors.accent,
-      borderRadius: tokens.radius.pill,
-    },
-    pillBtn: {
-      flex: 1,
-      minHeight: 36,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: tokens.radius.pill,
-      zIndex: 1,
-    },
-    pillBtnText: {
-      ...tokens.typography.footnote,
-      fontWeight: '600',
-      color: tokens.colors.textSecondary,
-    },
-    pillBtnTextActive: {
-      color: '#000000',
-      fontWeight: '700',
-    },
-  });
+  pillTrack: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: tokens.colors.bgElevated,
+    borderRadius: tokens.radius.pill,
+    padding: 4,
+    marginTop: tokens.spacing.xs,
+    borderWidth: tokens.hairlineWidth,
+    borderColor: tokens.colors.separator,
+  },
+  slidingActivePill: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    backgroundColor: tokens.colors.accent,
+    borderRadius: tokens.radius.pill,
+  },
+  pillBtn: {
+    flex: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: tokens.radius.pill,
+    zIndex: 1,
+  },
+  pillBtnText: {
+    ...tokens.typography.footnote,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+  },
+  pillBtnTextActive: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+});
 

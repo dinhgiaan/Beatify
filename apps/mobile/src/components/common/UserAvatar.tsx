@@ -1,13 +1,47 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { tokens } from '../../theme/tokens';
-import { ProfileIcon } from '../icons/SvgIcons';
+import {
+  ProfileIcon,
+  HeadphonesIcon,
+  DiscIcon,
+  MusicNoteIcon,
+  HeartIcon,
+  FlameIcon,
+  StarIcon,
+  TrophyIcon,
+  MoonIcon,
+} from '../icons/SvgIcons';
 
 export interface UserAvatarProps {
   avatarUri?: string | null;
   displayName?: string | null;
   size?: number;
   fontSize?: number;
+  avatarKey?: string | null;
+}
+
+export function renderAvatarBadgeIcon(key: string, size: number) {
+  const iconColor = tokens.colors.accent;
+  switch (key) {
+    case 'disc':
+      return <DiscIcon size={size} color={iconColor} />;
+    case 'note':
+      return <MusicNoteIcon size={size} color={iconColor} />;
+    case 'heart':
+      return <HeartIcon size={size} color={iconColor} fill={iconColor} />;
+    case 'flame':
+      return <FlameIcon size={size} color={iconColor} />;
+    case 'star':
+      return <StarIcon size={size} color={iconColor} />;
+    case 'trophy':
+      return <TrophyIcon size={size} color={iconColor} />;
+    case 'moon':
+      return <MoonIcon size={size} color={iconColor} />;
+    case 'headphones':
+    default:
+      return <HeadphonesIcon size={size} color={iconColor} />;
+  }
 }
 
 /**
@@ -32,6 +66,7 @@ export function UserAvatar({
   displayName,
   size = 48,
   fontSize,
+  avatarKey,
 }: UserAvatarProps) {
   const calculatedFontSize = fontSize ?? Math.round(size * 0.4);
   const initials = getInitials(displayName);
@@ -44,6 +79,20 @@ export function UserAvatar({
           style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
           resizeMode="cover"
         />
+      </View>
+    );
+  }
+
+  if (avatarKey) {
+    return (
+      <View
+        style={[
+          styles.avatarBase,
+          styles.badgeBox,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
+      >
+        {renderAvatarBadgeIcon(avatarKey, Math.round(size * 0.52))}
       </View>
     );
   }
@@ -86,6 +135,11 @@ const styles = StyleSheet.create({
   },
   initialsBox: {
     backgroundColor: tokens.colors.bgElevated,
+  },
+  badgeBox: {
+    backgroundColor: 'rgba(29, 185, 84, 0.12)',
+    borderColor: 'rgba(29, 185, 84, 0.3)',
+    borderWidth: 1,
   },
   initialsText: {
     fontWeight: '700',
