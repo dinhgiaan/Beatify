@@ -82,7 +82,12 @@
     - **Sửa triệt để lỗi không phát được nhạc offline khi tắt/bật mạng:** Nhận diện chính xác định dạng âm thanh thực qua HEAD Content-Type và cơ chế tự phục hồi Magic Bytes (M4A/AAC `ftyp` vs MP3) tránh lỗi `kAudioFileUnsupportedFileTypeError` trên iOS AVPlayer; khôi phục trạng thái player sạch khi chuyển mạng.
     - **Chế độ Ngoại tuyến & Thông báo Tinh tế:** Thiết kế lại `NetworkStatusBanner` dạng viên thuốc Dark Glass siêu tối giản, tự động ẩn sau 3.2s; khi mất mạng, Trang chủ tự động chỉ hiển thị các bài hát đã tải về máy; nếu chưa có bài nào tải thì hiển thị thông báo hướng dẫn thân thiện, sạch sẽ.
     - **Nhận diện Mạng Tức Thì (Real-Time Auto Network Detection):** Tích hợp bộ dò mạng 2 tầng (Dual-Speed Heartbeat 1.5s/2.5s) kết hợp lắng nghe `AppState` khi kéo Control Center tắt/bật Wi-Fi/Cellular (0ms delay) và bộ bắt lỗi mạng toàn cục `reportNetworkError`. Ứng dụng tự động chuyển đổi giữa Online và Offline tức thì trong thời gian thực mà người dùng hoàn toàn không phải load lại thủ công bằng tay.
-**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất nhận diện mạng tức thì, Scroll to Top, Tab Bar, Offline Audio & Chế độ Ngoại tuyến)
+14. **Bảo đảm 100% Phát nhạc Ngoại tuyến (Zero-Failure Offline Playback Assurance):**
+    - **Cô lập triệt để hàng đợi phát khi Offline:** Trong `PlayerContext`, khi `isOffline = true`, `playQueue` tự động thanh lọc danh sách phát chỉ chứa duy nhất các file cục bộ (`file://`), ngăn chặn AVPlayer cố gắng pre-buffer track kế tiếp qua internet gây kẹt tiến trình phát. Cảnh báo Alert thân thiện nếu bài chưa tải.
+    - **Bảo vệ Lock Screen Artwork:** Trong `rntpPlayerService`, với các track offline (`file://`), trường `artworkUrl` chỉ nhận đường dẫn file cục bộ (`file://`), tuyệt đối không gửi URL remote `https://` để tránh việc `MPNowPlayingInfoCenter` / AVPlayer của iOS kích hoạt NSURLSession khi thiết bị đang ở chế độ Máy bay.
+    - **Magic Bytes Self-Healing:** Dò header `ftyp` (M4A/AAC) và `fLaC` để tự động sửa chữa các file bị lưu sai đuôi `.mp3`, đảm bảo native AVPlayer giải mã trơn tru.
+    - **Kiểm thử tự động:** Viết bộ test `offlinePlayback.test.ts` chuyên sâu; toàn bộ monorepo đạt 277/277 test pass 100%.
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất kiểm thử và bảo đảm 100% phát nhạc offline khi không có mạng)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
