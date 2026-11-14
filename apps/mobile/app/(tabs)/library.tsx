@@ -690,6 +690,7 @@ export default function LibraryScreen() {
                   ]}
                   onPress={() => {
                     Vibration.vibrate(8);
+                    updatePillIndicator(filter.id, true);
                     setActiveFilter(filter.id);
                   }}
                   activeOpacity={0.7}
