@@ -28,10 +28,16 @@ export class RntpPlayerService implements IPlayerService {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe
+      // Khởi tạo player với cấu hình nghe nhạc, dừng khi rút tai nghe, và bật disk cache + preloading ngầm
       await TrackPlayer.setupPlayer({
         contentType: 'music',
         handleAudioBecomingNoisy: true,
+        cache: {
+          maxSizeBytes: 500 * 1024 * 1024, // 500 MB streaming disk cache
+          preloading: {
+            window: 2, // Tự động nạp trước 2 bài tiếp theo trong hàng đợi
+          },
+        },
       });
 
       // Cấu hình các nút điều khiển trên lock screen và Control Center

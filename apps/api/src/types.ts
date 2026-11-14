@@ -26,10 +26,18 @@ export interface StorageObject {
   range?: R2Range;
 }
 
+export interface AudioInfo {
+  key: string;
+  totalSize: number;
+  contentType?: string;
+  etag?: string;
+}
+
 export interface IStorageRepository {
   getLibrary(): Promise<{ library: Library; etag: string } | null>;
   saveLibrary(library: Library): Promise<void>;
   getHealth(): Promise<Health | null>;
+  getAudioInfo(id: string): Promise<AudioInfo | null>;
   getAudioStream(id: string, range?: RangeOption): Promise<{ object: StorageObject; totalSize: number } | null>;
   getCover(albumId: string): Promise<StorageObject | null>;
   getOverrides(): Promise<Overrides>;

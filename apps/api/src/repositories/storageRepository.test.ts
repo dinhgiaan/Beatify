@@ -30,7 +30,12 @@ describe('R2StorageRepository - audioKeyCache & Stream Optimization', () => {
     expect(res1).not.toBeNull();
     expect(listMock).toHaveBeenCalledTimes(1);
     expect(getMock).toHaveBeenCalledWith('music/123.m4a', undefined);
-    expect(audioKeyCache.get('123')).toEqual({ key: 'music/123.m4a', totalSize: 1048576 });
+    expect(audioKeyCache.get('123')).toEqual({
+      key: 'music/123.m4a',
+      totalSize: 1048576,
+      contentType: 'audio/mpeg',
+      etag: undefined,
+    });
 
     // Request lần 2 (tua bài/seek): Đã có trong cache -> KHÔNG được gọi list() nữa
     const res2 = await repo.getAudioStream('123', { offset: 500, length: 1000 });
