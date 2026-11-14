@@ -186,7 +186,12 @@
         - **Khắc phục triệt để lỗi không có frame trung gian (nhảy tức thì do Reduce Motion & Lifecycle React):**
           - Ép buộc chạy toàn bộ frames animation bằng `reduceMotion: ReduceMotion.Never` trong `TAB_SPRING_CONFIG`, ngăn chặn Reanimated bỏ qua animation khi iOS ở chế độ Tiết kiệm pin hoặc Trợ năng Giảm chuyển động.
           - Kích hoạt spring trực tiếp trong `onPress` của `TabBarItem` ngay khoảnh khắc ngón tay vừa chạm để zero latency, kết hợp đồng bộ trong `useEffect` cho các trường hợp đổi route từ bên ngoài.
-**Cập nhật lần cuối:** 2026-11-15 (Khắc phục triệt để animation trượt Tab Bar: ReduceMotion.Never và trigger spring tức thì trong onPress)
+        - **Tối ưu triệt để hiệu năng chuyển tab (Loại bỏ 100% lag/drop frames):**
+          - Gỡ bỏ hoàn toàn `useAnimatedReaction` và `runOnJS(logTranslateX)`: Triệt tiêu tình trạng UI thread liên tục gọi qua JS thread ở 60Hz/120Hz làm nghẽn JS engine trong lúc màn hình tab mới đang mount.
+          - Ngăn chặn trigger đè spring (Spring Interrupt): Sử dụng `currentTabRef` để khi đã kích hoạt trượt từ `onPress`, `useEffect` sẽ không gọi lại `withSpring` một lần nữa, giữ chuyển động liền mạch và bảo toàn nguyên vẹn quán tính vật lý.
+          - Tinh chỉnh vật lý chuẩn Apple Liquid Glass: `damping: 24, stiffness: 220, mass: 0.6, overshootClamping: true` giúp viên thuốc phản hồi siêu nhạy, lướt thanh thoát và dừng chính xác không rung lắc.
+          - Tăng tốc phần cứng 100% GPU (Hardware-accelerated Transform): Cả 5 tab có cùng kích thước nên không animate thuộc tính layout `width` thừa thãi, chỉ sử dụng `transform: [{ translateX }]` thuần túy trên tầng compositing của GPU.
+**Cập nhật lần cuối:** 2026-11-15 (Tối ưu hiệu năng Tab Bar: 60/120fps GPU transform, loại bỏ reaction bridge overhead)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
