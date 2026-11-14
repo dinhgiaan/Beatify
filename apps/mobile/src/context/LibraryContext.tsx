@@ -41,6 +41,8 @@ export interface LibraryContextValue {
   fetchLyrics: (trackId: string) => Promise<string | null>;
   saveTrack: (trackId: string, updates: UpdateTrack) => Promise<void>;
   deleteTrack: (trackId: string, onDeleted?: (trackId: string, remaining: Track[]) => Promise<void> | void) => Promise<void>;
+  networkStatus: 'offline' | 'reconnected' | 'idle';
+  isOffline: boolean;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -135,7 +137,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [currentEtag, setCurrentEtag] = useState<string | null>(null);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<'offline' | 'reconnected' | 'idle'>('idle');
   const isSyncingRef = useRef(false);
+  const isOfflineRef = useRef(false);
 
   const saveLibraryCache = async (payload: {
     etag: string | null;
@@ -183,6 +187,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setLastSyncError(null);
 
         if (result.notModified) {
+          if (isOfflineRef.current) {
+            isOfflineRef.current = false;
+            setNetworkStatus('reconnected');
+            setTimeout(() => setNetworkStatus('idle'), 2500);
+          }
           setSyncStatus('Thư viện đã là mới nhất (304 Not Modified)');
           try {
             const cacheInfo = await FileSystem.getInfoAsync(LIBRARY_CACHE_FILE);
@@ -196,6 +205,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             // Bỏ qua lỗi cập nhật timestamp cache
           }
         } else if (result.data) {
+          if (isOfflineRef.current) {
+            isOfflineRef.current = false;
+            setNetworkStatus('reconnected');
+            setTimeout(() => setNetworkStatus('idle'), 2500);
+          }
           const resolvedTracks = result.data.tracks.map((t) => resolveTrackUrls(t, url, token));
           const resolvedAlbums = (result.data.albums || []).map((a) => resolveAlbumUrls(a, url, token));
           const shuffledTracks = smartShuffle(resolvedTracks);
@@ -225,17 +239,34 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
         if (!isCancelled) {
           setLastSyncError(msg);
-          setSyncStatus(`Lỗi đồng bộ: ${msg}`);
-          if (!silent) {
-            Alert.alert('Lỗi đồng bộ Cloudflare', msg);
+
+            // Nhận diện lỗi ngoại tuyến (offline / mạng chập chờn)
+            const isNetError =
+              lower.includes('fetch failed') ||
+              lower.includes('network') ||
+              lower.includes('unexpectedexception') ||
+              lower.includes('offline') ||
+              lower.includes('enotfound') ||
+              lower.includes('timeout') ||
+              lower.includes('failed to fetch');
+
+            if (isNetError) {
+              isOfflineRef.current = true;
+              setNetworkStatus('offline');
+              setSyncStatus('Đang ngoại tuyến • Nhạc lưu trên máy sẵn sàng');
+            } else {
+              setSyncStatus(`Lỗi đồng bộ: ${msg}`);
+              if (!silent) {
+                Alert.alert('Lỗi đồng bộ Cloudflare', msg);
+              }
+            }
           }
+        } finally {
+          setIsSyncing(false);
+          isSyncingRef.current = false;
         }
-      } finally {
-        setIsSyncing(false);
-        isSyncingRef.current = false;
-      }
-    },
-    []
+      },
+      []
   );
 
   // 1. Tự động nạp cấu hình server & bộ nhớ đệm thư viện từ beatify_library_cache.json (Zero Flash)
@@ -647,6 +678,43 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   }, [serverUrl, serverToken]);
 
+  // Tự động kiểm tra mạng phục hồi khi đang ở trạng thái ngoại tuyến
+  useEffect(() => {
+    if (networkStatus !== 'offline') return;
+
+    let isProbing = false;
+    const probeNetwork = async () => {
+      if (isProbing) return;
+      isProbing = true;
+      try {
+        const cleanUrl = (serverUrl || '').trim().replace(/\/+$/, '');
+        if (!cleanUrl) return;
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), 3000);
+        const res = await fetch(`${cleanUrl}/api/health`, {
+          method: 'GET',
+          signal: ctrl.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (res.status >= 200 && res.status < 400) {
+          isOfflineRef.current = false;
+          setNetworkStatus('reconnected');
+          setTimeout(() => setNetworkStatus('idle'), 2500);
+          // Tự động đồng bộ ngầm khi có mạng lại
+          syncLibrary({ silent: true }).catch(() => { });
+        }
+      } catch {
+        // Vẫn đang ngoại tuyến
+      } finally {
+        isProbing = false;
+      }
+    };
+
+    const interval = setInterval(probeNetwork, 4000);
+    return () => clearInterval(interval);
+  }, [networkStatus, serverUrl, syncLibrary]);
+
   return (
     <LibraryContext.Provider
       value={{
@@ -674,6 +742,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         fetchLyrics,
         saveTrack,
         deleteTrack,
+        networkStatus,
+        isOffline: networkStatus === 'offline',
       }}
     >
       {children}

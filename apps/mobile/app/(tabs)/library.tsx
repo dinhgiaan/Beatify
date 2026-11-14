@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,12 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
 import { smartShuffle, type Track, type UpdateTrack, type UserProfile } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
+import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
 import {
   colors,
   fontSizes,
@@ -43,9 +44,9 @@ import { formatTime } from '../../src/utils/formatTime';
 import { EqualizerIndicator } from '../../src/components/player/EqualizerIndicator';
 import { statsStorage } from '../../src/services/stats/statsStorage';
 import { EditTrackModal } from '../../src/components/EditTrackModal';
-import { HiddenSettingsModal } from '../../src/components/HiddenSettingsModal';
 import { CollectionDetailModal } from '../../src/components/CollectionDetailModal';
 import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
+import { triggerSelectionHaptic } from '../../src/utils/haptics';
 
 type LibrarySegment = 'songs' | 'albums' | 'artists';
 
@@ -85,21 +86,23 @@ function renderUserAvatar(profile: UserProfile | null, size = 18) {
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+    }, [])
+  );
 
   useEffect(() => {
     // Lắng nghe sự kiện nhấn giữ tab Thư viện ở đáy màn hình
     const unsubscribe = navigation.addListener('tabLongPress' as never, () => {
       Vibration.vibrate([0, 50, 50, 50]);
-      statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-      setHiddenSettingsVisible(true);
+      router.push('/settings');
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, router]);
   const {
     tracks,
     setTracks,
@@ -166,6 +169,8 @@ export default function LibraryScreen() {
 
 
   // Indicator animated slide chuyển động mượt mà cho thanh filter pills
+  const songsListRef = useRef<FlatList>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const pillIndicatorLeft = useRef(new Animated.Value(0)).current;
   const pillIndicatorWidth = useRef(new Animated.Value(0)).current;
   const pillLayouts = useRef<{ [id: string]: { x: number; width: number } }>({});
@@ -214,7 +219,6 @@ export default function LibraryScreen() {
   const [addToPlaylistModalVisible, setAddToPlaylistModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
-  const [hiddenSettingsVisible, setHiddenSettingsVisible] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<{
     visible: boolean;
     title: string;
@@ -426,13 +430,6 @@ export default function LibraryScreen() {
     playQueue(shuffled, 0);
   };
 
-  const handleRandomizeList = () => {
-    if (tracks.length === 0) return;
-    Vibration.vibrate(12);
-    const shuffled = smartShuffle(tracks);
-    setTracks(shuffled);
-  };
-
   const handlePlayAll = () => {
     if (filteredTracks.length === 0) return;
     Vibration.vibrate(15);
@@ -608,9 +605,8 @@ export default function LibraryScreen() {
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => {
-              Vibration.vibrate(10);
-              statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-              setHiddenSettingsVisible(true);
+              triggerSelectionHaptic();
+              router.push('/settings');
             }}
             activeOpacity={0.75}
             accessibilityLabel="Mở Cài đặt và Hồ sơ người dùng"
@@ -676,17 +672,8 @@ export default function LibraryScreen() {
             })}
           </ScrollView>
 
-          {/* 3. Cụm nút công cụ nhỏ: Xáo trộn danh sách & Hot Reload R2 */}
+          {/* 3. Nút Hot Reload R2 */}
           <View style={styles.headerToolButtonsRow}>
-            <TouchableOpacity
-              style={styles.randomizeListButton}
-              onPress={handleRandomizeList}
-              activeOpacity={0.7}
-              accessibilityLabel="Xáo trộn lại thứ tự bài hát"
-            >
-              <ShuffleIcon size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.hotReloadButton, isSyncing && styles.hotReloadButtonSyncing]}
               onPress={handleHotReload}
@@ -797,10 +784,16 @@ export default function LibraryScreen() {
       < Animated.View style={{ flex: 1, opacity: contentFadeAnim }}>
         {activeSegment === 'songs' ? (
           <FlatList
+            ref={songsListRef}
             key="flatlist-songs"
             data={filteredTracks}
             keyExtractor={(item, index) => (item?.id ? `song-${item.id}` : `song-${index}`)}
             renderItem={renderTrackItem}
+            onScroll={(e) => {
+              const y = e.nativeEvent.contentOffset.y;
+              setShowScrollTop(y > 350);
+            }}
+            scrollEventThrottle={16}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: contentPaddingBottom },
@@ -941,16 +934,6 @@ export default function LibraryScreen() {
         onFetchLyrics={fetchLyrics}
       />
 
-      {/* Modal Cài đặt ẩn & Kỹ thuật (Beatify Hidden Settings) */}
-      <HiddenSettingsModal
-        visible={hiddenSettingsVisible}
-        onProfileUpdated={(updated) => setUserProfile(updated)}
-        onClose={() => {
-          setHiddenSettingsVisible(false);
-          statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-        }}
-      />
-
       {/* Modal Chi tiết Album / Nghệ sĩ */}
       <CollectionDetailModal
         visible={selectedCollection.visible}
@@ -971,6 +954,13 @@ export default function LibraryScreen() {
         onClose={() => setAddToPlaylistModalVisible(false)}
         onUpdateUserState={updateUserState}
       />
+      {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */ }
+  <ScrollToTopButton
+    visible={showScrollTop}
+    onPress={() => {
+      songsListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }}
+  />
     </View >
   );
 }

@@ -27,6 +27,7 @@ import {
 } from '../services/player/turntablePreferences';
 import { useLibrary, resolveTrackUrls } from './LibraryContext';
 import { useOffline } from './OfflineContext';
+import { formatTime } from '../utils/formatTime';
 
 export interface PlayerContextValue {
   tracks: Track[];
@@ -575,6 +576,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       sleepTimerTargetMsRef.current = null;
       setSleepTimerMinutes(null);
       setSleepTimerRemainingSec(null);
+      playerService.updateLockScreenTimer?.(null);
       return;
     }
     const targetMs = Date.now() + minutes * 60 * 1000;
@@ -585,7 +587,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Đếm ngược Sleep Timer tự động bám theo thời gian thực (kể cả khi app chạy nền hoặc khóa màn hình)
   useEffect(() => {
-    if (sleepTimerMinutes === null || !sleepTimerTargetMsRef.current) return;
+    if (sleepTimerMinutes === null || !sleepTimerTargetMsRef.current) {
+      playerService.updateLockScreenTimer?.(null);
+      return;
+    }
 
     const checkTimer = () => {
       if (!sleepTimerTargetMsRef.current) return;
@@ -596,9 +601,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setSleepTimerMinutes(null);
         setSleepTimerRemainingSec(null);
         sleepTimerTargetMsRef.current = null;
+        playerService.updateLockScreenTimer?.(null);
         Vibration.vibrate([0, 100, 50, 100]);
       } else {
-        setSleepTimerRemainingSec(Math.ceil(diffMs / 1000));
+        const remainingSec = Math.ceil(diffMs / 1000);
+        setSleepTimerRemainingSec(remainingSec);
+        playerService.updateLockScreenTimer?.(formatTime(remainingSec));
       }
     };
 
@@ -616,25 +624,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [sleepTimerMinutes]);
 
-        // Xử lý khi bài hát bị xóa khỏi app
-        const handleTrackDeleted = useCallback(async (trackId: string, remaining?: Track[]) => {
-          const targetIdx = queueTracks.findIndex((t) => t.id === trackId);
-          const updatedQueue = remaining ?? queueTracks.filter((t) => t.id !== trackId);
-          setActiveQueue(updatedQueue);
+  // Xử lý khi bài hát bị xóa khỏi app
+  const handleTrackDeleted = useCallback(async (trackId: string, remaining?: Track[]) => {
+    const targetIdx = queueTracks.findIndex((t) => t.id === trackId);
+    const updatedQueue = remaining ?? queueTracks.filter((t) => t.id !== trackId);
+    setActiveQueue(updatedQueue);
 
-          if (queueTracks[currentTrackIndex]?.id === trackId) {
-            if (updatedQueue.length > 0) {
-              const nextIdx = Math.min(targetIdx >= 0 ? targetIdx : 0, updatedQueue.length - 1);
-              setCurrentTrackIndex(nextIdx);
-              await playQueue(updatedQueue, nextIdx);
-            } else {
-              setCurrentTrackIndex(0);
-              await playerService.pause();
-            }
-          } else if (targetIdx >= 0 && targetIdx < currentTrackIndex) {
-            setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
-          }
-      }, [queueTracks, currentTrackIndex, playQueue]);
+    if (queueTracks[currentTrackIndex]?.id === trackId) {
+      if (updatedQueue.length > 0) {
+        const nextIdx = Math.min(targetIdx >= 0 ? targetIdx : 0, updatedQueue.length - 1);
+        setCurrentTrackIndex(nextIdx);
+        await playQueue(updatedQueue, nextIdx);
+      } else {
+        setCurrentTrackIndex(0);
+        await playerService.pause();
+      }
+    } else if (targetIdx >= 0 && targetIdx < currentTrackIndex) {
+      setCurrentTrackIndex((prev) => Math.max(0, prev - 1));
+    }
+  }, [queueTracks, currentTrackIndex, playQueue]);
 
   // Cập nhật giới hạn số lượng bài nghe gần đây
   const setRecentLimit = useCallback(async (limit: number) => {

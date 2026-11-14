@@ -26,5 +26,6 @@ export interface IPlayerService {
   seekTo(seconds: number): Promise<void>;
   setRepeatMode(mode: RepeatMode): Promise<void>;
   getQueue(): Promise<Track[]>;
+  updateLockScreenTimer?(timerText: string | null): void;
   subscribe(listener: (state: PlayerState) => void): () => void;
 }

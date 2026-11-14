@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../../src/components/player/MiniPlayer';
@@ -39,10 +40,38 @@ function getTabIcon(routeName: string, color: string) {
 
 /**
  * Custom Bottom Tab Bar nổi bo tròn dạng Floating Pill tối giản
- * Thuần Icon gọn gàng, viền tab active cân đối hoàn hảo
+ * Thuần Icon gọn gàng, có hiệu ứng viên thuốc trượt mượt mà (Sliding Active Pill) theo tab đang chọn
  */
 function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [dockWidth, setDockWidth] = useState(0);
+
+  const activeIndex = useSharedValue(state.index);
+
+  useEffect(() => {
+    activeIndex.value = withSpring(state.index, {
+      damping: 24,
+      stiffness: 240,
+      mass: 0.7,
+    });
+  }, [state.index, activeIndex]);
+
+  const pillAnimStyle = useAnimatedStyle(() => {
+    const totalTabs = state.routes.length || 5;
+    // Trừ 8px paddingHorizontal (4px mỗi bên) của floatingDock
+    const availableWidth = Math.max(0, dockWidth - 8);
+    const tabWidth = availableWidth / totalTabs;
+
+    return {
+      width: tabWidth > 0 ? tabWidth : 0,
+      transform: [
+        {
+          translateX: activeIndex.value * tabWidth,
+        },
+      ],
+      opacity: dockWidth > 0 ? 1 : 0,
+    };
+  });
 
   return (
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
@@ -57,7 +86,16 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
             marginBottom: Math.max(insets.bottom, 12),
           },
         ]}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0 && Math.abs(w - dockWidth) > 1) {
+            setDockWidth(w);
+          }
+        }}
       >
+        {/* Nền active di chuyển mượt mà dạng trượt (Sliding Pill) */}
+        <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor?.options ?? {};
@@ -108,10 +146,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabsTabBarProps) {
               onLongPress={onLongPress}
               delayLongPress={500}
               activeOpacity={0.7}
-              style={[
-                styles.tabButton,
-                isFocused && styles.tabButtonActive,
-              ]}
+              style={styles.tabButton}
             >
               {getTabIcon(route.name, iconColor)}
             </TouchableOpacity>
@@ -199,13 +234,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
-    zIndex: 1,
+    zIndex: 2,
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
-  tabButtonActive: {
-    backgroundColor: 'rgba(29, 185, 84, 0.16)',
-    borderColor: 'rgba(29, 185, 84, 0.45)',
-  },
-});
+    slidingActivePill: {
+      position: 'absolute',
+      left: 4,
+      top: 4,
+      bottom: 4,
+      height: 42,
+      backgroundColor: 'rgba(29, 185, 84, 0.16)',
+      borderColor: 'rgba(29, 185, 84, 0.45)',
+      borderWidth: 1,
+      borderRadius: radius.pill,
+      zIndex: 1,
+    },
+  });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   Modal,
   View,
@@ -25,6 +25,7 @@ import { EqualizerIndicator } from './player/EqualizerIndicator';
 import { MiniPlayer } from './player/MiniPlayer';
 import { TrackActionSheet } from './sheet/TrackActionSheet';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
+import { ScrollToTopButton } from './common/ScrollToTopButton';
 import {
   CloseIcon,
   PlayIcon,
@@ -35,6 +36,7 @@ import {
   TrashIcon,
   ClockIcon,
   DownloadIcon,
+  MoreHorizontalIcon,
 } from './icons/SvgIcons';
 
 export interface CollectionDetailModalProps {
@@ -66,11 +68,13 @@ export function CollectionDetailModal({
   const insets = useSafeAreaInsets();
   const { currentTrack, playQueue, playNext, togglePlay, playerState, handleTrackDeleted } = usePlayer();
   const { userState, toggleFavorite, updateUserState, deleteTrack } = useLibrary();
-  const { isTrackOffline, downloadTrack, deleteOfflineTrack, isDownloading } = useOffline();
+  const { isTrackOffline, downloadTrack, deleteOfflineTrack, isDownloading, downloadProgress } = useOffline();
 
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   const totalDurationSec = useMemo(() => {
     return tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
@@ -170,6 +174,19 @@ export function CollectionDetailModal({
             </TouchableOpacity>
           )}
 
+          <TouchableOpacity
+            style={styles.actionIconBtn}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              setSelectedTrackForMenu(item);
+              setActionSheetVisible(true);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={`Tùy chọn cho bài ${item.title}`}
+          >
+            <MoreHorizontalIcon size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+
           <Text style={styles.durationText}>{formatTime(item.duration)}</Text>
         </View>
       </TouchableOpacity>
@@ -198,9 +215,14 @@ export function CollectionDetailModal({
 
         {/* Danh sách bài hát có Header là thông tin Album/Nghệ sĩ */}
         <FlatList
+          ref={flatListRef}
           data={tracks}
           keyExtractor={(item, idx) => `${item.id}-${idx}`}
           renderItem={renderTrackItem}
+          onScroll={(e) => {
+            setShowScrollTop(e.nativeEvent.contentOffset.y > 350);
+          }}
+          scrollEventThrottle={16}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: Math.max(insets.bottom, 16) + (currentTrack ? 90 : 32) },
@@ -325,6 +347,7 @@ export function CollectionDetailModal({
             visible={actionSheetVisible}
             onClose={() => setActionSheetVisible(false)}
             track={selectedTrackForMenu}
+            coverUrl={selectedTrackForMenu?.cover || null}
             isFavorite={userState?.favoriteIds?.includes(selectedTrackForMenu.id)}
             playlistNames={
               selectedTrackForMenu
@@ -341,6 +364,9 @@ export function CollectionDetailModal({
                     ? 'downloaded'
                     : 'idle'
                 : 'idle'
+            }
+            downloadProgress={
+              selectedTrackForMenu ? downloadProgress[selectedTrackForMenu.id] : undefined
             }
             onPlayNext={() => {
               if (selectedTrackForMenu) playNext(selectedTrackForMenu);
@@ -371,6 +397,15 @@ export function CollectionDetailModal({
           userState={userState}
           onClose={() => setAddToPlaylistVisible(false)}
           onUpdateUserState={updateUserState}
+        />
+
+        {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */}
+        <ScrollToTopButton
+          visible={showScrollTop}
+          bottomOffset={currentTrack ? 85 : 25}
+          onPress={() => {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }}
         />
       </View>
     </Modal>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,7 @@ import { formatTime } from '../../src/utils/formatTime';
 import { cleanTrackTitle, formatRelativeTime } from '../../src/utils/recentFormatters';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
+import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
 
 export default function RecentScreen() {
   const insets = useSafeAreaInsets();
@@ -54,6 +55,8 @@ export default function RecentScreen() {
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   // Hero card là bài hát nghe gần đây nhất (#0)
   const heroTrack = recentTracks.length > 0 ? recentTracks[0] : null;
@@ -308,10 +311,15 @@ export default function RecentScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={recentTracks.slice(1)}
           keyExtractor={(item, idx) => `recent-${item.id}-${idx + 1}`}
           renderItem={renderTrackItem}
           ListHeaderComponent={renderHeader}
+          onScroll={(e) => {
+            setShowScrollTop(e.nativeEvent.contentOffset.y > 350);
+          }}
+          scrollEventThrottle={16}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: contentPaddingBottom + 20 },
@@ -359,6 +367,13 @@ export default function RecentScreen() {
         userState={userState}
         onClose={() => setAddToPlaylistVisible(false)}
         onUpdateUserState={updateUserState}
+      />
+      {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */}
+      <ScrollToTopButton
+        visible={showScrollTop}
+        onPress={() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
       />
     </View>
   );

@@ -546,6 +546,21 @@ export function ChevronDownIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
+// Chevron Up Icon (Mũi tên lên cuộn về đầu trang)
+export function ChevronUpIcon({ size = 24, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 15l-6-6-6 6"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 // 36. Download Icon (Tải bài hát về máy / Nghe offline)
 export function DownloadIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (

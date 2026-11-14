@@ -19,6 +19,7 @@ export interface OfflineContextValue {
   offlineTracks: Track[];
   totalSizeBytes: number;
   isDownloading: Record<string, boolean>;
+  downloadProgress: Record<string, number>;
   downloadTrack: (track: Track) => Promise<void>;
   deleteOfflineTrack: (trackId: string) => Promise<void>;
   deleteMultipleOfflineTracks: (trackIds: string[]) => Promise<void>;
@@ -34,6 +35,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const { serverUrl, serverToken, fetchLyrics } = useLibrary();
   const [offlineIndex, setOfflineIndex] = useState<OfflineIndex>({});
   const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
 
   // Khởi tạo nạp index khi app khởi động
   useEffect(() => {
@@ -117,6 +119,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsDownloading((prev) => ({ ...prev, [track.id]: true }));
+      setDownloadProgress((prev) => ({ ...prev, [track.id]: 5 }));
       try {
         // Tải lyrics trước (nếu có) để lưu trọn bộ
         let lrcContent: string | null = null;
@@ -126,13 +129,26 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           // Bỏ qua lỗi lyrics nếu không có
         }
 
-        const meta = await downloadTrackOffline(track, serverUrl, serverToken, lrcContent);
+        const meta = await downloadTrackOffline(
+          track,
+          serverUrl,
+          serverToken,
+          lrcContent,
+          (pct) => {
+            setDownloadProgress((prev) => ({ ...prev, [track.id]: pct }));
+          }
+        );
         setOfflineIndex((prev) => ({ ...prev, [track.id]: meta }));
       } catch (err) {
         console.error('[OfflineProvider] Tải bài hát thất bại:', err);
         Alert.alert('Tải bài hát thất bại', err instanceof Error ? err.message : 'Lỗi kết nối máy chủ');
       } finally {
         setIsDownloading((prev) => {
+          const next = { ...prev };
+          Reflect.deleteProperty(next, track.id);
+          return next;
+        });
+        setDownloadProgress((prev) => {
           const next = { ...prev };
           Reflect.deleteProperty(next, track.id);
           return next;
@@ -163,6 +179,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       offlineTracks,
       totalSizeBytes,
       isDownloading,
+      downloadProgress,
       downloadTrack,
       deleteOfflineTrack,
       deleteMultipleOfflineTracks,
@@ -176,6 +193,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       offlineTracks,
       totalSizeBytes,
       isDownloading,
+      downloadProgress,
       downloadTrack,
       deleteOfflineTrack,
       deleteMultipleOfflineTracks,

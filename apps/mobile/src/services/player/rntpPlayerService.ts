@@ -112,85 +112,101 @@ export class RntpPlayerService implements IPlayerService {
       return;
     }
 
+    const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
+
+    // Tối ưu hoá độ trễ: Nếu danh sách bài hát không đổi so với hàng đợi hiện tại,
+    // chỉ cần gọi skipToIndex thay vì nạp lại toàn bộ mediaItems qua bridge Native
+    const isSameQueue =
+      this.currentTracks.length === validTracks.length &&
+      this.currentTracks.every((t, idx) => t.id === validTracks[idx]?.id);
+
     this.currentTracks = validTracks;
 
-    const mediaItems = validTracks.map((track) => ({
-      mediaId: track.id,
-      url: track.file,
-      title: track.title,
-      artist: track.artist,
-      albumTitle: track.album,
-      duration: track.duration,
-      artworkUrl:
-        track.cover &&
-          (track.cover.startsWith('http://') ||
-            track.cover.startsWith('https://') ||
-            track.cover.startsWith('file://'))
-          ? track.cover
-          : undefined,
-    }));
-
-    const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
     try {
-      TrackPlayer.setMediaItems(mediaItems, safeIndex);
-      TrackPlayer.play();
-      this.startProgressTimer();
-      transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
-    } catch (err) {
-      console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
-    }
-    this.notifyListeners();
-  }
+      if (isSameQueue) {
+        TrackPlayer.skipToIndex(safeIndex);
+        TrackPlayer.play();
+        this.startProgressTimer();
+        transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
+        this.notifyListeners();
+        return;
+      }
 
-  async play(): Promise<void> {
-    await this.setup();
-    try {
-      TrackPlayer.play();
-      this.startProgressTimer();
-    } catch (err) {
-      console.warn('[RNTP] Lỗi play():', err);
-    }
-    this.notifyListeners();
-  }
+        const mediaItems = validTracks.map((track) => ({
+          mediaId: track.id,
+          url: track.file,
+          title: track.title,
+          artist: track.artist,
+          albumTitle: track.album,
+          duration: track.duration,
+          artworkUrl:
+            track.cover &&
+              (track.cover.startsWith('http://') ||
+                track.cover.startsWith('https://') ||
+                track.cover.startsWith('file://'))
+              ? track.cover
+              : undefined,
+        }));
 
-  async pause(): Promise<void> {
-    await this.setup();
-    try {
-      TrackPlayer.pause();
-      this.stopProgressTimer();
-      transitionManager.restoreBaseVolume('manual_pause');
-    } catch (err) {
-      console.warn('[RNTP] Lỗi pause():', err);
+        TrackPlayer.setMediaItems(mediaItems, safeIndex);
+        TrackPlayer.play();
+        this.startProgressTimer();
+        transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
+      } catch (err) {
+        console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
+      }
+      this.notifyListeners();
     }
-    this.notifyListeners();
-  }
 
-  async next(): Promise<void> {
-    await this.setup();
-    this.lastTrackEndTime = Date.now();
-    try {
-      transitionManager.restoreBaseVolume('manual_next');
-      TrackPlayer.skipToNext();
-    } catch (err) {
-      console.warn('Không thể chuyển bài tiếp:', err);
+  async play(): Promise < void> {
+      await this.setup();
+      try {
+        TrackPlayer.play();
+        this.startProgressTimer();
+      } catch(err) {
+        console.warn('[RNTP] Lỗi play():', err);
+      }
+    this.notifyListeners();
     }
-    this.notifyListeners();
-  }
 
-  async previous(): Promise<void> {
-    await this.setup();
-    try {
-      transitionManager.restoreBaseVolume('manual_previous');
-      TrackPlayer.skipToPrevious();
-    } catch (err) {
-      console.warn('Không thể quay lại bài trước:', err);
+  async pause(): Promise < void> {
+      await this.setup();
+      try {
+        TrackPlayer.pause();
+        this.stopProgressTimer();
+        transitionManager.restoreBaseVolume('manual_pause');
+      } catch(err) {
+        console.warn('[RNTP] Lỗi pause():', err);
+      }
+    this.notifyListeners();
     }
-    this.notifyListeners();
-  }
 
-  async skipToIndex(index: number): Promise<void> {
-    await this.setup();
-    if (index < 0 || index >= this.currentTracks.length) {
+  async next(): Promise < void> {
+      await this.setup();
+      this.lastTrackEndTime = Date.now();
+      try {
+        transitionManager.restoreBaseVolume('manual_next');
+        TrackPlayer.skipToNext();
+      } catch(err) {
+        console.warn('Không thể chuyển bài tiếp:', err);
+      }
+    this.notifyListeners();
+    }
+
+  async previous(): Promise < void> {
+      await this.setup();
+      try {
+        transitionManager.restoreBaseVolume('manual_previous');
+        TrackPlayer.skipToPrevious();
+      } catch(err) {
+        console.warn('Không thể quay lại bài trước:', err);
+      }
+    this.notifyListeners();
+    }
+
+  async skipToIndex(index: number): Promise < void> {
+      await this.setup();
+      if(index < 0 || index >= this.currentTracks.length) {
       console.warn(`[RNTP] skipToIndex ngoài phạm vi hàng đợi: ${index} (tổng ${this.currentTracks.length})`);
       return;
     }
@@ -230,6 +246,27 @@ export class RntpPlayerService implements IPlayerService {
         break;
     }
     TrackPlayer.setRepeatMode(rntpMode);
+  }
+
+  /**
+   * Cập nhật hiển thị thời gian đếm ngược hẹn giờ (Sleep Timer) kín đáo ở góc ngoài màn hình khóa (Lock Screen)
+   */
+  updateLockScreenTimer(timerText: string | null): void {
+    try {
+      const activeItem = TrackPlayer.getActiveMediaItem();
+      if (!activeItem) return;
+      const currentTrack = this.currentTracks.find((t) => t.id === activeItem.mediaId);
+      const originalAlbum = currentTrack?.album || 'Beatify';
+      const newAlbumTitle = timerText ? `${originalAlbum} • ⏳ ${timerText}` : originalAlbum;
+      const index = this.currentTracks.findIndex((t) => t.id === activeItem.mediaId);
+      if (index >= 0) {
+        TrackPlayer.updateMetadata(index, {
+          albumTitle: newAlbumTitle,
+        });
+      }
+    } catch {
+      // Bỏ qua lỗi cập nhật metadata an toàn
+    }
   }
 
   async getQueue(): Promise<Track[]> {

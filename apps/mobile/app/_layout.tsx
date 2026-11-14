@@ -9,7 +9,63 @@ import {
   PlayerProvider,
   PlayerProgressProvider,
   OfflineProvider,
+  useLibrary,
 } from '../src/context';
+import { NetworkStatusBanner } from '../src/components/common/NetworkStatusBanner';
+
+function RootAppContent() {
+  const { networkStatus } = useLibrary();
+
+  return (
+    <>
+      <NetworkStatusBanner status={networkStatus} />
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: colors.backgroundElevated,
+          },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: {
+            fontWeight: fontWeights.semibold,
+            fontSize: fontSizes.titleSmall,
+          },
+          headerShadowVisible: false,
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="now-playing"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   return (
@@ -19,43 +75,7 @@ export default function RootLayout() {
           <OfflineProvider>
             <PlayerProvider>
               <PlayerProgressProvider>
-                <StatusBar style="light" />
-                <Stack
-                  screenOptions={{
-                    headerStyle: {
-                      backgroundColor: colors.backgroundElevated,
-                    },
-                    headerTintColor: colors.textPrimary,
-                    headerTitleStyle: {
-                      fontWeight: fontWeights.semibold,
-                      fontSize: fontSizes.titleSmall,
-                    },
-                    headerShadowVisible: false,
-                    contentStyle: {
-                      backgroundColor: colors.background,
-                    },
-                  }}
-                >
-                  <Stack.Screen
-                    name="index"
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="(tabs)"
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="now-playing"
-                    options={{
-                      presentation: 'modal',
-                      headerShown: false,
-                    }}
-                  />
-                </Stack>
+                <RootAppContent />
               </PlayerProgressProvider>
             </PlayerProvider>
           </OfflineProvider>

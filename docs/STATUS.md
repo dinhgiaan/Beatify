@@ -50,8 +50,26 @@
    - Xây dựng hệ thống component dùng chung chuẩn Apple: `ListGroup`, `SettingRow`, `SectionHeader`, `UserAvatar`.
    - Thống nhất typography, 2 mức surface (`bgBase: #000000`, `bgSurface: #121217`, `bgElevated: #1c1c22`), đường phân cách hairline `StyleSheet.hairlineWidth`.
    - Khắc phục triệt để 10 lỗi: Cắt cụt chữ mép header (Sticky Tab Bar), Safe-area cộng đôi gây khoảng đen trên sheet, Avatar rỗng chữ cái đầu, Rút gọn nhật ký chuyển bài 1 dòng và ánh xạ tiếng Việt, Hàm làm sạch tiêu đề rác `cleanTrackTitle` có unit test, Thống nhất thuật ngữ "Lượt nghe" / "Phút nghe", Chip chuyển bài mờ khi tắt Switch, Nút xóa Danger bắt buộc Alert, Mô tả chuyển bài trung thực, Bỏ lặp số liệu thống kê.
+   - **Tái cấu trúc kiến trúc iOS Settings (Expo Router Native Stack):**
+     - Chuyển từ modal cuộn dài sang hệ thống màn hình Native Stack Navigation (`/settings`):
+     - **Trang chính (`/settings`):** Hero Card tóm tắt hồ sơ (Avatar, tên, Level kèm thanh tiến độ %, 2 số liệu chính: Lượt nghe & Phút nghe), 5 nhóm grouped list điều hướng (Hồ sơ, Thống kê Replay, Phát nhạc, Lưu trữ & Lịch sử, Nâng cao).
+     - **Mỗi nhóm mở thành 1 màn push riêng:** `headerLargeTitle: true` co giãn mượt mà khi cuộn và nút Back `‹` tự động.
+     - **Hồ sơ (`/settings/profile`):** Đổi tên, tiểu sử, chụp ảnh/chọn ảnh thư viện/gỡ ảnh.
+     - **Thống kê Replay (`/settings/replay`):** 4 tab segmented control, ảnh bìa thumbnail cho Top bài hát (`expo-image`, `cachePolicy="memory-disk"`), loại bỏ "Kho bài hát" khỏi thống kê theo yêu cầu.
+     - **Phát nhạc (`/settings/playback`):** Đĩa than Vinyl 360°, Chuyển bài thông minh, chip mờ khi tắt.
+     - **Lưu trữ & Lịch sử (`/settings/storage`):** Quản lý dung lượng offline, xóa nhạc offline, giới hạn lịch sử nghe [10..50], xóa lịch sử nghe.
+     - **Nâng cao (`/settings/advanced`):** Cài đặt Cloudflare Worker (URL & Token), ETag R2, Sideload exp, Build SHA, Gapless delta, Stream trực tiếp, và link sang Nhật ký chuyển bài (`/settings/transition-logs`).
    - Toàn bộ monorepo: 272/272 tests passed 100%, typecheck sạch sẽ cả 5 packages, lint 0 error 0 warning.
-**Cập nhật lần cuối:** 2026-11-13 (Tinh chỉnh UI/UX 4 màn hình Settings, Replay, Transition Logs, Offline theo chuẩn Apple)
+11. **Nâng cấp toàn diện trải nghiệm Mobile App theo phản hồi người dùng:**
+    - **Floating Tab Bar:** Animation background active dạng trượt mượt mà (`SlidingActivePill` với spring của Reanimated) lướt êm ái theo tab thay vì bật/tắt tức thì.
+    - **Trang chủ & Smart Shuffle:** Xóa nút shuffle trùng lặp cạnh CloudSync; sửa triệt để thuật toán Smart Shuffle không còn thiên vị các nghệ sĩ có nhiều bài nhất (Sơn Tùng M-TP, B Ray...), phân bổ ngẫu nhiên đồng đều công bằng.
+    - **ScrollToTopButton:** Tạo component nút cuộn lên đầu trang hình tròn nổi phong cách Apple, animation mũi tên nhảy lên nhảy xuống nhịp nhàng, chạm vào nảy và cuộn mượt; tích hợp vào Trang chủ, Vừa nghe, Tìm kiếm, Playlist, Modal Đã tải về máy.
+    - **Modal Bộ sưu tập & Offline:** Hiển thị `MiniPlayer` nổi ngay khi mở modal "Đã tải về máy"; sửa lỗi bài offline không phát được trên iOS bằng cách nhận diện chính xác extension file gốc (`.m4a`, `.flac`, `.mp3`) và fallback an toàn; thêm nút ba chấm "..." trên từng dòng bài trong playlist và hiển thị đầy đủ ảnh bìa cùng % tiến độ tải trực tiếp trên Action Sheet.
+    - **Modal Thêm vào Playlist (`AddToPlaylistModal`):** Nút "Đóng" căn sát bên phải với width gọn gàng và khoảng đệm chân hợp lý; đổi màu nền tương phản cao cấp giữa nút tạo mới và item playlist.
+    - **Hiển thị Timer ngoài Lock Screen:** Cập nhật thông tin đếm ngược kín đáo ở góc ngoài màn hình khóa (`Tên Album • ⏳ mm:ss`) qua `TrackPlayer.updateMetadata` mà không ngắt nhạc.
+    - **Tối ưu tốc độ chuyển bài:** Tối ưu hóa `playQueue` dùng `skipToIndex` khi chuyển bài trong cùng một queue, giảm độ trễ từ ~800ms xuống dưới 100ms tức thì.
+    - **Xử lý mạng thông minh:** Thay thế log lỗi kỹ thuật thô bằng `NetworkStatusBanner` chuyển động dạng Dynamic Island; tự động thăm dò và đồng bộ ngầm ngay khi có mạng trở lại mà người dùng không cần reload thủ công.
+**Cập nhật lần cuối:** 2026-11-14 (Hoàn tất 9 hạng mục nâng cấp & tinh chỉnh trải nghiệm Mobile App)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

@@ -31,6 +31,7 @@ import { cleanTrackTitle } from '../../src/utils/recentFormatters';
 import { splitMatches } from '../../src/utils/searchHighlight';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
+import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
 import {
   loadSearchHistory,
   saveSearchHistory,
@@ -88,6 +89,8 @@ export default function SearchScreen() {
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const resultsListRef = useRef<FlatList>(null);
   const [isSearching, setIsSearching] = useState(false);
   const resultsFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -477,9 +480,14 @@ export default function SearchScreen() {
         // Danh sách kết quả tìm kiếm với animation xuất hiện mượt mà
         <Animated.View style={{ flex: 1, opacity: resultsFadeAnim }}>
           <FlatList
+            ref={resultsListRef}
             data={filteredTracks}
             keyExtractor={(item) => item.id}
             renderItem={renderTrackItem}
+            onScroll={(e) => {
+              setShowScrollTop(e.nativeEvent.contentOffset.y > 350);
+            }}
+            scrollEventThrottle={16}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: contentPaddingBottom + 20 },
@@ -530,6 +538,13 @@ export default function SearchScreen() {
         userState={userState}
         onClose={() => setAddToPlaylistVisible(false)}
         onUpdateUserState={updateUserState}
+      />
+      {/* Nút Cuộn lên đầu trang với animation mũi tên nhảy lên nhảy xuống mượt mà */}
+      <ScrollToTopButton
+        visible={showScrollTop}
+        onPress={() => {
+          resultsListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
       />
     </View>
   );
