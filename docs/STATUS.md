@@ -191,7 +191,15 @@
           - Ngăn chặn trigger đè spring (Spring Interrupt): Sử dụng `currentTabRef` để khi đã kích hoạt trượt từ `onPress`, `useEffect` sẽ không gọi lại `withSpring` một lần nữa, giữ chuyển động liền mạch và bảo toàn nguyên vẹn quán tính vật lý.
           - Tinh chỉnh vật lý chuẩn Apple Liquid Glass: `damping: 24, stiffness: 220, mass: 0.6, overshootClamping: true` giúp viên thuốc phản hồi siêu nhạy, lướt thanh thoát và dừng chính xác không rung lắc.
           - Tăng tốc phần cứng 100% GPU (Hardware-accelerated Transform): Cả 5 tab có cùng kích thước nên không animate thuộc tính layout `width` thừa thãi, chỉ sử dụng `transform: [{ translateX }]` thuần túy trên tầng compositing của GPU.
-**Cập nhật lần cuối:** 2026-11-15 (Tối ưu hiệu năng Tab Bar: 60/120fps GPU transform, loại bỏ reaction bridge overhead)
+        - **Triệt tiêu độ trễ 1.5s khi phát bài hát mới (Instant Playback Optimization):**
+          - **Nguyên nhân gốc phía Backend (Double-Fetch & Full Object Buffering):** Mỗi request audio stream từ iOS AVPlayer gửi đến `/stream/:id` (kể cả Range Request đọc 2 bytes đầu), Cloudflare Worker trước đây đều gọi `repo.getAudioStream(id)` tải toàn bộ 25-30MB file nhạc từ R2 vào RAM Worker trước để lấy `totalSize`, sau đó mới gọi tiếp lần 2 để đọc byte range. Thao tác tải thừa 2 lượt cả file này làm trễ mất 1.2s - 1.5s.
+          - **Giải pháp Backend:**
+            1. Bổ sung `getAudioInfo`: Đọc metadata kích thước và type từ `audioKeyCache` (0ms) hoặc `bucket.list` nhẹ (20ms), tuyệt đối không tải body của file.
+            2. Xử lý yêu cầu `HEAD`: Phản hồi tức thì 0ms cho AVPlayer thăm dò.
+            3. Xử lý Range Request: Chỉ tải DUY NHẤT phạm vi byte cần thiết từ R2 trong 1 roundtrip duy nhất.
+            4. Bổ sung header `Cache-Control: public, max-age=31536000, immutable`: Cloudflare Edge CDN cache lại các audio chunk ở Data Center gần người dùng nhất.
+          - **Giải pháp Mobile:** Bật `cache: { maxSizeBytes: 500MB, preloading: { window: 2 } }` trong `@rntp/player` setup, tự động đệm trước ngầm 2 bài tiếp theo trong hàng đợi vào bộ nhớ cache của iPhone.
+**Cập nhật lần cuối:** 2026-11-15 (Triệt tiêu độ trễ 1.5s phát nhạc: Single-pass R2 streaming, Edge CDN Cache và Mobile Preloading)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
