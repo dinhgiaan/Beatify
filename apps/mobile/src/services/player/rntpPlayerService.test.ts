@@ -67,7 +67,7 @@ vi.mock('@rntp/player', () => ({
 }));
 
 import { RntpPlayerService } from './rntpPlayerService';
-import TrackPlayer from '@rntp/player';
+import TrackPlayer, { type MediaItem } from '@rntp/player';
 import type { Track } from '@music-app/shared';
 
 describe('RntpPlayerService - Idempotent Setup Guard', () => {
@@ -118,8 +118,8 @@ describe('RntpPlayerService - Idempotent Setup Guard', () => {
         storage: 'r2',
       };
 
-      vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1' } as any);
-      (service as any).currentTracks = [mockTrack];
+      vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1', url: 'track-1' } as MediaItem);
+      (service as unknown as { currentTracks: Track[] }).currentTracks = [mockTrack];
 
       // 1. Cập nhật lần đầu với text "còn 14 phút"
       service.updateLockScreenTimer('còn 14 phút');
@@ -170,10 +170,10 @@ describe('RntpPlayerService - Idempotent Setup Guard', () => {
         storage: 'r2',
       };
 
-      (service as any).currentTracks = [track1, track2];
+      (service as unknown as { currentTracks: Track[] }).currentTracks = [track1, track2];
 
       // Đang phát track 1 với timer "còn 10 phút"
-      const getActiveSpy = vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1' } as any);
+      const getActiveSpy = vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1', url: 'track-1' } as MediaItem);
       service.updateLockScreenTimer('còn 10 phút');
       expect(mockUpdateMetadata).toHaveBeenCalledTimes(1);
       expect(mockUpdateMetadata).toHaveBeenLastCalledWith(0, {
@@ -181,7 +181,7 @@ describe('RntpPlayerService - Idempotent Setup Guard', () => {
       });
 
       // Chuyển sang phát track 2 (cùng nghệ sĩ, cùng thời gian timer "còn 10 phút")
-      getActiveSpy.mockReturnValue({ mediaId: 'track-2' } as any);
+      getActiveSpy.mockReturnValue({ mediaId: 'track-2', url: 'track-2' } as MediaItem);
       service.updateLockScreenTimer('còn 10 phút');
 
       // Do khóa theo (ID bài + chuỗi nghệ sĩ), Track 2 PHẢI được cập nhật metadata chứ KHÔNG bị bỏ qua

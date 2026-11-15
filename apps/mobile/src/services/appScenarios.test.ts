@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { smartShuffle, setSleepTimerState, handleSleepTimerPlaybackChange, INITIAL_SLEEP_TIMER_STATE } from '@music-app/shared';
+import { smartShuffle, setSleepTimerState, handleSleepTimerPlaybackChange, type SleepTimerState } from '@music-app/shared';
 import type { Track, UpdateTrack } from '@music-app/shared';
 
 // Hàm formatTime trích xuất từ app/index.tsx
@@ -185,9 +185,9 @@ describe('Kiểm thử Toàn bộ Kịch bản Ứng dụng Mobile (App Scenario
 
   describe('Kịch bản 6: Sleep Timer State Lifecycle & Stale Closure Prevention', () => {
     it('tái hiện kịch bản "hẹn giờ, Pause quá hạn, Play": tự động xóa timer và state UI về null', () => {
-      let uiMinutes: number | null = null;
-      let uiRemainingSec: number | null = null;
-      let timerState = INITIAL_SLEEP_TIMER_STATE;
+      let uiMinutes: number | null;
+      let uiRemainingSec: number | null;
+      let timerState: SleepTimerState;
       const baseTime = 1700000000000;
 
       // 1. Người dùng hẹn giờ 15 phút khi đang phát nhạc
@@ -207,6 +207,7 @@ describe('Kiểm thử Toàn bộ Kịch bản Ứng dụng Mobile (App Scenario
       uiRemainingSec = pauseRes.nextState.remainingSec;
 
       expect(uiMinutes).toBe(15);
+      expect(uiRemainingSec).toBe(900);
       expect(pauseRes.lockScreenText).toBeNull();
 
       // 3. Người dùng để Pause trong 20 phút (quá hạn 5 phút so với targetMs = 15 phút), sau đó bấm Play
@@ -220,7 +221,8 @@ describe('Kiểm thử Toàn bộ Kịch bản Ứng dụng Mobile (App Scenario
       // Xác nhận state UI về null hoàn toàn
       expect(uiMinutes).toBeNull();
       expect(uiRemainingSec).toBeNull();
-      expect(playRes.nextState.targetMs).toBeNull();
+      expect(timerState.targetMs).toBeNull();
+      expect(timerState.minutes).toBeNull();
       expect(playRes.shouldPauseMusic).toBe(false);
       expect(playRes.lockScreenText).toBeNull();
     });

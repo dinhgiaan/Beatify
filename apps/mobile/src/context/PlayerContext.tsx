@@ -6,7 +6,6 @@ import {
   sortTracksByMode,
   type TrackSortMode,
   type SmartTransitionSettings,
-  formatLockScreenTimer,
   setSleepTimerState,
   handleSleepTimerPlaybackChange,
   handleSleepTimerTick,
@@ -34,7 +33,6 @@ import {
 } from '../services/player/turntablePreferences';
 import { useLibrary, resolveTrackUrls } from './LibraryContext';
 import { useOffline } from './OfflineContext';
-import { formatTime } from '../utils/formatTime';
 
 export interface PlayerContextValue {
   tracks: Track[];

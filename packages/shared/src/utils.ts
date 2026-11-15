@@ -139,7 +139,7 @@ export const NON_ALBUM_NAMES = [
  * Kiểm tra xem một chuỗi tên album có phải là album thực thụ hay không
  * Trả về true nếu là album thực thụ (không rỗng, không phải Single/Unknown)
  */
-export function isRealAlbum(albumName?: string | null): boolean {
+export function isRealAlbum(albumName?: string | null): albumName is string {
   if (!albumName || typeof albumName !== 'string') return false;
   const trimmed = albumName.trim().toLowerCase();
   if (!trimmed) return false;
@@ -154,7 +154,7 @@ export function isRealAlbum(albumName?: string | null): boolean {
 export function formatArtistAndAlbum(artist: string, albumName?: string | null): string {
   const safeArtist = (artist || '').trim();
   if (isRealAlbum(albumName)) {
-    return `${safeArtist} · ${albumName!.trim()}`;
+    return `${safeArtist} · ${albumName.trim()}`;
   }
   return safeArtist;
 }

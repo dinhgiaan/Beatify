@@ -7,7 +7,6 @@ import {
   getStartOfMonth,
   getStartOfYear,
   normalizeArtistKey,
-  MANUAL_ARTIST_DISPLAY_OVERRIDES,
   type ListeningRecord,
 } from './stats';
 

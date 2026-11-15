@@ -162,8 +162,8 @@
       "cover": "covers/30674e1a783d.jpg"
     },
     "69991caf41d1": {
-      "title": "M/V",
-      "artist": "2T - LIỆU GIỜ ( WHAT IF ? )",
+      "title": "Liệu Giờ (What If ?)",
+      "artist": "2T",
       "album": "Singles",
       "loudnessLufs": -9.6,
       "replayGain": -8.4,
@@ -210,8 +210,8 @@
       "cover": "covers/a45b341d5ce0.jpg"
     },
     "b1d223b66897": {
-      "title": "DT Tập Rap",
-      "artist": "MUỐN NÓI VỚI EM",
+      "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
+      "artist": "DT Tập Rap",
       "album": "Singles",
       "loudnessLufs": -10.87,
       "replayGain": -7.13,
@@ -242,8 +242,8 @@
       "cover": "covers/0a66475893b4.jpg"
     },
     "904aedb8db44": {
-      "title": "Phát Hồ",
-      "artist": "CHỜ NGÀY CƯỚI EM",
+      "title": "Chờ Ngày Cưới Em (feat. Hương Ly)",
+      "artist": "Phát Hồ",
       "album": "Singles",
       "loudnessLufs": -10.35,
       "replayGain": -7.65,
@@ -314,8 +314,8 @@
       "cover": "covers/9e06deb93708.jpg"
     },
     "9718d8bedfae": {
-      "title": "RV Underground",
-      "artist": "Tháng Năm Không Quên - H2K",
+      "title": "Tháng Năm Không Quên (feat. KN)",
+      "artist": "H2K",
       "album": "Singles",
       "loudnessLufs": -8.43,
       "replayGain": -9.57,
@@ -683,7 +683,7 @@
     },
     "f817a5602e07": {
       "title": "Cơn Mưa Ngang Qua (Part 2)",
-      "artist": "M-TP [ Video + Lyric Kara]",
+      "artist": "Sơn Tùng M-TP",
       "album": "Singles",
       "loudnessLufs": -7.62,
       "replayGain": -10.38,
@@ -786,9 +786,9 @@
       "cover": "covers/0987c137ad70.jpg"
     },
     "d35ae5681079": {
-      "title": "B Ray",
-      "artist": "[UNhiddenGem Mixtape] 4. Felina",
-      "album": "Singles",
+      "title": "Felina",
+      "artist": "B Ray",
+      "album": "UNhiddenGem Mixtape",
       "loudnessLufs": -10.32,
       "replayGain": -7.68,
       "cover": "covers/d35ae5681079.jpg"
@@ -994,8 +994,8 @@
       "cover": "covers/fc588ce7ccad.jpg"
     },
     "457234a364d0": {
-      "title": "Chưa Từng Mặc Váy Cưới...",
-      "artist": "2T - CƯỚI ĐI",
+      "title": "Cưới Đi (feat. Changg)",
+      "artist": "2T",
       "album": "Singles",
       "loudnessLufs": -15.08,
       "replayGain": -2.92,
@@ -1130,8 +1130,8 @@
       "cover": "covers/98d647e92c9c.jpg"
     },
     "753664688754": {
-      "title": "RV Underground",
-      "artist": "VeSoLand - VuD",
+      "title": "VeSoLand (feat. B.O, Tan & Vigg)",
+      "artist": "VuD",
       "album": "Singles",
       "loudnessLufs": -9.26,
       "replayGain": -8.74,
@@ -1146,8 +1146,8 @@
       "cover": "covers/3ef64dfe6094.jpg"
     },
     "fc3d4df74119": {
-      "title": "B-ray",
-      "artist": "B.S.N.L 2",
+      "title": "B.S.N.L 2 (feat. Young-H)",
+      "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -9.07,
       "replayGain": -8.93,
@@ -1178,9 +1178,9 @@
       "cover": "covers/b702a154e09e.jpg"
     },
     "59b14252514a": {
-      "title": "G.family",
-      "artist": "[2G17] BÁT QUÁI",
-      "album": "Singles",
+      "title": "Bát Quái",
+      "artist": "G-Family",
+      "album": "2G17",
       "loudnessLufs": -12.09,
       "replayGain": -5.91,
       "cover": "covers/59b14252514a.jpg"
@@ -1298,9 +1298,9 @@
       "cover": "covers/29cf0619dea9.jpg"
     },
     "a0c4d8722a3e": {
-      "title": "2015",
-      "artist": "BẠN CỦA TAO - YoungH",
-      "album": "Video Lyrics",
+      "title": "Bạn Của Tao (feat. Binz, SO & Pjpo)",
+      "artist": "Young-H",
+      "album": "Singles",
       "loudnessLufs": -12,
       "replayGain": -6,
       "cover": "covers/a0c4d8722a3e.jpg"
@@ -1346,8 +1346,8 @@
       "cover": "covers/ea2f356c53c4.jpg"
     },
     "77f1e6c8acb9": {
-      "title": "Tommy Tèo",
-      "artist": "Enemy",
+      "title": "Enemy (feat. Hazel)",
+      "artist": "Tommy Tèo",
       "album": "Singles",
       "loudnessLufs": -10.78,
       "replayGain": -7.22,
@@ -1362,8 +1362,8 @@
       "cover": "covers/bca1e4f97c6c.jpg"
     },
     "91b0da20a794": {
-      "title": "B Ray",
-      "artist": "[Reply Kidchoi] Little Homie",
+      "title": "Little Homie",
+      "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -13.51,
       "replayGain": -4.49,
@@ -1450,8 +1450,8 @@
       "cover": "covers/2885329d476d.jpg"
     },
     "5bcc93dca7b7": {
-      "title": "DatManiac",
-      "artist": "Côn Đồ Trên Con Đò",
+      "title": "Côn Đồ Trên Con Đò",
+      "artist": "Datmaniac",
       "album": "Singles",
       "loudnessLufs": -12.95,
       "replayGain": -5.05,
@@ -1466,8 +1466,8 @@
       "cover": "covers/cbe2e7665d0c.jpg"
     },
     "63cf20ea4eda": {
-      "title": "Jombie",
-      "artist": "EM TAO HIP HOP",
+      "title": "Em Tao Hip Hop (feat. Lục Lăng & Endless)",
+      "artist": "Jombie",
       "album": "Singles",
       "loudnessLufs": -8.98,
       "replayGain": -9.02,
@@ -1498,8 +1498,8 @@
       "cover": "covers/5149f4e8fb11.jpg"
     },
     "e8da8eb0e102": {
-      "title": "jombie",
-      "artist": "Westside SQUAD",
+      "title": "Westside SQUAD (feat. Dế Choắt & Endless)",
+      "artist": "Jombie",
       "album": "Singles",
       "loudnessLufs": -10.07,
       "replayGain": -7.93,
@@ -1514,8 +1514,8 @@
       "cover": "covers/c06584052ee7.jpg"
     },
     "240ba3fe4fb6": {
-      "title": "S-fury I Bơi Giữa Đại Dương I Prod. By Deye I Haingoai Inc.",
-      "artist": "S- FURY",
+      "title": "Bơi Giữa Đại Dương",
+      "artist": "S-Fury",
       "album": "Singles",
       "loudnessLufs": -10.1,
       "replayGain": -7.9,
@@ -1674,8 +1674,8 @@
       "cover": "covers/ea9afdd6291a.jpg"
     },
     "e2205c028ac3": {
-      "title": "Fred again..",
-      "artist": "Victory Lap Two (with Skepta",
+      "title": "Victory Lap Two (feat. Skepta, PlaqueBoyMax & Denzel Curry)",
+      "artist": "Fred again..",
       "album": "Singles",
       "loudnessLufs": -6.61,
       "replayGain": -11.39,
@@ -1866,9 +1866,9 @@
       "cover": "covers/caec933d1a93.jpg"
     },
     "c7083ea9e4be": {
-      "title": "B Ray",
-      "artist": "[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói",
-      "album": "Singles",
+      "title": "Đúng Như Lời Họ Nói",
+      "artist": "B Ray",
+      "album": "UNhiddenGem Mixtape",
       "loudnessLufs": -14.05,
       "replayGain": -3.95,
       "cover": "covers/c7083ea9e4be.jpg"
@@ -1962,8 +1962,8 @@
       "cover": "covers/e605420f311c.jpg"
     },
     "571d4927e632": {
-      "title": "\"Hit the strip after school\"",
-      "artist": "Polo G - Go Stupid",
+      "title": "Go Stupid (feat. Stunna 4 Vegas & NLE Choppa)",
+      "artist": "Polo G",
       "album": "Singles",
       "loudnessLufs": -8.17,
       "replayGain": -9.83,
@@ -2319,7 +2319,9 @@
       "cover": "covers/71fc8f46b2b7.jpg"
     },
     "62a7ccbe277b": {
-      "cover": "covers/62a7ccbe277b.jpg"
+      "cover": "covers/62a7ccbe277b.jpg",
+      "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
+      "artist": "DT Tập Rap"
     },
     "514461a43c61": {
       "cover": "covers/514461a43c61.jpg"
@@ -2334,7 +2336,10 @@
       "cover": "covers/c4bc4fe7a267.jpg"
     },
     "0dde57433c84": {
-      "cover": "covers/0dde57433c84.jpg"
+      "cover": "covers/0dde57433c84.jpg",
+      "title": "Mất Kết Nối",
+      "artist": "Dương Domic",
+      "album": "Dữ Liệu Quý"
     },
     "581ff2893598": {
       "cover": "covers/581ff2893598.jpg"
@@ -2379,7 +2384,7 @@
     "7812f787fed8": {
       "cover": "covers/7812f787fed8.jpg",
       "artist": "Pháo Northside",
-      "title": "Pháo Northside-Một Ngày Chẳng Nắng ft.@thobaymauofficial"
+      "title": "Một Ngày Chẳng Nắng"
     },
     "24c783f6a538": {
       "cover": "covers/24c783f6a538.jpg"
@@ -2406,16 +2411,23 @@
       "cover": "covers/751763347162.jpg"
     },
     "be5421c9e37d": {
-      "cover": "covers/be5421c9e37d.jpg"
+      "cover": "covers/be5421c9e37d.jpg",
+      "title": "Thêm Bao Nhiêu Lâu",
+      "artist": "Đạt G"
     },
     "0e8f9437a06d": {
       "cover": "covers/0e8f9437a06d.jpg"
     },
     "4db0ac503082": {
-      "cover": "covers/4db0ac503082.jpg"
+      "cover": "covers/4db0ac503082.jpg",
+      "title": "3107 (feat. 267)",
+      "artist": "W/n"
     },
     "4af07a5b2112": {
-      "cover": "covers/4af07a5b2112.jpg"
+      "cover": "covers/4af07a5b2112.jpg",
+      "title": "Mấy Con Mèo",
+      "artist": "Datmaniac",
+      "album": "2G17"
     },
     "cc91ce1e51eb": {
       "cover": "covers/cc91ce1e51eb.jpg"
