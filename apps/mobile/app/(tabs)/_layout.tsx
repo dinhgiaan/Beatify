@@ -1,11 +1,15 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { TabBar } from '../../src/components/navigation/TabBar';
+import { TabBar, type BottomTabBarProps } from '../../src/components/navigation/TabBar';
+
+function renderCustomTabBar(props: BottomTabBarProps) {
+  return <TabBar {...props} />;
+}
 
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
+      tabBar={renderCustomTabBar}
       screenOptions={{
         headerShown: false,
       }}

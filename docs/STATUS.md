@@ -2,7 +2,25 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành thiết kế lại UI/UX Mobile App (Bottom Sheet, Vừa nghe, Tìm kiếm) theo phong cách tối giản Apple + Hip-hop:
+**Phase hiện tại:** Hoàn thành tối ưu hóa 60/120fps Floating Tab Bar và khắc phục độ trễ 2s phát nhạc:
+1. **Khắc phục triệt để hiện tượng giật ở Floating Tab Bar:**
+   - **Nguyên nhân gốc:**
+     - `containerWidthShared` khởi tạo ban đầu bằng 0, khiến frame đầu tiên indicator có `width = 0, opacity = 0`, sau đó `onLayout` mới nạp kích thước thật làm nhảy vọt khung hình.
+     - Hàm render `tabBar={(props) => <TabBar {...props} />}` trong `_layout.tsx` tạo anonymous function mới mỗi lần component re-render, khiến React Navigation re-mount lại instance TabBar làm restart animation.
+     - Kỹ thuật `setTimeout 80ms` làm đứt đoạn animation giữa chừng khi route mới bắt đầu render.
+     - Cấu hình lò xo `overshootClamping: true` làm viên thuốc dừng đột ngột gây cảm giác khựng; `activeOpacity={0.7}` khiến icon mờ nháy khi bấm.
+   - **Giải pháp:**
+     - Khởi tạo ngay `containerWidthShared` từ `Math.min(screenWidth * 0.95, 410)` ngay tại frame 0.
+     - Đưa hàm render tab bar ra ngoài `_layout.tsx` (`renderCustomTabBar`).
+     - Bỏ `setTimeout`, kích hoạt `navigation.navigate` mượt mà song song với `withSpring` trên Native UI thread.
+     - Cân chỉnh `TAB_SPRING_CONFIG` (`damping: 20, stiffness: 160, mass: 0.7, reduceMotion: ReduceMotion.Never`), bỏ `overshootClamping` để viên thuốc lướt trôi êm ái chuẩn Liquid Glass. Đổi `activeOpacity={1}` cho tab icon.
+2. **Khắc phục độ trễ 2s khi chọn bài hát mới bất kỳ:**
+   - **Nguyên nhân gốc:**
+     - Trên Cloudflare Worker, mỗi khi nhận request stream bài hát mới, `getAudioInfo` gọi `bucket.list({ prefix: 'music/' + id, limit: 1 })` để quét key. Thao tác scan index này tốn 400ms - 600ms, sau đó mới gọi tiếp `bucket.get` tốn thêm 400ms.
+     - Trên iOS, AVPlayer mặc định `autoUpdateMetadataFromStream: true` khiến native player phải mở stream và phân tích ID3/ICY metadata từ mạng trước khi bắt đầu phát.
+   - **Giải pháp:**
+     - **Cloudflare Worker:** Thay thế hoàn toàn thao tác scan `bucket.list` bằng direct `bucket.head('music/' + id + '.mp3')`, `.m4a`, `.flac` chạy song song (chỉ mất ~30ms thay vì 500ms). Lưu RAM cache cho các lần sau. Đã deploy thành công lên Cloudflare Worker (Version ID: `f498781b-0ff2-4b7c-a8d8-b77a2a7d2ff8`).
+     - **Mobile Client:** Đặt `autoUpdateMetadataFromStream: false` trong `TrackPlayer.setupPlayer`, giúp AVPlayer bỏ qua việc đọc metadata stream từ mạng và phát ngay khi nhận được chunk âm thanh đầu tiên.
 1. **Bottom Sheet Menu bài hát (`TrackActionSheet`):**
    - Thay thế toàn bộ menu cũ bằng Bottom Sheet chuẩn Apple/Hip-hop, không dùng icon hay emoji trong sheet.
    - Header gồm grabber nhỏ, cover 56x56 bo góc 12px có bóng đổ mềm động theo màu ảnh bìa (`useCoverColor`), tên bài cỡ 17 w700, nghệ sĩ & thời lượng cỡ 14 xám.

@@ -91,7 +91,7 @@ export function TabBarItem({
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={500}
-      activeOpacity={0.7}
+      activeOpacity={1}
       onLayout={handleLayout}
       style={styles.tabButton}
     >

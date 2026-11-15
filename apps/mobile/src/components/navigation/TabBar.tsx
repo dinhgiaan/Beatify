@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { useSharedValue, withSpring, ReduceMotion } from 'react-native-reanimated';
 import type { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,41 +15,31 @@ export type BottomTabBarProps = Parameters<
 
 /**
  * Cấu hình spring chuẩn iOS Liquid Glass:
- * - damping 20, stiffness 160, mass 0.7: trôi đầm, êm ái, bứt tốc tự nhiên
- * - overshootClamping: true: dừng dứt khoát tại tab đích, không bị nẩy lố hay giật ngược
+ * - damping 20, stiffness 160, mass 0.7: trôi đầm, êm ái, bứt tốc tự nhiên chuẩn Apple
  * - reduceMotion: ReduceMotion.Never: bảo đảm 100% luôn chạy đầy đủ frames trên iOS
  */
 export const TAB_SPRING_CONFIG = {
   damping: 20,
   stiffness: 160,
   mass: 0.7,
-  overshootClamping: true,
   reduceMotion: ReduceMotion.Never,
 };
 
 /**
  * TabBar: Thanh điều hướng nổi dạng Liquid Glass Capsule chuẩn iOS
  * Hoạt động 100% trên UI thread qua index và độ rộng container
- * Áp dụng kỹ thuật Deferred Navigation để loại bỏ hoàn toàn hiện tượng drop frame khi đổi tab
+ * Loại bỏ hoàn toàn độ trễ và hiện tượng giật frame khi đổi tab
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const screenWidth = Dimensions.get('window').width;
+  const initialDockWidth = Math.min(screenWidth * 0.95, 410);
 
-  // Shared value điều khiển index đang active (0, 1, 2, 3, 4) và độ rộng thanh dock
+  // Shared value điều khiển index đang active và độ rộng thanh dock (khởi tạo ngay lập tức > 0)
   const activeIndexShared = useSharedValue(state.index);
-  const containerWidthShared = useSharedValue(0);
+  const containerWidthShared = useSharedValue(initialDockWidth);
 
   const currentTabRef = useRef(state.index);
-  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Dọn dẹp timer điều hướng khi component unmount
-  useEffect(() => {
-    return () => {
-      if (navTimerRef.current) {
-        clearTimeout(navTimerRef.current);
-      }
-    };
-  }, []);
 
   // Đồng bộ vị trí khi state.index đổi từ bên ngoài (ví dụ deep link hoặc router.replace)
   useEffect(() => {
@@ -78,7 +68,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           style={styles.dockInner}
           onLayout={(e) => {
             const w = e.nativeEvent.layout.width;
-            if (w > 0) {
+            if (w > 0 && Math.abs(w - containerWidthShared.value) > 1) {
               containerWidthShared.value = w;
             }
           }}
@@ -113,15 +103,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               });
 
               if (!isFocused && !event.defaultPrevented) {
-                // Kỹ thuật Deferred Navigation: Trì hoãn chuyển route nhẹ 80ms
-                // để viên thuốc lướt trọn vẹn 120fps trước khi màn hình mới bắt đầu render,
-                // loại bỏ hoàn toàn hiện tượng JS thread nghẽn gây giật khựng animation
-                if (navTimerRef.current) {
-                  clearTimeout(navTimerRef.current);
-                }
-                navTimerRef.current = setTimeout(() => {
-                  navigation.navigate(route.name);
-                }, 80);
+                navigation.navigate(route.name);
               }
             };
 

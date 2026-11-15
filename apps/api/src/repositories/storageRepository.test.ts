@@ -76,4 +76,40 @@ describe('R2StorageRepository - audioKeyCache & Stream Optimization', () => {
     expect(listMock).toHaveBeenCalledTimes(1);
     expect(audioKeyCache.get('456')?.key).toBe('music/456.m4a');
   });
+
+  it('ưu tiên dùng direct bucket.head khi có sẵn, không gọi bucket.list', async () => {
+    const headMock = vi.fn().mockImplementation((key: string) => {
+      if (key === 'music/fast123.mp3') {
+        return Promise.resolve({
+          key: 'music/fast123.mp3',
+          size: 5000000,
+          httpEtag: '"etagfast"',
+          httpMetadata: { contentType: 'audio/mpeg' },
+        });
+      }
+      return Promise.resolve(null);
+    });
+    const listMock = vi.fn();
+    const getMock = vi.fn().mockResolvedValue({
+      body: 'fast-stream',
+      size: 5000000,
+      httpEtag: '"etagfast"',
+      httpMetadata: { contentType: 'audio/mpeg' },
+    });
+
+    const mockBucket = {
+      head: headMock,
+      list: listMock,
+      get: getMock,
+    } as unknown as R2Bucket;
+
+    const repo = new R2StorageRepository(mockBucket);
+    const res = await repo.getAudioStream('fast123');
+
+    expect(res).not.toBeNull();
+    expect(headMock).toHaveBeenCalledWith('music/fast123.mp3');
+    // Hoàn toàn không gọi listMock!
+    expect(listMock).not.toHaveBeenCalled();
+    expect(audioKeyCache.get('fast123')?.key).toBe('music/fast123.mp3');
+  });
 });
