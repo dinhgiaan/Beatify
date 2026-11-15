@@ -103,6 +103,7 @@ export function NowPlayingView() {
   const [customMinutesInput, setCustomMinutesInput] = useState('');
   const [loopModalVisible, setLoopModalVisible] = useState(false);
   const [customLoopInput, setCustomLoopInput] = useState('');
+  const [coverFit, setCoverFit] = useState<'cover' | 'contain'>('cover');
 
   // Trạng thái kiểm tra và thông báo khi bài hát không có lời
   const [lyricsContent, setLyricsContent] = useState<string | null | undefined>(undefined);
@@ -199,10 +200,10 @@ export function NowPlayingView() {
   };
 
   // 1. Animation "Thở" cho ảnh bìa (Artwork Breath Scale) chuẩn Apple Music
-  const artworkScale = useRef(new Animated.Value(playerState.isPlaying ? 1.0 : 0.88)).current;
+  const artworkScale = useRef(new Animated.Value(playerState.isPlaying ? 1.0 : 0.94)).current;
   useEffect(() => {
     Animated.spring(artworkScale, {
-      toValue: playerState.isPlaying ? 1.0 : 0.88,
+      toValue: playerState.isPlaying ? 1.0 : 0.94,
       friction: 8,
       tension: 45,
       useNativeDriver: true,
@@ -223,8 +224,8 @@ export function NowPlayingView() {
 
   // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
   const artworkSize = Math.min(
-    width - spacing.xl * 2,
-    Math.max(200, Math.round(height * 0.36))
+    width - spacing.lg * 2,
+    Math.max(220, Math.round(height * 0.40))
   );
 
   const isFavorite = currentTrack
@@ -323,7 +324,7 @@ export function NowPlayingView() {
               isPlaying={playerState.isPlaying}
               positionSec={positionSec}
               durationSec={durationSec}
-              size={Math.min(artworkSize, 305)}
+              size={Math.min(artworkSize, 320)}
             />
           ) : (
             <Animated.View
@@ -338,11 +339,19 @@ export function NowPlayingView() {
                 ]}
             >
               {currentTrack?.cover ? (
-                <Image
-                  source={{ uri: currentTrack.cover }}
-                  style={styles.artworkImage}
-                  resizeMode="contain"
-                />
+                <TouchableOpacity
+                  activeOpacity={0.95}
+                  onPress={() => setCoverFit((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
+                  style={styles.artworkImageTouchable}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel="Chạm để chuyển chế độ hiển thị ảnh bìa tràn viền hoặc thu gọn"
+                >
+                  <Image
+                    source={{ uri: currentTrack.cover }}
+                    style={styles.artworkImage}
+                    resizeMode={coverFit}
+                  />
+                </TouchableOpacity>
               ) : (
                 <View style={styles.artworkPlaceholder}>
                   <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
@@ -1051,20 +1060,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
   artworkContainer: {
     borderRadius: radius.xl,
     overflow: 'hidden',
     backgroundColor: colors.surfaceElevated,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
     shadowColor: colors.textDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
+  },
+  artworkImageTouchable: {
+    width: '100%',
+    height: '100%',
   },
   artworkImage: {
     width: '100%',
@@ -1086,8 +1099,8 @@ const styles = StyleSheet.create({
   queuePanelContainer: {
     borderRadius: radius.xl,
     backgroundColor: colors.surfaceElevated,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
     padding: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

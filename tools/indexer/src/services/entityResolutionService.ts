@@ -322,12 +322,12 @@ export class EntityResolutionService {
     const tracksToApply = options.applyAllHighConfidence
       ? previewRes.candidates.filter((c) => c.suggestedAction === 'safe_apply')
       : previewRes.candidates.filter((c) => {
-          if (options.trackIds && options.trackIds.includes(c.id)) {
-            if (c.isProtected && !options.forceProtected) return false;
-            return true;
-          }
-          return false;
-        });
+        if (options.trackIds && options.trackIds.includes(c.id)) {
+          if (c.isProtected && !options.forceProtected) return false;
+          return true;
+        }
+        return false;
+      });
 
     if (!overrides.tracks) {
       overrides.tracks = {};
