@@ -2,25 +2,19 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tính năng Tự động tìm kiếm & Tải ảnh bìa HD (Apple Music / Deezer) hàng loạt cho toàn bộ thư viện:
-1. **Tìm kiếm & Cập nhật ảnh bìa Studio HD 1400x1400 (Apple Music):**
-   - **CoverFetchService (`tools/indexer/src/services/coverFetchService.ts`):**
-     - Tích hợp Apple Music / iTunes Search API và Deezer API (miễn phí, không cần token).
-     - Thuật toán `upgradeItunesArtworkUrl` tự động nâng cấp URL artwork từ `100x100` lên `1400x1400bb.jpg` (ảnh master gốc từ hãng đĩa, siêu nét trên màn hình Retina iPhone).
-     - Thuật toán `cleanSearchQuery` dọn dẹp các hậu tố thừa `[MV]`, `(Official Music Video)`, `ft. ...` và so khớp độ tương đồng tiêu đề/nghệ sĩ để lấy đúng bài hát.
-   - **Local Endpoints (`tools/indexer/src/server/index.ts`):**
-     - `GET /local-api/covers/search`: Tra cứu ảnh bìa trực tuyến theo tên bài và ca sĩ.
-     - `POST /local-api/covers/apply/:id`: Áp dụng ảnh từ URL trực tuyến vào bài hát, lưu vào `custom_covers/{trackId}.jpg` và `overrides.json`.
-     - `POST /local-api/covers/batch-fetch`: Chạy nền tiến trình quét và tải tự động ảnh bìa HD cho toàn bộ thư viện hoặc các bài thiếu ảnh.
-     - `GET /local-api/covers/batch-status` & `POST /local-api/covers/batch-cancel`: Theo dõi và dừng tiến trình an toàn.
-   - **Giao diện Web Dashboard (`tools/dashboard`):**
-     - Nút "Tự động tải ảnh bìa HD (Apple Music)" nổi bật ở Header Thư viện.
-     - Modal cấu hình phạm vi quét: *Chỉ bài chưa có ảnh bìa* hoặc *Làm mới toàn bộ thư viện sang ảnh nét HD*.
-     - Thanh Progress Bar hiển thị thời gian thực tên bài đang xử lý, % hoàn thành và số lượng thành công/bỏ qua.
-     - Dialog tìm kiếm & chọn ảnh bìa trực quan dạng Grid thẻ ảnh cho từng bài hát trong `EditTrackModal`.
-   - **Lệnh CLI trên PC (`tools/indexer/src/cli.ts`):**
-     - `pnpm indexer fetch-covers`: Tự động tìm và tải ảnh bìa HD cho các bài còn thiếu ảnh.
-     - `pnpm indexer fetch-covers --all`: Quét và nâng cấp ảnh bìa HD cho TOÀN BỘ bài hát trong kho nhạc.
+**Phase hiện tại:** Hoàn thành công nghệ **Auto-Smart Match 2.0** và Thiết kế UI/UX Ngang Rộng (Wide Layout) cho Quản lý & Tải ảnh bìa HD (Apple Music):
+1. **Công nghệ Auto-Smart Match 2.0 (`coverFetchService.ts` & Server):**
+   - **Tự động nhận diện & đảo ngược Tên bài $\leftrightarrow$ Ca sĩ:** Tự động giải quyết trường hợp các bài tải từ YouTube bị ghi ngược thứ tự (như *Huỳnh James - Cho Họ Ghét Đi Em*, *Phát Hồ - Chờ Ngày Cưới Em*, *Pixel Neko - Cô Nàng Khác Người*, *Lê Thiện Hiếu - Ông Bà Anh*, *Đạt G - Thêm Bao Nhiêu Lâu*...).
+   - **Bóc tách ca sĩ thật khỏi tên kênh YouTube:** Tự động phát hiện và trích xuất nghệ sĩ chuẩn khi Artist bị gắn nhầm tên kênh (`G5R`, `FAPTV`, `7clouds`, `EvB Records`, `Focus Entertainment`, `Fueled By Ramen`... như *Jack - Hồng Nhan*, *Phía Sau Em - Kay Trần*, *twenty one pilots: Stressed Out*).
+   - **Dọn dẹp tiền tố / hậu tố rác:** Cắt bỏ các đoạn `[Lyrics Video]`, `(Prod. by...)`, `Sing My Song 2016`, `(from album ...)`.
+   - **Tự động thử lại (Retry 2 lần) & Hạ phân giải thông minh:** Khắc phục lỗi `ECONNRESET` từ máy chủ Apple CDN (`mzstatic.com`).
+2. **Thiết kế UI/UX Ngang Rộng (Wide Horizontal Layout `max-w-4xl`):**
+   - **Thanh Quick Filter Thư viện:** Thêm pill bấm nhanh **"Chưa có ảnh HD"** kèm số lượng đếm trực tiếp (`missingHdCoverCount`), bấm 1 phát là lọc ra đúng các bài chưa có ảnh HD.
+   - **Hộp thoại Tải ảnh bìa HD rộng ngang `max-w-4xl`:**
+     - Thiết kế 2 cột ngang to, rõ ràng, giới thiệu trực quan 4 tính năng Auto-Smart Match.
+     - 3 thẻ thống kê ngang kích thước lớn: Thành công tuyệt đối (màu xanh lá), Bỏ qua an toàn (màu hổ phách), Thất bại (màu đỏ).
+     - Bảng danh sách chi tiết các bài chưa có ảnh HD nằm ngang, có thanh cuộn mượt mà, hiển thị rõ Tên bài, Ca sĩ, Lý do, và nút bấm **"Chọn ảnh"** thủ công 1-click cho từng bài.
+     - Hàng nút hành động ngang: *Lọc các bài chưa có ảnh HD ra Thư viện*, *🚀 Quét tiếp với Auto-Smart Match*, *Hoàn tất*.
 
 2. **Tối ưu hóa 60/120fps Floating Tab Bar và khắc phục độ trễ 2s phát nhạc:**
 1. **Khắc phục triệt để hiện tượng giật ở Floating Tab Bar:**
