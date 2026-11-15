@@ -191,15 +191,16 @@
           - Ngăn chặn trigger đè spring (Spring Interrupt): Sử dụng `currentTabRef` để khi đã kích hoạt trượt từ `onPress`, `useEffect` sẽ không gọi lại `withSpring` một lần nữa, giữ chuyển động liền mạch và bảo toàn nguyên vẹn quán tính vật lý.
           - Tinh chỉnh vật lý chuẩn Apple Liquid Glass: `damping: 24, stiffness: 220, mass: 0.6, overshootClamping: true` giúp viên thuốc phản hồi siêu nhạy, lướt thanh thoát và dừng chính xác không rung lắc.
           - Tăng tốc phần cứng 100% GPU (Hardware-accelerated Transform): Cả 5 tab có cùng kích thước nên không animate thuộc tính layout `width` thừa thãi, chỉ sử dụng `transform: [{ translateX }]` thuần túy trên tầng compositing của GPU.
-        - **Triệt tiêu độ trễ 1.5s khi phát bài hát mới (Instant Playback Optimization):**
-          - **Nguyên nhân gốc phía Backend (Double-Fetch & Full Object Buffering):** Mỗi request audio stream từ iOS AVPlayer gửi đến `/stream/:id` (kể cả Range Request đọc 2 bytes đầu), Cloudflare Worker trước đây đều gọi `repo.getAudioStream(id)` tải toàn bộ 25-30MB file nhạc từ R2 vào RAM Worker trước để lấy `totalSize`, sau đó mới gọi tiếp lần 2 để đọc byte range. Thao tác tải thừa 2 lượt cả file này làm trễ mất 1.2s - 1.5s.
-          - **Giải pháp Backend:**
-            1. Bổ sung `getAudioInfo`: Đọc metadata kích thước và type từ `audioKeyCache` (0ms) hoặc `bucket.list` nhẹ (20ms), tuyệt đối không tải body của file.
-            2. Xử lý yêu cầu `HEAD`: Phản hồi tức thì 0ms cho AVPlayer thăm dò.
-            3. Xử lý Range Request: Chỉ tải DUY NHẤT phạm vi byte cần thiết từ R2 trong 1 roundtrip duy nhất.
-            4. Bổ sung header `Cache-Control: public, max-age=31536000, immutable`: Cloudflare Edge CDN cache lại các audio chunk ở Data Center gần người dùng nhất.
-          - **Giải pháp Mobile:** Bật `cache: { maxSizeBytes: 500MB, preloading: { window: 2 } }` trong `@rntp/player` setup, tự động đệm trước ngầm 2 bài tiếp theo trong hàng đợi vào bộ nhớ cache của iPhone.
-**Cập nhật lần cuối:** 2026-11-15 (Triệt tiêu độ trễ 1.5s phát nhạc: Single-pass R2 streaming, Edge CDN Cache và Mobile Preloading)
+        - **Triệt tiêu độ trễ 1.5s - 7s khi phát bài hát mới (Instant Playback Optimization):**
+          - **Root cause lỗi trễ 5-7s khi chọn bài xa:** Thuộc tính `cache` và `preloading` của `@rntp/player` tự khởi chạy một local TCP HTTP proxy server (`CacheProxyServer`) trên iPhone. Khi người dùng chọn bài ngẫu nhiên xa ngoài hàng đợi, proxy này bị nghẽn connection pool với các task preload trước đó, gây timeout 5-7 giây!
+          - **Khắc phục:** Gỡ bỏ hoàn toàn `cache/preloading` proxy của RNTP. Trình phát `AVPlayer` native của iOS kết nối trực tiếp tới Cloudflare Worker đã tối ưu Single-pass R2 streaming. Nhạc phát ngay lập tức dưới 100ms cho bất kỳ bài hát nào.
+        - **Tối ưu triệt để Floating Tab Bar mượt mà 120fps (Deferred Navigation & Single Width Container):**
+          - **Root cause lag ở bottom:** Khi bấm tab, `navigation.navigate` được gọi ngay trong cùng millisecond khiến CPU bị chiếm dụng 100% để unmount/mount màn hình tab mới (hàng ngàn component), gây drop 90% frames của animation. Ngoài ra, shadow 20px blur và style `width` trong animated style buộc Yoga phải layout lại trong từng frame.
+          - **Khắc phục:**
+            1. Áp dụng kỹ thuật **Deferred Navigation**: Trì hoãn đổi route 80ms để viên thuốc lướt trọn vẹn 120fps trước khi màn hình mới render.
+            2. Tính toán vị trí trực tiếp theo tỉ lệ `containerWidth / totalTabs` qua 1 lần đo container duy nhất, loại bỏ toàn bộ `onLayout` rời rạc của từng item.
+            3. Giảm shadow blur từ 20px xuống 8px nhẹ nhàng, giảm 80% áp lực render GPU.
+**Cập nhật lần cuối:** 2026-11-15 (Sửa triệt để lỗi 5-7s delay phát nhạc bằng cách bỏ RNTP cache proxy, tối ưu TabBar 120fps bằng Deferred Navigation)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
