@@ -30,7 +30,8 @@
       "artist": "Datmaniac",
       "album": "Singles",
       "loudnessLufs": -9.89,
-      "replayGain": -8.11
+      "replayGain": -8.11,
+      "cover": "covers/59c1532549d2.jpg"
     },
     "070efa36e613": {
       "title": "Đừng Làm Trái Tim Anh Đau",
@@ -53,14 +54,16 @@
       "artist": "TĂNG PHÚC",
       "album": "Singles",
       "loudnessLufs": -9.65,
-      "replayGain": -8.35
+      "replayGain": -8.35,
+      "cover": "covers/f14232bfce67.jpg"
     },
     "e9acd610b5ae": {
       "title": "(Mashup by Wikin) 25",
       "artist": "Táo",
       "album": "Singles",
       "loudnessLufs": -16.15,
-      "replayGain": -1.85
+      "replayGain": -1.85,
+      "cover": "covers/e9acd610b5ae.jpg"
     },
     "ac03aca9ff4e": {
       "title": "Shawty (vsoul (obito Remix))",
@@ -115,7 +118,8 @@
       "artist": "Fueled By Ramen and twenty one pilots",
       "album": "Singles",
       "loudnessLufs": -8.62,
-      "replayGain": -9.38
+      "replayGain": -9.38,
+      "cover": "covers/df7474321619.jpg"
     },
     "010826b504a6": {
       "title": "everything sucks",
@@ -130,7 +134,8 @@
       "artist": "W/n",
       "album": "Singles",
       "loudnessLufs": -8.87,
-      "replayGain": -9.13
+      "replayGain": -9.13,
+      "cover": "covers/b9a414133672.jpg"
     },
     "77e21c33e0ff": {
       "title": "Kém Duyên",
@@ -153,14 +158,16 @@
       "artist": "Rum",
       "album": "Singles",
       "loudnessLufs": -6.99,
-      "replayGain": -11.01
+      "replayGain": -11.01,
+      "cover": "covers/30674e1a783d.jpg"
     },
     "69991caf41d1": {
       "title": "M/V",
       "artist": "2T - LIỆU GIỜ ( WHAT IF ? )",
       "album": "Singles",
       "loudnessLufs": -9.6,
-      "replayGain": -8.4
+      "replayGain": -8.4,
+      "cover": "covers/69991caf41d1.jpg"
     },
     "7ca8a9e3392f": {
       "title": "Em Có Nghe",
@@ -175,7 +182,8 @@
       "artist": "Fillinus Entertainment",
       "album": "Singles",
       "loudnessLufs": -8.97,
-      "replayGain": -9.03
+      "replayGain": -9.03,
+      "cover": "covers/e1d90fcc91e9.jpg"
     },
     "10ce14cba2c5": {
       "title": "Lỡ Say Bye Là Bye",
@@ -206,7 +214,8 @@
       "artist": "MUỐN NÓI VỚI EM",
       "album": "Singles",
       "loudnessLufs": -10.87,
-      "replayGain": -7.13
+      "replayGain": -7.13,
+      "cover": "covers/b1d223b66897.jpg"
     },
     "ae80cceecf09": {
       "title": "Cao Ốc 20",
@@ -237,7 +246,8 @@
       "artist": "CHỜ NGÀY CƯỚI EM",
       "album": "Singles",
       "loudnessLufs": -10.35,
-      "replayGain": -7.65
+      "replayGain": -7.65,
+      "cover": "covers/904aedb8db44.jpg"
     },
     "91d95f1fd098": {
       "title": "Đế Vương",
@@ -252,14 +262,16 @@
       "artist": "Già Cùng Nhau Là Được Lyrics  -Tea ft.PC",
       "album": "Singles",
       "loudnessLufs": -9.94,
-      "replayGain": -8.06
+      "replayGain": -8.06,
+      "cover": "covers/b683b239193c.jpg"
     },
     "7056d9ee506a": {
       "title": "Ngoài cửa số là cơn mưa đang đổ chéo ....Mashup - Tình ca - KICK",
       "artist": "Thành Junior",
       "album": "Singles",
       "loudnessLufs": -12.88,
-      "replayGain": -5.12
+      "replayGain": -5.12,
+      "cover": "covers/7056d9ee506a.jpg"
     },
     "6f79d746ed44": {
       "title": "Thu Cuối",
@@ -282,14 +294,16 @@
       "artist": "Nal (MV Audio Lyric Official )",
       "album": "Singles",
       "loudnessLufs": -11.58,
-      "replayGain": -6.42
+      "replayGain": -6.42,
+      "cover": "covers/117daf7099ed.jpg"
     },
     "2c86d3dbb8c3": {
       "title": "Lê Thiện Hiếu | Sing My Song 2016",
       "artist": "Ông Bà Anh",
       "album": "Singles",
       "loudnessLufs": -13.49,
-      "replayGain": -4.51
+      "replayGain": -4.51,
+      "cover": "covers/2c86d3dbb8c3.jpg"
     },
     "9e06deb93708": {
       "title": "Dù Cho Mai Về Sau / buitruonglinh",
@@ -304,7 +318,8 @@
       "artist": "Tháng Năm Không Quên - H2K",
       "album": "Singles",
       "loudnessLufs": -8.43,
-      "replayGain": -9.57
+      "replayGain": -9.57,
+      "cover": "covers/9718d8bedfae.jpg"
     },
     "d12a586a39bf": {
       "title": "Kẹo Bông Gòn",
@@ -319,7 +334,8 @@
       "artist": "Cô Nàng Khác Người [feat. Nger (MCK)",
       "album": "Singles",
       "loudnessLufs": -12.3,
-      "replayGain": -5.7
+      "replayGain": -5.7,
+      "cover": "covers/5e888d01099b.jpg"
     },
     "4314eb0187a9": {
       "title": "Sầu Hồng Gai",
@@ -350,7 +366,8 @@
       "artist": "Lyrics || YÊU 5",
       "album": "Singles",
       "loudnessLufs": -11.01,
-      "replayGain": -6.99
+      "replayGain": -6.99,
+      "cover": "covers/71940019dab1.jpg"
     },
     "0b92d26d4afa": {
       "title": "Stay",
@@ -365,14 +382,16 @@
       "artist": "151",
       "album": "Singles",
       "loudnessLufs": -11.94,
-      "replayGain": -6.06
+      "replayGain": -6.06,
+      "cover": "covers/e164d95a6951.jpg"
     },
     "94dab9660ae1": {
       "title": "Mưa đang rơi _ BABY $MOKE",
       "artist": "Mr Clown",
       "album": "Singles",
       "loudnessLufs": -16.42,
-      "replayGain": -1.58
+      "replayGain": -1.58,
+      "cover": "covers/94dab9660ae1.jpg"
     },
     "88dae4309f04": {
       "title": "2 Grown (feat. The Kid Laroi)",
@@ -450,7 +469,8 @@
       "artist": "Trịnh Đình Quang",
       "album": "Singles",
       "loudnessLufs": -18.35,
-      "replayGain": 0.35
+      "replayGain": 0.35,
+      "cover": "covers/c3d16109e926.jpg"
     },
     "00a097088369": {
       "title": "Calling My Phone (feat. 6LACK)",
@@ -473,7 +493,8 @@
       "artist": "Đen",
       "album": "Singles",
       "loudnessLufs": -15.85,
-      "replayGain": -2.15
+      "replayGain": -2.15,
+      "cover": "covers/55a9ec4d83f2.jpg"
     },
     "2fcea8f4410c": {
       "title": "Em Ơi Lên Phố",
@@ -496,7 +517,8 @@
       "artist": "Killic",
       "album": "Singles",
       "loudnessLufs": -10.16,
-      "replayGain": -7.84
+      "replayGain": -7.84,
+      "cover": "covers/2a6171e79149.jpg"
     },
     "d4e802474e8a": {
       "title": "Mistletoe",
@@ -511,7 +533,8 @@
       "artist": "Minh Lậpp",
       "album": "Singles",
       "loudnessLufs": -7.44,
-      "replayGain": -10.56
+      "replayGain": -10.56,
+      "cover": "covers/3f544101d5bb.jpg"
     },
     "dc025dc90107": {
       "title": "Sold Out",
@@ -574,7 +597,8 @@
       "artist": "7clouds",
       "album": "Singles",
       "loudnessLufs": -9.43,
-      "replayGain": -8.57
+      "replayGain": -8.57,
+      "cover": "covers/b9d8657dd013.jpg"
     },
     "88e057afa01d": {
       "title": "Loving You Sunny",
@@ -589,7 +613,8 @@
       "artist": "Maroon 5",
       "album": "Singles",
       "loudnessLufs": -8.97,
-      "replayGain": -9.03
+      "replayGain": -9.03,
+      "cover": "covers/0d5225005232.jpg"
     },
     "d7fc0b07b967": {
       "title": "Say You Won't Let Go",
@@ -612,7 +637,8 @@
       "artist": "FAPTV",
       "album": "Singles",
       "loudnessLufs": -13.49,
-      "replayGain": -4.51
+      "replayGain": -4.51,
+      "cover": "covers/546f67372a94.jpg"
     },
     "bef857c0fabf": {
       "title": "Em Của Anh Đừng Của Ai",
@@ -635,14 +661,16 @@
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -10.58,
-      "replayGain": -7.42
+      "replayGain": -7.42,
+      "cover": "covers/d30d6b1a16c8.jpg"
     },
     "a50b741a5c8a": {
       "title": "$ativa",
       "artist": "OK NAH NAH (ft.BUFORD)",
       "album": "Singles",
       "loudnessLufs": -13.78,
-      "replayGain": -4.22
+      "replayGain": -4.22,
+      "cover": "covers/a50b741a5c8a.jpg"
     },
     "77d421279981": {
       "title": "Miên Man (Piano Ver.)",
@@ -665,14 +693,16 @@
       "artist": "M-TP [ Video + Lyric Kara]",
       "album": "Singles",
       "loudnessLufs": -7.62,
-      "replayGain": -10.38
+      "replayGain": -10.38,
+      "cover": "covers/f817a5602e07.jpg"
     },
     "ccc43e44660c": {
       "title": "[CHO BẢO] 02. Vùng An Toàn - B Ray (ft. V#) - Prod. Hipz",
       "artist": "EvB Records",
       "album": "Singles",
       "loudnessLufs": -9.74,
-      "replayGain": -8.26
+      "replayGain": -8.26,
+      "cover": "covers/ccc43e44660c.jpg"
     },
     "869c86adb5d0": {
       "title": "Không Thể Say (prod. by Kewtiie)",
@@ -687,7 +717,8 @@
       "artist": "EvB Records",
       "album": "Singles",
       "loudnessLufs": -12.42,
-      "replayGain": -5.58
+      "replayGain": -5.58,
+      "cover": "covers/338ac8bd15ad.jpg"
     },
     "ff78e6d8f098": {
       "title": "Lệ Lưu Ly",
@@ -718,21 +749,24 @@
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -10.97,
-      "replayGain": -7.03
+      "replayGain": -7.03,
+      "cover": "covers/48389d21e65d.jpg"
     },
     "3ffbd2db847e": {
       "title": "cà phê phin ☕.mp3",
       "artist": "Dfoxie37",
       "album": "Singles",
       "loudnessLufs": -11.03,
-      "replayGain": -6.97
+      "replayGain": -6.97,
+      "cover": "covers/3ffbd2db847e.jpg"
     },
     "cfb7299ccaa7": {
       "title": "[UNhiddenGem Mixtape] 3. Cho Con (Lullaby pt.2)",
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -8.83,
-      "replayGain": -9.17
+      "replayGain": -9.17,
+      "cover": "covers/cfb7299ccaa7.jpg"
     },
     "db0a4fa72d0b": {
       "title": "Khi 22",
@@ -755,21 +789,24 @@
       "artist": "GERDNANG",
       "album": "Singles",
       "loudnessLufs": -9.86,
-      "replayGain": -8.14
+      "replayGain": -8.14,
+      "cover": "covers/0987c137ad70.jpg"
     },
     "d35ae5681079": {
       "title": "B Ray",
       "artist": "[UNhiddenGem Mixtape] 4. Felina",
       "album": "Singles",
       "loudnessLufs": -10.32,
-      "replayGain": -7.68
+      "replayGain": -7.68,
+      "cover": "covers/d35ae5681079.jpg"
     },
     "9d9aaa54f775": {
       "title": "Người Im Lặng Gặp Người Hay Nói (prod. by Kewtiie) l Official Music Video",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -8.86,
-      "replayGain": -9.14
+      "replayGain": -9.14,
+      "cover": "covers/9d9aaa54f775.jpg"
     },
     "075c06dd84c3": {
       "title": "Outside",
@@ -792,7 +829,8 @@
       "artist": "DAVID LAID",
       "album": "Singles",
       "loudnessLufs": -9.54,
-      "replayGain": -8.46
+      "replayGain": -8.46,
+      "cover": "covers/f77dc08ffaef.jpg"
     },
     "0308a2a05c42": {
       "title": "Miên Man",
@@ -815,7 +853,8 @@
       "artist": "EvB Records",
       "album": "Singles",
       "loudnessLufs": -9.56,
-      "replayGain": -8.44
+      "replayGain": -8.44,
+      "cover": "covers/45ade149c1ba.jpg"
     },
     "0618921ea610": {
       "title": "Beauty And A Beat",
@@ -830,7 +869,8 @@
       "artist": "Nhạc phim Đi Giữa Trời Rực Rỡ",
       "album": "Singles",
       "loudnessLufs": -14.11,
-      "replayGain": -3.89
+      "replayGain": -3.89,
+      "cover": "covers/584ad57be684.jpg"
     },
     "307bf58af783": {
       "title": "Young Dumb & Broke",
@@ -869,7 +909,8 @@
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -9.32,
-      "replayGain": -8.68
+      "replayGain": -8.68,
+      "cover": "covers/34aab5854880.jpg"
     },
     "7773e67bc078": {
       "title": "Price Tag",
@@ -884,14 +925,16 @@
       "artist": "MCK remixx prod. By Kewtiie",
       "album": "Singles",
       "loudnessLufs": -9.2,
-      "replayGain": -8.8
+      "replayGain": -8.8,
+      "cover": "covers/675a19cf9e44.jpg"
     },
     "4da2552ebdb2": {
       "title": "SINH NHẬT (prod. by Wonderlust)",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -10.88,
-      "replayGain": -7.12
+      "replayGain": -7.12,
+      "cover": "covers/4da2552ebdb2.jpg"
     },
     "9f20218e61f6": {
       "title": "crying over you",
@@ -906,7 +949,8 @@
       "artist": "Winno",
       "album": "Singles",
       "loudnessLufs": -11.79,
-      "replayGain": -6.21
+      "replayGain": -6.21,
+      "cover": "covers/1660936940fc.jpg"
     },
     "d2837d8cebfe": {
       "title": "Whistle",
@@ -961,7 +1005,8 @@
       "artist": "2T - CƯỚI ĐI",
       "album": "Singles",
       "loudnessLufs": -15.08,
-      "replayGain": -2.92
+      "replayGain": -2.92,
+      "cover": "covers/457234a364d0.jpg"
     },
     "cd7898ecab97": {
       "title": "Stay In The Moment",
@@ -1016,14 +1061,16 @@
       "artist": "Ác Mộng Đẹp",
       "album": "Singles",
       "loudnessLufs": -9.97,
-      "replayGain": -8.03
+      "replayGain": -8.03,
+      "cover": "covers/c1a57c38ab9c.jpg"
     },
     "dc9d4516cc3d": {
       "title": "hello em có khỏe không 👽.mp3",
       "artist": "Dfoxie37",
       "album": "Singles",
       "loudnessLufs": -10.85,
-      "replayGain": -7.15
+      "replayGain": -7.15,
+      "cover": "covers/dc9d4516cc3d.jpg"
     },
     "71f8ed8b903d": {
       "title": "Unknown Title",
@@ -1087,7 +1134,8 @@
       "artist": "Đen",
       "album": "Singles",
       "loudnessLufs": -9.92,
-      "replayGain": -8.08
+      "replayGain": -8.08,
+      "cover": "covers/9928bbcce4c0.jpg"
     },
     "959793908c30": {
       "title": "Đêm Tàn",
@@ -1134,35 +1182,40 @@
       "artist": "DONALD GOLD",
       "album": "Singles",
       "loudnessLufs": -13.05,
-      "replayGain": -4.95
+      "replayGain": -4.95,
+      "cover": "covers/98d647e92c9c.jpg"
     },
     "753664688754": {
       "title": "RV Underground",
       "artist": "VeSoLand - VuD",
       "album": "Singles",
       "loudnessLufs": -9.26,
-      "replayGain": -8.74
+      "replayGain": -8.74,
+      "cover": "covers/753664688754.jpg"
     },
     "3ef64dfe6094": {
       "title": "Oh No (official Visual Video)",
       "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -12.76,
-      "replayGain": -5.24
+      "replayGain": -5.24,
+      "cover": "covers/3ef64dfe6094.jpg"
     },
     "fc3d4df74119": {
       "title": "B-ray",
       "artist": "B.S.N.L 2",
       "album": "Singles",
       "loudnessLufs": -9.07,
-      "replayGain": -8.93
+      "replayGain": -8.93,
+      "cover": "covers/fc3d4df74119.jpg"
     },
     "2499630e5dfc": {
       "title": "Flash Flow (video Lyrics)",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -11.06,
-      "replayGain": -6.94
+      "replayGain": -6.94,
+      "cover": "covers/2499630e5dfc.jpg"
     },
     "9b993aa96829": {
       "title": "Hai Thế Giới full",
@@ -1177,21 +1230,24 @@
       "artist": "mrdd47",
       "album": "Singles",
       "loudnessLufs": -11.03,
-      "replayGain": -6.97
+      "replayGain": -6.97,
+      "cover": "covers/b702a154e09e.jpg"
     },
     "59b14252514a": {
       "title": "G.family",
       "artist": "[2G17] BÁT QUÁI",
       "album": "Singles",
       "loudnessLufs": -12.09,
-      "replayGain": -5.91
+      "replayGain": -5.91,
+      "cover": "covers/59b14252514a.jpg"
     },
     "a4b0be8e52ee": {
       "title": "Offical Video",
       "artist": "RYCO - \"VIỆT\" NÊN LÀM (Ft. MEGASHOCK)",
       "album": "Singles",
       "loudnessLufs": -8.73,
-      "replayGain": -9.27
+      "replayGain": -9.27,
+      "cover": "covers/a4b0be8e52ee.jpg"
     },
     "6b2ff0362055": {
       "title": "TOKYO Cypher",
@@ -1206,28 +1262,32 @@
       "artist": "HURRYKNG",
       "album": "Singles",
       "loudnessLufs": -9.18,
-      "replayGain": -8.82
+      "replayGain": -8.82,
+      "cover": "covers/f3bc9505ead6.jpg"
     },
     "cd620905007c": {
       "title": "Quay Đầu Là Hiphop",
       "artist": "Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc",
       "album": "Singles",
       "loudnessLufs": -10.07,
-      "replayGain": -7.93
+      "replayGain": -7.93,
+      "cover": "covers/cd620905007c.jpg"
     },
     "cca33dd37266": {
       "title": "Vũ Trụ HUSTLANG ( Sản phẩm thuộc bản quyền của HUSTLANG và TP Bank)",
       "artist": "HUSTLANG TP Bank",
       "album": "Singles",
       "loudnessLufs": -11.37,
-      "replayGain": -6.63
+      "replayGain": -6.63,
+      "cover": "covers/cca33dd37266.jpg"
     },
     "ea1f90806686": {
       "title": "Đưa Mày Lên",
       "artist": "Young H",
       "album": "Singles",
       "loudnessLufs": -8.99,
-      "replayGain": -9.01
+      "replayGain": -9.01,
+      "cover": "covers/ea1f90806686.jpg"
     },
     "5a1ba6d63d36": {
       "title": "Phi Hành Gia (feat. Sugar Cane & Kain)",
@@ -1250,7 +1310,8 @@
       "artist": "Andy Vu",
       "album": "Singles",
       "loudnessLufs": -10.09,
-      "replayGain": -7.91
+      "replayGain": -7.91,
+      "cover": "covers/d310e2bc8d9b.jpg"
     },
     "2f756c3f512e": {
       "title": "Write This Down",
@@ -1265,7 +1326,8 @@
       "artist": "50Cent",
       "album": "Singles",
       "loudnessLufs": -8.31,
-      "replayGain": -9.69
+      "replayGain": -9.69,
+      "cover": "covers/94506edd2286.jpg"
     },
     "db4953ad2257": {
       "title": "Khu Tao Song",
@@ -1280,77 +1342,88 @@
       "artist": "LÀM LIỀU (feat. Kriss Ngo )",
       "album": "Singles",
       "loudnessLufs": -9.3,
-      "replayGain": -8.7
+      "replayGain": -8.7,
+      "cover": "covers/b686d4957ccb.jpg"
     },
     "29cf0619dea9": {
       "title": "Young Milo",
       "artist": "Buông Hàng",
       "album": "Singles",
       "loudnessLufs": -11.17,
-      "replayGain": -6.83
+      "replayGain": -6.83,
+      "cover": "covers/29cf0619dea9.jpg"
     },
     "a0c4d8722a3e": {
       "title": "2015",
       "artist": "BẠN CỦA TAO - YoungH",
       "album": "Video Lyrics",
       "loudnessLufs": -12,
-      "replayGain": -6
+      "replayGain": -6,
+      "cover": "covers/a0c4d8722a3e.jpg"
     },
     "def13788d3dc": {
       "title": "Trang Trại Cần",
       "artist": "NVD",
       "album": "Singles",
       "loudnessLufs": -21.18,
-      "replayGain": 3.18
+      "replayGain": 3.18,
+      "cover": "covers/def13788d3dc.jpg"
     },
     "6cb789329994": {
       "title": "\"Youngz\"",
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -11.1,
-      "replayGain": -6.9
+      "replayGain": -6.9,
+      "cover": "covers/6cb789329994.jpg"
     },
     "6959fbe45113": {
       "title": "Nhắc tới freestyle không ai không biết tới Quang Tèo",
       "artist": "Tommy Tèo",
       "album": "Singles",
       "loudnessLufs": -16.17,
-      "replayGain": -1.83
+      "replayGain": -1.83,
+      "cover": "covers/6959fbe45113.jpg"
     },
     "a4ce91f871da": {
       "title": "(No Copyright)Alaba Trap",
       "artist": "Quang Tèo",
       "album": "Singles",
       "loudnessLufs": -14.23,
-      "replayGain": -3.77
+      "replayGain": -3.77,
+      "cover": "covers/a4ce91f871da.jpg"
     },
     "ea2f356c53c4": {
       "title": "Real Game (official Visual Video)",
       "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -16.85,
-      "replayGain": -1.15
+      "replayGain": -1.15,
+      "cover": "covers/ea2f356c53c4.jpg"
     },
     "77f1e6c8acb9": {
       "title": "Tommy Tèo",
       "artist": "Enemy",
       "album": "Singles",
       "loudnessLufs": -10.78,
-      "replayGain": -7.22
+      "replayGain": -7.22,
+      "cover": "covers/77f1e6c8acb9.jpg"
     },
     "bca1e4f97c6c": {
       "title": "Ân Xá (Prod. JunioR)",
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -9.18,
-      "replayGain": -8.82
+      "replayGain": -8.82,
+      "cover": "covers/bca1e4f97c6c.jpg"
     },
     "91b0da20a794": {
       "title": "B Ray",
       "artist": "[Reply Kidchoi] Little Homie",
       "album": "Singles",
       "loudnessLufs": -13.51,
-      "replayGain": -4.49
+      "replayGain": -4.49,
+      "cover": "covers/91b0da20a794.jpg"
     },
     "529d6a8ae85f": {
       "title": "Took Her To The O",
@@ -1404,7 +1477,8 @@
       "artist": "XmaXa Music",
       "album": "Singles",
       "loudnessLufs": -6.82,
-      "replayGain": -11.18
+      "replayGain": -11.18,
+      "cover": "covers/fcaaffec9b8e.jpg"
     },
     "58387f682953": {
       "title": "Doja",
@@ -1419,7 +1493,8 @@
       "artist": "Party",
       "album": "Singles",
       "loudnessLufs": -10.85,
-      "replayGain": -7.15
+      "replayGain": -7.15,
+      "cover": "covers/12ad75a6805d.jpg"
     },
     "7f6bceee98ac": {
       "title": "Band4band",
@@ -1434,56 +1509,64 @@
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -11.55,
-      "replayGain": -6.45
+      "replayGain": -6.45,
+      "cover": "covers/2885329d476d.jpg"
     },
     "5bcc93dca7b7": {
       "title": "DatManiac",
       "artist": "Côn Đồ Trên Con Đò",
       "album": "Singles",
       "loudnessLufs": -12.95,
-      "replayGain": -5.05
+      "replayGain": -5.05,
+      "cover": "covers/5bcc93dca7b7.jpg"
     },
     "cbe2e7665d0c": {
       "title": "1 Chọi 100",
       "artist": "deadnah",
       "album": "Singles",
       "loudnessLufs": -9.04,
-      "replayGain": -8.96
+      "replayGain": -8.96,
+      "cover": "covers/cbe2e7665d0c.jpg"
     },
     "63cf20ea4eda": {
       "title": "Jombie",
       "artist": "EM TAO HIP HOP",
       "album": "Singles",
       "loudnessLufs": -8.98,
-      "replayGain": -9.02
+      "replayGain": -9.02,
+      "cover": "covers/63cf20ea4eda.jpg"
     },
     "4ac969d8b56e": {
       "title": "Hieuthuhai",
       "artist": "CHƠI (RMX) Ft.MANBO",
       "album": "Singles",
       "loudnessLufs": -11.33,
-      "replayGain": -6.67
+      "replayGain": -6.67,
+      "cover": "covers/4ac969d8b56e.jpg"
     },
     "0ae20dad0cc4": {
       "title": "Thuyền Vàng",
       "artist": "S.O",
       "album": "Singles",
       "loudnessLufs": -8.38,
-      "replayGain": -9.62
+      "replayGain": -9.62,
+      "cover": "covers/0ae20dad0cc4.jpg"
     },
     "5149f4e8fb11": {
       "title": "B Ray (Diss The Night)「Lyrics」",
       "artist": "Hổng Nhây Nữa Nha",
       "album": "Singles",
       "loudnessLufs": -8.01,
-      "replayGain": -9.99
+      "replayGain": -9.99,
+      "cover": "covers/5149f4e8fb11.jpg"
     },
     "e8da8eb0e102": {
       "title": "jombie",
       "artist": "Westside SQUAD",
       "album": "Singles",
       "loudnessLufs": -10.07,
-      "replayGain": -7.93
+      "replayGain": -7.93,
+      "cover": "covers/e8da8eb0e102.jpg"
     },
     "c06584052ee7": {
       "title": "Ric Flair Drip",
@@ -1498,7 +1581,8 @@
       "artist": "S- FURY",
       "album": "Singles",
       "loudnessLufs": -10.1,
-      "replayGain": -7.9
+      "replayGain": -7.9,
+      "cover": "covers/240ba3fe4fb6.jpg"
     },
     "60f8e7f7e300": {
       "title": "Bank Account",
@@ -1521,28 +1605,32 @@
       "artist": "Điều Tao Nói",
       "album": "Singles",
       "loudnessLufs": -14.63,
-      "replayGain": -3.37
+      "replayGain": -3.37,
+      "cover": "covers/83fc58fefa09.jpg"
     },
     "0f227522b46a": {
       "title": "YoungMilo",
       "artist": "Da Vàng",
       "album": "Singles",
       "loudnessLufs": -11.71,
-      "replayGain": -6.29
+      "replayGain": -6.29,
+      "cover": "covers/0f227522b46a.jpg"
     },
     "b41aaf633e4b": {
       "title": "‘need 4 Speed 2 (with/ Megashock, Ninety9, Karon)’ Official Video",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -9.04,
-      "replayGain": -8.96
+      "replayGain": -8.96,
+      "cover": "covers/b41aaf633e4b.jpg"
     },
     "cc8758618716": {
       "title": "GMC",
       "artist": "CYPHER 2G2G",
       "album": "Singles",
       "loudnessLufs": -12.48,
-      "replayGain": -5.52
+      "replayGain": -5.52,
+      "cover": "covers/cc8758618716.jpg"
     },
     "42860c81450d": {
       "title": "Godzilla",
@@ -1589,14 +1677,16 @@
       "artist": "Yunggun",
       "album": "Singles",
       "loudnessLufs": -11.96,
-      "replayGain": -6.04
+      "replayGain": -6.04,
+      "cover": "covers/86143ac6e621.jpg"
     },
     "ce192a60021e": {
       "title": "VINFLOW [prod. by Wokeup & 2pillz]",
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -8.36,
-      "replayGain": -9.64
+      "replayGain": -9.64,
+      "cover": "covers/ce192a60021e.jpg"
     },
     "809a9f4e2442": {
       "title": "Đầu Đường Xó Chợ",
@@ -1643,14 +1733,16 @@
       "artist": "Fred again..",
       "album": "Singles",
       "loudnessLufs": -7.31,
-      "replayGain": -10.69
+      "replayGain": -10.69,
+      "cover": "covers/ea9afdd6291a.jpg"
     },
     "e2205c028ac3": {
       "title": "Fred again..",
       "artist": "Victory Lap Two (with Skepta",
       "album": "Singles",
       "loudnessLufs": -6.61,
-      "replayGain": -11.39
+      "replayGain": -11.39,
+      "cover": "covers/e2205c028ac3.jpg"
     },
     "b7bec4d0c2bd": {
       "title": "Nod Ya Head!",
@@ -1736,7 +1828,8 @@
       "artist": "A COLORS SHOW",
       "album": "Singles",
       "loudnessLufs": -10.16,
-      "replayGain": -7.84
+      "replayGain": -7.84,
+      "cover": "covers/88b8b346edb1.jpg"
     },
     "bd327ed2f781": {
       "title": "Đánh Đổi",
@@ -1767,7 +1860,8 @@
       "artist": "Hành Or",
       "album": "Singles",
       "loudnessLufs": -9.54,
-      "replayGain": -8.46
+      "replayGain": -8.46,
+      "cover": "covers/330307eb4b6a.jpg"
     },
     "5c79785633a5": {
       "title": "Cold Palmer",
@@ -1798,7 +1892,8 @@
       "artist": "SMO",
       "album": "Singles",
       "loudnessLufs": -9.33,
-      "replayGain": -8.67
+      "replayGain": -8.67,
+      "cover": "covers/514c39057834.jpg"
     },
     "6d6da9e5404d": {
       "title": "Bạn Thân Bản Thân",
@@ -1813,14 +1908,16 @@
       "artist": "Thằng Lằng House",
       "album": "Singles",
       "loudnessLufs": -15.59,
-      "replayGain": -2.41
+      "replayGain": -2.41,
+      "cover": "covers/807cd4466b97.jpg"
     },
     "fb617f3c7a5b": {
       "title": "MỘT",
       "artist": "YoungTazle",
       "album": "Singles",
       "loudnessLufs": -10.24,
-      "replayGain": -7.76
+      "replayGain": -7.76,
+      "cover": "covers/fb617f3c7a5b.jpg"
     },
     "16ab2bb6b433": {
       "title": "Khởi",
@@ -1835,28 +1932,32 @@
       "artist": "YN1 pt.2 (ft. yugaki",
       "album": "Singles",
       "loudnessLufs": -9.6,
-      "replayGain": -8.4
+      "replayGain": -8.4,
+      "cover": "covers/caec933d1a93.jpg"
     },
     "c7083ea9e4be": {
       "title": "B Ray",
       "artist": "[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói",
       "album": "Singles",
       "loudnessLufs": -14.05,
-      "replayGain": -3.95
+      "replayGain": -3.95,
+      "cover": "covers/c7083ea9e4be.jpg"
     },
     "243b4d7ad688": {
       "title": "Dr. Dre",
       "artist": "Dax",
       "album": "Singles",
       "loudnessLufs": -9.9,
-      "replayGain": -8.1
+      "replayGain": -8.1,
+      "cover": "covers/243b4d7ad688.jpg"
     },
     "c59e016b7cb8": {
       "title": "Rap Việt Cypher trên tầng thượng",
       "artist": "Duy Andy",
       "album": "Singles",
       "loudnessLufs": -19.92,
-      "replayGain": 1.92
+      "replayGain": 1.92,
+      "cover": "covers/c59e016b7cb8.jpg"
     },
     "88c676f27218": {
       "title": "Shotta Flow Remix",
@@ -1879,21 +1980,24 @@
       "artist": "BỐC THUỐC",
       "album": "Singles",
       "loudnessLufs": -14.56,
-      "replayGain": -3.44
+      "replayGain": -3.44,
+      "cover": "covers/69cee77ed867.jpg"
     },
     "8eaee85146ad": {
       "title": "1. VIETNAMESE SLANG - Tommax, @bobs.444 , Phan Giông Bão, WinD, Cox (PROD. BY AT)",
       "artist": "EP 4Y.GANG",
       "album": "Singles",
       "loudnessLufs": -9.93,
-      "replayGain": -8.07
+      "replayGain": -8.07,
+      "cover": "covers/8eaee85146ad.jpg"
     },
     "4dd39ac9d7f1": {
       "title": "Động",
       "artist": "TonDee",
       "album": "Singles",
       "loudnessLufs": -11.56,
-      "replayGain": -6.44
+      "replayGain": -6.44,
+      "cover": "covers/4dd39ac9d7f1.jpg"
     },
     "ce0becb90c98": {
       "title": "All Time Winner (feat. Wxrdie, Right, Gill)",
@@ -1908,7 +2012,8 @@
       "artist": "Going Bad (feat. Drake)",
       "album": "Singles",
       "loudnessLufs": -9.48,
-      "replayGain": -8.52
+      "replayGain": -8.52,
+      "cover": "covers/62e884555d9b.jpg"
     },
     "f0874c0f151c": {
       "title": "Sicko Mode",
@@ -1931,7 +2036,8 @@
       "artist": "Polo G - Go Stupid",
       "album": "Singles",
       "loudnessLufs": -8.17,
-      "replayGain": -9.83
+      "replayGain": -9.83,
+      "cover": "covers/571d4927e632.jpg"
     },
     "907660b3a072": {
       "title": "Trust Nothing (feat. Moneybagg Yo)",
@@ -1954,14 +2060,16 @@
       "artist": "ICY FAMOU$",
       "album": "Singles",
       "loudnessLufs": -13.03,
-      "replayGain": -4.97
+      "replayGain": -4.97,
+      "cover": "covers/d6db86a91378.jpg"
     },
     "10c47a51eb7d": {
       "title": "Victory Lap (NYC, 17th June 2025)",
       "artist": "Fred again..",
       "album": "Singles",
       "loudnessLufs": -7.22,
-      "replayGain": -10.78
+      "replayGain": -10.78,
+      "cover": "covers/10c47a51eb7d.jpg"
     },
     "999f6a28eca3": {
       "title": "Gang Unit",
@@ -1978,7 +2086,8 @@
       "album": "Singles",
       "year": 2022,
       "loudnessLufs": -11.2,
-      "replayGain": -6.8
+      "replayGain": -6.8,
+      "cover": "covers/e95d656c15df.jpg"
     },
     "bf0ff74236d9": {
       "title": "Bố em là cán bộ. Vàng đem cất cho đủ số. Để bịt miệng gửi về thủ đô",
@@ -1994,7 +2103,8 @@
       "album": "Singles",
       "year": 2021,
       "loudnessLufs": -13.52,
-      "replayGain": -4.48
+      "replayGain": -4.48,
+      "cover": "covers/885ca63e5325.jpg"
     },
     "5586b161b08f": {
       "title": "gandhi.",
@@ -2011,7 +2121,8 @@
       "album": "Singles",
       "year": 2014,
       "loudnessLufs": -10.76,
-      "replayGain": -7.24
+      "replayGain": -7.24,
+      "cover": "covers/023e5131f6ce.jpg"
     },
     "288da3becdc8": {
       "title": "St. 25 [with Baby Lime]",
@@ -2019,7 +2130,8 @@
       "album": "Singles",
       "year": 2026,
       "loudnessLufs": -8.32,
-      "replayGain": -9.68
+      "replayGain": -9.68,
+      "cover": "covers/288da3becdc8.jpg"
     },
     "2fa503b4a5e2": {
       "title": "Young Money",
@@ -2045,7 +2157,8 @@
       "album": "Singles",
       "year": 2026,
       "loudnessLufs": -8.5,
-      "replayGain": -9.5
+      "replayGain": -9.5,
+      "cover": "covers/1ea2d17ca52a.jpg"
     },
     "6e76af3e3e48": {
       "cover": "covers/6e76af3e3e48.jpg"
@@ -2259,6 +2372,106 @@
     },
     "777e296bab9d": {
       "cover": "covers/777e296bab9d.jpg"
+    },
+    "71fc8f46b2b7": {
+      "cover": "covers/71fc8f46b2b7.jpg"
+    },
+    "62a7ccbe277b": {
+      "cover": "covers/62a7ccbe277b.jpg"
+    },
+    "514461a43c61": {
+      "cover": "covers/514461a43c61.jpg"
+    },
+    "d1648d1bcc5a": {
+      "cover": "covers/d1648d1bcc5a.jpg"
+    },
+    "e02f64008049": {
+      "cover": "covers/e02f64008049.jpg"
+    },
+    "c4bc4fe7a267": {
+      "cover": "covers/c4bc4fe7a267.jpg"
+    },
+    "0dde57433c84": {
+      "cover": "covers/0dde57433c84.jpg"
+    },
+    "581ff2893598": {
+      "cover": "covers/581ff2893598.jpg"
+    },
+    "fe251607f172": {
+      "cover": "covers/fe251607f172.jpg"
+    },
+    "e9c5ff8ec674": {
+      "cover": "covers/e9c5ff8ec674.jpg"
+    },
+    "17c5bd65bea7": {
+      "cover": "covers/17c5bd65bea7.jpg"
+    },
+    "96eaa03caef8": {
+      "cover": "covers/96eaa03caef8.jpg"
+    },
+    "df31e1662968": {
+      "cover": "covers/df31e1662968.jpg"
+    },
+    "e90669d58d71": {
+      "cover": "covers/e90669d58d71.jpg"
+    },
+    "d16bb62f7bd1": {
+      "cover": "covers/d16bb62f7bd1.jpg"
+    },
+    "37035ddc9827": {
+      "cover": "covers/37035ddc9827.jpg"
+    },
+    "4b7e074a1aaa": {},
+    "ef35337d24df": {
+      "cover": "covers/ef35337d24df.jpg"
+    },
+    "afee4c3f439b": {
+      "cover": "covers/afee4c3f439b.jpg"
+    },
+    "7812f787fed8": {
+      "cover": "covers/7812f787fed8.jpg"
+    },
+    "24c783f6a538": {
+      "cover": "covers/24c783f6a538.jpg"
+    },
+    "8495500181f2": {
+      "cover": "covers/8495500181f2.jpg"
+    },
+    "cd517fc9b489": {
+      "cover": "covers/cd517fc9b489.jpg"
+    },
+    "6cf7ce601e2e": {
+      "cover": "covers/6cf7ce601e2e.jpg"
+    },
+    "b3f8d0f174ce": {
+      "cover": "covers/b3f8d0f174ce.jpg"
+    },
+    "751763347162": {
+      "cover": "covers/751763347162.jpg"
+    },
+    "be5421c9e37d": {
+      "cover": "covers/be5421c9e37d.jpg"
+    },
+    "0e8f9437a06d": {
+      "cover": "covers/0e8f9437a06d.jpg"
+    },
+    "4db0ac503082": {
+      "cover": "covers/4db0ac503082.jpg"
+    },
+    "4af07a5b2112": {
+      "cover": "covers/4af07a5b2112.jpg"
+    },
+    "cc91ce1e51eb": {
+      "cover": "covers/cc91ce1e51eb.jpg"
+    },
+    "782c7700a184": {
+      "cover": "covers/782c7700a184.jpg"
+    },
+    "ba6e232771fe": {
+      "cover": "covers/ba6e232771fe.jpg"
+    },
+    "ba871e942843": {
+      "cover": "covers/ba871e942843.jpg"
     }
   },
   "artistAliases": {}
