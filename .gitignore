@@ -48,4 +48,9 @@ builds/
 
 # Tài liệu tham khảo tải về
 music-app-docs-*/
+
+# File backup và báo cáo indexer
+tools/indexer/*.backup*.json
+tools/indexer/near_duplicate_artists.json
+tools/indexer/reports/
 music-app-plan.md

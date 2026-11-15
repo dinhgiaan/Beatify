@@ -42,7 +42,7 @@
       "cover": "covers/070efa36e613.jpg"
     },
     "a1bd676f37bb": {
-      "title": "Bạn Đời (ft. Gducky)",
+      "title": "Bạn Đời (feat. Gducky)",
       "artist": "KARIK",
       "album": "Singles",
       "loudnessLufs": -11.36,
@@ -291,7 +291,7 @@
     },
     "117daf7099ed": {
       "title": "Rồi Tới Luôn",
-      "artist": "Nal (MV Audio Lyric Official )",
+      "artist": "Nal",
       "album": "Singles",
       "loudnessLufs": -11.58,
       "replayGain": -6.42,
@@ -346,7 +346,7 @@
       "cover": "covers/4314eb0187a9.jpg"
     },
     "7f4169b4cdd2": {
-      "title": "Waka Waka (This Time for Africa) (The Official 2010 FIFA World Cup™ Song)",
+      "title": "Waka Waka (This Time for Africa)",
       "artist": "Shakira",
       "album": "Singles",
       "loudnessLufs": -17.4,
@@ -392,13 +392,6 @@
       "loudnessLufs": -16.42,
       "replayGain": -1.58,
       "cover": "covers/94dab9660ae1.jpg"
-    },
-    "88dae4309f04": {
-      "title": "2 Grown (feat. The Kid Laroi)",
-      "artist": "Lil Tjay",
-      "album": "Singles",
-      "loudnessLufs": -12.34,
-      "replayGain": -5.66
     },
     "3bf6ab13a2cc": {
       "title": "Sunflower (Spider-Man: Into the Spider-Verse)",
@@ -489,7 +482,7 @@
       "cover": "covers/f2c7cacbf67a.jpg"
     },
     "55a9ec4d83f2": {
-      "title": "Đi Về Nhà (M/V)",
+      "title": "Đi Về Nhà",
       "artist": "Đen",
       "album": "Singles",
       "loudnessLufs": -15.85,
@@ -593,8 +586,8 @@
       "cover": "covers/7eb4fcc19a10.jpg"
     },
     "b9d8657dd013": {
-      "title": "Aaron Smith - Dancin (KRONO Remix) - Lyrics",
-      "artist": "7clouds",
+      "title": "Dancin (KRONO Remix)",
+      "artist": "Aaron Smith",
       "album": "Singles",
       "loudnessLufs": -9.43,
       "replayGain": -8.57,
@@ -705,7 +698,7 @@
       "cover": "covers/ccc43e44660c.jpg"
     },
     "869c86adb5d0": {
-      "title": "Không Thể Say (prod. by Kewtiie)",
+      "title": "Không Thể Say",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -10.07,
@@ -745,7 +738,7 @@
       "cover": "covers/3038a60a7057.jpg"
     },
     "48389d21e65d": {
-      "title": "TRỞ VỀ (ft. JustaTee) [prod. by Phongkhin]",
+      "title": "TRỞ VỀ (feat. JustaTee)",
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -10.97,
@@ -801,7 +794,7 @@
       "cover": "covers/d35ae5681079.jpg"
     },
     "9d9aaa54f775": {
-      "title": "Người Im Lặng Gặp Người Hay Nói (prod. by Kewtiie) l Official Music Video",
+      "title": "Người Im Lặng Gặp Người Hay Nói",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -8.86,
@@ -865,7 +858,7 @@
       "cover": "covers/0618921ea610.jpg"
     },
     "584ad57be684": {
-      "title": "Ngô Lan Hương (MV Lyrics)",
+      "title": "Ngô Lan Hương",
       "artist": "Nhạc phim Đi Giữa Trời Rực Rỡ",
       "album": "Singles",
       "loudnessLufs": -14.11,
@@ -905,7 +898,7 @@
       "cover": "covers/0c1fea996f90.jpg"
     },
     "34aab5854880": {
-      "title": "NOLOVENOLIFE (prod. by Kewtiie)",
+      "title": "NOLOVENOLIFE",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -9.32,
@@ -929,7 +922,7 @@
       "cover": "covers/675a19cf9e44.jpg"
     },
     "4da2552ebdb2": {
-      "title": "SINH NHẬT (prod. by Wonderlust)",
+      "title": "SINH NHẬT",
       "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -10.88,
@@ -985,7 +978,7 @@
       "cover": "covers/8808c652408b.jpg"
     },
     "b31d52a577b8": {
-      "title": "Watch Me (Whip/Nae Nae) (Official)",
+      "title": "Watch Me (Whip/Nae Nae)",
       "artist": "Silentó",
       "album": "Singles",
       "loudnessLufs": -15.59,
@@ -993,7 +986,7 @@
       "cover": "covers/b31d52a577b8.jpg"
     },
     "fc588ce7ccad": {
-      "title": "Pitbull, Ke$ha - Timber (featuring Ke$ha - Official Video)",
+      "title": "Timber (feat. Ke$ha)",
       "artist": "Pitbull",
       "album": "Singles",
       "loudnessLufs": -8.14,
@@ -1072,55 +1065,6 @@
       "replayGain": -7.15,
       "cover": "covers/dc9d4516cc3d.jpg"
     },
-    "71f8ed8b903d": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -12.63,
-      "replayGain": -5.37
-    },
-    "8954a06d7916": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -10.54,
-      "replayGain": -7.46
-    },
-    "63e381400042": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -21.68,
-      "replayGain": 3.68
-    },
-    "67b0cd69b9c1": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -10.43,
-      "replayGain": -7.57
-    },
-    "c0b091d4e697": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -7.03,
-      "replayGain": -10.97
-    },
-    "73ac54b86100": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -7.63,
-      "replayGain": -10.37
-    },
-    "9599edab03c2": {
-      "title": "Unknown Title",
-      "artist": "Unknown Artist",
-      "album": "Unknown Title",
-      "loudnessLufs": -15.98,
-      "replayGain": -2.02
-    },
     "46fdba815db9": {
       "title": "Wake Me Up",
       "artist": "Avicii",
@@ -1194,7 +1138,7 @@
       "cover": "covers/753664688754.jpg"
     },
     "3ef64dfe6094": {
-      "title": "Oh No (official Visual Video)",
+      "title": "Oh No",
       "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -12.76,
@@ -1210,7 +1154,7 @@
       "cover": "covers/fc3d4df74119.jpg"
     },
     "2499630e5dfc": {
-      "title": "Flash Flow (video Lyrics)",
+      "title": "Flash Flow",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -11.06,
@@ -1258,7 +1202,7 @@
       "cover": "covers/6b2ff0362055.jpg"
     },
     "f3bc9505ead6": {
-      "title": "Mamma Mia (prod. by Kewtiie)",
+      "title": "Mamma Mia",
       "artist": "HURRYKNG",
       "album": "Singles",
       "loudnessLufs": -9.18,
@@ -1394,7 +1338,7 @@
       "cover": "covers/a4ce91f871da.jpg"
     },
     "ea2f356c53c4": {
-      "title": "Real Game (official Visual Video)",
+      "title": "Real Game",
       "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -16.85,
@@ -1448,13 +1392,6 @@
       "loudnessLufs": -8.29,
       "replayGain": -9.71,
       "cover": "covers/c30aa09175ee.jpg"
-    },
-    "21d2e2b63f44": {
-      "title": "Sicko Mode",
-      "artist": "Travis Scott",
-      "album": "Singles",
-      "loudnessLufs": -9.29,
-      "replayGain": -8.71
     },
     "8f0b43b29888": {
       "title": "Gang Gang",
@@ -1681,7 +1618,7 @@
       "cover": "covers/86143ac6e621.jpg"
     },
     "ce192a60021e": {
-      "title": "VINFLOW [prod. by Wokeup & 2pillz]",
+      "title": "VINFLOW",
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -8.36,
@@ -1751,13 +1688,6 @@
       "loudnessLufs": -13.05,
       "replayGain": -4.95,
       "cover": "covers/b7bec4d0c2bd.jpg"
-    },
-    "d54ca83a4280": {
-      "title": "Trust Nothing (feat. Moneybagg Yo)",
-      "artist": "King Von",
-      "album": "Singles",
-      "loudnessLufs": -10.67,
-      "replayGain": -7.33
     },
     "537d449636cf": {
       "title": "Jeep",
@@ -1856,7 +1786,7 @@
       "cover": "covers/34b24bad2cc0.jpg"
     },
     "330307eb4b6a": {
-      "title": "KTS2026 (Prod by Hổ)",
+      "title": "KTS2026",
       "artist": "Hành Or",
       "album": "Singles",
       "loudnessLufs": -9.54,
@@ -2116,7 +2046,7 @@
       "cover": "covers/5586b161b08f.jpg"
     },
     "023e5131f6ce": {
-      "title": "I Don't F*** With You (Clean *OFFICIAL*)",
+      "title": "I Don't F*** With You (Clean)",
       "artist": "Big Sean",
       "album": "Singles",
       "year": 2014,
@@ -2242,7 +2172,9 @@
       "cover": "covers/4e09d10b0b07.jpg"
     },
     "728ef17ee463": {
-      "cover": "covers/728ef17ee463.jpg"
+      "cover": "covers/728ef17ee463.jpg",
+      "title": "Old Town Road",
+      "artist": "Lil Nas X"
     },
     "43630561edb2": {
       "cover": "covers/43630561edb2.jpg"
@@ -2296,10 +2228,14 @@
       "cover": "covers/5a1ae5f96a74.jpg"
     },
     "d055e9f4451b": {
-      "cover": "covers/d055e9f4451b.jpg"
+      "cover": "covers/d055e9f4451b.jpg",
+      "artist": "Ronboogz",
+      "title": "Hai Đứa Nhóc"
     },
     "778e785a3a93": {
-      "cover": "covers/778e785a3a93.jpg"
+      "cover": "covers/778e785a3a93.jpg",
+      "artist": "Ronboogz",
+      "title": "Nói Dối"
     },
     "e620bac84097": {
       "cover": "covers/e620bac84097.jpg"
@@ -2311,7 +2247,9 @@
       "cover": "covers/8ac3c2c29d86.jpg"
     },
     "c5fca8dfaf92": {
-      "cover": "covers/c5fca8dfaf92.jpg"
+      "cover": "covers/c5fca8dfaf92.jpg",
+      "title": "Beautiful Girls",
+      "artist": "Sean Kingston"
     },
     "2352a7e8d1e4": {
       "cover": "covers/2352a7e8d1e4.jpg"
@@ -2350,7 +2288,9 @@
       "cover": "covers/4f46f58e59c7.jpg"
     },
     "ed07399f13a1": {
-      "cover": "covers/ed07399f13a1.jpg"
+      "cover": "covers/ed07399f13a1.jpg",
+      "title": "Đêm Tàn (feat. J.T.A Khanh Le) (2013)",
+      "artist": "Wowy"
     },
     "6257f372bf5d": {
       "cover": "covers/6257f372bf5d.jpg"
@@ -2371,7 +2311,9 @@
       "cover": "covers/ff257092633d.jpg"
     },
     "777e296bab9d": {
-      "cover": "covers/777e296bab9d.jpg"
+      "cover": "covers/777e296bab9d.jpg",
+      "title": "Bài Này Chill Phết",
+      "artist": "Đen"
     },
     "71fc8f46b2b7": {
       "cover": "covers/71fc8f46b2b7.jpg"
@@ -2401,7 +2343,9 @@
       "cover": "covers/fe251607f172.jpg"
     },
     "e9c5ff8ec674": {
-      "cover": "covers/e9c5ff8ec674.jpg"
+      "cover": "covers/e9c5ff8ec674.jpg",
+      "title": "H$ Robe",
+      "artist": "Forrest Gump"
     },
     "17c5bd65bea7": {
       "cover": "covers/17c5bd65bea7.jpg"
@@ -2423,25 +2367,37 @@
     },
     "4b7e074a1aaa": {},
     "ef35337d24df": {
-      "cover": "covers/ef35337d24df.jpg"
+      "cover": "covers/ef35337d24df.jpg",
+      "title": "10 Ngàn Năm",
+      "artist": "PC"
     },
     "afee4c3f439b": {
-      "cover": "covers/afee4c3f439b.jpg"
+      "cover": "covers/afee4c3f439b.jpg",
+      "title": "Như Anh Mơ",
+      "artist": "PC"
     },
     "7812f787fed8": {
-      "cover": "covers/7812f787fed8.jpg"
+      "cover": "covers/7812f787fed8.jpg",
+      "artist": "Pháo Northside",
+      "title": "Pháo Northside-Một Ngày Chẳng Nắng ft.@thobaymauofficial"
     },
     "24c783f6a538": {
       "cover": "covers/24c783f6a538.jpg"
     },
     "8495500181f2": {
-      "cover": "covers/8495500181f2.jpg"
+      "cover": "covers/8495500181f2.jpg",
+      "title": "An Thần (feat. Thắng)",
+      "artist": "Rap Nhà Làm"
     },
     "cd517fc9b489": {
-      "cover": "covers/cd517fc9b489.jpg"
+      "cover": "covers/cd517fc9b489.jpg",
+      "artist": "Ronboogz",
+      "title": "Lan Man"
     },
     "6cf7ce601e2e": {
-      "cover": "covers/6cf7ce601e2e.jpg"
+      "cover": "covers/6cf7ce601e2e.jpg",
+      "title": "Khi Mà",
+      "artist": "RONBOOGZ"
     },
     "b3f8d0f174ce": {
       "cover": "covers/b3f8d0f174ce.jpg"
