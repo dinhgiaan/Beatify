@@ -31,6 +31,7 @@ import { cleanTrackTitle, formatRelativeTime } from '../../src/utils/recentForma
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import { AddToPlaylistModal } from '../../src/components/AddToPlaylistModal';
 import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
+import { SHUFFLE_LABELS } from '../../src/constants/labels';
 
 export default function RecentScreen() {
   const insets = useSafeAreaInsets();
@@ -220,7 +221,7 @@ export default function RecentScreen() {
             style={[styles.pillBtn, styles.shuffleIconBtn]}
             onPress={handleShufflePlayAll}
             activeOpacity={0.8}
-            accessibilityLabel="Phát ngẫu nhiên"
+            accessibilityLabel={SHUFFLE_LABELS.ACTION}
           >
             <ShuffleIcon size={18} color="#000000" />
           </TouchableOpacity>

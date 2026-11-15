@@ -26,6 +26,7 @@ import { MiniPlayer } from './player/MiniPlayer';
 import { TrackActionSheet } from './sheet/TrackActionSheet';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { ScrollToTopButton } from './common/ScrollToTopButton';
+import { SHUFFLE_LABELS } from '../constants/labels';
 import {
   CloseIcon,
   PlayIcon,
@@ -291,7 +292,7 @@ export function CollectionDetailModal({
                   activeOpacity={0.8}
                 >
                   <ShuffleIcon size={18} color={colors.textPrimary} />
-                  <Text style={styles.shuffleBtnText}>Xáo trộn</Text>
+                  <Text style={styles.shuffleBtnText}>{SHUFFLE_LABELS.ACTION}</Text>
                 </TouchableOpacity>
 
                 {type === 'recently_played' && onClearRecentTracks && tracks.length > 0 && (

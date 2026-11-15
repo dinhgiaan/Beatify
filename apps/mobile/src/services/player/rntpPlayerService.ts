@@ -278,26 +278,28 @@ TrackPlayer.setRepeatMode(rntpMode);
   }
 
 /**
- * Cập nhật hiển thị thời gian đếm ngược hẹn giờ (Sleep Timer) kín đáo ở góc ngoài màn hình khóa (Lock Screen)
+ * Cập nhật hiển thị thời gian đếm ngược hẹn giờ (Sleep Timer) trên dòng Nghệ sĩ ngoài màn hình khóa (Lock Screen)
+ * Tuyệt đối không ghi đè vào dữ liệu gốc (currentTrack.artist) của thư viện hay stats
  */
 updateLockScreenTimer(timerText: string | null): void {
   this.currentLockScreenTimerText = timerText;
   try {
     const activeItem = TrackPlayer.getActiveMediaItem();
-    if(!activeItem) return;
+    if (!activeItem) return;
     const currentTrack = this.currentTracks.find((t) => t.id === activeItem.mediaId);
-    const originalAlbum = currentTrack?.album || 'Beatify';
-    const newAlbumTitle = timerText ? `${originalAlbum} • ⏳ ${timerText}` : originalAlbum;
+    if (!currentTrack) return;
+    const originalArtist = currentTrack.artist || 'Unknown Artist';
+    const newArtist = timerText ? `${originalArtist} · ${timerText}` : originalArtist;
     const index = this.currentTracks.findIndex((t) => t.id === activeItem.mediaId);
-    if(index >= 0) {
-  TrackPlayer.updateMetadata(index, {
-    albumTitle: newAlbumTitle,
-  });
-}
-    } catch {
-  // Bỏ qua lỗi cập nhật metadata an toàn
-}
+    if (index >= 0) {
+      TrackPlayer.updateMetadata(index, {
+        artist: newArtist,
+      });
+    }
+  } catch {
+    // Bỏ qua lỗi cập nhật metadata an toàn
   }
+}
 
   async getQueue(): Promise < Track[] > {
   return this.currentTracks;

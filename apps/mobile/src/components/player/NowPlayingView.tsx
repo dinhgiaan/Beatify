@@ -43,6 +43,7 @@ import {
   DownloadIcon,
 } from '../icons/SvgIcons';
 import { formatTime } from '../../utils/formatTime';
+import { SHUFFLE_LABELS } from '../../constants/labels';
 import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
 import { EqualizerIndicator } from './EqualizerIndicator';
@@ -547,7 +548,7 @@ export function NowPlayingView() {
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
-            accessibilityLabel={isSmartShuffle ? 'Tắt trộn bài' : 'Bật trộn bài'}
+            accessibilityLabel={isSmartShuffle ? SHUFFLE_LABELS.TOGGLE_ON : SHUFFLE_LABELS.TOGGLE_OFF}
           >
             <ShuffleIcon
               size={22}

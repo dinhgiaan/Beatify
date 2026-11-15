@@ -121,3 +121,42 @@ export function applyTrackDeletion(
   };
 }
 
+/**
+ * Danh sách các giá trị đại diện cho bài hát không có album thực thụ (Single / Đĩa đơn / Chưa rõ)
+ */
+export const NON_ALBUM_NAMES = [
+  'single',
+  'singles',
+  'đĩa đơn',
+  'dia don',
+  'unknown album',
+  'unknown',
+  'chưa rõ album',
+  'chua ro album',
+] as const;
+
+/**
+ * Kiểm tra xem một chuỗi tên album có phải là album thực thụ hay không
+ * Trả về true nếu là album thực thụ (không rỗng, không phải Single/Unknown)
+ */
+export function isRealAlbum(albumName?: string | null): boolean {
+  if (!albumName || typeof albumName !== 'string') return false;
+  const trimmed = albumName.trim().toLowerCase();
+  if (!trimmed) return false;
+  return !NON_ALBUM_NAMES.includes(trimmed as (typeof NON_ALBUM_NAMES)[number]);
+}
+
+/**
+ * Định dạng dòng phụ đề hiển thị nghệ sĩ và album:
+ * Nếu có album thực thụ: "Nghệ sĩ · Tên album"
+ * Nếu không có album: "Nghệ sĩ"
+ */
+export function formatArtistAndAlbum(artist: string, albumName?: string | null): string {
+  const safeArtist = (artist || '').trim();
+  if (isRealAlbum(albumName)) {
+    return `${safeArtist} · ${albumName!.trim()}`;
+  }
+  return safeArtist;
+}
+
+

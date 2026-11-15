@@ -79,6 +79,15 @@ export interface PlayerContextValue {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
+function formatLockScreenTimerText(remainingSec: number): string {
+  if (remainingSec <= 0) return '';
+  if (remainingSec <= 60) {
+    return `còn ${remainingSec} giây`;
+  }
+  const mins = Math.ceil(remainingSec / 60);
+  return `còn ${mins} phút`;
+}
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { tracks, originalTracks, setOriginalTracks, serverUrl, serverToken, isOffline } = useLibrary();
   const { getOfflineAudioUri, getOfflineCoverUri } = useOffline();
@@ -611,10 +620,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc) dựa trên wall-clock timestamp an toàn khi khóa màn hình
   const sleepTimerTargetMsRef = useRef<number | null>(null);
+  const lastLockScreenTextRef = useRef<string | null>(null);
 
   const setSleepTimer = useCallback((minutes: number | null) => {
     if (minutes === null || minutes <= 0) {
       sleepTimerTargetMsRef.current = null;
+      lastLockScreenTextRef.current = null;
       setSleepTimerMinutes(null);
       setSleepTimerRemainingSec(null);
       playerService.updateLockScreenTimer?.(null);
@@ -622,6 +633,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
     const targetMs = Date.now() + minutes * 60 * 1000;
     sleepTimerTargetMsRef.current = targetMs;
+    lastLockScreenTextRef.current = null;
     setSleepTimerMinutes(minutes);
     setSleepTimerRemainingSec(minutes * 60);
   }, []);
@@ -629,6 +641,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Đếm ngược Sleep Timer tự động bám theo thời gian thực (kể cả khi app chạy nền hoặc khóa màn hình)
   useEffect(() => {
     if (sleepTimerMinutes === null || !sleepTimerTargetMsRef.current) {
+      lastLockScreenTextRef.current = null;
       playerService.updateLockScreenTimer?.(null);
       return;
     }
@@ -642,11 +655,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setSleepTimerMinutes(null);
         setSleepTimerRemainingSec(null);
         sleepTimerTargetMsRef.current = null;
+        lastLockScreenTextRef.current = null;
         playerService.updateLockScreenTimer?.(null);
       } else {
         const remainingSec = Math.ceil(diffMs / 1000);
         setSleepTimerRemainingSec(remainingSec);
-        playerService.updateLockScreenTimer?.(formatTime(remainingSec));
+
+        // Cập nhật theo phút (> 60s) hoặc theo giây (<= 60s), chỉ gọi native khi chuỗi thay đổi
+        const timerText = formatLockScreenTimerText(remainingSec);
+        if (timerText !== lastLockScreenTextRef.current) {
+          lastLockScreenTextRef.current = timerText;
+          playerService.updateLockScreenTimer?.(timerText);
+        }
       }
     };
 

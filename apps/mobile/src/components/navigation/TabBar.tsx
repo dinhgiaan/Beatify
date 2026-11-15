@@ -14,15 +14,15 @@ export type BottomTabBarProps = Parameters<
 >[0];
 
 /**
- * Cấu hình spring chuẩn iOS Liquid Glass:
- * - damping 20, stiffness 160, mass 0.7: trôi đầm, êm ái, bứt tốc tự nhiên chuẩn Apple
- * - reduceMotion: ReduceMotion.Never: bảo đảm 100% luôn chạy đầy đủ frames trên iOS
+ * Cấu hình spring chuẩn iOS Snappy:
+ * - damping 24, stiffness 280, mass 0.5: nảy nhẹ êm ái, bứt tốc tự nhiên chuẩn Apple
+ * - reduceMotion: ReduceMotion.System: tự động tôn trọng thiết lập Trợ năng (Giảm chuyển động) của iOS
  */
 export const TAB_SPRING_CONFIG = {
-  damping: 20,
-  stiffness: 160,
-  mass: 0.7,
-  reduceMotion: ReduceMotion.Never,
+  damping: 24,
+  stiffness: 280,
+  mass: 0.5,
+  reduceMotion: ReduceMotion.System,
 };
 
 /**
@@ -91,7 +91,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 // Rung phản hồi nhẹ chuẩn iOS
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
-                // Kích hoạt viên thuốc trượt ngay tức thì trên UI thread (0ms delay)
+                // Kích hoạt viên thuốc trượt tức thì trên UI thread
                 currentTabRef.current = index;
                 activeIndexShared.value = withSpring(index, TAB_SPRING_CONFIG);
               }

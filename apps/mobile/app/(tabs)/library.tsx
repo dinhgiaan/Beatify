@@ -18,11 +18,12 @@ import Reanimated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { smartShuffle, type Track, type UpdateTrack, type UserProfile } from '@music-app/shared';
+import { smartShuffle, type Track, type UpdateTrack, type UserProfile, isRealAlbum, formatArtistAndAlbum } from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
 import { ScrollToTopButton } from '../../src/components/common/ScrollToTopButton';
+import { SHUFFLE_LABELS } from '../../src/constants/labels';
 import {
   colors,
   fontSizes,
@@ -383,14 +384,7 @@ export default function LibraryScreen() {
   const realAlbums = useMemo(() => {
     return (albums || []).filter((album) => {
       if (!album || !album.title) return false;
-      const t = album.title.trim().toLowerCase();
-      if (
-        t === 'singles' ||
-        t === 'single' ||
-        t === 'đĩa đơn' ||
-        t === 'unknown album' ||
-        t === 'chưa rõ album'
-      ) {
+      if (!isRealAlbum(album.title)) {
         return false;
       }
       const albumTracks = (tracks || []).filter((track) =>
@@ -508,16 +502,8 @@ export default function LibraryScreen() {
               </View>
             )}
             <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
-              {item.artist}
-              {item.album && !['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())
-                ? ` • ${item.album}`
-                : ''}
+              {formatArtistAndAlbum(item.artist, item.album)}
             </Text>
-            {Boolean(item.album && ['singles', 'single', 'đĩa đơn'].includes(item.album.trim().toLowerCase())) && (
-              <View style={styles.miniSingleBadge}>
-                <Text style={styles.miniSingleBadgeText}>Single</Text>
-              </View>
-            )}
           </View>
         </View>
 
@@ -728,7 +714,7 @@ export default function LibraryScreen() {
               activeOpacity={0.8}
             >
               <ShuffleIcon size={17} color="#000000" />
-              <Text style={styles.shufflePlayButtonText}>Phát ngẫu nhiên</Text>
+              <Text style={styles.shufflePlayButtonText}>{SHUFFLE_LABELS.ACTION}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

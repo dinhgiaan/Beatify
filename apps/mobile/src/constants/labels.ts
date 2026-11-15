@@ -3,6 +3,14 @@
  * Tuân thủ yêu cầu không trùng lặp, dùng thuật ngữ nhất quán trên toàn app.
  */
 
+export const SHUFFLE_LABELS = {
+  /** Hành động phát xáo trộn (dùng ở Trang chủ, Bộ sưu tập, Playlist) */
+  ACTION: 'Trộn bài',
+  /** Trạng thái công tắc bật/tắt (dùng ở Now Playing) */
+  TOGGLE_ON: 'Trộn bài: Bật',
+  TOGGLE_OFF: 'Trộn bài: Tắt',
+} as const;
+
 export const STATS_LABELS = {
   // Thống nhất 2 thuật ngữ chính theo yêu cầu
   PLAYS: 'Lượt nghe',
