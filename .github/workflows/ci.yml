@@ -26,8 +26,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Cài đặt ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
+        run: which ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
