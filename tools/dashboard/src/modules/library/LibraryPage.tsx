@@ -121,6 +121,42 @@ export const LibraryPage: React.FC<{
   const [isBatchUploadingCover, setIsBatchUploadingCover] = useState(false);
   const batchCoverInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Batch Apple Music Cover Modal state
+  const [isBatchAppleCoverModalOpen, setIsBatchAppleCoverModalOpen] = useState(false);
+  const [batchAppleCoverMode, setBatchAppleCoverMode] = useState<'missing_only' | 'all'>('missing_only');
+  interface BatchCoverStatusData {
+    isRunning: boolean;
+    isCancelled: boolean;
+    total: number;
+    current: number;
+    currentTrackTitle: string;
+    successCount: number;
+    skippedCount: number;
+    failedCount: number;
+    errors: Array<{ trackId: string; title: string; error: string }>;
+  }
+  const [batchAppleCoverStatus, setBatchAppleCoverStatus] = useState<BatchCoverStatusData | null>(null);
+  const [isPollingBatchCover, setIsPollingBatchCover] = useState(false);
+
+  // Single Track Cover Search Modal state (Apple Music / Deezer)
+  interface CoverSearchResultItem {
+    source: 'itunes' | 'deezer';
+    title: string;
+    artist: string;
+    album?: string;
+    artworkUrl: string;
+    previewUrl: string;
+    width: number;
+    height: number;
+    score: number;
+  }
+  const [isCoverSearchOpen, setIsCoverSearchOpen] = useState(false);
+  const [coverSearchTrack, setCoverSearchTrack] = useState<TrackItem | null>(null);
+  const [coverSearchQuery, setCoverSearchQuery] = useState('');
+  const [coverSearchResults, setCoverSearchResults] = useState<CoverSearchResultItem[]>([]);
+  const [isSearchingCover, setIsSearchingCover] = useState(false);
+  const [isApplyingCover, setIsApplyingCover] = useState(false);
+
   // Modal thêm bài hát vào Playlist từ trang Thư viện
   const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
   const [tracksToAddToPlaylist, setTracksToAddToPlaylist] = useState<string[]>([]);
@@ -701,6 +737,116 @@ export const LibraryPage: React.FC<{
     }
   };
 
+  // Handlers tìm kiếm ảnh bìa đơn lẻ
+  const handleOpenCoverSearch = async (track: TrackItem) => {
+    setCoverSearchTrack(track);
+    const initialQuery = `${track.title} ${track.artist}`.trim();
+    setCoverSearchQuery(initialQuery);
+    setIsCoverSearchOpen(true);
+    setCoverSearchResults([]);
+    await executeCoverSearch(track.title, track.artist);
+  };
+
+  const executeCoverSearch = async (title: string, artist?: string) => {
+    try {
+      setIsSearchingCover(true);
+      const res = await requestApi<{ results: CoverSearchResultItem[] }>(
+        `/local-api/covers/search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist || '')}`
+      );
+      setCoverSearchResults(res.results || []);
+      if (!res.results || res.results.length === 0) {
+        toast.info('Không tìm thấy ảnh bìa phù hợp trên Apple Music / Deezer');
+      }
+    } catch {
+      toast.error('Lỗi khi tìm kiếm ảnh bìa trực tuyến');
+    } finally {
+      setIsSearchingCover(false);
+    }
+  };
+
+  const handleApplySingleArtwork = async (artworkUrl: string) => {
+    if (!coverSearchTrack) return;
+    try {
+      setIsApplyingCover(true);
+      const res = await requestApi<{ message: string; coverUrl: string }>(
+        `/local-api/covers/apply/${coverSearchTrack.id}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ artworkUrl }),
+        }
+      );
+      toast.success(res.message || 'Đã áp dụng ảnh bìa HD thành công!');
+      setCoverTimestamp(Date.now());
+      setIsCoverSearchOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+      queryClient.invalidateQueries({ queryKey: ['system-status'] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Không thể áp dụng ảnh bìa: ${msg}`);
+    } finally {
+      setIsApplyingCover(false);
+    }
+  };
+
+  // Handlers chạy tải ảnh bìa HD hàng loạt (Batch Apple Music)
+  const handleStartBatchAppleCover = async () => {
+    try {
+      const res = await requestApi<{ message: string; total: number }>(
+        '/local-api/covers/batch-fetch',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: batchAppleCoverMode }),
+        }
+      );
+      toast.success(res.message || 'Đã bắt đầu tiến trình tìm ảnh bìa HD!');
+      setIsPollingBatchCover(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi: ${msg}`);
+    }
+  };
+
+  const handleCancelBatchAppleCover = async () => {
+    try {
+      await requestApi('/local-api/covers/batch-cancel', { method: 'POST' });
+      toast.info('Đã gửi lệnh dừng tiến trình tải ảnh bìa');
+    } catch {
+      // bỏ qua
+    }
+  };
+
+  // Polling tiến trình batch cover mỗi 1.2s khi đang chạy hoặc khi modal mở
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    if (isPollingBatchCover || isBatchAppleCoverModalOpen) {
+      const poll = async () => {
+        try {
+          const res = await requestApi<{ data: BatchCoverStatusData }>('/local-api/covers/batch-status');
+          if (res?.data) {
+            setBatchAppleCoverStatus(res.data);
+            if (!res.data.isRunning && isPollingBatchCover) {
+              setIsPollingBatchCover(false);
+              setCoverTimestamp(Date.now());
+              queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+              queryClient.invalidateQueries({ queryKey: ['system-status'] });
+              toast.success(`Đã hoàn tất tìm ảnh bìa HD! (${res.data.successCount} thành công, ${res.data.skippedCount} bỏ qua)`);
+            }
+          }
+        } catch {
+          // bỏ qua lỗi polling
+        }
+      };
+
+      poll();
+      timer = setInterval(poll, 1200);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPollingBatchCover, isBatchAppleCoverModalOpen]);
+
   const formatDuration = (sec: number) => {
     if (!sec || isNaN(sec)) return '0:00';
     const m = Math.floor(sec / 60);
@@ -737,6 +883,17 @@ export const LibraryPage: React.FC<{
         subtitle={`Toàn bộ bài hát đang lưu trữ cục bộ trên máy tính (${tracks.length} bài hát)`}
         actions={
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsBatchAppleCoverModalOpen(true)}
+              className="gap-2 shadow-xs cursor-pointer border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
+              title="Tự động tìm kiếm và tải ảnh bìa chất lượng cao HD (1400x1400 Apple Music) cho toàn bộ thư viện hoặc bài còn thiếu"
+            >
+              <Sparkles size={13} className="text-pink-400" />
+              <span>Tự động tải ảnh bìa HD ({missingCoverCount > 0 ? `thiếu ${missingCoverCount}` : 'Apple Music'})</span>
+            </Button>
+
             <Button
               variant="secondary"
               size="sm"
@@ -1629,6 +1786,18 @@ export const LibraryPage: React.FC<{
                         className="hidden"
                       />
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Nút Tìm ảnh Apple Music HD (1400x1400) */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCoverSearch(editingTrack)}
+                          disabled={isUploadingCover}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-pink-600 hover:bg-pink-500 text-white transition-colors cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+                          title="Tìm kiếm và chọn ảnh bìa studio chất lượng cực cao (1400x1400 Apple Music / Deezer)"
+                        >
+                          <Sparkles size={13} />
+                          <span>Apple Music HD</span>
+                        </button>
+
                         {/* Nút Lấy ảnh từ YouTube HD (Ưu tiên cao nhất) */}
                         <button
                           type="button"
@@ -2038,6 +2207,242 @@ export const LibraryPage: React.FC<{
                       </div>
                     </button>
                   ))}
+                </div>
+              )}
+            </div>
+          </Dialog>
+
+          {/* Hộp thoại Tự động tìm ảnh bìa HD toàn bộ thư viện (Apple Music) */}
+          <Dialog
+            open={isBatchAppleCoverModalOpen}
+            onOpenChange={setIsBatchAppleCoverModalOpen}
+            title="Tự động tìm kiếm & tải ảnh bìa HD (Apple Music)"
+            description="Tự động tra cứu kho nhạc Apple Music với ảnh bìa studio chất lượng gốc lên tới 1400×1400px cực nét trên iPhone"
+            actions={
+              <>
+                {batchAppleCoverStatus?.isRunning ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleCancelBatchAppleCover}
+                    className="flex items-center gap-1.5"
+                  >
+                    <X size={13} />
+                    <span>Dừng lại</span>
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsBatchAppleCoverModalOpen(false)}
+                    >
+                      Đóng
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleStartBatchAppleCover}
+                      className="flex items-center gap-1.5 bg-pink-600 hover:bg-pink-500 text-white font-semibold"
+                    >
+                      <Sparkles size={13} />
+                      <span>Bắt đầu tải ảnh bìa HD</span>
+                    </Button>
+                  </>
+                )}
+              </>
+            }
+          >
+            <div className="space-y-4 py-2">
+              {batchAppleCoverStatus?.isRunning ? (
+                <div className="p-4 rounded-xl border border-pink-500/30 bg-pink-500/10 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-pink-300 flex items-center gap-1.5">
+                      <Loader2 size={14} className="animate-spin text-pink-400" />
+                      <span>Đang tìm kiếm trên Apple Music...</span>
+                    </span>
+                    <span className="text-white font-mono">
+                      {batchAppleCoverStatus.current} / {batchAppleCoverStatus.total} (
+                      {Math.round((batchAppleCoverStatus.current / (batchAppleCoverStatus.total || 1)) * 100)}%)
+                    </span>
+                  </div>
+
+                  {/* Thanh Progress Bar */}
+                  <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-pink-500 to-rose-400 transition-all duration-300"
+                      style={{
+                        width: `${Math.round((batchAppleCoverStatus.current / (batchAppleCoverStatus.total || 1)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-zinc-300 truncate font-medium">
+                    🎵 {batchAppleCoverStatus.currentTrackTitle || 'Đang chuẩn bị...'}
+                  </p>
+
+                  <div className="flex items-center gap-4 text-[11px] text-zinc-400 pt-1 border-t border-white/10">
+                    <span className="text-emerald-400 font-medium">✅ Thành công: {batchAppleCoverStatus.successCount}</span>
+                    <span className="text-amber-400">⚠️ Bỏ qua: {batchAppleCoverStatus.skippedCount}</span>
+                    {batchAppleCoverStatus.failedCount > 0 && (
+                      <span className="text-rose-400">❌ Lỗi: {batchAppleCoverStatus.failedCount}</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Hệ thống sẽ tự động gửi yêu cầu tới <strong>Apple Music / iTunes API</strong>, tìm kiếm bài hát theo tên và ca sĩ, sau đó tải về ảnh bìa chính thức từ hãng đĩa ở độ phân giải siêu nét <strong>1400×1400px</strong> và nhúng vào thư viện.
+                  </p>
+
+                  <div className="space-y-2 pt-1">
+                    <label className="text-xs font-semibold text-white block">Chọn phạm vi áp dụng:</label>
+                    <label
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        batchAppleCoverMode === 'missing_only'
+                          ? 'border-pink-500/50 bg-pink-500/10'
+                          : 'border-white/10 bg-black/30 hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="batchCoverMode"
+                        checked={batchAppleCoverMode === 'missing_only'}
+                        onChange={() => setBatchAppleCoverMode('missing_only')}
+                        className="mt-0.5 text-pink-500"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-semibold text-white block">
+                          Chỉ bài chưa có ảnh bìa (Khuyên dùng)
+                        </span>
+                        <span className="text-[11px] text-zinc-400 block">
+                          Giữ nguyên các bài đã có ảnh bìa đẹp, chỉ quét bổ sung cho {missingCoverCount} bài đang bị thiếu.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        batchAppleCoverMode === 'all'
+                          ? 'border-pink-500/50 bg-pink-500/10'
+                          : 'border-white/10 bg-black/30 hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="batchCoverMode"
+                        checked={batchAppleCoverMode === 'all'}
+                        onChange={() => setBatchAppleCoverMode('all')}
+                        className="mt-0.5 text-pink-500"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-semibold text-white block">
+                          Làm mới toàn bộ thư viện sang ảnh nét HD
+                        </span>
+                        <span className="text-[11px] text-zinc-400 block">
+                          Quét và thay thế toàn bộ {tracks.length} bài hát sang ảnh studio 1400×1400px chất lượng cao nhất.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Dialog>
+
+          {/* Hộp thoại Tìm kiếm và Chọn ảnh bìa trực tuyến cho 1 bài hát (Apple Music / Deezer) */}
+          <Dialog
+            open={isCoverSearchOpen}
+            onOpenChange={setIsCoverSearchOpen}
+            title={coverSearchTrack ? `Tìm ảnh bìa HD cho "${coverSearchTrack.title}"` : 'Tìm ảnh bìa trực tuyến'}
+            description="Chọn ảnh bìa sắc nét nhất từ Apple Music (1400×1400) hoặc Deezer (1000×1000)"
+          >
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={coverSearchQuery}
+                  onChange={(e) => setCoverSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      executeCoverSearch(coverSearchQuery, '');
+                    }
+                  }}
+                  placeholder="Nhập tên bài hát hoặc ca sĩ..."
+                  className="flex-1 h-9 px-3 rounded-xl border border-white/10 bg-black/40 text-xs text-white focus:outline-none focus:border-pink-500"
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => executeCoverSearch(coverSearchQuery, '')}
+                  disabled={isSearchingCover}
+                  className="h-9 px-3 text-xs bg-pink-600 hover:bg-pink-500 text-white flex items-center gap-1.5"
+                >
+                  {isSearchingCover ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                  <span>Tìm ảnh</span>
+                </Button>
+              </div>
+
+              {isSearchingCover ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-400">
+                  <Loader2 size={24} className="animate-spin text-pink-400" />
+                  <span className="text-xs font-medium">Đang tìm ảnh chất lượng cao trên Apple Music...</span>
+                </div>
+              ) : coverSearchResults.length === 0 ? (
+                <div className="py-8 text-center text-zinc-500 text-xs">
+                  Không tìm thấy ảnh bìa nào. Thử chỉnh lại từ khóa tìm kiếm phía trên.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
+                  {coverSearchResults.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative rounded-xl border border-white/10 bg-black/40 p-2 space-y-2 hover:border-pink-500/60 transition-all cursor-pointer"
+                      onClick={() => handleApplySingleArtwork(item.artworkUrl)}
+                    >
+                      <div className="aspect-square w-full rounded-lg overflow-hidden bg-black/60 relative">
+                        <img
+                          src={item.previewUrl || item.artworkUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/70 text-pink-300 border border-pink-500/30">
+                          {item.width}×{item.height}
+                        </div>
+                        {item.score >= 80 && (
+                          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/80 text-black">
+                            Khớp cao
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-pink-600 text-white shadow-md">
+                            Áp dụng
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <h5 className="text-xs font-semibold text-white truncate" title={item.title}>
+                          {item.title}
+                        </h5>
+                        <p className="text-[11px] text-zinc-400 truncate" title={item.artist}>
+                          {item.artist}
+                        </p>
+                        {item.album && (
+                          <p className="text-[10px] text-zinc-500 truncate" title={item.album}>
+                            Album: {item.album}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isApplyingCover && (
+                <div className="p-2.5 rounded-lg bg-pink-500/10 border border-pink-500/30 flex items-center justify-center gap-2 text-xs text-pink-300">
+                  <Loader2 size={13} className="animate-spin" />
+                  <span>Đang tải và áp dụng ảnh bìa HD vào bài hát...</span>
                 </div>
               )}
             </div>

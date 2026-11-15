@@ -4,6 +4,12 @@ import { buildLibrary } from './services/libraryBuilder';
 import { R2Uploader } from './services/r2Uploader';
 import { analyzeAudioFile } from './services/audioAnalysisService';
 import { youtubeJobRunner } from './services/youtubeJobRunner';
+import { searchCovers, downloadCoverImage } from './services/coverFetchService';
+import { setTrackOverride } from './services/overridesManager';
+import fs from 'fs';
+import path from 'path';
+
+const CUSTOM_COVERS_DIR = path.join(__dirname, '../custom_covers');
 
 async function main() {
   const command = process.argv[2] || 'help';
@@ -13,10 +19,12 @@ async function main() {
   if (command === 'help') {
     console.log(`
 Cách dùng:
-  pnpm indexer scan         Quét thư mục nhạc và in danh sách bài hát
-  pnpm indexer analyze      Phân tích BPM, Camelot Key, Intro/Outro (chạy lại thư viện)
-  pnpm indexer sync         Quét, tạo thư viện và đồng bộ lên Cloudflare R2
-  pnpm indexer ui           Mở Web Dashboard quản lý trên trình duyệt
+  pnpm indexer scan                 Quét thư mục nhạc và in danh sách bài hát
+  pnpm indexer analyze              Phân tích BPM, Camelot Key, Intro/Outro (chạy lại thư viện)
+  pnpm indexer fetch-covers         Tự động tìm và tải ảnh bìa HD (1400x1400 Apple Music) cho các bài thiếu ảnh
+  pnpm indexer fetch-covers --all   Quét và làm mới ảnh bìa HD cho TOÀN BỘ bài hát trong thư viện
+  pnpm indexer sync                 Quét, tạo thư viện và đồng bộ lên Cloudflare R2
+  pnpm indexer ui                   Mở Web Dashboard quản lý trên trình duyệt
     `);
     return;
   }
@@ -69,6 +77,74 @@ Cách dùng:
       }
     }
     console.log(`\n🎉 Hoàn thành phân tích: ${successCount} thành công, ${failedCount} bỏ qua.`);
+  } else if (command === 'fetch-covers') {
+    const isAll = process.argv.includes('--all');
+    console.log(`🎨 Bắt đầu tìm kiếm ảnh bìa HD (Apple Music / Deezer) cho thư viện... Chế độ: ${isAll ? 'LÀM MỚI TOÀN BỘ' : 'CHỈ BÀI THIẾU ẢNH'}`);
+    const files = await findAudioFiles(config.MUSIC_SOURCE_DIR);
+    console.log(`📁 Quét được ${files.length} file.`);
+
+    await fs.promises.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
+
+    let successCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!f) continue;
+      const item = await scanAudioFile(f);
+      if (!item) continue;
+
+      if (!isAll && item.coverBuffer) {
+        skippedCount++;
+        continue;
+      }
+
+      process.stdout.write(`  [${i + 1}/${files.length}] 🔍 Đang tìm cho "${item.track.title} - ${item.track.artist}"...\r`);
+
+      try {
+        const results = await searchCovers(item.track.title, item.track.artist);
+        const best = results.find((r) => r.score >= 60);
+
+        if (best) {
+          const buffer = await downloadCoverImage(best.artworkUrl);
+          if (buffer) {
+            const trackId = item.track.id;
+            const albumId = item.track.albumId || `track_${trackId.slice(0, 8)}`;
+
+            await fs.promises.writeFile(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`), buffer);
+            await fs.promises.writeFile(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`), buffer);
+
+            // Cập nhật sidecar nếu có
+            try {
+              const sidecarPath = f.replace(path.extname(f), '.jpg');
+              await fs.promises.writeFile(sidecarPath, buffer);
+            } catch {
+              // bỏ qua
+            }
+
+            await setTrackOverride(trackId, { cover: `covers/${trackId}.jpg` });
+            successCount++;
+            console.log(`  [${i + 1}/${files.length}] ✅ [${best.source.toUpperCase()} ${best.width}x${best.height}] ${item.track.title} - ${item.track.artist}`);
+          } else {
+            failedCount++;
+            console.log(`  [${i + 1}/${files.length}] ❌ Không tải được ảnh cho "${item.track.title}"`);
+          }
+        } else {
+          skippedCount++;
+          console.log(`  [${i + 1}/${files.length}] ⚠️ Không tìm thấy ảnh khớp cho "${item.track.title}"`);
+        }
+      } catch (err) {
+        failedCount++;
+        console.log(`  [${i + 1}/${files.length}] ❌ Lỗi tìm kiếm "${item.track.title}":`, err);
+      }
+    }
+
+    console.log(`\n🎉 HOÀN TẤT TÌM ẢNH BÌA:`);
+    console.log(`  - Đã cập nhật thành công: ${successCount} bài`);
+    console.log(`  - Bỏ qua: ${skippedCount} bài`);
+    console.log(`  - Thất bại: ${failedCount} bài`);
+    console.log(`\n👉 Chạy lệnh 'pnpm indexer sync' để đồng bộ toàn bộ ảnh bìa mới lên Cloudflare R2!`);
   } else if (command === 'sync') {
     console.log(`🚀 Bắt đầu đồng bộ thư viện lên Cloudflare R2 (${config.R2_BUCKET})...`);
     const files = await findAudioFiles(config.MUSIC_SOURCE_DIR);

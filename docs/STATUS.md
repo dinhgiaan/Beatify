@@ -2,7 +2,27 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành tối ưu hóa 60/120fps Floating Tab Bar và khắc phục độ trễ 2s phát nhạc:
+**Phase hiện tại:** Hoàn thành tính năng Tự động tìm kiếm & Tải ảnh bìa HD (Apple Music / Deezer) hàng loạt cho toàn bộ thư viện:
+1. **Tìm kiếm & Cập nhật ảnh bìa Studio HD 1400x1400 (Apple Music):**
+   - **CoverFetchService (`tools/indexer/src/services/coverFetchService.ts`):**
+     - Tích hợp Apple Music / iTunes Search API và Deezer API (miễn phí, không cần token).
+     - Thuật toán `upgradeItunesArtworkUrl` tự động nâng cấp URL artwork từ `100x100` lên `1400x1400bb.jpg` (ảnh master gốc từ hãng đĩa, siêu nét trên màn hình Retina iPhone).
+     - Thuật toán `cleanSearchQuery` dọn dẹp các hậu tố thừa `[MV]`, `(Official Music Video)`, `ft. ...` và so khớp độ tương đồng tiêu đề/nghệ sĩ để lấy đúng bài hát.
+   - **Local Endpoints (`tools/indexer/src/server/index.ts`):**
+     - `GET /local-api/covers/search`: Tra cứu ảnh bìa trực tuyến theo tên bài và ca sĩ.
+     - `POST /local-api/covers/apply/:id`: Áp dụng ảnh từ URL trực tuyến vào bài hát, lưu vào `custom_covers/{trackId}.jpg` và `overrides.json`.
+     - `POST /local-api/covers/batch-fetch`: Chạy nền tiến trình quét và tải tự động ảnh bìa HD cho toàn bộ thư viện hoặc các bài thiếu ảnh.
+     - `GET /local-api/covers/batch-status` & `POST /local-api/covers/batch-cancel`: Theo dõi và dừng tiến trình an toàn.
+   - **Giao diện Web Dashboard (`tools/dashboard`):**
+     - Nút "Tự động tải ảnh bìa HD (Apple Music)" nổi bật ở Header Thư viện.
+     - Modal cấu hình phạm vi quét: *Chỉ bài chưa có ảnh bìa* hoặc *Làm mới toàn bộ thư viện sang ảnh nét HD*.
+     - Thanh Progress Bar hiển thị thời gian thực tên bài đang xử lý, % hoàn thành và số lượng thành công/bỏ qua.
+     - Dialog tìm kiếm & chọn ảnh bìa trực quan dạng Grid thẻ ảnh cho từng bài hát trong `EditTrackModal`.
+   - **Lệnh CLI trên PC (`tools/indexer/src/cli.ts`):**
+     - `pnpm indexer fetch-covers`: Tự động tìm và tải ảnh bìa HD cho các bài còn thiếu ảnh.
+     - `pnpm indexer fetch-covers --all`: Quét và nâng cấp ảnh bìa HD cho TOÀN BỘ bài hát trong kho nhạc.
+
+2. **Tối ưu hóa 60/120fps Floating Tab Bar và khắc phục độ trễ 2s phát nhạc:**
 1. **Khắc phục triệt để hiện tượng giật ở Floating Tab Bar:**
    - **Nguyên nhân gốc:**
      - `containerWidthShared` khởi tạo ban đầu bằng 0, khiến frame đầu tiên indicator có `width = 0, opacity = 0`, sau đó `onLayout` mới nạp kích thước thật làm nhảy vọt khung hình.

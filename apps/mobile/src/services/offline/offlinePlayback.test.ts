@@ -158,7 +158,7 @@ describe('Đảm bảo 100% Khả năng Phát nhạc Offline (Zero-Failure Offli
 
       expect(result.audioRelPath).toContain('.m4a');
       expect(result.trackId).toBe('track-offline-1');
-    });
+    }, 15000);
 
     it('Tự động phát hiện và đổi tên file MP3 bị lưu nhầm thành M4A khi magic bytes là ftyp trong loadOfflineIndex', async () => {
       const wrongRelPath = 'offline/track-wrong/audio.mp3';

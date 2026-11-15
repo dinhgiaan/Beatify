@@ -36,6 +36,10 @@ import {
 } from './securityMiddleware';
 import { LruBufferCache } from '../services/lruBufferCache';
 import { globalScanCache } from '../services/scanCache';
+import {
+  searchCovers,
+  downloadCoverImage,
+} from '../services/coverFetchService';
 
 export const app = new Hono();
 
@@ -781,24 +785,11 @@ const handleGetCover = async (c: Context) => {
   });
 };
 
-app.get('/local-api/cover/:albumId', handleGetCover);
-app.get('/local-api/covers/:albumId', handleGetCover);
-app.get('/local-api/cover/:id', handleGetCover);
-app.get('/local-api/covers/:id', handleGetCover);
-
-// 4.1. API: Cập nhật ảnh bìa cho bài hát / album (Xóa ảnh bìa cũ nếu có)
-app.post('/local-api/tracks/:id/cover', async (c) => {
-  const trackId = c.req.param('id');
-  const body = await c.req.parseBody();
-  const file = body['cover'];
-
-  if (!file || !(file instanceof File)) {
-    return c.json({ status: 400, error: 'File ảnh bìa không hợp lệ' }, 400);
-  }
-
-  const scanned = cachedScannedTracks.find(t => t.track.id === trackId);
+// Hàm dùng chung để lưu ảnh bìa từ Buffer cho 1 bài hát
+async function saveTrackCoverBuffer(trackId: string, buffer: Buffer): Promise<{ albumId: string; coverUrl: string }> {
+  const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
   if (!scanned) {
-    return c.json({ status: 404, error: 'Không tìm thấy bài hát' }, 404);
+    throw new Error('Không tìm thấy bài hát');
   }
 
   const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
@@ -807,18 +798,15 @@ app.post('/local-api/tracks/:id/cover', async (c) => {
   const oldCoverFile = path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`);
   const oldTrackCoverFile = path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`);
   if (existsSync(oldCoverFile)) {
-    await fs.unlink(oldCoverFile).catch(() => { });
+    await fs.unlink(oldCoverFile).catch(() => {});
   }
   if (existsSync(oldTrackCoverFile)) {
-    await fs.unlink(oldTrackCoverFile).catch(() => { });
+    await fs.unlink(oldTrackCoverFile).catch(() => {});
   }
   cachedCovers.delete(albumId);
   cachedCovers.delete(trackId);
 
   // 2. Ghi file ảnh bìa mới vào thư mục custom covers
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
   await fs.mkdir(CUSTOM_COVERS_DIR, { recursive: true });
   await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${albumId}.jpg`), buffer);
   await fs.writeFile(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`), buffer);
@@ -845,14 +833,225 @@ app.post('/local-api/tracks/:id/cover', async (c) => {
     // bỏ qua
   }
 
+  return {
+    albumId,
+    coverUrl: `/local-api/covers/${trackId}.jpg?_t=${Date.now()}`,
+  };
+}
+
+// Trạng thái tiến trình tìm và tải ảnh bìa hàng loạt
+interface BatchCoverState {
+  isRunning: boolean;
+  isCancelled: boolean;
+  total: number;
+  current: number;
+  currentTrackTitle: string;
+  successCount: number;
+  skippedCount: number;
+  failedCount: number;
+  errors: Array<{ trackId: string; title: string; error: string }>;
+}
+
+let batchCoverState: BatchCoverState = {
+  isRunning: false,
+  isCancelled: false,
+  total: 0,
+  current: 0,
+  currentTrackTitle: '',
+  successCount: 0,
+  skippedCount: 0,
+  failedCount: 0,
+  errors: [],
+};
+
+// 4.1. API: Cập nhật ảnh bìa cho bài hát / album (Xóa ảnh bìa cũ nếu có)
+app.post('/local-api/tracks/:id/cover', async (c) => {
+  const trackId = c.req.param('id');
+  const body = await c.req.parseBody();
+  const file = body['cover'];
+
+  if (!file || !(file instanceof File)) {
+    return c.json({ status: 400, error: 'File ảnh bìa không hợp lệ' }, 400);
+  }
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const result = await saveTrackCoverBuffer(trackId, buffer);
+    return c.json({
+      status: 200,
+      albumId: result.albumId,
+      trackId,
+      coverUrl: result.coverUrl,
+      message: 'Đã cập nhật ảnh bìa mới và dọn dẹp ảnh bìa cũ thành công',
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ status: 404, error: msg }, 404);
+  }
+});
+
+// 4.1c. API: Tìm kiếm ảnh bìa trực tuyến chất lượng cao HD (Apple Music / Deezer)
+app.get('/local-api/covers/search', async (c) => {
+  const title = c.req.query('title') || '';
+  const artist = c.req.query('artist') || '';
+
+  if (!title.trim()) {
+    return c.json({ status: 400, error: 'Tiêu đề bài hát không được để trống' }, 400);
+  }
+
+  const results = await searchCovers(title, artist);
   return c.json({
     status: 200,
-    albumId,
-    trackId,
-    coverUrl: `/local-api/covers/${trackId}.jpg?_t=${Date.now()}`,
-    message: 'Đã cập nhật ảnh bìa mới và dọn dẹp ảnh bìa cũ thành công',
+    results,
   });
 });
+
+// 4.1d. API: Tải và áp dụng ảnh bìa từ URL trực tuyến cho 1 bài hát
+app.post('/local-api/covers/apply/:id', async (c) => {
+  const trackId = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const artworkUrl = body.artworkUrl;
+
+  if (!artworkUrl || typeof artworkUrl !== 'string') {
+    return c.json({ status: 400, error: 'URL ảnh bìa không hợp lệ' }, 400);
+  }
+
+  const buffer = await downloadCoverImage(artworkUrl);
+  if (!buffer) {
+    return c.json({ status: 502, error: 'Không thể tải ảnh bìa từ nguồn được chọn' }, 502);
+  }
+
+  try {
+    const result = await saveTrackCoverBuffer(trackId, buffer);
+    return c.json({
+      status: 200,
+      albumId: result.albumId,
+      trackId,
+      coverUrl: result.coverUrl,
+      message: 'Đã tải và áp dụng ảnh bìa HD thành công',
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ status: 404, error: msg }, 404);
+  }
+});
+
+// 4.1e. API: Bắt đầu tiến trình tải ảnh bìa HD hàng loạt (Batch Cover Fetch)
+app.post('/local-api/covers/batch-fetch', async (c) => {
+  if (batchCoverState.isRunning) {
+    return c.json({ status: 409, error: 'Một tiến trình tải ảnh bìa hàng loạt đang diễn ra' }, 409);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const mode = (body.mode === 'all' ? 'all' : 'missing_only') as 'all' | 'missing_only';
+
+  const tracksToProcess = cachedScannedTracks.filter((t) => {
+    if (mode === 'missing_only') {
+      return !t.coverBuffer;
+    }
+    return true;
+  });
+
+  if (tracksToProcess.length === 0) {
+    return c.json({
+      status: 200,
+      message: mode === 'missing_only' ? 'Tất cả bài hát đều đã có ảnh bìa' : 'Thư viện không có bài hát nào',
+      total: 0,
+    });
+  }
+
+  batchCoverState = {
+    isRunning: true,
+    isCancelled: false,
+    total: tracksToProcess.length,
+    current: 0,
+    currentTrackTitle: '',
+    successCount: 0,
+    skippedCount: 0,
+    failedCount: 0,
+    errors: [],
+  };
+
+  // Chạy tiến trình nền không chặn response
+  (async () => {
+    for (let i = 0; i < tracksToProcess.length; i++) {
+      if (batchCoverState.isCancelled) {
+        break;
+      }
+
+      const item = tracksToProcess[i];
+      if (!item) continue;
+      batchCoverState.current = i + 1;
+      batchCoverState.currentTrackTitle = `${item.track.title} - ${item.track.artist}`;
+
+      try {
+        const results = await searchCovers(item.track.title, item.track.artist);
+        // Chọn kết quả có độ tương đồng tối thiểu 60%
+        const best = results.find((r) => r.score >= 60);
+
+        if (best) {
+          const buffer = await downloadCoverImage(best.artworkUrl);
+          if (buffer) {
+            await saveTrackCoverBuffer(item.track.id, buffer);
+            batchCoverState.successCount++;
+          } else {
+            batchCoverState.failedCount++;
+            batchCoverState.errors.push({
+              trackId: item.track.id,
+              title: item.track.title,
+              error: 'Không thể tải buffer ảnh',
+            });
+          }
+        } else {
+          batchCoverState.skippedCount++;
+        }
+      } catch (err) {
+        batchCoverState.failedCount++;
+        batchCoverState.errors.push({
+          trackId: item.track.id,
+          title: item.track.title,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    batchCoverState.isRunning = false;
+  })().catch((err) => {
+    console.warn('[BatchCover] Lỗi ngoài ý muốn:', err);
+    batchCoverState.isRunning = false;
+  });
+
+  return c.json({
+    status: 200,
+    message: `Đã bắt đầu tiến trình tìm ảnh bìa HD cho ${tracksToProcess.length} bài hát`,
+    total: tracksToProcess.length,
+    mode,
+  });
+});
+
+// 4.1f. API: Lấy trạng thái tiến trình tải ảnh bìa hàng loạt
+app.get('/local-api/covers/batch-status', (c) => {
+  return c.json({
+    status: 200,
+    data: batchCoverState,
+  });
+});
+
+// 4.1g. API: Hủy tiến trình tải ảnh bìa hàng loạt
+app.post('/local-api/covers/batch-cancel', (c) => {
+  if (batchCoverState.isRunning) {
+    batchCoverState.isCancelled = true;
+    return c.json({ status: 200, message: 'Đã gửi yêu cầu dừng tiến trình' });
+  }
+  return c.json({ status: 200, message: 'Không có tiến trình nào đang chạy' });
+});
+
+// Các endpoint trả về file ảnh bìa (Đặt sau các endpoint covers/ cụ thể để không bị chặn nhầm)
+app.get('/local-api/cover/:albumId', handleGetCover);
+app.get('/local-api/covers/:albumId', handleGetCover);
+app.get('/local-api/cover/:id', handleGetCover);
+app.get('/local-api/covers/:id', handleGetCover);
 
 // 4.1b. API: Xóa ảnh bìa của bài hát / album
 app.delete('/local-api/tracks/:id/cover', async (c) => {
