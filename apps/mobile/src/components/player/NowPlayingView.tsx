@@ -283,22 +283,10 @@ export function NowPlayingView() {
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
-          {showQueue && (
+          {showQueue ? (
             <Text style={styles.headerTitle}>HÀNG ĐỢI PHÁT</Text>
-          )}
-          {sleepTimerRemainingSec !== null ? (
-            <TouchableOpacity
-              style={styles.timerHeaderBadge}
-              onPress={() => setSleepTimerDialogVisible(true)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Xem hẹn giờ ngủ"
-            >
-              <ClockIcon size={18} color={colors.primary} />
-            </TouchableOpacity>
           ) : currentTrack?.album &&
-            !['singles', 'single', 'đĩa đơn'].includes(currentTrack.album.trim().toLowerCase()) &&
-            !showQueue ? (
+            !['singles', 'single', 'đĩa đơn'].includes(currentTrack.album.trim().toLowerCase()) ? (
             <Text style={styles.headerSubtitle} numberOfLines={1}>
               {currentTrack.album}
             </Text>
@@ -353,7 +341,7 @@ export function NowPlayingView() {
                 <Image
                   source={{ uri: currentTrack.cover }}
                   style={styles.artworkImage}
-                  resizeMode="cover"
+                  resizeMode="contain"
                 />
               ) : (
                 <View style={styles.artworkPlaceholder}>
