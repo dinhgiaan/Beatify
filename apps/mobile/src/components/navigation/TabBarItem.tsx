@@ -24,7 +24,7 @@ export interface TabBarItemProps {
   options: TabDescriptorOptions;
   onPress: () => void;
   onLongPress: () => void;
-  onLayout: (index: number, x: number, width: number) => void;
+  onLayout?: (index: number, x: number, width: number) => void;
 }
 
 function getTabIcon(routeName: string, color: string) {
@@ -76,8 +76,10 @@ export function TabBarItem({
   const label = getTabLabel(route.name, options?.title);
 
   const handleLayout = (e: LayoutChangeEvent) => {
-    const { x, width } = e.nativeEvent.layout;
-    onLayout(index, x, width);
+    if (onLayout) {
+      const { x, width } = e.nativeEvent.layout;
+      onLayout(index, x, width);
+    }
   };
 
   return (

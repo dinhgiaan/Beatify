@@ -6,28 +6,35 @@ import Animated, {
 } from 'react-native-reanimated';
 import { radius } from '../../theme';
 
-export const DOCK_BORDER_WIDTH = 1;
-
 export interface TabIndicatorProps {
-  translateX: SharedValue<number>;
-  width: SharedValue<number>;
-  opacity: SharedValue<number>;
+  activeIndex: SharedValue<number>;
+  containerWidth: SharedValue<number>;
+  totalTabs: number;
 }
 
 /**
  * TabIndicator: Nền active dạng viên thuốc (Liquid Glass / Capsule)
- * Chạy 100% trên UI thread bằng GPU transform mà không tiêu tốn tài nguyên JS thread
+ * Chạy 100% trên UI thread, tính toán trực tiếp từ index và độ rộng container
+ * Loại bỏ hoàn toàn hiện tượng Yoga relayout và giật khung hình
  */
-export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) {
+export function TabIndicator({
+  activeIndex,
+  containerWidth,
+  totalTabs,
+}: TabIndicatorProps) {
   const pillAnimStyle = useAnimatedStyle(() => {
+    // Trừ 8px padding (4px trái, 4px phải của dockInner)
+    const availableWidth = Math.max(0, containerWidth.value - 8);
+    const tabWidth = totalTabs > 0 ? availableWidth / totalTabs : 0;
+
     return {
-      width: width.value > 0 ? width.value : 0,
+      width: tabWidth > 0 ? tabWidth : 0,
       transform: [
         {
-          translateX: translateX.value - DOCK_BORDER_WIDTH,
+          translateX: activeIndex.value * tabWidth,
         },
       ],
-      opacity: opacity.value,
+      opacity: containerWidth.value > 0 ? 1 : 0,
     };
   });
 
@@ -42,7 +49,7 @@ export function TabIndicator({ translateX, width, opacity }: TabIndicatorProps) 
 const styles = StyleSheet.create({
   slidingActivePill: {
     position: 'absolute',
-    left: 0,
+    left: 4,
     top: 4,
     height: 42,
     backgroundColor: 'rgba(29, 185, 84, 0.28)',

@@ -28,16 +28,13 @@ export class RntpPlayerService implements IPlayerService {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      // Khởi tạo player với cấu hình nghe nhạc, dừng khi rút tai nghe, và bật disk cache + preloading ngầm
+      // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe.
+      // Tuyệt đối không bật cache proxy cục bộ (CacheProxyServer) của RNTP vì proxy này
+      // gây nghẽn kết nối và làm bài hát ngoài hàng đợi bị delay tới 5-7 giây!
+      // Native AVPlayer sẽ kết nối trực tiếp tới Cloudflare Worker đã tối ưu Single-pass R2 streaming.
       await TrackPlayer.setupPlayer({
         contentType: 'music',
         handleAudioBecomingNoisy: true,
-        cache: {
-          maxSizeBytes: 500 * 1024 * 1024, // 500 MB streaming disk cache
-          preloading: {
-            window: 2, // Tự động nạp trước 2 bài tiếp theo trong hàng đợi
-          },
-        },
       });
 
       // Cấu hình các nút điều khiển trên lock screen và Control Center
