@@ -46,6 +46,7 @@ export interface CollectionDetailModalProps {
   title: string;
   subtitle?: string;
   coverUrl?: string;
+  artistCoverUrl?: string;
   tracks: Track[];
   type: 'album' | 'artist' | 'playlist' | 'favorites' | 'recently_played';
   playlistId?: string;
@@ -59,6 +60,7 @@ export function CollectionDetailModal({
   title,
   subtitle,
   coverUrl,
+  artistCoverUrl,
   tracks,
   type,
   playlistId,
@@ -267,7 +269,28 @@ export function CollectionDetailModal({
               <Text style={styles.titleText} numberOfLines={2}>
                 {title}
               </Text>
-              {subtitle && <Text style={styles.subtitleText}>{subtitle}</Text>}
+              {type === 'album' && artistCoverUrl ? (
+                <View style={styles.albumArtistHeroRow}>
+                  <Image source={{ uri: artistCoverUrl }} style={styles.albumArtistHeroAvatar} resizeMode="cover" />
+                  <Text style={styles.subtitleText} numberOfLines={1}>
+                    <Text style={styles.albumArtistItalic}>{subtitle?.split(' • ')[0]}</Text>
+                    {subtitle?.includes(' • ') ? ` • ${subtitle.split(' • ').slice(1).join(' • ')}` : ''}
+                  </Text>
+                </View>
+              ) : (
+                subtitle && (
+                  <Text style={styles.subtitleText}>
+                    {type === 'album' ? (
+                      <>
+                        <Text style={styles.albumArtistItalic}>{subtitle.split(' • ')[0]}</Text>
+                        {subtitle.includes(' • ') ? ` • ${subtitle.split(' • ').slice(1).join(' • ')}` : ''}
+                      </>
+                    ) : (
+                      subtitle
+                    )}
+                  </Text>
+                )
+              )}
 
               <Text style={styles.statsText}>
                 {tracks.length} bài hát • {formatTime(totalDurationSec)}
@@ -489,6 +512,23 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.subhead,
     textAlign: 'center',
     marginTop: spacing.xxs,
+  },
+  albumArtistHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing.xxs,
+  },
+  albumArtistHeroAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+  },
+  albumArtistItalic: {
+    fontStyle: 'italic',
+    color: colors.textPrimary,
   },
   statsText: {
     color: colors.textTertiary,

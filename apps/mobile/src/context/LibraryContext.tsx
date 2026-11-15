@@ -99,14 +99,17 @@ export function resolveAlbumUrls(album: Album, serverUrl: string, serverToken: s
   const tokenParam = cleanToken ? `?t=${encodeURIComponent(cleanToken)}` : '';
 
   let cover = album.cover;
+  const match = cover?.match(/[0-9a-fA-F]{12}/);
+  const coverId = match ? match[0] : (album.trackIds?.[0] || album.id);
+
   if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
-    if (cover.includes('/covers/') && cleanUrl) {
-      cover = `${cleanUrl}/covers/${album.id}${tokenParam}`;
+    if (cover.includes('/covers/') && cleanUrl && coverId) {
+      cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
     }
   } else if (cover && !cover.startsWith('file://')) {
-    cover = cleanUrl ? `${cleanUrl}/covers/${album.id}${tokenParam}` : cover;
-  } else if (!cover && cleanUrl) {
-    cover = `${cleanUrl}/covers/${album.id}${tokenParam}`;
+    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}` : cover;
+  } else if (!cover && coverId && cleanUrl) {
+    cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
   }
 
   return {

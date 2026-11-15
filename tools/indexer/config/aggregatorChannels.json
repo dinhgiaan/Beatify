@@ -1,0 +1,34 @@
+{
+  "exactChannels": [
+    "151 studio",
+    "faptv",
+    "g5r squad",
+    "g5r",
+    "evb records",
+    "rv underground",
+    "7clouds",
+    "xmaxa music",
+    "blackbi original",
+    "fueled by ramen",
+    "metub network",
+    "yeah1 music",
+    "viva music",
+    "pops music",
+    "warner music vietnam",
+    "universal music vietnam",
+    "sony music entertainment",
+    "vietnam underground music",
+    "rap viet underground",
+    "underground viet nam",
+    "v-rap official",
+    "hip hop underground vn"
+  ],
+  "keywordHeuristics": [
+    "records",
+    "entertainment",
+    "network",
+    "underground",
+    "studio"
+  ]
+}
+

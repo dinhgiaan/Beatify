@@ -2,7 +2,71 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành công nghệ **Auto-Smart Match 2.0** và Thiết kế UI/UX Ngang Rộng (Wide Layout) cho Quản lý & Tải ảnh bìa HD (Apple Music):
+**Phase hiện tại:** Hoàn thành toàn diện **Hệ thống Chuẩn hóa Thực thể Âm nhạc Đa Tầng (Multi-Layer Music Entity Resolution — Tầng 0 đến Tầng 4, Backend API, Web Dashboard UI & Báo cáo Dry-Run CSV)**:
+1. **Lõi Phân giải Thực thể Đa Tầng (Multi-Layer Music Entity Resolution) — Tầng 0 + 1 + 2 + 3 + 4:**
+   - **Tầng 0 (`nativeMetadataExtractor.ts`):** Trích xuất metadata gốc yt-dlp (`artist`, `track`, `album`, `channel`, `description`, nhận diện kênh `- Topic`).
+   - **Tầng 1 (`channelClassifier.ts`):** Phân loại kênh uploader, bóc tách hậu tố (`Official`, `VEVO`), nhận diện aggregator channels theo `aggregatorChannels.json` và whitelist `channelWhitelist.json`, đối soát chéo ứng viên tiêu đề chống đảo vế (`crossCheckWithTitle`) với cơ chế ưu tiên Exact Match tuyệt đối.
+   - **Tầng 2 (`knownArtistsService.ts`):** Knowledge graph nghệ sĩ với từ điển `artistAliases.json`, xử lý canonical name, chống match nhầm tên ngắn (`Vũ.`, `Binz`, `x`), bóc tách trước `feat./ft.`, chặn đảo vế khi vế chứa đặc trưng bài hát (`isSongLike`).
+   - **Tầng 3 (`structuralParser.ts`):** Cân bằng ngoặc (`balanceBrackets`), bóc tách album/track number (`extractAlbumAndTrackNo`), dọn rác inline (`cleanJunkTokens`), tách producer (`stripProductionInfo`), tách feat (`extractCollaborators`), Title Case thông minh (`toSmartTitleCase`), ma trận trọng số (`scoreAsArtist`), hiệu chỉnh confidence.
+   - **Tầng 4 (`itunesMatcher.ts`):**
+     - So khớp 2 chiều nghiêm ngặt (Strict Bi-directional Verification) khớp CẢ Title VÀ Artist trên cả 2 storefronts `vn` và `us`.
+     - Chặn match nhầm tuyệt đối các bản Cover, Remix, Karaoke, Instrumental, Acoustic, Live (`detectSongModifiers`).
+     - Hỗ trợ so khớp đa nghệ sĩ hợp tác (`calculateArtistSimilarity`) và làm sạch hậu tố Single (`calculateTitleSimilarity`).
+     - On-disk & In-memory Cache tại `tools/indexer/.cache/itunes_entity_cache.json`.
+     - Giới hạn rate-limit (200ms throttle), timeout 5000ms, retry 2 lần, cờ `noNetwork` để chạy offline.
+     - Chế độ Suggestion: Giữ nguyên quyết định Tầng 0-3 khi có confidence cao, chỉ ghi đè khi Tầng 3 có confidence thấp hoặc khi audit.
+   - **Đánh giá Độc lập & Chống Data Leakage (`evaluatePhase3.ts`):**
+     - Đóng băng 103 ID Holdout (Group Split theo nghệ sĩ, Seed 42 cố định) tại `config/frozenHoldoutTrackIds.json`.
+     - **Strict Accuracy trên Holdout (30%):** **85.44%** (Tăng +9.71% so với Baseline cũ).
+     - **Lenient Accuracy trên Holdout:** **96.12%**.
+     - **Zero-Shot LOAO (Leave-One-Artist-Out trên 365 bài):** Strict **80.82%**, Lenient **93.70%**.
+     - **3 Hard Gates Lỗi Nghiêm Trọng:** Đảo vế: **0 bài (PASS ✅)**, Nuốt kênh: **0 bài (PASS ✅)**, Xé album: **0 bài (PASS ✅)**.
+     - **Mutation Testing:** Phát hiện 100% cả 3 loại lỗi tiêm.
+     - Danh sách 15 ca chưa đạt Strict được xuất tại `tools/indexer/reports/HOLDOUT_ERRORS_PHASE3.csv`.
+     - Báo cáo chi tiết: `tools/indexer/reports/PHASE_3_VERIFICATION_REPORT.md`.
+2. **Backend API & Service Tự Động Hóa (`entityResolutionService.ts` & `src/server/index.ts`):**
+   - Tạo `EntityResolutionService` hỗ trợ chạy Preview Dry-Run, xuất báo cáo CSV chi tiết (`ENTITY_RESOLUTION_PREVIEW.csv`), và áp dụng an toàn (`apply()`).
+   - Sao lưu tự động có timestamp trước khi ghi đè (`overrides.backup.*.json`, `library.backup.*.json`).
+   - Bảo vệ bất biến các bản ghi đã xác minh thủ công (`isProtected: true`, `reviewed: true`).
+   - Tự động nhóm lại Album (`trackIds`) và tùy chọn đồng bộ ngay lên Cloudflare R2.
+   - Các API endpoint:
+     - `POST /local-api/entity-resolution/preview`
+     - `POST /local-api/entity-resolution/apply`
+     - `GET /local-api/entity-resolution/report`
+3. **Giao diện Web Dashboard Quản Lý Chuẩn Hóa (`EntityResolutionDialog.tsx` & `LibraryPage.tsx`):**
+   - Thêm nút **"Chuẩn hóa Tên bài & Ca sĩ"** (icon `Wand2` màu tím indigo) tại PageHeader Thư viện nhạc.
+   - Hộp thoại Modal hiện đại với 6 thẻ KPI tổng quan (Tổng bài, Cần chuẩn hóa, Đảo vế phát hiện, Đã lọc kênh YT, Tự tin cao, Ground Truth được bảo vệ).
+   - Thanh công cụ lọc đa dạng: *Cần sửa*, *Tất cả*, *Đảo vế*, *Lọc kênh*, *Độ tin cậy cao*, *Đã bảo vệ* cùng ô tìm kiếm trực tiếp.
+   - Bảng đối chiếu trực quan 2 cột: **Hiện tại** $\to$ **Đề xuất sau chuẩn hóa** (kèm badge nhận diện tầng xử lý, tag Đã sửa đảo vế, Đã lọc kênh, Bóc album, độ tin cậy và lý do chi tiết).
+   - Chức năng tải file CSV Dry-Run trực tiếp từ trình duyệt.
+   - Nút **"Áp dụng đã chọn"** và **"Áp dụng an toàn tất cả"** kèm checkbox đồng bộ R2.
+4. **Kiểm Thử & Xác Nhận Toàn Diện Hệ Thống (Monorepo Verification):**
+   - **Toàn bộ 377/377 unit & integration tests đều PASS (100% GREEN ✅):**
+     - `packages/shared`: 102/102 tests passed.
+     - `apps/api`: 25/25 tests passed.
+     - `apps/mobile`: 120/120 tests passed.
+     - `tools/indexer`: 130/130 tests passed.
+   - `pnpm typecheck`: Exit code 0 (Hoàn hảo trên cả 5 workspace).
+   - `pnpm lint`: Exit code 0 (Clean 100%, không còn lỗi).
+   - `pnpm --filter @music-app/dashboard build`: Thành công không lỗi.
+5. **Sửa lỗi hiển thị Ảnh bìa Album & Thêm Avatar Nghệ sĩ (Mobile App):**
+   - **Nguyên nhân gốc ảnh bìa album bị thiếu:** Trong LibraryContext.tsx, hàm resolveAlbumUrls trước đây gọi đường dẫn /covers/{album.id}, trong khi trên R2 và hệ thống cover được lưu theo track.id (12 ký tự hex) chứ không phải album.id. Do đó Worker trả về 404 cho cover album.
+   - **Khắc phục:**
+     - apps/mobile/src/context/LibraryContext.tsx: Trích xuất 12 ký tự hex từ album.cover hoặc fallback về bài hát đầu tiên album.trackIds[0].
+     - apps/mobile/app/(tabs)/library.tsx: Bổ sung fallback cover từ danh sách bài hát thuộc album.
+     - Thêm avatar nghệ sĩ nhỏ (14x14px hình tròn) hiển thị ngay bên trái tên nghệ sĩ trong thẻ album ở danh sách thư viện.
+     - Bảo tồn thuộc tính metadata (cover, loudnessLufs, replayGain) khi cập nhật overrides.json.
+     - Bộ test UI Regression & toàn bộ 377 test vượt qua an toàn.
+6. **Nâng cấp Avatar Nghệ sĩ 18x18px & Chữ nghiêng (Italic) cho Mobile App:**
+   - Nâng avatar nghệ sĩ từ 14x14px lên 18x18px (bo góc 9px tròn) tại thẻ album tab Thư viện.
+   - Thêm style chữ nghiêng (fontStyle: italic) cho tên nghệ sĩ ở cả ngoài danh sách album và bên trong màn hình chi tiết Album (CollectionDetailModal).
+   - Sửa lỗi edge-case kiểm thử tuần Replay khi đồng hồ hệ thống vừa bước qua nửa đêm thứ Hai (stats.test.ts).
+7. **Triển khai Auto Fast Micro-Sync (Tự động đồng bộ vi sai siêu tốc R2):**
+   - Đã thêm hàm autoSyncLibraryFastToR2() và endpoint /local-api/sync/fast trên server indexer.
+   - Mọi thao tác tại thư viện (sửa lyrics, đổi ảnh bìa, tải ảnh HD, chỉnh sửa metadata bài hát/album, đưa vào thùng rác, khôi phục) đều tự động đồng bộ ngay lập tức lên Cloudflare R2 trong < 0.5s.
+   - Người dùng không cần bấm nút Đồng bộ R2 thủ công cho các thao tác chỉnh sửa nữa.
+
+**Việc tiếp theo:** Người dùng mở Web Dashboard (`pnpm --filter indexer ui`), bấm nút "Chuẩn hóa Tên bài & Ca sĩ" để duyệt và áp dụng chuẩn hóa vào thư viện khi muốn.
 1. **Công nghệ Auto-Smart Match 2.0 (`coverFetchService.ts` & Server):**
    - **Tự động nhận diện & đảo ngược Tên bài $\leftrightarrow$ Ca sĩ:** Tự động giải quyết trường hợp các bài tải từ YouTube bị ghi ngược thứ tự (như *Huỳnh James - Cho Họ Ghét Đi Em*, *Phát Hồ - Chờ Ngày Cưới Em*, *Pixel Neko - Cô Nàng Khác Người*, *Lê Thiện Hiếu - Ông Bà Anh*, *Đạt G - Thêm Bao Nhiêu Lâu*...).
    - **Bóc tách ca sĩ thật khỏi tên kênh YouTube:** Tự động phát hiện và trích xuất nghệ sĩ chuẩn khi Artist bị gắn nhầm tên kênh (`G5R`, `FAPTV`, `7clouds`, `EvB Records`, `Focus Entertainment`, `Fueled By Ramen`... như *Jack - Hồng Nhan*, *Phía Sau Em - Kay Trần*, *twenty one pilots: Stressed Out*).

@@ -93,6 +93,9 @@ export const TrackOverrideSchema = z.object({
   deletedAt: z.string().optional(),
   purged: z.boolean().optional(),
   purgedAt: z.string().optional(),
+  pipelineVersion: z.string().optional(),
+  source: z.string().optional(),
+  reviewed: z.boolean().optional(),
 });
 export type TrackOverride = z.infer<typeof TrackOverrideSchema>;
 

@@ -253,6 +253,7 @@ export default function LibraryScreen() {
     title: string;
     subtitle?: string;
     coverUrl?: string;
+    artistCoverUrl?: string;
     tracks: Track[];
     type: 'album' | 'artist' | 'recently_played';
   }>({
@@ -379,6 +380,17 @@ export default function LibraryScreen() {
       cover: artistTracks.find((t) => t.cover)?.cover,
     }));
   }, [tracks]);
+
+  // Bản đồ ảnh nghệ sĩ (Artist Avatar Map)
+  const artistCoverMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const group of artistGroups) {
+      if (group.artist && group.cover) {
+        map.set(group.artist.toLowerCase(), group.cover);
+      }
+    }
+    return map;
+  }, [artistGroups]);
 
   // Lọc chỉ những Album thực sự
   const realAlbums = useMemo(() => {
@@ -535,6 +547,11 @@ export default function LibraryScreen() {
     const albumTracks = (tracks || []).filter((t) =>
       t.albumId && item.id ? t.albumId === item.id : t.album === albumTitle
     );
+    // Ảnh bìa đại diện của Album: ưu tiên item.cover, nếu chưa có thì lấy từ bài hát đầu tiên trong album
+    const albumCoverUri = item.cover || albumTracks.find((t) => t.cover)?.cover;
+    // Ảnh đại diện của nghệ sĩ bên cạnh tên nghệ sĩ
+    const artistCoverUri = artistCoverMap.get(albumArtist.toLowerCase());
+
     return (
       <TouchableOpacity
         style={styles.albumItem}
@@ -544,15 +561,16 @@ export default function LibraryScreen() {
             visible: true,
             title: albumTitle,
             subtitle: `${albumArtist} • ${albumTracks.length} bài hát`,
-            coverUrl: item.cover,
+            coverUrl: albumCoverUri,
+            artistCoverUrl: artistCoverUri,
             tracks: albumTracks,
             type: 'album',
           });
         }}
       >
         <View style={styles.albumCoverWrapper}>
-          {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+          {albumCoverUri ? (
+            <Image source={{ uri: albumCoverUri }} style={styles.coverImage} resizeMode="cover" />
           ) : (
             <View style={styles.coverPlaceholder}>
               <DiscIcon size={32} color={colors.borderLight} />
@@ -562,9 +580,22 @@ export default function LibraryScreen() {
         <Text style={styles.albumTitleText} numberOfLines={1}>
           {albumTitle}
         </Text>
-        <Text style={styles.albumSubtitleText} numberOfLines={1}>
-          {albumArtist} • {albumTracks.length} bài
-        </Text>
+        <View style={styles.albumArtistRow}>
+          {artistCoverUri ? (
+            <Image
+              source={{ uri: artistCoverUri }}
+              style={styles.albumArtistAvatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.albumArtistAvatarPlaceholder}>
+              <DiscIcon size={9} color={colors.textSecondary} />
+            </View>
+          )}
+          <Text style={styles.albumSubtitleText} numberOfLines={1}>
+            <Text style={styles.albumArtistItalic}>{albumArtist}</Text> • {albumTracks.length} bài
+          </Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -962,6 +993,7 @@ export default function LibraryScreen() {
         title={selectedCollection.title}
         subtitle={selectedCollection.subtitle}
         coverUrl={selectedCollection.coverUrl}
+        artistCoverUrl={selectedCollection.artistCoverUrl}
         tracks={selectedCollection.tracks}
         type={selectedCollection.type}
         onClearRecentTracks={clearRecentTracks}
@@ -1381,10 +1413,34 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
   },
+  albumArtistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 3,
+  },
+  albumArtistAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+  },
+  albumArtistAvatarPlaceholder: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   albumSubtitleText: {
     fontSize: fontSizes.caption,
     color: colors.textSecondary,
-    marginTop: 2,
+    flex: 1,
+  },
+  albumArtistItalic: {
+    fontStyle: 'italic',
+    color: colors.textPrimary,
   },
   artistColumnWrapper: {
     justifyContent: 'space-between',

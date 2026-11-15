@@ -1,0 +1,220 @@
+[
+  {
+    "name": "01_ytmusic_standard_clean",
+    "description": "YouTube Music chính thống có track và artist sạch",
+    "input": {
+      "track": "Nắng Ấm Xa Dần",
+      "artist": "Sơn Tùng M-TP",
+      "album": "m-tp M-TP",
+      "channel": "Sơn Tùng M-TP - Topic"
+    },
+    "expected": {
+      "title": "Nắng Ấm Xa Dần",
+      "artist": "Sơn Tùng M-TP",
+      "album": "m-tp M-TP",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "02_ytmusic_multi_artist_comma",
+    "description": "Nhiều nghệ sĩ phân tách bằng dấu phẩy trong trường artist",
+    "input": {
+      "track": "Khu Tao Sống",
+      "artist": "Wowy, Karik",
+      "album": "Singles",
+      "channel": "Wowy - Topic"
+    },
+    "expected": {
+      "title": "Khu Tao Sống",
+      "artist": "Wowy, Karik",
+      "artistsCount": 2,
+      "fastPass": true
+    }
+  },
+  {
+    "name": "03_ytmusic_western_multi_artist",
+    "description": "Nghệ sĩ quốc tế có dấu phẩy và chấm như Fred again.., Skepta",
+    "input": {
+      "track": "Victory Lap Two",
+      "artist": "Fred again.., Skepta, Denzel Curry",
+      "album": "USB",
+      "channel": "Fred again.. - Topic"
+    },
+    "expected": {
+      "title": "Victory Lap Two",
+      "artist": "Fred again.., Skepta, Denzel Curry",
+      "artistsCount": 3,
+      "fastPass": true
+    }
+  },
+  {
+    "name": "04_ytmusic_track_with_garbage_brackets",
+    "description": "Trường track chứa rác [Official MV] hoặc (Lyric Video) cần được làm sạch",
+    "input": {
+      "track": "Cơn Mưa Ngang Qua [Official MV]",
+      "artist": "Sơn Tùng M-TP",
+      "album": "Singles",
+      "channel": "Sơn Tùng M-TP"
+    },
+    "expected": {
+      "title": "Cơn Mưa Ngang Qua",
+      "artist": "Sơn Tùng M-TP",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "05_channel_topic_official",
+    "description": "Kênh YouTube Music Topic tự động phân giải nghệ sĩ từ tên kênh",
+    "input": {
+      "title": "Thêm Bao Nhiêu Lâu",
+      "channel": "Đạt G - Topic"
+    },
+    "expected": {
+      "title": "Thêm Bao Nhiêu Lâu",
+      "artist": "Đạt G",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "06_channel_topic_with_track_override",
+    "description": "Kênh Topic ưu tiên trường track chuẩn hơn title",
+    "input": {
+      "title": "Đẹp (Chapter 3) (Official Audio)",
+      "track": "Đẹp (Chapter 3)",
+      "channel": "Đạt G - Topic",
+      "album": "Ác Mộng Đẹp"
+    },
+    "expected": {
+      "title": "Đẹp (Chapter 3)",
+      "artist": "Đạt G",
+      "album": "Ác Mộng Đẹp",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "07_description_provided_to_youtube",
+    "description": "Mô tả chuẩn bản quyền Provided to YouTube by Universal Music",
+    "input": {
+      "title": "Starboy (Official Audio)",
+      "description": "Provided to YouTube by Universal Music Group\n\nStarboy\n\nThe Weeknd\n\nStarboy\n\n℗ 2016 The Weeknd XO, Inc."
+    },
+    "expected": {
+      "title": "Starboy",
+      "artist": "The Weeknd",
+      "album": "Starboy",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "08_description_provided_vietnamese",
+    "description": "Mô tả chuẩn bản quyền Provided to YouTube by Warner Music Vietnam",
+    "input": {
+      "title": "Yêu 5",
+      "description": "Provided to YouTube by Warner Music Vietnam\n\nYêu 5\n\nRhymastic\n\nYêu 5\n\n℗ 2017 SpaceSpeakers"
+    },
+    "expected": {
+      "title": "Yêu 5",
+      "artist": "Rhymastic",
+      "album": "Yêu 5",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "09_sanity_reject_aggregator_as_artist",
+    "description": "SANITY CHECK: yt-dlp trả artist là kênh aggregator (EvB Records) -> BẮT BUỘC TỪ CHỐI FAST-PASS",
+    "input": {
+      "track": "Vùng An Toàn",
+      "artist": "EvB Records",
+      "channel": "EvB Records"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "10_sanity_reject_faptv_as_artist",
+    "description": "SANITY CHECK: yt-dlp trả artist là FAPTV -> BẮT BUỘC TỪ CHỐI FAST-PASS",
+    "input": {
+      "track": "Hẹn Ngày Mai Yêu",
+      "artist": "FAPTV",
+      "channel": "FAPTV"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "11_sanity_reject_unknown_artist",
+    "description": "SANITY CHECK: artist là Unknown Artist -> BẮT BUỘC TỪ CHỐI FAST-PASS",
+    "input": {
+      "track": "Bài Hát Vô Danh",
+      "artist": "Unknown Artist"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "12_sanity_reject_various_artists",
+    "description": "SANITY CHECK: artist là Various Artists -> BẮT BUỘC TỪ CHỐI FAST-PASS",
+    "input": {
+      "track": "Nhạc Tuyển Tập",
+      "artist": "Various Artists"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "13_sanity_reject_junk_phrase_artist",
+    "description": "SANITY CHECK: artist là chuỗi từ khóa rác Official Music Video -> TỪ CHỐI FAST-PASS",
+    "input": {
+      "track": "Đi Giữa Trời Rực Rỡ",
+      "artist": "Official Music Video"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "14_sanity_reject_incomplete_provided_desc",
+    "description": "Mô tả Provided to YouTube nhưng bị thiếu dòng metadata -> TỪ CHỐI FAST-PASS",
+    "input": {
+      "title": "Bản thu dở dang",
+      "description": "Provided to YouTube by Some Label\n\nChỉ có một dòng"
+    },
+    "expected": {
+      "fastPass": false
+    }
+  },
+  {
+    "name": "15_description_provided_with_garbage_track",
+    "description": "Mô tả Provided to YouTube nhưng dòng track dính tag (Audio) -> Phải tự dọn dẹp",
+    "input": {
+      "title": "Âm thầm bên em",
+      "description": "Provided to YouTube by Wepro Entertainment\n\nÂm Thầm Bên Em (Official Audio)\n\nSơn Tùng M-TP\n\nSingles"
+    },
+    "expected": {
+      "title": "Âm Thầm Bên Em",
+      "artist": "Sơn Tùng M-TP",
+      "album": "Singles",
+      "fastPass": true
+    }
+  },
+  {
+    "name": "16_ytmusic_vietnamese_diacritics_clean",
+    "description": "YouTube Music với tiếng Việt có dấu phức tạp chuẩn Unicode NFC",
+    "input": {
+      "track": "Đừng Làm Trái Tim Anh Đau",
+      "artist": "Sơn Tùng M-TP",
+      "album": "Đừng Làm Trái Tim Anh Đau - Single",
+      "channel": "Sơn Tùng M-TP - Topic"
+    },
+    "expected": {
+      "title": "Đừng Làm Trái Tim Anh Đau",
+      "artist": "Sơn Tùng M-TP",
+      "album": "Đừng Làm Trái Tim Anh Đau - Single",
+      "fastPass": true
+    }
+  }
+]

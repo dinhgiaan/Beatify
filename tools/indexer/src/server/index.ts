@@ -40,6 +40,7 @@ import {
   searchCovers,
   downloadCoverImage,
 } from '../services/coverFetchService';
+import { defaultEntityResolutionService } from '../services/entityResolutionService';
 
 export const app = new Hono();
 
@@ -213,6 +214,72 @@ async function getR2TrackKeys(forceRefresh = false): Promise<Set<string>> {
   }
 
   return cachedR2TrackKeys;
+}
+
+/**
+ * Tự động đồng bộ vi sai siêu tốc lên Cloudflare R2 (Auto Fast Micro-Sync)
+ * Tái tạo library.json trong RAM từ cachedScannedTracks và overrides mới nhất,
+ * sau đó lưu local và đẩy thẳng lên Cloudflare R2 mà không cần quét lại đĩa.
+ */
+async function autoSyncLibraryFastToR2(): Promise<{ success: boolean; error?: string }> {
+  const localConfig = loadLocalConfig();
+  if (
+    !localConfig.isR2Configured ||
+    !localConfig.R2_ACCOUNT_ID ||
+    !localConfig.R2_ACCESS_KEY_ID ||
+    !localConfig.R2_SECRET_ACCESS_KEY ||
+    !localConfig.R2_BUCKET
+  ) {
+    return { success: false, error: 'R2 chưa được cấu hình' };
+  }
+
+  try {
+    const overrides = await getOverrides();
+    // 1. Tái áp dụng overrides mới nhất lên cachedScannedTracks nếu có
+    if (cachedScannedTracks.length > 0) {
+      for (const item of cachedScannedTracks) {
+        const ov = overrides.tracks[item.track.id];
+        if (ov) {
+          if (ov.title) item.track.title = ov.title;
+          if (ov.artist) item.track.artist = ov.artist;
+          if (ov.album) item.track.album = ov.album;
+          if (ov.year !== undefined) item.track.year = ov.year;
+          if (ov.cover !== undefined) item.track.cover = ov.cover;
+          if (ov.loudnessLufs !== undefined) item.track.loudnessLufs = ov.loudnessLufs;
+          if (ov.replayGain !== undefined) item.track.replayGain = ov.replayGain;
+        }
+      }
+    } else {
+      const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+      const rawScanned = await scanFilesWithCache(files);
+      cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
+    }
+
+    // 2. Lọc bỏ các bài đã ẩn/đã xóa trong thùng rác
+    const activeScanned = cachedScannedTracks.filter((item) => {
+      const ov = overrides.tracks[item.track.id];
+      return !ov?.purged && !ov?.hidden;
+    });
+
+    // 3. Build library từ activeScanned
+    const { library } = buildLibrary(activeScanned);
+
+    // 4. Lưu library.json local
+    const baseDir = process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer');
+    const localLibraryPath = path.join(baseDir, 'library.json');
+    await fs.writeFile(localLibraryPath, JSON.stringify(library, null, 2), 'utf-8').catch(() => {});
+
+    // 5. Upload trực tiếp lên R2
+    const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+    await uploader.uploadLibrary(library);
+
+    invalidateStatusCache();
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[autoSyncFast] Lỗi đồng bộ ngầm R2:', msg);
+    return { success: false, error: msg };
+  }
 }
 
 let currentSyncProgress = {
@@ -839,6 +906,19 @@ async function saveTrackCoverBuffer(trackId: string, buffer: Buffer): Promise<{ 
     // bỏ qua
   }
 
+  // 5. Tự động đồng bộ vi sai siêu tốc lên Cloudflare R2
+  const localConfig = loadLocalConfig();
+  if (localConfig.isR2Configured) {
+    try {
+      const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+      await uploader.uploadCover(albumId, buffer);
+      await uploader.uploadCover(trackId, buffer);
+    } catch {
+      // bỏ qua lỗi upload cover R2
+    }
+  }
+  await autoSyncLibraryFastToR2();
+
   return {
     albumId,
     coverUrl: `/local-api/covers/${trackId}.jpg?_t=${Date.now()}`,
@@ -1162,6 +1242,24 @@ app.post('/local-api/tracks/batch-cover', async (c) => {
     updatedCount++;
   }
 
+  const localConfig = loadLocalConfig();
+  if (localConfig.isR2Configured && updatedCount > 0) {
+    try {
+      const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+      for (const trackId of ids) {
+        const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
+        const albumId = scanned?.track.albumId || `track_${trackId.slice(0, 8)}`;
+        await uploader.uploadCover(albumId, buffer);
+        await uploader.uploadCover(trackId, buffer);
+      }
+    } catch {
+      // bỏ qua lỗi upload R2
+    }
+  }
+  if (updatedCount > 0) {
+    await autoSyncLibraryFastToR2();
+  }
+
   return c.json({
     status: 200,
     updatedCount,
@@ -1336,6 +1434,8 @@ app.post('/local-api/tracks/:id/fetch-yt-cover', async (c) => {
     }
   }
 
+  await autoSyncLibraryFastToR2();
+
   return c.json({
     status: 200,
     albumId,
@@ -1410,6 +1510,10 @@ app.post('/local-api/tracks/batch-fetch-yt-cover', async (c) => {
     } catch {
       // bỏ qua bài lỗi, tiếp tục
     }
+  }
+
+  if (successCount > 0) {
+    await autoSyncLibraryFastToR2();
   }
 
   return c.json({
@@ -1518,6 +1622,7 @@ app.post('/local-api/tracks/:id/lyrics', async (c) => {
     }
     const scanned = cachedScannedTracks.find(t => t.track.id === trackId);
     if (scanned) scanned.track.lyrics = undefined;
+    await autoSyncLibraryFastToR2();
     return c.json({ status: 200, message: 'Đã gỡ lời bài hát' });
   }
 
@@ -1531,6 +1636,18 @@ app.post('/local-api/tracks/:id/lyrics', async (c) => {
       reviewed: true,
     };
   }
+
+  const localConfig = loadLocalConfig();
+  if (localConfig.isR2Configured) {
+    try {
+      const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+      await uploader.uploadLyrics(`lyrics/${trackId}.lrc`, lyrics);
+    } catch {
+      // bỏ qua lỗi upload R2
+    }
+  }
+
+  await autoSyncLibraryFastToR2();
 
   return c.json({ status: 200, message: 'Đã lưu lời bài hát thành công' });
 });
@@ -1617,6 +1734,24 @@ app.post('/local-api/lyrics/batch-fetch', async (c) => {
   cachedScannedTracks = [];
   invalidateStatusCache();
 
+  if (successCount > 0 && localConfig.isR2Configured) {
+    try {
+      const uploader = new R2Uploader(localConfig as unknown as IndexerConfig);
+      for (const res of results) {
+        if (res.success) {
+          const lrcPath = path.join(LYRICS_DIR, `${res.id}.lrc`);
+          if (existsSync(lrcPath)) {
+            const content = await fs.readFile(lrcPath, 'utf-8');
+            await uploader.uploadLyrics(`lyrics/${res.id}.lrc`, content);
+          }
+        }
+      }
+    } catch {
+      // bỏ qua lỗi upload R2
+    }
+    await autoSyncLibraryFastToR2();
+  }
+
   return c.json({
     status: 200,
     message: `Đã hoàn tất tìm kiếm lời: ${successCount} bài thành công, ${notFoundCount} bài chưa tìm thấy`,
@@ -1691,6 +1826,10 @@ app.post('/local-api/tracks/batch-replaygain', async (c) => {
   // Làm mới trạng thái cache
   cachedScannedTracks = [];
   invalidateStatusCache();
+
+  if (successCount > 0) {
+    await autoSyncLibraryFastToR2();
+  }
 
   return c.json({
     status: 200,
@@ -1979,6 +2118,15 @@ app.post('/local-api/upload', async (c) => {
 // 6. API: Tiến trình đồng bộ R2 thời gian thực
 app.get('/local-api/sync/progress', (c) => {
   return c.json({ status: 200, progress: currentSyncProgress });
+});
+
+// 6.0. API: Đồng bộ siêu tốc (Chỉ cập nhật library.json lên R2 trong < 0.5s)
+app.post('/local-api/sync/fast', async (c) => {
+  const result = await autoSyncLibraryFastToR2();
+  if (result.success) {
+    return c.json({ status: 200, message: 'Đã đồng bộ siêu tốc thư viện lên R2 thành công!' });
+  }
+  return c.json({ status: 500, error: result.error || 'Đồng bộ thất bại' }, 500);
 });
 
 // 6.1. API: Đồng bộ R2 (Áp dụng bộ lọc bài xóa/ẩn và cập nhật tiến trình thời gian thực)
@@ -2371,6 +2519,7 @@ app.post('/local-api/tracks/:id/override', async (c) => {
   }
   await setTrackOverride(id, parsed.data);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({
     status: 200,
     message: 'Đã lưu thông tin bài hát (override) thành công',
@@ -2422,6 +2571,7 @@ app.post('/local-api/tracks/batch-override', async (c) => {
   }
 
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({ status: 200, count: trackIds.length, message: `Đã áp dụng thay đổi cho ${trackIds.length} bài hát!` });
 });
 
@@ -2444,6 +2594,7 @@ app.post('/local-api/tracks/batch-trash', async (c) => {
   }
 
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({ status: 200, count: trackIds.length, message: `Đã chuyển ${trackIds.length} bài hát vào thùng rác!` });
 });
 
@@ -2817,6 +2968,7 @@ app.post('/local-api/tracks/:id/trash', async (c) => {
   const id = c.req.param('id');
   await moveToTrash(id);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({ status: 200, message: 'Đã chuyển vào thùng rác (lưu trữ 14 ngày)' });
 });
 
@@ -2828,6 +2980,7 @@ app.post('/local-api/tracks/batch/trash', async (c) => {
     await moveToTrash(id);
   }
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({
     status: 200,
     message: `Đã chuyển ${ids.length} bài hát vào thùng rác (lưu trữ 14 ngày)`,
@@ -2895,6 +3048,7 @@ app.post('/local-api/tracks/:id/restore', async (c) => {
   const id = c.req.param('id');
   await restoreFromTrash(id);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({ status: 200, message: 'Đã khôi phục bài hát thành công' });
 });
 
@@ -2904,6 +3058,7 @@ app.post('/local-api/trash/restore', async (c) => {
   const ids = Array.isArray(body?.ids) ? body.ids : undefined;
   await batchRestoreFromTrash(ids);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
   return c.json({
     status: 200,
     message: ids && ids.length > 0
@@ -2918,6 +3073,7 @@ app.delete('/local-api/tracks/:id/trash', async (c) => {
   const deleteFromR2 = c.req.query('deleteFromR2') === 'true';
   await purgeFromTrash(id);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
 
   let s3: S3Client | undefined;
   let bucket: string | undefined;
@@ -2996,6 +3152,7 @@ app.post('/local-api/trash/empty', async (c) => {
 
   await batchPurgeFromTrash(targetIds);
   invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
 
   return c.json({
     status: 200,
@@ -4181,6 +4338,50 @@ const MIME_TYPES: Record<string, string> = {
   '.json': 'application/json',
   '.woff2': 'font/woff2',
 };
+
+// --- CHUẨN HÓA THỰC THỂ ÂM NHẠC (MULTI-LAYER MUSIC ENTITY RESOLUTION) ---
+app.post('/local-api/entity-resolution/preview', async (c) => {
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as { trackIds?: string[]; forceItunes?: boolean };
+    const report = await defaultEntityResolutionService.preview(body);
+    return c.json({ status: 200, ...report });
+  } catch (err: unknown) {
+    return c.json({ status: 500, error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
+
+app.post('/local-api/entity-resolution/apply', async (c) => {
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      trackIds?: string[];
+      applyAllHighConfidence?: boolean;
+      syncToR2?: boolean;
+      forceProtected?: boolean;
+    };
+    const result = await defaultEntityResolutionService.apply(body);
+    return c.json({ status: 200, ...result });
+  } catch (err: unknown) {
+    return c.json({ status: 500, error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
+
+app.get('/local-api/entity-resolution/report', async (c) => {
+  try {
+    const report = await defaultEntityResolutionService.preview();
+    if (!existsSync(report.csvReportPath)) {
+      return c.text('Không tìm thấy file báo cáo', 404);
+    }
+    const csvContent = await fs.readFile(report.csvReportPath, 'utf-8');
+    return new Response(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="ENTITY_RESOLUTION_PREVIEW.csv"',
+      },
+    });
+  } catch (err: unknown) {
+    return c.text(err instanceof Error ? err.message : String(err), 500);
+  }
+});
 
 app.get('*', async (c) => {
   const reqPath = c.req.path;

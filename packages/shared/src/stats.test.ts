@@ -65,7 +65,19 @@ describe('stats & replay calculation', () => {
   });
 
   it('tạo báo cáo Full Replay hoàn chỉnh', () => {
-    const full = computeFullReplay(mockRecords);
+    const now = Date.now();
+    const recordsWithRecent = [
+      ...mockRecords,
+      {
+        trackId: 'track-recent',
+        title: 'Chạy Ngay Đi',
+        artist: 'Sơn Tùng M-TP',
+        durationSec: 240,
+        listenedSec: 240,
+        timestamp: now,
+      },
+    ];
+    const full = computeFullReplay(recordsWithRecent, undefined, now);
     expect(full.firstTrackEver?.title).toBe('Em Của Ngày Hôm Qua');
     expect(full.mostPlayedTrackEver?.title).toBe('Em Của Ngày Hôm Qua');
     expect(full.mostPlayedTrackEver?.count).toBe(2);

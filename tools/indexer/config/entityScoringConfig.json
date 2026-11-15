@@ -1,0 +1,16 @@
+{
+  "weights": {
+    "channelExactMatch": 30,
+    "knownArtistMatch": 50,
+    "collabPatternMatch": 20,
+    "songKeywordPenalty": -40,
+    "trackNumberPenalty": -30,
+    "albumKeywordPenalty": -25
+  },
+  "thresholds": {
+    "minScoreDelta": 15,
+    "confidenceHighMargin": 35,
+    "confidenceMediumMargin": 15
+  }
+}
+

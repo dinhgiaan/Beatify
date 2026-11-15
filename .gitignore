@@ -33,11 +33,14 @@ Thumbs.db
 
 # Trạng thái indexer chứa đường dẫn máy cá nhân
 tools/indexer/.state/
+tools/indexer/.cache/
+.cache/
 tools/indexer/temp_youtube_*
 tools/indexer/audio_analysis_cache.json
 tools/indexer/user_state.json
 tools/indexer/custom_covers/
 tools/indexer/lyrics/
+tools/indexer/library.json
 
 # Bản sao lưu dữ liệu cá nhân (có lời bài hát)
 backups/

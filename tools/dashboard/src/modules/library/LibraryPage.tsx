@@ -33,6 +33,7 @@ import {
   Sparkles,
   Filter,
   CheckCircle2,
+  Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -43,6 +44,7 @@ import { ConfirmDialog } from '../../ui/molecules/ConfirmDialog';
 import { requestApi } from '../../core/api-client';
 import { ArtistHoverCard } from '../artists/components/ArtistHoverCard';
 import { CoverViewerDialog } from '../youtube-music/components/CoverViewerDialog';
+import { EntityResolutionDialog } from './components/EntityResolutionDialog';
 import { normalizeText, type UserState, type Playlist } from '@music-app/shared';
 import type { PlayingTrack } from '../../app/Layout';
 
@@ -127,6 +129,7 @@ export const LibraryPage: React.FC<{
 
   // Batch Apple Music Cover Modal state
   const [isBatchAppleCoverModalOpen, setIsBatchAppleCoverModalOpen] = useState(false);
+  const [isEntityResolutionModalOpen, setIsEntityResolutionModalOpen] = useState(false);
   const [batchAppleCoverMode, setBatchAppleCoverMode] = useState<'missing_only' | 'all'>('missing_only');
   interface BatchCoverStatusData {
     isRunning: boolean;
@@ -905,6 +908,17 @@ export const LibraryPage: React.FC<{
         subtitle={`Toàn bộ bài hát đang lưu trữ cục bộ trên máy tính (${tracks.length} bài hát)`}
         actions={
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsEntityResolutionModalOpen(true)}
+              className="gap-2 shadow-xs cursor-pointer border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+              title="Tự động sửa lỗi đảo vế (Tên bài ↔ Ca sĩ), lọc tên kênh YouTube và chuẩn hóa Album bằng AI Đa Tầng"
+            >
+              <Wand2 size={13} className="text-indigo-400" />
+              <span>Chuẩn hóa Tên bài & Ca sĩ</span>
+            </Button>
+
             <Button
               variant="secondary"
               size="sm"
@@ -2685,6 +2699,17 @@ export const LibraryPage: React.FC<{
               }}
             />
           )}
+
+          {/* Hộp thoại Chuẩn hóa Thực thể Âm nhạc Đa Tầng */}
+          <EntityResolutionDialog
+            open={isEntityResolutionModalOpen}
+            onOpenChange={setIsEntityResolutionModalOpen}
+            onApplied={() => {
+              refetch();
+              queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
+              queryClient.invalidateQueries({ queryKey: ['system-status'] });
+            }}
+          />
         </div >
         );
 };
