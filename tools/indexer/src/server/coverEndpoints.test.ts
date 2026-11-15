@@ -60,3 +60,4 @@ describe('Cover Endpoints - Quản lý và tìm kiếm ảnh bìa HD', () => {
     expect(res.status).toBe(200);
   });
 });
+

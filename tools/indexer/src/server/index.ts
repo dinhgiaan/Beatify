@@ -589,6 +589,11 @@ app.get('/local-api/tracks', async (c) => {
       (trackId && (cachedCovers.has(trackId) || existsSync(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`))))
     );
 
+    const hasHdCover = Boolean(
+      (overrides.tracks && overrides.tracks[item.track.id]?.cover) ||
+      (trackId && existsSync(path.join(CUSTOM_COVERS_DIR, `${trackId}.jpg`)))
+    );
+
     return {
       id: item.track.id,
       title: item.track.title,
@@ -598,6 +603,7 @@ app.get('/local-api/tracks', async (c) => {
       duration: item.track.duration,
       format: ext,
       hasCover,
+      hasHdCover,
       hasLyrics: !!item.track.lyrics,
       filePath: item.filePath,
       fileExists,
@@ -850,6 +856,7 @@ interface BatchCoverState {
   skippedCount: number;
   failedCount: number;
   errors: Array<{ trackId: string; title: string; error: string }>;
+  skippedTracks: Array<{ trackId: string; title: string; artist: string; reason: string }>;
 }
 
 let batchCoverState: BatchCoverState = {
@@ -862,6 +869,7 @@ let batchCoverState: BatchCoverState = {
   skippedCount: 0,
   failedCount: 0,
   errors: [],
+  skippedTracks: [],
 };
 
 // 4.1. API: Cập nhật ảnh bìa cho bài hát / album (Xóa ảnh bìa cũ nếu có)
@@ -948,7 +956,8 @@ app.post('/local-api/covers/batch-fetch', async (c) => {
 
   const tracksToProcess = cachedScannedTracks.filter((t) => {
     if (mode === 'missing_only') {
-      return !t.coverBuffer;
+      const hasHdCover = existsSync(path.join(CUSTOM_COVERS_DIR, `${t.track.id}.jpg`));
+      return !hasHdCover;
     }
     return true;
   });
@@ -956,7 +965,7 @@ app.post('/local-api/covers/batch-fetch', async (c) => {
   if (tracksToProcess.length === 0) {
     return c.json({
       status: 200,
-      message: mode === 'missing_only' ? 'Tất cả bài hát đều đã có ảnh bìa' : 'Thư viện không có bài hát nào',
+      message: mode === 'missing_only' ? 'Tất cả bài hát đều đã có ảnh bìa HD' : 'Thư viện không có bài hát nào',
       total: 0,
     });
   }
@@ -971,6 +980,7 @@ app.post('/local-api/covers/batch-fetch', async (c) => {
     skippedCount: 0,
     failedCount: 0,
     errors: [],
+    skippedTracks: [],
   };
 
   // Chạy tiến trình nền không chặn response
@@ -1005,6 +1015,12 @@ app.post('/local-api/covers/batch-fetch', async (c) => {
           }
         } else {
           batchCoverState.skippedCount++;
+          batchCoverState.skippedTracks.push({
+            trackId: item.track.id,
+            title: item.track.title,
+            artist: item.track.artist,
+            reason: results.length === 0 ? 'Không tìm thấy trên Apple Music/Deezer' : `Điểm khớp thấp (${results[0]?.score ?? 0}%)`,
+          });
         }
       } catch (err) {
         batchCoverState.failedCount++;

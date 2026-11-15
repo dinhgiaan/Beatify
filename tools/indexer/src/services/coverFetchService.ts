@@ -37,6 +37,76 @@ async function throttle(): Promise<void> {
   lastRequestTime = Date.now();
 }
 
+export interface SearchCandidate {
+  title: string;
+  artist?: string;
+  strategy: 'direct' | 'swapped' | 'youtube_extracted' | 'title_only';
+}
+
+const YOUTUBE_CHANNEL_REGEX = /(?:Entertainment|Records|Original|Channel|Music|Official|TV|Films|Production|Studio|Media|Band|Club|G5R|7clouds|FAPTV|EvB|GerDnang|Cover|Past live|Audio|Kara)/i;
+
+/**
+ * Tạo danh sách các ứng viên tìm kiếm thông minh tự động (Auto-Smart Match):
+ * - Tự động bóc tách ca sĩ thật ra khỏi tên kênh YouTube
+ * - Tự động đảo ngược Tên bài <-> Ca sĩ
+ * - Tự động dọn dẹp các tiền tố/hậu tố video YouTube
+ */
+export function generateSmartSearchCandidates(title: string, artist?: string): SearchCandidate[] {
+  const candidates: SearchCandidate[] = [];
+  const rawTitle = title.trim();
+  const rawArtist = (artist || '').trim();
+
+  // 1. Tìm trực tiếp (Direct)
+  candidates.push({ title: rawTitle, artist: rawArtist, strategy: 'direct' });
+
+  // 2. Kiểm tra nếu title có dạng "Artist - Title" hoặc "Title - Artist" (dạng phổ biến khi tải từ YouTube)
+  const splitHyphen = rawTitle.split(/\s+[-–—]\s+/);
+  if (splitHyphen.length === 2 && splitHyphen[0] && splitHyphen[1]) {
+    const partA = splitHyphen[0].replace(/^[[(][^\])]+[\])]\s*/, '').trim();
+    const partB = splitHyphen[1].replace(/\s*[[(][^\])]+[\])].*$/, '').trim();
+
+    // Thử partA = artist, partB = title
+    candidates.push({ title: partB, artist: partA, strategy: 'youtube_extracted' });
+    // Thử partB = artist, partA = title
+    candidates.push({ title: partA, artist: partB, strategy: 'youtube_extracted' });
+  }
+
+  // 3. Kiểm tra dạng "Artist: Title"
+  const splitColon = rawTitle.split(/:\s+/);
+  if (splitColon.length === 2 && splitColon[0] && splitColon[1]) {
+    candidates.push({ title: splitColon[1].trim(), artist: splitColon[0].trim(), strategy: 'youtube_extracted' });
+  }
+
+  // 4. Nếu Artist là tên kênh YouTube hoặc Title/Artist bị đảo ngược
+  if (rawArtist && (YOUTUBE_CHANNEL_REGEX.test(rawArtist) || rawTitle.length < rawArtist.length)) {
+    candidates.push({ title: rawArtist, artist: rawTitle, strategy: 'swapped' });
+  } else if (rawArtist && rawArtist !== 'Unknown Artist' && rawArtist !== 'Single') {
+    candidates.push({ title: rawArtist, artist: rawTitle, strategy: 'swapped' });
+  }
+
+  // 5. Thử chỉ tìm bằng title đã làm sạch (bỏ hết ngoặc, prod, v.v.)
+  const cleanTitleOnly = rawTitle
+    .replace(/\s*[[(](?:Official|MV|Audio|Lyrics?|Visualizer|Live|Vietsub|Remix|Cover|Prod\.?|Beat|Album|Track|Sing My Song)[^)\]]*[)\]]/gi, '')
+    .replace(/^\[[^\]]+\]\s*/, '')
+    .trim();
+  if (cleanTitleOnly && cleanTitleOnly !== rawTitle) {
+    candidates.push({ title: cleanTitleOnly, artist: rawArtist, strategy: 'direct' });
+  }
+
+  // Lọc trùng ứng viên
+  const seen = new Set<string>();
+  const uniqueCandidates: SearchCandidate[] = [];
+  for (const c of candidates) {
+    const key = `${normalizeText(c.title).toLowerCase()}|${normalizeText(c.artist || '').toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueCandidates.push(c);
+    }
+  }
+
+  return uniqueCandidates;
+}
+
 /**
  * Dọn dẹp tiêu đề bài hát để tăng tỷ lệ tìm kiếm chính xác trên iTunes/Apple Music
  */
@@ -220,32 +290,64 @@ export async function searchDeezerCovers(title: string, artist?: string): Promis
 }
 
 /**
- * Tìm kiếm ảnh bìa kết hợp (Ưu tiên iTunes 1400x1400, sau đó tới Deezer 1000x1000)
+ * Tìm kiếm ảnh bìa kết hợp với Auto-Smart Match đa tầng:
+ * - Thử lần lượt các ứng viên thông minh (Direct -> YouTube extracted -> Swapped Title/Artist -> Clean Title)
+ * - Ưu tiên iTunes 1400x1400 Studio Quality, sau đó tới Deezer 1000x1000
  */
 export async function searchCovers(title: string, artist?: string): Promise<CoverSearchResult[]> {
-  const itunesResults = await searchItunesCovers(title, artist);
-  if (itunesResults.length > 0 && (itunesResults[0]?.score ?? 0) >= 60) {
-    return itunesResults;
+  const candidates = generateSmartSearchCandidates(title, artist);
+
+  // Thử qua từng ứng viên thông minh trên iTunes
+  for (const c of candidates) {
+    const itunesResults = await searchItunesCovers(c.title, c.artist);
+    if (itunesResults.length > 0 && (itunesResults[0]?.score ?? 0) >= 60) {
+      return itunesResults;
+    }
   }
 
-  const deezerResults = await searchDeezerCovers(title, artist);
-  const combined = [...itunesResults, ...deezerResults];
+  // Nếu iTunes chưa đạt ngưỡng, thử 2 ứng viên đầu tiên trên Deezer
+  for (const c of candidates.slice(0, 2)) {
+    const deezerResults = await searchDeezerCovers(c.title, c.artist);
+    if (deezerResults.length > 0 && (deezerResults[0]?.score ?? 0) >= 60) {
+      return deezerResults;
+    }
+  }
+
+  // Nếu vẫn không có score >= 60, trả về danh sách kết quả tốt nhất tìm được để người dùng xem thủ công
+  const fallbackItunes = await searchItunesCovers(title, artist);
+  const fallbackDeezer = await searchDeezerCovers(title, artist);
+  const combined = [...fallbackItunes, ...fallbackDeezer];
   return combined.sort((a, b) => b.score - a.score);
 }
 
 /**
- * Tải ảnh bìa từ URL về Buffer
+ * Tải ảnh bìa từ URL về Buffer (có cơ chế tự động thử lại 2 lần nếu mạng chập chờn hoặc ECONNRESET)
  */
-export async function downloadCoverImage(url: string): Promise<Buffer | null> {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
-    });
-    if (!res.ok) return null;
-    const arrayBuf = await res.arrayBuffer();
-    return Buffer.from(arrayBuf);
-  } catch (err) {
-    console.warn(`[CoverFetch] Lỗi tải ảnh từ "${url}":`, err);
-    return null;
+export async function downloadCoverImage(url: string, retries = 2): Promise<Buffer | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+      }
+      const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
+      });
+      if (!res.ok) {
+        // Nếu độ phân giải 1400x1400 không có sẵn trên Apple CDN, tự động thử 1000x1000 hoặc 600x600
+        if (url.includes('/1400x1400bb.')) {
+          const fallbackUrl = url.replace('/1400x1400bb.', '/1000x1000bb.');
+          return downloadCoverImage(fallbackUrl, 1);
+        }
+        return null;
+      }
+      const arrayBuf = await res.arrayBuffer();
+      return Buffer.from(arrayBuf);
+    } catch (err) {
+      if (attempt === retries) {
+        console.warn(`[CoverFetch] Lỗi tải ảnh từ "${url}":`, err);
+        return null;
+      }
+    }
   }
+  return null;
 }

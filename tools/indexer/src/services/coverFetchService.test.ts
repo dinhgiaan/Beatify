@@ -5,6 +5,7 @@ import {
   searchItunesCovers,
   searchDeezerCovers,
   searchCovers,
+  generateSmartSearchCandidates,
 } from './coverFetchService';
 
 describe('CoverFetchService - Tìm và tải ảnh bìa chất lượng cao HD', () => {
@@ -109,4 +110,19 @@ describe('CoverFetchService - Tìm và tải ảnh bìa chất lượng cao HD',
     expect(results[0]?.source).toBe('itunes');
     expect(results[0]?.artworkUrl).toContain('1400x1400bb.jpg');
   });
+
+  it('6. generateSmartSearchCandidates tự động tách ca sĩ thật và đảo ngược Title/Artist', () => {
+    // Tách ca sĩ thật ra khỏi title khi artist là kênh YouTube
+    const candidatesYt = generateSmartSearchCandidates('Jack - Hồng Nhan', 'G5R');
+    expect(candidatesYt.some((c) => c.title === 'Hồng Nhan' && c.artist === 'Jack')).toBe(true);
+
+    // Đảo ngược Title <-> Artist khi bị ngược
+    const candidatesSwapped = generateSmartSearchCandidates('Huỳnh James', 'CHO HỌ GHÉT ĐI EM');
+    expect(candidatesSwapped.some((c) => c.title === 'CHO HỌ GHÉT ĐI EM' && c.artist === 'Huỳnh James')).toBe(true);
+
+    // Tách ca sĩ có dạng Title: Artist
+    const candidatesColon = generateSmartSearchCandidates('twenty one pilots: Stressed Out', 'Fueled By Ramen');
+    expect(candidatesColon.some((c) => c.title === 'Stressed Out' && c.artist === 'twenty one pilots')).toBe(true);
+  });
 });
+

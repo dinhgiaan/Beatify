@@ -31,6 +31,8 @@ import {
   ListPlus,
   FolderPlus,
   Sparkles,
+  Filter,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../ui/organisms/PageHeader';
@@ -53,6 +55,7 @@ interface TrackItem {
   duration: number;
   format: string;
   hasCover: boolean;
+  hasHdCover?: boolean;
   hasLyrics: boolean;
   replayGain?: number;
   filePath: string;
@@ -67,6 +70,7 @@ export type QuickFilter =
   | 'unsynced'
   | 'missing_lyrics'
   | 'missing_cover'
+  | 'missing_hd_cover'
   | 'missing_any'
   | 'missing_file';
 
@@ -134,6 +138,7 @@ export const LibraryPage: React.FC<{
     skippedCount: number;
     failedCount: number;
     errors: Array<{ trackId: string; title: string; error: string }>;
+    skippedTracks?: Array<{ trackId: string; title: string; artist: string; reason: string }>;
   }
   const [batchAppleCoverStatus, setBatchAppleCoverStatus] = useState<BatchCoverStatusData | null>(null);
   const [isPollingBatchCover, setIsPollingBatchCover] = useState(false);
@@ -312,6 +317,7 @@ export const LibraryPage: React.FC<{
   const syncedCount = useMemo(() => tracks.filter((t) => t.isSynced).length, [tracks]);
   const missingLyricsCount = useMemo(() => tracks.filter((t) => !t.hasLyrics).length, [tracks]);
   const missingCoverCount = useMemo(() => tracks.filter((t) => !t.hasCover).length, [tracks]);
+  const missingHdCoverCount = useMemo(() => tracks.filter((t) => !t.hasHdCover).length, [tracks]);
   const missingAnyCount = useMemo(() => tracks.filter((t) => !t.hasLyrics || !t.hasCover).length, [tracks]);
   const missingFilesCount = useMemo(() => tracks.filter((t) => t.fileExists === false).length, [tracks]);
 
@@ -350,6 +356,7 @@ export const LibraryPage: React.FC<{
       if (quickFilter === 'unsynced' && t.isSynced) return false;
       if (quickFilter === 'missing_lyrics' && t.hasLyrics) return false;
       if (quickFilter === 'missing_cover' && t.hasCover) return false;
+      if (quickFilter === 'missing_hd_cover' && t.hasHdCover) return false;
       if (quickFilter === 'missing_any' && t.hasLyrics && t.hasCover) return false;
       if (quickFilter === 'missing_file' && t.fileExists !== false) return false;
 
@@ -792,7 +799,7 @@ export const LibraryPage: React.FC<{
   // Handlers chạy tải ảnh bìa HD hàng loạt (Batch Apple Music)
   const handleStartBatchAppleCover = async () => {
     try {
-      const res = await requestApi<{ message: string; total: number }>(
+      const res = await requestApi<{ message: string; total: number; data?: { total: number } }>(
         '/local-api/covers/batch-fetch',
         {
           method: 'POST',
@@ -800,8 +807,20 @@ export const LibraryPage: React.FC<{
           body: JSON.stringify({ mode: batchAppleCoverMode }),
         }
       );
-      toast.success(res.message || 'Đã bắt đầu tiến trình tìm ảnh bìa HD!');
+      toast.success(res?.message || 'Đã bắt đầu tiến trình tìm ảnh bìa HD!');
       setIsPollingBatchCover(true);
+      const totalCount = res?.total || (res as unknown as { data?: { total: number } })?.data?.total || 0;
+      setBatchAppleCoverStatus({
+        isRunning: true,
+        isCancelled: false,
+        total: totalCount,
+        current: 0,
+        currentTrackTitle: 'Đang kết nối Apple Music...',
+        successCount: 0,
+        skippedCount: 0,
+        failedCount: 0,
+        errors: [],
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Lỗi: ${msg}`);
@@ -817,21 +836,24 @@ export const LibraryPage: React.FC<{
     }
   };
 
-  // Polling tiến trình batch cover mỗi 1.2s khi đang chạy hoặc khi modal mở
+  // Polling tiến trình batch cover mỗi 1s khi đang chạy hoặc khi modal mở
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;
     if (isPollingBatchCover || isBatchAppleCoverModalOpen) {
       const poll = async () => {
         try {
-          const res = await requestApi<{ data: BatchCoverStatusData }>('/local-api/covers/batch-status');
-          if (res?.data) {
-            setBatchAppleCoverStatus(res.data);
-            if (!res.data.isRunning && isPollingBatchCover) {
+          const res = await requestApi<BatchCoverStatusData | { data: BatchCoverStatusData }>('/local-api/covers/batch-status');
+          const data = (res && 'isRunning' in res) ? res : (res as { data?: BatchCoverStatusData })?.data;
+          if (data && typeof data.isRunning === 'boolean') {
+            setBatchAppleCoverStatus(data);
+            if (data.isRunning) {
+              setIsPollingBatchCover(true);
+            } else if (isPollingBatchCover) {
               setIsPollingBatchCover(false);
               setCoverTimestamp(Date.now());
               queryClient.invalidateQueries({ queryKey: ['local-tracks'] });
               queryClient.invalidateQueries({ queryKey: ['system-status'] });
-              toast.success(`Đã hoàn tất tìm ảnh bìa HD! (${res.data.successCount} thành công, ${res.data.skippedCount} bỏ qua)`);
+              toast.success(`Đã hoàn tất tìm ảnh bìa HD! (${data.successCount} thành công, ${data.skippedCount} bỏ qua)`);
             }
           }
         } catch {
@@ -840,7 +862,7 @@ export const LibraryPage: React.FC<{
       };
 
       poll();
-      timer = setInterval(poll, 1200);
+      timer = setInterval(poll, 1000);
     }
     return () => {
       if (timer) clearInterval(timer);
@@ -1145,6 +1167,22 @@ export const LibraryPage: React.FC<{
             <ImageIcon size={12} className="text-amber-400" />
             <span>Chưa có ảnh bìa</span>
             <span className="text-[10.5px] opacity-75 font-mono">({missingCoverCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setQuickFilter(quickFilter === 'missing_hd_cover' ? 'all' : 'missing_hd_cover')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${quickFilter === 'missing_hd_cover'
+              ? 'bg-pink-500/25 text-pink-300 border border-pink-500/40 shadow-xs ring-1 ring-pink-500/30'
+              : 'text-zinc-400 hover:text-pink-300 bg-black/20 hover:bg-black/30'
+              }`}
+            title="Lọc các bài chưa được cập nhật ảnh studio HD 1400×1400px"
+          >
+            <Sparkles size={12} className="text-pink-400" />
+            <span>Chưa có ảnh HD</span>
+            <span className="text-[10.5px] font-mono px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-bold">
+              {missingHdCoverCount}
+            </span>
           </button>
 
           <button
@@ -2212,12 +2250,13 @@ export const LibraryPage: React.FC<{
             </div>
           </Dialog>
 
-          {/* Hộp thoại Tự động tìm ảnh bìa HD toàn bộ thư viện (Apple Music) */}
+          {/* Hộp thoại Tự động tìm ảnh bìa HD toàn bộ thư viện (Apple Music - Auto-Smart Match) */}
           <Dialog
             open={isBatchAppleCoverModalOpen}
             onOpenChange={setIsBatchAppleCoverModalOpen}
-            title="Tự động tìm kiếm & tải ảnh bìa HD (Apple Music)"
-            description="Tự động tra cứu kho nhạc Apple Music với ảnh bìa studio chất lượng gốc lên tới 1400×1400px cực nét trên iPhone"
+            title="Tự động tìm kiếm & tải ảnh bìa HD (Auto-Smart Match)"
+            description="Tự động tra cứu Apple Music với chất lượng studio gốc 1400×1400px cực nét trên iPhone. Công nghệ Auto-Smart Match tự động đảo ngược tên ca sĩ/bài hát và bóc tách kênh YouTube."
+            maxWidth="max-w-4xl"
             actions={
               <>
                 {batchAppleCoverStatus?.isRunning ? (
@@ -2230,6 +2269,54 @@ export const LibraryPage: React.FC<{
                     <X size={13} />
                     <span>Dừng lại</span>
                   </Button>
+                ) : batchAppleCoverStatus && !batchAppleCoverStatus.isRunning && batchAppleCoverStatus.total > 0 ? (
+                  <div className="flex flex-wrap items-center justify-between w-full gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setQuickFilter('missing_hd_cover');
+                          setIsBatchAppleCoverModalOpen(false);
+                          toast.info(`Đã lọc ${missingHdCoverCount} bài chưa có ảnh HD ra danh sách Thư viện`);
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-pink-300 border-pink-500/30 hover:bg-pink-500/10"
+                      >
+                        <Filter size={13} />
+                        <span>Lọc các bài chưa có ảnh HD ra Thư viện</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setBatchAppleCoverStatus(null)}
+                      >
+                        Cấu hình lại
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setBatchAppleCoverMode('missing_only');
+                          handleStartBatchAppleCover();
+                        }}
+                        className="flex items-center gap-1.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-xs shadow-md"
+                      >
+                        <Sparkles size={13} />
+                        <span>🚀 Quét tiếp với Auto-Smart Match</span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsBatchAppleCoverModalOpen(false)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                      >
+                        Hoàn tất
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <Button
@@ -2243,10 +2330,10 @@ export const LibraryPage: React.FC<{
                       variant="primary"
                       size="sm"
                       onClick={handleStartBatchAppleCover}
-                      className="flex items-center gap-1.5 bg-pink-600 hover:bg-pink-500 text-white font-semibold"
+                      className="flex items-center gap-1.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold px-4 py-2"
                     >
-                      <Sparkles size={13} />
-                      <span>Bắt đầu tải ảnh bìa HD</span>
+                      <Sparkles size={14} />
+                      <span>Bắt đầu tải ảnh bìa HD (Auto-Smart Match)</span>
                     </Button>
                   </>
                 )}
@@ -2255,95 +2342,229 @@ export const LibraryPage: React.FC<{
           >
             <div className="space-y-4 py-2">
               {batchAppleCoverStatus?.isRunning ? (
-                <div className="p-4 rounded-xl border border-pink-500/30 bg-pink-500/10 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-pink-300 flex items-center gap-1.5">
-                      <Loader2 size={14} className="animate-spin text-pink-400" />
-                      <span>Đang tìm kiếm trên Apple Music...</span>
+                <div className="p-5 rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 via-black/40 to-rose-500/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-pink-300 flex items-center gap-2 font-semibold text-sm">
+                      <Loader2 size={16} className="animate-spin text-pink-400" />
+                      <span>Đang tìm kiếm thông minh trên Apple Music & Deezer...</span>
                     </span>
-                    <span className="text-white font-mono">
-                      {batchAppleCoverStatus.current} / {batchAppleCoverStatus.total} (
-                      {Math.round((batchAppleCoverStatus.current / (batchAppleCoverStatus.total || 1)) * 100)}%)
+                    <span className="text-white font-mono text-sm font-bold bg-pink-500/20 px-3 py-1 rounded-lg border border-pink-500/30">
+                      {batchAppleCoverStatus.current} / {batchAppleCoverStatus.total} ({Math.round((batchAppleCoverStatus.current / (batchAppleCoverStatus.total || 1)) * 100)}%)
                     </span>
                   </div>
 
-                  {/* Thanh Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden">
+                  {/* Thanh Progress Bar Lớn */}
+                  <div className="w-full h-3 rounded-full bg-black/60 overflow-hidden p-0.5 border border-white/10 shadow-inner">
                     <div
-                      className="h-full bg-gradient-to-r from-pink-500 to-rose-400 transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 rounded-full transition-all duration-300 shadow-sm"
                       style={{
                         width: `${Math.round((batchAppleCoverStatus.current / (batchAppleCoverStatus.total || 1)) * 100)}%`,
                       }}
                     />
                   </div>
 
-                  <p className="text-xs text-zinc-300 truncate font-medium">
-                    🎵 {batchAppleCoverStatus.currentTrackTitle || 'Đang chuẩn bị...'}
-                  </p>
+                  <div className="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center gap-2 truncate">
+                    <span className="text-xs text-pink-400 font-mono font-bold shrink-0">ĐANG XỬ LÝ:</span>
+                    <span className="text-xs text-white truncate font-medium">
+                      🎵 {batchAppleCoverStatus.currentTrackTitle || 'Đang kết nối kho nhạc Apple...'}
+                    </span>
+                  </div>
 
-                  <div className="flex items-center gap-4 text-[11px] text-zinc-400 pt-1 border-t border-white/10">
-                    <span className="text-emerald-400 font-medium">✅ Thành công: {batchAppleCoverStatus.successCount}</span>
-                    <span className="text-amber-400">⚠️ Bỏ qua: {batchAppleCoverStatus.skippedCount}</span>
-                    {batchAppleCoverStatus.failedCount > 0 && (
-                      <span className="text-rose-400">❌ Lỗi: {batchAppleCoverStatus.failedCount}</span>
-                    )}
+                  {/* Thẻ Thống Kê Ngang 3 Cột */}
+                  <div className="grid grid-cols-3 gap-3 pt-1">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                      <div className="text-lg font-bold text-emerald-400">{batchAppleCoverStatus.successCount}</div>
+                      <div className="text-[11px] text-zinc-400 font-medium">Thành công (HD)</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                      <div className="text-lg font-bold text-amber-400">{batchAppleCoverStatus.skippedCount}</div>
+                      <div className="text-[11px] text-zinc-400 font-medium">Bỏ qua an toàn</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                      <div className="text-lg font-bold text-rose-400">{batchAppleCoverStatus.failedCount}</div>
+                      <div className="text-[11px] text-zinc-400 font-medium">Lỗi kết nối</div>
+                    </div>
                   </div>
                 </div>
+              ) : batchAppleCoverStatus && !batchAppleCoverStatus.isRunning && batchAppleCoverStatus.total > 0 ? (
+                <div className="space-y-4">
+                  {/* Banner Kết Quả Lớn Rộng Ngang */}
+                  <div className="p-5 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-black/40 to-pink-500/10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-emerald-300 flex items-center gap-2 font-bold text-base">
+                        <span>🎉 Đã hoàn tất tìm kiếm & cập nhật ảnh bìa HD!</span>
+                      </span>
+                      <span className="text-emerald-400 font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-500/20 border border-emerald-500/30">
+                        {batchAppleCoverStatus.current} / {batchAppleCoverStatus.total} (100%)
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2.5 rounded-full bg-black/50 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-full" />
+                    </div>
+
+                    {/* 3 Thẻ Thông Số Ngang To Rõ Ràng */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-center">
+                        <div className="text-2xl font-black text-emerald-400">{batchAppleCoverStatus.successCount}</div>
+                        <div className="text-xs font-semibold text-emerald-300 mt-0.5">Thành công tuyệt đối</div>
+                        <div className="text-[11px] text-zinc-400 mt-1">Ảnh studio 1400×1400px cực nét</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 text-center">
+                        <div className="text-2xl font-black text-amber-400">{batchAppleCoverStatus.skippedCount}</div>
+                        <div className="text-xs font-semibold text-amber-300 mt-0.5">Bỏ qua an toàn</div>
+                        <div className="text-[11px] text-zinc-400 mt-1">Tránh gán nhầm ảnh sai</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-center">
+                        <div className="text-2xl font-black text-rose-400">{batchAppleCoverStatus.failedCount}</div>
+                        <div className="text-xs font-semibold text-rose-300 mt-0.5">Thất bại</div>
+                        <div className="text-[11px] text-zinc-400 mt-1">Lỗi socket/kết nối</div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-zinc-400 text-center">
+                      Ảnh bìa mới đã được lưu vào đĩa máy tính. Hãy bấm nút <strong>"Đồng bộ R2"</strong> trên thanh menu bên trái để tải lên máy chủ cho iPhone.
+                    </p>
+                  </div>
+
+                  {/* Bảng Chi Tiết Các Bài Bị Bỏ Qua Dạng Bảng Ngang */}
+                  {batchAppleCoverStatus.skippedTracks && batchAppleCoverStatus.skippedTracks.length > 0 && (
+                    <div className="p-4 rounded-2xl border border-white/10 bg-black/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle size={15} className="text-amber-400" />
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">
+                            Chi tiết các bài chưa có ảnh HD ({batchAppleCoverStatus.skippedTracks.length} bài)
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-400">
+                          Bấm nút 🔍 bên cạnh bài để tìm và chọn ảnh trực quan
+                        </span>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto rounded-xl border border-white/10 bg-black/40 divide-y divide-white/5 scrollbar-thin">
+                        {batchAppleCoverStatus.skippedTracks.map((item, idx) => {
+                          const matchedTrack = tracks.find((t) => t.id === item.trackId);
+                          return (
+                            <div key={item.trackId || idx} className="flex items-center justify-between p-2.5 hover:bg-white/[0.04] transition-colors gap-3">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <span className="text-[11px] font-mono text-zinc-500 w-6 text-right shrink-0">{idx + 1}.</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-semibold text-white truncate">{item.title}</div>
+                                  <div className="text-[11px] text-zinc-400 truncate">{item.artist || 'Không rõ ca sĩ'}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10.5px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 max-w-[200px] truncate hidden sm:inline-block">
+                                  {item.reason}
+                                </span>
+                                {matchedTrack && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCoverSearch(matchedTrack)}
+                                    className="px-2.5 py-1 rounded-lg bg-pink-600/20 hover:bg-pink-600/40 text-pink-300 border border-pink-500/30 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Mở trình tìm ảnh cho bài này"
+                                  >
+                                    <Search size={11} />
+                                    <span>Chọn ảnh</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Hệ thống sẽ tự động gửi yêu cầu tới <strong>Apple Music / iTunes API</strong>, tìm kiếm bài hát theo tên và ca sĩ, sau đó tải về ảnh bìa chính thức từ hãng đĩa ở độ phân giải siêu nét <strong>1400×1400px</strong> và nhúng vào thư viện.
-                  </p>
-
-                  <div className="space-y-2 pt-1">
-                    <label className="text-xs font-semibold text-white block">Chọn phạm vi áp dụng:</label>
-                    <label
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        batchAppleCoverMode === 'missing_only'
-                          ? 'border-pink-500/50 bg-pink-500/10'
-                          : 'border-white/10 bg-black/30 hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="batchCoverMode"
-                        checked={batchAppleCoverMode === 'missing_only'}
-                        onChange={() => setBatchAppleCoverMode('missing_only')}
-                        className="mt-0.5 text-pink-500"
-                      />
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-semibold text-white block">
-                          Chỉ bài chưa có ảnh bìa (Khuyên dùng)
-                        </span>
-                        <span className="text-[11px] text-zinc-400 block">
-                          Giữ nguyên các bài đã có ảnh bìa đẹp, chỉ quét bổ sung cho {missingCoverCount} bài đang bị thiếu.
-                        </span>
+                <div className="space-y-4">
+                  {/* Layout Ngang 2 Cột Rộng Thoáng */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Cột 1: Giới thiệu tính năng Auto-Smart Match 2.0 */}
+                    <div className="p-4 rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/10 to-transparent space-y-3">
+                      <div className="flex items-center gap-2 text-pink-300 font-bold text-xs uppercase tracking-wider">
+                        <Sparkles size={14} className="text-pink-400" />
+                        <span>Công nghệ Auto-Smart Match 2.0</span>
                       </div>
-                    </label>
+                      <p className="text-xs text-zinc-300 leading-relaxed">
+                        Hệ thống tự động liên kết tới <strong>Apple Music & Deezer API</strong>, phân tích thông minh và kéo ảnh bìa studio chất lượng <strong>1400×1400px</strong>:
+                      </p>
+                      <ul className="space-y-2 text-xs text-zinc-300">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-pink-400 shrink-0 mt-0.5" />
+                          <span><strong>Tự động đảo Tên/Ca sĩ:</strong> Nhận diện các bài YouTube bị đặt ngược tiêu đề.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-pink-400 shrink-0 mt-0.5" />
+                          <span><strong>Bóc tách kênh YouTube:</strong> Tách ca sĩ thật ra khỏi tên kênh (G5R, FAPTV, EvB...).</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-pink-400 shrink-0 mt-0.5" />
+                          <span><strong>Dọn dẹp tag rác:</strong> Cắt bỏ tiền tố/hậu tố MV, Live, Visualizer, Sing My Song...</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-pink-400 shrink-0 mt-0.5" />
+                          <span><strong>Chống nhầm ảnh:</strong> Chỉ tự gán khi điểm khớp cao (≥ 60%), an toàn 100%.</span>
+                        </li>
+                      </ul>
+                    </div>
 
-                    <label
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        batchAppleCoverMode === 'all'
-                          ? 'border-pink-500/50 bg-pink-500/10'
-                          : 'border-white/10 bg-black/30 hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="batchCoverMode"
-                        checked={batchAppleCoverMode === 'all'}
-                        onChange={() => setBatchAppleCoverMode('all')}
-                        className="mt-0.5 text-pink-500"
-                      />
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-semibold text-white block">
-                          Làm mới toàn bộ thư viện sang ảnh nét HD
-                        </span>
-                        <span className="text-[11px] text-zinc-400 block">
-                          Quét và thay thế toàn bộ {tracks.length} bài hát sang ảnh studio 1400×1400px chất lượng cao nhất.
-                        </span>
+                    {/* Cột 2: Lựa chọn phạm vi quét */}
+                    <div className="p-4 rounded-2xl border border-white/10 bg-black/30 space-y-3">
+                      <label className="text-xs font-bold text-white block uppercase tracking-wider">
+                        Chọn phạm vi áp dụng:
+                      </label>
+                      <div className="space-y-2.5">
+                        <label
+                          className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                            batchAppleCoverMode === 'missing_only'
+                              ? 'border-pink-500/60 bg-pink-500/15 shadow-sm ring-1 ring-pink-500/30'
+                              : 'border-white/10 bg-black/40 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="batchCoverMode"
+                            checked={batchAppleCoverMode === 'missing_only'}
+                            onChange={() => setBatchAppleCoverMode('missing_only')}
+                            className="mt-1 text-pink-500"
+                          />
+                          <div className="space-y-1">
+                            <span className="text-xs font-bold text-white block">
+                              Chỉ quét các bài chưa có ảnh HD ({missingHdCoverCount} bài)
+                            </span>
+                            <span className="text-[11px] text-zinc-400 block leading-relaxed">
+                              Giữ nguyên các bài đã tải ảnh HD thành công, chỉ tập trung giải quyết {missingHdCoverCount} bài còn lại bằng thuật toán thông minh mới.
+                            </span>
+                          </div>
+                        </label>
+
+                        <label
+                          className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                            batchAppleCoverMode === 'all'
+                              ? 'border-pink-500/60 bg-pink-500/15 shadow-sm ring-1 ring-pink-500/30'
+                              : 'border-white/10 bg-black/40 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="batchCoverMode"
+                            checked={batchAppleCoverMode === 'all'}
+                            onChange={() => setBatchAppleCoverMode('all')}
+                            className="mt-1 text-pink-500"
+                          />
+                          <div className="space-y-1">
+                            <span className="text-xs font-bold text-white block">
+                              Quét lại toàn bộ thư viện ({tracks.length} bài)
+                            </span>
+                            <span className="text-[11px] text-zinc-400 block leading-relaxed">
+                              Dùng Auto-Smart Match 2.0 quét và thay thế toàn bộ thư viện sang ảnh studio chất lượng cao nhất.
+                            </span>
+                          </div>
+                        </label>
                       </div>
-                    </label>
+                    </div>
                   </div>
                 </div>
               )}
