@@ -8,6 +8,7 @@ const mockPlay = vi.fn().mockReturnValue(undefined);
 const mockPause = vi.fn().mockReturnValue(undefined);
 const mockSeekTo = vi.fn().mockReturnValue(undefined);
 const mockSetVolume = vi.fn().mockReturnValue(undefined);
+const mockUpdateMetadata = vi.fn().mockReturnValue(undefined);
 
 vi.mock('react-native', () => ({
   AppState: {
@@ -34,6 +35,7 @@ vi.mock('@rntp/player', () => ({
     pause: (...args: unknown[]) => mockPause(...args),
     seekTo: (...args: unknown[]) => mockSeekTo(...args),
     setVolume: (...args: unknown[]) => mockSetVolume(...args),
+    updateMetadata: (...args: unknown[]) => mockUpdateMetadata(...args),
     getActiveMediaItem: vi.fn().mockReturnValue(null),
     getPlaybackState: vi.fn().mockReturnValue(undefined),
     getProgress: vi.fn().mockReturnValue({ position: 0, duration: 0, buffered: 0 }),
@@ -65,6 +67,8 @@ vi.mock('@rntp/player', () => ({
 }));
 
 import { RntpPlayerService } from './rntpPlayerService';
+import TrackPlayer from '@rntp/player';
+import type { Track } from '@music-app/shared';
 
 describe('RntpPlayerService - Idempotent Setup Guard', () => {
   beforeEach(() => {
@@ -100,5 +104,91 @@ describe('RntpPlayerService - Idempotent Setup Guard', () => {
     expect(mockSetupPlayer).toHaveBeenCalledTimes(1);
     expect(mockSetCommands).toHaveBeenCalledTimes(1);
     expect(mockAddEventListener).toHaveBeenCalledTimes(4);
+  });
+
+  describe('updateLockScreenTimer - Hiển thị đếm ngược & Bảo vệ chống giật lag/nháy metadata', () => {
+    it('cập nhật artist có gắn chuỗi đếm ngược và không gọi thừa khi chuỗi không đổi', async () => {
+      const service = new RntpPlayerService();
+      const mockTrack: Track = {
+        id: 'track-1',
+        title: 'Bài Hát Test',
+        artist: 'Nghệ Sĩ A',
+        file: 'https://example.com/audio.m4a',
+        duration: 200,
+        storage: 'r2',
+      };
+
+      vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1' } as any);
+      (service as any).currentTracks = [mockTrack];
+
+      // 1. Cập nhật lần đầu với text "còn 14 phút"
+      service.updateLockScreenTimer('còn 14 phút');
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(1);
+      expect(mockUpdateMetadata).toHaveBeenCalledWith(0, {
+        artist: 'Nghệ Sĩ A · còn 14 phút',
+      });
+
+      // 2. Gọi lại với cùng chuỗi "còn 14 phút" -> Phải bị chặn (deduplicated), không gọi native lần 2
+      service.updateLockScreenTimer('còn 14 phút');
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(1);
+
+      // 3. Đổi sang chuỗi mới "còn 13 phút" -> Cho phép gọi update
+      service.updateLockScreenTimer('còn 13 phút');
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(2);
+      expect(mockUpdateMetadata).toHaveBeenLastCalledWith(0, {
+        artist: 'Nghệ Sĩ A · còn 13 phút',
+      });
+
+      // 4. Khi Pause hoặc hủy timer (truyền null) -> Khôi phục tên nghệ sĩ gốc
+      service.updateLockScreenTimer(null);
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(3);
+      expect(mockUpdateMetadata).toHaveBeenLastCalledWith(0, {
+        artist: 'Nghệ Sĩ A',
+      });
+
+      // 5. Gọi lại null lần nữa khi đã ở tên gốc -> Không gọi native dư thừa
+      service.updateLockScreenTimer(null);
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(3);
+    });
+
+    it('đổi sang bài mới cùng nghệ sĩ trong lúc đang đếm ngược: bài mới vẫn nhận được đếm ngược, không bị bộ đệm bỏ qua', async () => {
+      const service = new RntpPlayerService();
+      const track1: Track = {
+        id: 'track-1',
+        title: 'Bài 1',
+        artist: 'Sơn Tùng M-TP',
+        file: 'https://example.com/audio1.m4a',
+        duration: 200,
+        storage: 'r2',
+      };
+      const track2: Track = {
+        id: 'track-2',
+        title: 'Bài 2',
+        artist: 'Sơn Tùng M-TP', // Cùng nghệ sĩ với bài 1
+        file: 'https://example.com/audio2.m4a',
+        duration: 220,
+        storage: 'r2',
+      };
+
+      (service as any).currentTracks = [track1, track2];
+
+      // Đang phát track 1 với timer "còn 10 phút"
+      const getActiveSpy = vi.spyOn(TrackPlayer, 'getActiveMediaItem').mockReturnValue({ mediaId: 'track-1' } as any);
+      service.updateLockScreenTimer('còn 10 phút');
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(1);
+      expect(mockUpdateMetadata).toHaveBeenLastCalledWith(0, {
+        artist: 'Sơn Tùng M-TP · còn 10 phút',
+      });
+
+      // Chuyển sang phát track 2 (cùng nghệ sĩ, cùng thời gian timer "còn 10 phút")
+      getActiveSpy.mockReturnValue({ mediaId: 'track-2' } as any);
+      service.updateLockScreenTimer('còn 10 phút');
+
+      // Do khóa theo (ID bài + chuỗi nghệ sĩ), Track 2 PHẢI được cập nhật metadata chứ KHÔNG bị bỏ qua
+      expect(mockUpdateMetadata).toHaveBeenCalledTimes(2);
+      expect(mockUpdateMetadata).toHaveBeenLastCalledWith(1, {
+        artist: 'Sơn Tùng M-TP · còn 10 phút',
+      });
+    });
   });
 });

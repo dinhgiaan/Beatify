@@ -100,6 +100,32 @@ export function getStartOfYear(now = Date.now()): number {
 }
 
 /**
+ * Chuẩn hóa khóa nhận diện nghệ sĩ (Artist Key) để gộp các biến thể gần trùng nhau khi thống kê Replay.
+ * Quy trình:
+ * 1. Chuẩn hóa Unicode NFC (để đồng nhất các ký tự tổ hợp NFD sang NFC)
+ * 2. Chuyển sang chữ thường (toLowerCase)
+ * 3. Bỏ toàn bộ khoảng trắng và dấu chấm (loại bỏ khác biệt dạng "Mr.T" vs "Mr T", "Đạt G" vs "ĐạtG")
+ *
+ * Lưu ý: Giữ nguyên dấu tiếng Việt để bảo đảm tính chính xác, không gộp nhầm các tên khác nghĩa.
+ */
+export function normalizeArtistKey(artist: string): string {
+  if (!artist) return '';
+  return artist
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[\s.]+/g, '');
+}
+
+/**
+ * Bảng ghi đè thủ công (manual override map) dạng hiển thị của nghệ sĩ khi thống kê Replay.
+ * Khóa là normalized artist key.
+ * Ban đầu để trống trừ HIEUTHUHAI theo yêu cầu của người dùng.
+ */
+export const MANUAL_ARTIST_DISPLAY_OVERRIDES: Record<string, string> = {
+  [normalizeArtistKey('HIEUTHUHAI')]: 'HIEUTHUHAI',
+};
+
+/**
  * Tính toán thống kê nghe nhạc trong khoảng thời gian xác định
  */
 export function computeReplayStats(
@@ -110,7 +136,15 @@ export function computeReplayStats(
 
   let totalSec = 0;
   const trackMap = new Map<string, { title: string; artist: string; count: number; sec: number }>();
-  const artistMap = new Map<string, { count: number; sec: number }>();
+  
+  interface GroupedArtist {
+    key: string;
+    count: number;
+    sec: number;
+    variantCounts: Map<string, number>;
+    firstSeenVariant: string;
+  }
+  const artistGroupMap = new Map<string, GroupedArtist>();
 
   for (const r of filtered) {
     totalSec += r.listenedSec;
@@ -126,12 +160,24 @@ export function computeReplayStats(
     tEntry.sec += r.listenedSec;
     trackMap.set(r.trackId, tEntry);
 
-    // Tính theo nghệ sĩ
-    const artKey = r.artist || 'Chưa rõ nghệ sĩ';
-    const aEntry = artistMap.get(artKey) || { count: 0, sec: 0 };
+    // Tính theo nghệ sĩ (gộp theo normalized key)
+    const rawArtist = (r.artist && r.artist.trim()) ? r.artist.trim() : 'Chưa rõ nghệ sĩ';
+    const artKey = normalizeArtistKey(rawArtist) || 'chuaronnghesi';
+
+    let aEntry = artistGroupMap.get(artKey);
+    if (!aEntry) {
+      aEntry = {
+        key: artKey,
+        count: 0,
+        sec: 0,
+        variantCounts: new Map<string, number>(),
+        firstSeenVariant: rawArtist,
+      };
+      artistGroupMap.set(artKey, aEntry);
+    }
     aEntry.count += 1;
     aEntry.sec += r.listenedSec;
-    artistMap.set(artKey, aEntry);
+    aEntry.variantCounts.set(rawArtist, (aEntry.variantCounts.get(rawArtist) || 0) + 1);
   }
 
   const topTracks = Array.from(trackMap.entries())
@@ -145,12 +191,29 @@ export function computeReplayStats(
     .sort((a, b) => b.count - a.count || b.minutes - a.minutes)
     .slice(0, 5);
 
-  const topArtists = Array.from(artistMap.entries())
-    .map(([artist, val]) => ({
-      artist,
-      count: val.count,
-      minutes: Math.round(val.sec / 60),
-    }))
+  const topArtists = Array.from(artistGroupMap.values())
+    .map((entry) => {
+      // 1. Kiểm tra bảng ghi đè thủ công
+      let displayName = MANUAL_ARTIST_DISPLAY_OVERRIDES[entry.key];
+
+      // 2. Nếu không có trong bảng ghi đè: chọn dạng xuất hiện nhiều nhất trong dữ liệu
+      if (!displayName) {
+        let maxCount = -1;
+        displayName = entry.firstSeenVariant;
+        for (const [variant, count] of entry.variantCounts.entries()) {
+          if (count > maxCount) {
+            maxCount = count;
+            displayName = variant;
+          }
+        }
+      }
+
+      return {
+        artist: displayName,
+        count: entry.count,
+        minutes: Math.round(entry.sec / 60),
+      };
+    })
     .sort((a, b) => b.count - a.count || b.minutes - a.minutes)
     .slice(0, 5);
 

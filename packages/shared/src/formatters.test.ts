@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDownloadDate, formatBytes, formatSeconds } from './formatters';
+import { formatDownloadDate, formatBytes, formatSeconds, formatLockScreenTimer } from './formatters';
 
 describe('Kiểm thử formatters trong @music-app/shared', () => {
   it('1. formatSeconds chuẩn hóa chính xác giây sang mm:ss', () => {
@@ -30,6 +30,25 @@ describe('Kiểm thử formatters trong @music-app/shared', () => {
     expect(res.time).toBeTruthy();
     expect(res.full).toContain(res.date);
     expect(res.full).toContain(res.time);
+  });
+
+  it('4. formatLockScreenTimer định dạng chính xác các mốc 61s, 60s, 59s, 1s, 0s và số âm', () => {
+    // > 60s: phút làm tròn lên (ceil)
+    expect(formatLockScreenTimer(61)).toBe('còn 2 phút');
+    expect(formatLockScreenTimer(120)).toBe('còn 2 phút');
+    expect(formatLockScreenTimer(125)).toBe('còn 3 phút');
+
+    // <= 60s: theo từng giây
+    expect(formatLockScreenTimer(60)).toBe('còn 60 giây');
+    expect(formatLockScreenTimer(59)).toBe('còn 59 giây');
+    expect(formatLockScreenTimer(1)).toBe('còn 1 giây');
+
+    // 0s và số âm / null: trả về null
+    expect(formatLockScreenTimer(0)).toBeNull();
+    expect(formatLockScreenTimer(-1)).toBeNull();
+    expect(formatLockScreenTimer(-60)).toBeNull();
+    expect(formatLockScreenTimer(null)).toBeNull();
+    expect(formatLockScreenTimer(undefined)).toBeNull();
   });
 });
 

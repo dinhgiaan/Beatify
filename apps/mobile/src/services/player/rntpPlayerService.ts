@@ -18,6 +18,7 @@ export class RntpPlayerService implements IPlayerService {
   private initPromise: Promise<void> | null = null;
   private currentTracks: Track[] = [];
   private currentLockScreenTimerText: string | null = null;
+  private lastLockScreenCacheKey: string | null = null;
   private listeners: Set<(state: PlayerState) => void> = new Set();
   private lastTrackEndTime: number | null = null;
   private gaplessDeltaMs: number | null = null;
@@ -67,6 +68,7 @@ export class RntpPlayerService implements IPlayerService {
             TrackPlayer.setVolume(volume);
           }
           transitionManager.updateQueue(this.currentTracks, event.item.mediaId);
+          this.lastLockScreenCacheKey = null;
           if (this.currentLockScreenTimerText) {
             this.updateLockScreenTimer(this.currentLockScreenTimerText);
           }
@@ -123,6 +125,7 @@ export class RntpPlayerService implements IPlayerService {
     }
 
     const safeIndex = Math.min(Math.max(0, startIndex), validTracks.length - 1);
+    this.lastLockScreenCacheKey = null;
 
     // Tối ưu hoá độ trễ: Nếu danh sách bài hát không đổi so với hàng đợi hiện tại và player không bị lỗi,
     // chỉ cần gọi skipToIndex thay vì nạp lại toàn bộ mediaItems qua bridge Native
@@ -279,7 +282,9 @@ TrackPlayer.setRepeatMode(rntpMode);
 
 /**
  * Cập nhật hiển thị thời gian đếm ngược hẹn giờ (Sleep Timer) trên dòng Nghệ sĩ ngoài màn hình khóa (Lock Screen)
- * Tuyệt đối không ghi đè vào dữ liệu gốc (currentTrack.artist) của thư viện hay stats
+ * Tuyệt đối không ghi đè vào dữ liệu gốc (currentTrack.artist) của thư viện hay stats.
+ * Khóa bộ đệm theo (ID bài + chuỗi nghệ sĩ) để khi đổi bài (kể cả 2 bài liên tiếp cùng nghệ sĩ),
+ * bài mới luôn được cập nhật đếm ngược và không bị bỏ qua.
  */
 updateLockScreenTimer(timerText: string | null): void {
   this.currentLockScreenTimerText = timerText;
@@ -290,8 +295,13 @@ updateLockScreenTimer(timerText: string | null): void {
     if (!currentTrack) return;
     const originalArtist = currentTrack.artist || 'Unknown Artist';
     const newArtist = timerText ? `${originalArtist} · ${timerText}` : originalArtist;
+    const cacheKey = `${currentTrack.id}:${newArtist}`;
+    if (cacheKey === this.lastLockScreenCacheKey) {
+      return; // Không gửi update nếu bài và chuỗi artist không thay đổi
+    }
     const index = this.currentTracks.findIndex((t) => t.id === activeItem.mediaId);
     if (index >= 0) {
+      this.lastLockScreenCacheKey = cacheKey;
       TrackPlayer.updateMetadata(index, {
         artist: newArtist,
       });

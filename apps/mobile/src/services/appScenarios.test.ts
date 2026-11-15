@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { smartShuffle } from '@music-app/shared';
+import { smartShuffle, setSleepTimerState, handleSleepTimerPlaybackChange, INITIAL_SLEEP_TIMER_STATE } from '@music-app/shared';
 import type { Track, UpdateTrack } from '@music-app/shared';
 
 // Hàm formatTime trích xuất từ app/index.tsx
@@ -180,6 +180,49 @@ describe('Kiểm thử Toàn bộ Kịch bản Ứng dụng Mobile (App Scenario
       expect(sanitizeProfileName('An Đinh')).toBe('An Đinh');
       const longName = 'Tên Người Yêu Âm Nhạc Rất Dài Quá Ba Mươi Hai Ký Tự Này';
       expect(sanitizeProfileName(longName).length).toBeLessThanOrEqual(32);
+    });
+  });
+
+  describe('Kịch bản 6: Sleep Timer State Lifecycle & Stale Closure Prevention', () => {
+    it('tái hiện kịch bản "hẹn giờ, Pause quá hạn, Play": tự động xóa timer và state UI về null', () => {
+      let uiMinutes: number | null = null;
+      let uiRemainingSec: number | null = null;
+      let timerState = INITIAL_SLEEP_TIMER_STATE;
+      const baseTime = 1700000000000;
+
+      // 1. Người dùng hẹn giờ 15 phút khi đang phát nhạc
+      const startRes = setSleepTimerState(15, baseTime, true);
+      timerState = startRes.nextState;
+      uiMinutes = startRes.nextState.minutes;
+      uiRemainingSec = startRes.nextState.remainingSec;
+
+      expect(uiMinutes).toBe(15);
+      expect(uiRemainingSec).toBe(900);
+
+      // 2. Người dùng Pause nhạc lúc 2 phút sau
+      const pauseTime = baseTime + 2 * 60 * 1000;
+      const pauseRes = handleSleepTimerPlaybackChange(timerState, false, pauseTime);
+      timerState = pauseRes.nextState;
+      uiMinutes = pauseRes.nextState.minutes;
+      uiRemainingSec = pauseRes.nextState.remainingSec;
+
+      expect(uiMinutes).toBe(15);
+      expect(pauseRes.lockScreenText).toBeNull();
+
+      // 3. Người dùng để Pause trong 20 phút (quá hạn 5 phút so với targetMs = 15 phút), sau đó bấm Play
+      const playTime = baseTime + 22 * 60 * 1000;
+      const playRes = handleSleepTimerPlaybackChange(timerState, true, playTime);
+      timerState = playRes.nextState;
+      // Trực tiếp gán vô điều kiện (loại bỏ stale closure)
+      uiMinutes = playRes.nextState.minutes;
+      uiRemainingSec = playRes.nextState.remainingSec;
+
+      // Xác nhận state UI về null hoàn toàn
+      expect(uiMinutes).toBeNull();
+      expect(uiRemainingSec).toBeNull();
+      expect(playRes.nextState.targetMs).toBeNull();
+      expect(playRes.shouldPauseMusic).toBe(false);
+      expect(playRes.lockScreenText).toBeNull();
     });
   });
 });

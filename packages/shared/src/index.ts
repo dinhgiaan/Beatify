@@ -9,3 +9,4 @@ export * from './youtube';
 export * from './sync';
 export * from './formatters';
 export * from './smartTransition';
+export * from './sleepTimer';

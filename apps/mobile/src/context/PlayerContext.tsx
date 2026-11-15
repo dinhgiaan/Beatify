@@ -6,6 +6,13 @@ import {
   sortTracksByMode,
   type TrackSortMode,
   type SmartTransitionSettings,
+  formatLockScreenTimer,
+  setSleepTimerState,
+  handleSleepTimerPlaybackChange,
+  handleSleepTimerTick,
+  isPlaybackTrulyPaused,
+  INITIAL_SLEEP_TIMER_STATE,
+  type SleepTimerState,
 } from '@music-app/shared';
 import { playerService } from '../services/player/rntpPlayerService';
 import { transitionManager } from '../services/player/transitionManager';
@@ -79,15 +86,6 @@ export interface PlayerContextValue {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
-function formatLockScreenTimerText(remainingSec: number): string {
-  if (remainingSec <= 0) return '';
-  if (remainingSec <= 60) {
-    return `còn ${remainingSec} giây`;
-  }
-  const mins = Math.ceil(remainingSec / 60);
-  return `còn ${mins} phút`;
-}
-
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { tracks, originalTracks, setOriginalTracks, serverUrl, serverToken, isOffline } = useLibrary();
   const { getOfflineAudioUri, getOfflineCoverUri } = useOffline();
@@ -144,6 +142,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastRecordedRecentTrackRef = useRef<string | null>(null);
   const currentTrackingTrackIdRef = useRef<string | null>(null);
   const maxListenedSecRef = useRef<number>(0);
+  const isPlayingRef = useRef<boolean>(false);
+  const isPausedRef = useRef<boolean>(true);
+  const sleepTimerStateRef = useRef<SleepTimerState>(INITIAL_SLEEP_TIMER_STATE);
 
   // Nạp danh sách bài nghe gần đây và cấu hình turntable từ đĩa khi khởi động
   useEffect(() => {
@@ -186,6 +187,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           durationSec: state.durationSec,
         };
       });
+
+      // Xử lý chuyển đổi trạng thái Play / Pause cho Sleep Timer (Phương án A)
+      // Chỉ coi là Pause thực sự khi !state.isPlaying && !state.isBuffering (loại trừ Buffering / Seeking tua bài)
+      const isTrulyPaused = isPlaybackTrulyPaused(state.isPlaying, state.isBuffering);
+      const wasPaused = isPausedRef.current;
+      isPausedRef.current = isTrulyPaused;
+      isPlayingRef.current = state.isPlaying;
+
+      if (wasPaused !== isTrulyPaused) {
+        // Lưu ý: Sleep Timer hoạt động dựa trên mốc giờ thực tế (Wall-Clock Timestamp) bằng Date.now().
+        // Mốc tắt cố định là Date.now() + minutes * 60 * 1000.
+        // Khi Pause: khôi phục tên nghệ sĩ gốc ngoài Lock Screen để tránh bị treo số phút khi iOS đình chỉ tiến trình.
+        // Khi Play: tính lại thời gian thực tế bằng Date.now(). Nếu đã quá hạn lúc Pause thì phiên hẹn giờ tự động hủy để phát nhạc tiếp.
+        const isPlayingOrBuffering = !isTrulyPaused;
+        const res = handleSleepTimerPlaybackChange(sleepTimerStateRef.current, isPlayingOrBuffering, Date.now());
+        sleepTimerStateRef.current = res.nextState;
+        setSleepTimerMinutes(res.nextState.minutes);
+        setSleepTimerRemainingSec(res.nextState.remainingSec);
+        if (res.updateLockScreen) {
+          playerService.updateLockScreenTimer?.(res.lockScreenText);
+        }
+      }
 
       if (state.activeTrackId) {
         const idx = queueTracksRef.current.findIndex((t) => t.id === state.activeTrackId);
@@ -619,54 +642,38 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // Thiết lập Sleep Timer (Hẹn giờ tắt nhạc) dựa trên wall-clock timestamp an toàn khi khóa màn hình
-  const sleepTimerTargetMsRef = useRef<number | null>(null);
-  const lastLockScreenTextRef = useRef<string | null>(null);
-
   const setSleepTimer = useCallback((minutes: number | null) => {
-    if (minutes === null || minutes <= 0) {
-      sleepTimerTargetMsRef.current = null;
-      lastLockScreenTextRef.current = null;
-      setSleepTimerMinutes(null);
-      setSleepTimerRemainingSec(null);
-      playerService.updateLockScreenTimer?.(null);
-      return;
+    // Dùng !isPausedRef.current để nếu hẹn giờ lúc đang buffering vẫn tính là đang phát và hiện dòng đếm ngược
+    const isPlayingOrBuffering = !isPausedRef.current;
+    const res = setSleepTimerState(minutes, Date.now(), isPlayingOrBuffering);
+    sleepTimerStateRef.current = res.nextState;
+    setSleepTimerMinutes(res.nextState.minutes);
+    setSleepTimerRemainingSec(res.nextState.remainingSec);
+    if (res.updateLockScreen) {
+      playerService.updateLockScreenTimer?.(res.lockScreenText);
     }
-    const targetMs = Date.now() + minutes * 60 * 1000;
-    sleepTimerTargetMsRef.current = targetMs;
-    lastLockScreenTextRef.current = null;
-    setSleepTimerMinutes(minutes);
-    setSleepTimerRemainingSec(minutes * 60);
   }, []);
 
   // Đếm ngược Sleep Timer tự động bám theo thời gian thực (kể cả khi app chạy nền hoặc khóa màn hình)
   useEffect(() => {
-    if (sleepTimerMinutes === null || !sleepTimerTargetMsRef.current) {
-      lastLockScreenTextRef.current = null;
-      playerService.updateLockScreenTimer?.(null);
+    if (sleepTimerMinutes === null || !sleepTimerStateRef.current.targetMs) {
       return;
     }
 
     const checkTimer = () => {
-      if (!sleepTimerTargetMsRef.current) return;
-      const now = Date.now();
-      const diffMs = sleepTimerTargetMsRef.current - now;
-      if (diffMs <= 0) {
+      if (!sleepTimerStateRef.current.targetMs) return;
+      // Dùng !isPausedRef.current thay vì isPlayingRef.current để khi buffering đếm ngược vẫn chạy và nếu hết giờ sẽ dừng ngay.
+      // Giới hạn đã biết: Pause đúng lúc buffering có thể giữ dòng đếm ngược cho tới khi buffer xong.
+      const isPlayingOrBuffering = !isPausedRef.current;
+      const res = handleSleepTimerTick(sleepTimerStateRef.current, isPlayingOrBuffering, Date.now());
+      sleepTimerStateRef.current = res.nextState;
+      setSleepTimerMinutes(res.nextState.minutes);
+      setSleepTimerRemainingSec(res.nextState.remainingSec);
+      if (res.updateLockScreen) {
+        playerService.updateLockScreenTimer?.(res.lockScreenText);
+      }
+      if (res.shouldPauseMusic) {
         playerService.pause().catch(() => { });
-        setSleepTimerMinutes(null);
-        setSleepTimerRemainingSec(null);
-        sleepTimerTargetMsRef.current = null;
-        lastLockScreenTextRef.current = null;
-        playerService.updateLockScreenTimer?.(null);
-      } else {
-        const remainingSec = Math.ceil(diffMs / 1000);
-        setSleepTimerRemainingSec(remainingSec);
-
-        // Cập nhật theo phút (> 60s) hoặc theo giây (<= 60s), chỉ gọi native khi chuỗi thay đổi
-        const timerText = formatLockScreenTimerText(remainingSec);
-        if (timerText !== lastLockScreenTextRef.current) {
-          lastLockScreenTextRef.current = timerText;
-          playerService.updateLockScreenTimer?.(timerText);
-        }
       }
     };
 

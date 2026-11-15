@@ -72,3 +72,22 @@ export function formatSeconds(sec?: number | null): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Định dạng chuỗi đếm ngược Sleep Timer hiển thị trên dòng Nghệ sĩ ngoài màn hình khóa (Lock Screen).
+ * Quy tắc:
+ * - Nếu remainingSec <= 0 hoặc null/undefined: trả về null (hết giờ hoặc không có timer).
+ * - Nếu remainingSec <= 60: trả về "còn {sec} giây" (chuyển sang từng giây trong 60s cuối).
+ * - Nếu remainingSec > 60: trả về "còn {phút} phút" (làm tròn lên Math.ceil để không hiện "còn 0 phút").
+ */
+export function formatLockScreenTimer(remainingSec?: number | null): string | null {
+  if (remainingSec == null || remainingSec <= 0 || isNaN(remainingSec)) {
+    return null;
+  }
+  if (remainingSec <= 60) {
+    return `còn ${remainingSec} giây`;
+  }
+  const mins = Math.ceil(remainingSec / 60);
+  return `còn ${mins} phút`;
+}
+
+
