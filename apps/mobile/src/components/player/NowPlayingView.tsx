@@ -48,7 +48,7 @@ import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
 import { EqualizerIndicator } from './EqualizerIndicator';
 import { VinylRecordView } from './VinylRecordView';
-import { BassWaveformVisualizer } from './BassWaveformVisualizer';
+import { Waveform } from './Waveform';
 import { useOffline } from '../../context';
 
 /**
@@ -352,8 +352,9 @@ export function NowPlayingView() {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* VÙNG CHUYỂN ĐỔI: Ảnh bìa vuông HOẶC Đĩa Than Vinyl HOẶC Hàng đợi phát */}
-        {!showQueue ? (
+        {/* KHU VỰC TRÊN: Ảnh bìa vuông HOẶC Đĩa Than Vinyl HOẶC Hàng đợi phát (Căn giữa linh hoạt) */}
+        <View style={styles.artworkSection}>
+          {!showQueue ? (
           isVinylMode ? (
             <VinylRecordView
               coverUri={currentTrack?.cover}
@@ -526,53 +527,64 @@ export function NowPlayingView() {
             />
           </View>
         )}
-
-        {/* Thông tin bài hát + Nút Tim */}
-        <View style={styles.trackInfoRow}>
-          <View style={styles.trackInfoTextCol}>
-            <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
-              {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
-            </Text>
-            <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
-              {currentTrack ? currentTrack.artist : 'Chọn một bài hát để bắt đầu nghe'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleToggleFavorite}
-            style={styles.heartButton}
-            activeOpacity={0.8}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="button"
-            accessibilityLabel={isFavorite ? 'Bỏ thích bài hát' : 'Thêm vào yêu thích'}
-          >
-            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-              <HeartIcon
-                size={24}
-                color={isFavorite ? colors.primary : colors.textSecondary}
-                fill={isFavorite ? colors.primary : 'none'}
-              />
-            </Animated.View>
-          </TouchableOpacity>
         </View>
 
-        {/* Cụm Equalizer Sóng Nhạc Dày Đậm (Bass Waveform Visualizer LED Stereo VU Meter) */}
-        <BassWaveformVisualizer isPlaying={playerState.isPlaying} height={28} />
-
-        {/* Thanh tua tiến trình nhạc (Scrubber) với vùng chạm 44pt chuẩn iOS HIG */}
-        <View style={styles.scrubberContainer}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.scrubberTouchable}
-            onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
-            onPress={(e) => handleSeekPress(e.nativeEvent.locationX)}
-            accessibilityRole="adjustable"
-            accessibilityLabel="Thanh tua tiến trình bài hát"
-          >
-            <View style={styles.scrubberTrack}>
-              <View style={[styles.scrubberFill, { width: `${progressPercent}%` }]} />
+        {/* KHU VỰC DƯỚI: Toàn bộ cụm điều khiển, timeline và các nút chức năng neo sát đáy */}
+        <View style={styles.bottomControlsSection}>
+          {/* Thông tin bài hát + Nút Tim */}
+          <View style={styles.trackInfoRow}>
+            <View style={styles.trackInfoTextCol}>
+              <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+                {currentTrack ? currentTrack.title : 'Chưa có bài hát'}
+              </Text>
+              <Text style={styles.artistText} numberOfLines={1} ellipsizeMode="tail">
+                {currentTrack ? currentTrack.artist : 'Chọn một bài hát để bắt đầu nghe'}
+              </Text>
             </View>
-          </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleToggleFavorite}
+              style={styles.heartButton}
+              activeOpacity={0.8}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Bỏ thích bài hát' : 'Thêm vào yêu thích'}
+            >
+              <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                <HeartIcon
+                  size={24}
+                  color={isFavorite ? colors.primary : colors.textSecondary}
+                  fill={isFavorite ? colors.primary : 'none'}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Sóng âm thanh Waveform đa dải tần & Thanh tua tiến trình nhạc (Scrubber) */}
+          <View style={styles.scrubberContainer}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.scrubberTouchable}
+              onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+              onPress={(e) => handleSeekPress(e.nativeEvent.locationX)}
+              accessibilityRole="adjustable"
+              accessibilityLabel="Thanh tua tiến trình bài hát"
+            >
+              {/* Dải sóng âm thanh dạng Waveform Scrubber chuyên nghiệp */}
+              <View style={styles.waveformWrapper}>
+                <Waveform
+                  trackId={currentTrack?.id || 'default-track'}
+                  barCount={46}
+                  height={22}
+                  activeColor={colors.primary}
+                  inactiveColor="rgba(255, 255, 255, 0.2)"
+                />
+              </View>
+
+              <View style={styles.scrubberTrack}>
+                <View style={[styles.scrubberFill, { width: `${progressPercent}%` }]} />
+              </View>
+            </TouchableOpacity>
 
           <View style={styles.timeRow}>
             <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
@@ -772,7 +784,8 @@ export function NowPlayingView() {
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
 
       {/* Modal Lời bài hát đồng bộ LRC (giữ nguyên trạng) */}
       <LyricsModal
@@ -1102,9 +1115,23 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
   scrollContent: {
-    alignItems: 'center',
+    flexGrow: 1,
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  artworkSection: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  bottomControlsSection: {
+    width: '100%',
+    justifyContent: 'flex-end',
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   artworkContainer: {
     borderRadius: radius.xl,
@@ -1247,7 +1274,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   trackInfoTextCol: {
     flex: 1,
@@ -1269,12 +1296,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  waveformWrapper: {
+    width: '100%',
+    marginBottom: 6,
+  },
   scrubberContainer: {
     width: '100%',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   scrubberTouchable: {
-    height: 44,
+    paddingVertical: 4,
     justifyContent: 'center',
   },
   scrubberTrack: {
@@ -1302,7 +1333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginVertical: spacing.md,
+    marginVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
   },
   auxControlButton: {
@@ -1331,7 +1362,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xl,
     width: '100%',
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   bottomButton: {
     width: 48,
