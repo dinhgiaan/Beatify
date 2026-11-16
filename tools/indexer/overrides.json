@@ -776,7 +776,7 @@
       "cover": "covers/db0a4fa72d0b.jpg"
     },
     "3e65d44f703a": {
-      "title": "Wrong Times (",
+      "title": "Wrong Times",
       "artist": "puppy",
       "album": "Singles",
       "loudnessLufs": -16.4,
@@ -1195,7 +1195,7 @@
       "cover": "covers/59b14252514a.jpg"
     },
     "a4b0be8e52ee": {
-      "title": "\"VIỆT\" NÊN LÀM (feat. MEGASHOCK)",
+      "title": "VIỆT NÊN LÀM (feat. MEGASHOCK)",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -8.73,
@@ -1251,7 +1251,7 @@
       "cover": "covers/5a1ba6d63d36.jpg"
     },
     "6dc5d488f975": {
-      "title": "\"karma\"",
+      "title": "Karma",
       "artist": "willistic",
       "album": "Singles",
       "loudnessLufs": -11.21,
@@ -1323,7 +1323,7 @@
       "cover": "covers/def13788d3dc.jpg"
     },
     "6cb789329994": {
-      "title": "\"Youngz\"",
+      "title": "Youngz",
       "artist": "Wxrdie",
       "album": "Singles",
       "loudnessLufs": -11.1,
@@ -1502,8 +1502,8 @@
       "cover": "covers/0ae20dad0cc4.jpg"
     },
     "5149f4e8fb11": {
-      "title": "B Ray (Diss The Night)「Lyrics」",
-      "artist": "Hổng Nhây Nữa Nha",
+      "title": "Hổng Nhây Nữa Nha (Diss The Night)",
+      "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -8.01,
       "replayGain": -9.99,
@@ -1569,7 +1569,7 @@
       "cover": "covers/0f227522b46a.jpg"
     },
     "b41aaf633e4b": {
-      "title": "‘need 4 Speed 2 (with/ Megashock, Ninety9, Karon)’ Official Video",
+      "title": "Need 4 Speed 2 (feat. Megashock, Ninety9 & Karon)",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -9.04,
@@ -1729,7 +1729,7 @@
       "cover": "covers/5474cb71f4e8.jpg"
     },
     "0e3fde27b3b5": {
-      "title": "\"nothing Left 2 Lose\"",
+      "title": "Nothing Left 2 Lose",
       "artist": "RYAN OAKES",
       "album": "Singles",
       "loudnessLufs": -7.35,
@@ -1793,7 +1793,7 @@
       "cover": "covers/0612606b3340.jpg"
     },
     "34b24bad2cc0": {
-      "title": "Half On a Sack (Explicit Album Version)",
+      "title": "Half On a Sack",
       "artist": "Three 6 Mafia",
       "album": "Singles",
       "loudnessLufs": -10.14,
@@ -1910,7 +1910,9 @@
       "album": "Singles",
       "loudnessLufs": -8.42,
       "replayGain": -9.58,
-      "cover": "covers/88c676f27218.jpg"
+      "cover": "covers/88c676f27218.jpg",
+      "hidden": true,
+      "deletedAt": "2026-11-16T03:24:47.995Z"
     },
     "7b3cd68155a9": {
       "title": "Low (feat. T-Pain)",
@@ -2001,9 +2003,9 @@
       "cover": "covers/e66e216a325a.jpg"
     },
     "d6db86a91378": {
-      "title": "Marcelo Burlon [",
+      "title": "Marcelo Burlon (feat. Yung Ni99)",
       "artist": "ICY FAMOU$",
-      "album": "Singles",
+      "album": "EP 19",
       "loudnessLufs": -13.03,
       "replayGain": -4.97,
       "cover": "covers/d6db86a91378.jpg"
@@ -2071,7 +2073,7 @@
       "cover": "covers/023e5131f6ce.jpg"
     },
     "288da3becdc8": {
-      "title": "St. 25 [with Baby Lime]",
+      "title": "St. 25 (feat. Baby Lime)",
       "artist": "Yung Ni99",
       "album": "Singles",
       "year": 2026,
@@ -2353,7 +2355,9 @@
     "62a7ccbe277b": {
       "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
       "artist": "DT Tập Rap",
-      "cover": "covers/62a7ccbe277b.jpg"
+      "cover": "covers/62a7ccbe277b.jpg",
+      "hidden": true,
+      "deletedAt": "2026-11-16T03:24:47.995Z"
     },
     "514461a43c61": {
       "cover": "covers/514461a43c61.jpg"
