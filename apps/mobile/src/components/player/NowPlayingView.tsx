@@ -104,6 +104,7 @@ export function NowPlayingView() {
   const [loopModalVisible, setLoopModalVisible] = useState(false);
   const [customLoopInput, setCustomLoopInput] = useState('');
   const [coverFit, setCoverFit] = useState<'cover' | 'contain'>('cover');
+  const [coverAspect, setCoverAspect] = useState<number>(1);
 
   // Trạng thái kiểm tra và thông báo khi bài hát không có lời
   const [lyricsContent, setLyricsContent] = useState<string | null | undefined>(undefined);
@@ -153,6 +154,29 @@ export function NowPlayingView() {
       }
     };
   }, [currentTrack?.id, getOfflineLyrics, fetchLyrics]);
+
+  // Tự động nhận diện tỉ lệ ảnh bìa (1:1 chuẩn album hay 16:9 thumbnail YouTube)
+  useEffect(() => {
+    if (!currentTrack?.cover) {
+      setCoverAspect(1);
+      return;
+    }
+    let active = true;
+    Image.getSize(
+      currentTrack.cover,
+      (w, h) => {
+        if (active && w > 0 && h > 0) {
+          setCoverAspect(w / h);
+        }
+      },
+      () => {
+        if (active) setCoverAspect(1);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [currentTrack?.cover]);
 
   const hasLyrics = Boolean(
     (lyricsContent && lyricsContent.trim().length > 0) ||
@@ -222,11 +246,23 @@ export function NowPlayingView() {
     Animated.spring(playBtnScale, { toValue: 1.0, friction: 4, tension: 120, useNativeDriver: true }).start();
   };
 
-  // Kích thước ảnh bìa & panel hàng đợi thích ứng an toàn trên mọi màn hình Face ID từ 375x812 đến 440x956
-  const artworkSize = Math.min(
-    width - spacing.lg * 2,
-    Math.max(220, Math.round(height * 0.40))
-  );
+  // Tính toán kích thước ảnh bìa thích ứng thông minh theo tỉ lệ ảnh gốc:
+  // - Nếu là ảnh bìa YouTube / video 16:9 hoặc chữ nhật ngang (ratio > 1.2):
+  //   Mở rộng vừa vặn chiều ngang và tự động chỉnh chiều cao đúng tỉ lệ để view đầy đủ 100%, không bị phóng to và không mất góc.
+  // - Nếu là ảnh bìa album vuông chuẩn (ratio ~ 1.0):
+  //   Giữ khung vuông cân đối ~306-310px chuẩn Apple Music / Spotify.
+  const isLandscapeCover = coverAspect > 1.2;
+  const maxCardWidth = Math.min(width - spacing.xl * 2, 350);
+
+  const artworkWidth = isLandscapeCover
+    ? maxCardWidth
+    : Math.min(maxCardWidth, Math.max(220, Math.round(height * 0.36)));
+
+  const artworkHeight = isLandscapeCover
+    ? Math.round(artworkWidth / Math.min(coverAspect, 1.78))
+    : artworkWidth;
+
+  const queuePanelHeight = Math.max(260, Math.round(height * 0.36));
 
   const isFavorite = currentTrack
     ? userState.favoriteIds.includes(currentTrack.id)
@@ -324,7 +360,7 @@ export function NowPlayingView() {
               isPlaying={playerState.isPlaying}
               positionSec={positionSec}
               durationSec={durationSec}
-              size={Math.min(artworkSize, 320)}
+              size={Math.min(artworkWidth, 305)}
             />
           ) : (
             <Animated.View
@@ -332,8 +368,9 @@ export function NowPlayingView() {
                 [
                   styles.artworkContainer,
                   {
-                    width: artworkSize,
-                    height: artworkSize,
+                    width: artworkWidth,
+                    height: artworkHeight,
+                    borderRadius: isLandscapeCover ? radius.md : radius.xl,
                     transform: [{ scale: artworkScale }],
                   },
                 ]}
@@ -350,11 +387,17 @@ export function NowPlayingView() {
                     source={{ uri: currentTrack.cover }}
                     style={styles.artworkImage}
                     resizeMode={coverFit}
+                    onLoad={(e) => {
+                      const { width: w, height: h } = e.nativeEvent.source;
+                      if (w > 0 && h > 0) {
+                        setCoverAspect(w / h);
+                      }
+                    }}
                   />
                 </TouchableOpacity>
               ) : (
                 <View style={styles.artworkPlaceholder}>
-                  <DiscIcon size={Math.round(artworkSize * 0.35)} color={colors.borderLight} />
+                  <DiscIcon size={Math.round(artworkWidth * 0.35)} color={colors.borderLight} />
                   <Text style={styles.artworkEmptyText}>
                     {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
                   </Text>
@@ -366,7 +409,7 @@ export function NowPlayingView() {
           <View
             style={[
               styles.queuePanelContainer,
-              { width: artworkSize, height: artworkSize },
+              { width: maxCardWidth, height: queuePanelHeight },
             ]}
           >
             <View style={styles.queuePanelHeader}>
