@@ -60,3 +60,4 @@ export async function convertToSquareAmbientCover(buffer: Buffer): Promise<Buffe
     if (existsSync(tempOutput)) await fs.unlink(tempOutput).catch(() => {});
   }
 }
+
