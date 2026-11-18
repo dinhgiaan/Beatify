@@ -10,12 +10,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { type Track, smartShuffle } from '@music-app/shared';
 import { tokens } from '../theme/tokens';
 import { useOffline, usePlayer } from '../context';
 import { formatBytes } from '../services/offline/offlineStorage';
 import { MiniPlayer } from './player/MiniPlayer';
+import { NowPlayingView } from './player/NowPlayingView';
 import { ScrollToTopButton } from './common/ScrollToTopButton';
 import {
   CloseIcon,
@@ -35,7 +35,6 @@ export interface OfflineDownloadsModalProps {
 
 export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModalProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const {
     offlineIndex,
     offlineTracks,
@@ -46,6 +45,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   } = useOffline();
 
   const { playQueue, currentTrack } = usePlayer();
+  const [nowPlayingVisible, setNowPlayingVisible] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
@@ -398,8 +398,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           >
             <MiniPlayer
               onPress={() => {
-                onClose();
-                router.push('/now-playing');
+                setNowPlayingVisible(true);
               }}
             />
           </View>
@@ -434,6 +433,15 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
             </TouchableOpacity>
           </View>
         )}
+        {/* Modal Màn hình đang phát (NowPlayingView) hiển thị xếp lớp mà không đóng offline downloads bên dưới */}
+        <Modal
+          visible={nowPlayingVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setNowPlayingVisible(false)}
+        >
+          <NowPlayingView onClose={() => setNowPlayingVisible(false)} />
+        </Modal>
       </View>
     </Modal>
   );

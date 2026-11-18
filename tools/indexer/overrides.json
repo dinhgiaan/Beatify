@@ -1220,7 +1220,7 @@
     },
     "cd620905007c": {
       "title": "Quay Đầu Là Hiphop",
-      "artist": "Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc",
+      "artist": "Lăng LD",
       "album": "Singles",
       "loudnessLufs": -10.07,
       "replayGain": -7.93,
@@ -2360,7 +2360,10 @@
       "deletedAt": "2026-11-16T03:24:47.995Z"
     },
     "514461a43c61": {
-      "cover": "covers/514461a43c61.jpg"
+      "cover": "covers/514461a43c61.jpg",
+      "title": "Cho Họ Ghét Đi Em",
+      "artist": "Huỳnh James",
+      "album": "Singles"
     },
     "d1648d1bcc5a": {
       "cover": "covers/d1648d1bcc5a.jpg"
@@ -2509,7 +2512,10 @@
       "cover": "covers/4af07a5b2112.jpg"
     },
     "cc91ce1e51eb": {
-      "cover": "covers/cc91ce1e51eb.jpg"
+      "cover": "covers/cc91ce1e51eb.jpg",
+      "title": "Đường Một Chiều",
+      "artist": "Huỳnh Tú",
+      "album": "Singles"
     },
     "782c7700a184": {
       "cover": "covers/782c7700a184.jpg"
@@ -2521,5 +2527,7 @@
       "cover": "covers/ba871e942843.jpg"
     }
   },
-  "artistAliases": {}
+  "artistAliases": {
+    "lang ld": "Lăng LD"
+  }
 }

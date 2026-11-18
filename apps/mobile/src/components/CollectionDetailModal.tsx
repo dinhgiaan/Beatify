@@ -10,7 +10,6 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { type Track, smartShuffle } from '@music-app/shared';
 import {
   colors,
@@ -23,6 +22,7 @@ import { usePlayer, useLibrary, useOffline } from '../context';
 import { formatTime } from '../utils/formatTime';
 import { EqualizerIndicator } from './player/EqualizerIndicator';
 import { MiniPlayer } from './player/MiniPlayer';
+import { NowPlayingView } from './player/NowPlayingView';
 import { TrackActionSheet } from './sheet/TrackActionSheet';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { ScrollToTopButton } from './common/ScrollToTopButton';
@@ -67,7 +67,6 @@ export function CollectionDetailModal({
   onRemoveTrackFromPlaylist,
   onClearRecentTracks,
 }: CollectionDetailModalProps) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currentTrack, playQueue, playNext, togglePlay, playerState, handleTrackDeleted } = usePlayer();
   const { userState, toggleFavorite, updateUserState, deleteTrack } = useLibrary();
@@ -76,6 +75,7 @@ export function CollectionDetailModal({
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
+  const [nowPlayingVisible, setNowPlayingVisible] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
@@ -362,8 +362,7 @@ export function CollectionDetailModal({
           >
             <MiniPlayer
               onPress={() => {
-                onClose();
-                router.push('/now-playing');
+                setNowPlayingVisible(true);
               }}
             />
           </View>
@@ -435,6 +434,15 @@ export function CollectionDetailModal({
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }}
         />
+        {/* Modal Màn hình đang phát (NowPlayingView) hiển thị xếp lớp mà không đóng playlist bên dưới */}
+        <Modal
+          visible={nowPlayingVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setNowPlayingVisible(false)}
+        >
+          <NowPlayingView onClose={() => setNowPlayingVisible(false)} />
+        </Modal>
       </View>
     </Modal>
   );

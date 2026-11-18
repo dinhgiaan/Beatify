@@ -61,7 +61,11 @@ import { useOffline } from '../../context';
  * - Cụm nút phát nổi bật (Play/Pause tròn to 64x64)
  * - Tích hợp Lời bài hát đồng bộ LRC (LyricsModal)
  */
-export function NowPlayingView() {
+export interface NowPlayingViewProps {
+  onClose?: () => void;
+}
+
+export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useResponsive();
@@ -269,7 +273,11 @@ export function NowPlayingView() {
     : false;
 
   const handleClose = () => {
-    router.back();
+    if (onClose) {
+      onClose();
+    } else {
+      router.back();
+    }
   };
 
   const handleSeekPress = (locationX: number) => {
