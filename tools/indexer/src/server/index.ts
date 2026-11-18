@@ -3961,7 +3961,7 @@ const handleGetDownloadCover = async (c: Context) => {
     }
 
     if (ytId && !ytId.startsWith('video_')) {
-      return c.redirect(`https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`, 302);
+      return c.redirect(`https://i.ytimg.com/vi/${ytId}/maxresdefault.jpg`, 302);
     }
   }
 

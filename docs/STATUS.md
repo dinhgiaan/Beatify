@@ -65,6 +65,14 @@
    - Đã thêm hàm autoSyncLibraryFastToR2() và endpoint /local-api/sync/fast trên server indexer.
    - Mọi thao tác tại thư viện (sửa lyrics, đổi ảnh bìa, tải ảnh HD, chỉnh sửa metadata bài hát/album, đưa vào thùng rác, khôi phục) đều tự động đồng bộ ngay lập tức lên Cloudflare R2 trong < 0.5s.
    - Người dùng không cần bấm nút Đồng bộ R2 thủ công cho các thao tác chỉnh sửa nữa.
+8. **Khắc phục triệt để hiển thị Full 16:9 Ảnh bìa YouTube và Nâng cấp Độ nét HD chống vỡ ảnh:**
+   - **Khôi phục hiển thị Full 100% Ảnh bìa:** Trả lại chế độ hiển thị mặc định `resizeMode="contain"` theo đúng phiên bản yêu thích của người dùng; hỗ trợ ảnh 16:9 YouTube với khung thẻ ngang chuẩn (~355px x 200px) thay vì ép vuông làm xén mất góc và chữ hai bên; nền card chuyển về `#0a0a0a` tràn viền đen OLED không để lại dải xám thừa.
+   - **Tự động nhận diện Tỉ lệ Khung hình (Dynamic Aspect Ratio):** Bổ sung trường `coverAspect?: number` vào `TrackSchema` và module trích xuất `imageDimensions.ts` trong indexer (`scanner.ts`) để nhận diện chính xác tỉ lệ 16:9 (1.778) ngay khi quét file.
+   - **Nâng cấp độ nét HD & chống mờ/bể nét ảnh:**
+     - Sửa `scanner.ts` ưu tiên lấy ảnh bìa HD (1280x720 và 1400x1400) từ thư mục `custom_covers/` thay vì dùng thumbnail nhỏ nén kém chất lượng trong audio tag.
+     - Lệnh `sync` trên CLI (`cli.ts`) tự động đồng bộ toàn bộ 698 ảnh bìa HD từ `custom_covers/` lên Cloudflare R2.
+     - Bổ sung tham số version `&v=hd` trong `LibraryContext.tsx` để iOS xóa sạch cache ảnh thumbnail mờ cũ và tải trực tiếp ảnh HD sắc nét.
+
 
 **Việc tiếp theo:** Người dùng mở Web Dashboard (`pnpm --filter indexer ui`), bấm nút "Chuẩn hóa Tên bài & Ca sĩ" để duyệt và áp dụng chuẩn hóa vào thư viện khi muốn.
 1. **Công nghệ Auto-Smart Match 2.0 (`coverFetchService.ts` & Server):**

@@ -18,6 +18,7 @@ export const TrackSchema = z.object({
   file: z.string(), // key trong storage, vd "music/a1b2c3d4e5f6.mp3"
   storage: z.enum(['r2']).default('r2'),
   cover: z.string().optional(), // vd "covers/{albumId}.jpg"
+  coverAspect: z.number().positive().optional(), // Tỉ lệ chiều rộng / chiều cao của ảnh bìa (w / h), vd 1.778 cho 16:9, 1.0 cho ảnh vuông
   loudnessLufs: z.number().optional(), // độ ồn tích hợp (LUFS)
   replayGain: z.number().optional(), // dB cần chỉnh (thường âm)
   lyrics: LyricsRefSchema.optional(), // Phase 4

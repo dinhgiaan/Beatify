@@ -72,15 +72,16 @@ export function resolveTrackUrls(track: Track, serverUrl: string, serverToken: s
   let cover = track.cover;
   const match = cover?.match(/[0-9a-fA-F]{12}/);
   const coverId = match ? match[0] : (track.albumId || track.id);
+  const verParam = tokenParam ? '&v=hd' : '?v=hd';
 
   if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
     if (cover.includes('/covers/') && cleanUrl && coverId) {
-      cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+      cover = `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}`;
     }
   } else if (cover && !cover.startsWith('file://')) {
-    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}` : cover;
+    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}` : cover;
   } else if (!cover && coverId && cleanUrl) {
-    cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+    cover = `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}`;
   }
 
   return {
@@ -101,15 +102,16 @@ export function resolveAlbumUrls(album: Album, serverUrl: string, serverToken: s
   let cover = album.cover;
   const match = cover?.match(/[0-9a-fA-F]{12}/);
   const coverId = match ? match[0] : (album.trackIds?.[0] || album.id);
+  const verParam = tokenParam ? '&v=hd' : '?v=hd';
 
   if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
     if (cover.includes('/covers/') && cleanUrl && coverId) {
-      cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+      cover = `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}`;
     }
   } else if (cover && !cover.startsWith('file://')) {
-    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}` : cover;
+    cover = cleanUrl && coverId ? `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}` : cover;
   } else if (!cover && coverId && cleanUrl) {
-    cover = `${cleanUrl}/covers/${coverId}${tokenParam}`;
+    cover = `${cleanUrl}/covers/${coverId}${tokenParam}${verParam}`;
   }
 
   return {

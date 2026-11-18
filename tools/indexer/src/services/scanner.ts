@@ -6,6 +6,7 @@ import * as mm from 'music-metadata';
 import type { Track } from '@music-app/shared';
 import { normalizeText } from '@music-app/shared';
 import { analyzeAudioFile } from './audioAnalysisService';
+import { getImageDimensions } from './imageDimensions';
 
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.m4a', '.flac', '.aac', '.ogg', '.wav']);
 
@@ -79,12 +80,32 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
     let coverBuffer: Buffer | undefined;
     let coverMime: string | undefined;
 
-    const picture = metadata.common.picture?.[0];
-    if (picture) {
-      coverBuffer = Buffer.from(picture.data);
-      coverMime = picture.format || 'image/jpeg';
-    } else {
-      // Fallback: Tìm file ảnh bìa riêng (sidecar) nằm cùng thư mục (ví dụ Song.jpg hoặc Song.png)
+    // 1. Ưu tiên số 1: Ảnh bìa HD từ custom_covers (ưu tiên track id, sau đó album id)
+    const customCoversDir = path.join(
+      process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer'),
+      'custom_covers'
+    );
+    const customTrackCover = path.join(customCoversDir, `${id}.jpg`);
+    const customAlbumCover = path.join(customCoversDir, `${albumId}.jpg`);
+
+    if (existsSync(customTrackCover)) {
+      try {
+        coverBuffer = await fs.readFile(customTrackCover);
+        coverMime = 'image/jpeg';
+      } catch {
+        // bỏ qua
+      }
+    } else if (existsSync(customAlbumCover)) {
+      try {
+        coverBuffer = await fs.readFile(customAlbumCover);
+        coverMime = 'image/jpeg';
+      } catch {
+        // bỏ qua
+      }
+    }
+
+    // 2. Dự phòng: Nếu chưa có trong custom_covers thì tìm sidecar hoặc embedded picture
+    if (!coverBuffer) {
       const extName = path.extname(filePath);
       const sidecarJpg = filePath.replace(extName, '.jpg');
       const sidecarPng = filePath.replace(extName, '.png');
@@ -102,6 +123,21 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
         } catch {
           // bỏ qua
         }
+      } else {
+        const picture = metadata.common.picture?.[0];
+        if (picture) {
+          coverBuffer = Buffer.from(picture.data);
+          coverMime = picture.format || 'image/jpeg';
+        }
+      }
+    }
+
+    // Tự động nhận diện tỉ lệ khung hình ảnh bìa (w / h)
+    let coverAspect: number | undefined;
+    if (coverBuffer) {
+      const dim = getImageDimensions(coverBuffer);
+      if (dim && dim.width > 0 && dim.height > 0) {
+        coverAspect = Number((dim.width / dim.height).toFixed(3));
       }
     }
 
@@ -120,6 +156,7 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
       file: `music/${id}${ext}`,
       storage: 'r2',
       cover: coverBuffer ? `covers/${id}.jpg` : undefined,
+      coverAspect,
       loudnessLufs: -18.0,
       replayGain: 0.0,
     };

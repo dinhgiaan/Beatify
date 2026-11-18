@@ -179,6 +179,23 @@ Cách dùng:
     for (const [albumId, buffer] of coversByAlbumId.entries()) {
       await uploader.uploadCover(albumId, buffer);
     }
+
+    // Đảm bảo toàn bộ ảnh HD trong custom_covers được đồng bộ lên Cloudflare R2 đầy đủ
+    if (fs.existsSync(CUSTOM_COVERS_DIR)) {
+      const customCoverFiles = (await fs.promises.readdir(CUSTOM_COVERS_DIR)).filter((f) => f.endsWith('.jpg'));
+      let extraCount = 0;
+      for (const f of customCoverFiles) {
+        const coverId = f.replace(/\.jpg$/, '');
+        if (!coversByTrackId.has(coverId) && !coversByAlbumId.has(coverId)) {
+          const buf = await fs.promises.readFile(path.join(CUSTOM_COVERS_DIR, f));
+          await uploader.uploadCover(coverId, buf);
+          extraCount++;
+        }
+      }
+      if (extraCount > 0) {
+        console.log(`✨ Đã đồng bộ thêm ${extraCount} ảnh bìa HD từ custom_covers lên R2.`);
+      }
+    }
     console.log(`✅ Đã tải xong ảnh bìa.`);
 
     // 3. Upload library.json cuối cùng

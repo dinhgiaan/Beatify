@@ -106,8 +106,9 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   const [customMinutesInput, setCustomMinutesInput] = useState('');
   const [loopModalVisible, setLoopModalVisible] = useState(false);
   const [customLoopInput, setCustomLoopInput] = useState('');
-  const [coverFit, setCoverFit] = useState<'cover' | 'contain'>('cover');
-  const [coverAspect, setCoverAspect] = useState<number>(1);
+  const [coverFit, setCoverFit] = useState<'cover' | 'contain'>('contain');
+  const trackAspect = (currentTrack as { coverAspect?: number } | null)?.coverAspect;
+  const [coverAspect, setCoverAspect] = useState<number>(trackAspect || 1.778);
 
   // Trạng thái kiểm tra và thông báo khi bài hát không có lời
   const [lyricsContent, setLyricsContent] = useState<string | null | undefined>(undefined);
@@ -158,10 +159,14 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
     };
   }, [currentTrack?.id, getOfflineLyrics, fetchLyrics]);
 
-  // Tự động nhận diện tỉ lệ ảnh bìa (1:1 chuẩn album hay 16:9 thumbnail YouTube)
+  // Tự động nhận diện tỉ lệ ảnh bìa (16:9 chuẩn YouTube hoặc 1:1 chuẩn album vuông)
   useEffect(() => {
+    if (trackAspect && trackAspect > 0) {
+      setCoverAspect(trackAspect);
+      return;
+    }
     if (!currentTrack?.cover) {
-      setCoverAspect(1);
+      setCoverAspect(1.778);
       return;
     }
     let active = true;
@@ -173,13 +178,14 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
         }
       },
       () => {
-        if (active) setCoverAspect(1);
+        // Dự phòng tỉ lệ 16:9 phổ biến của YouTube nếu không lấy được kích thước qua mạng
+        if (active) setCoverAspect(1.778);
       }
     );
     return () => {
       active = false;
     };
-  }, [currentTrack?.cover]);
+  }, [currentTrack?.cover, trackAspect]);
 
   const hasLyrics = Boolean(
     (lyricsContent && lyricsContent.trim().length > 0) ||
@@ -255,14 +261,14 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   // - Nếu là ảnh bìa album vuông chuẩn (ratio ~ 1.0):
   //   Giữ khung vuông cân đối ~306-310px chuẩn Apple Music / Spotify.
   const isLandscapeCover = coverAspect > 1.2;
-  const maxCardWidth = Math.min(width - spacing.xl * 2, 350);
+  const maxCardWidth = Math.min(width - spacing.lg * 2, 355);
 
   const artworkWidth = isLandscapeCover
     ? maxCardWidth
     : Math.min(maxCardWidth, Math.max(220, Math.round(height * 0.36)));
 
   const artworkHeight = isLandscapeCover
-    ? Math.round(artworkWidth / Math.min(coverAspect, 1.78))
+    ? Math.round(artworkWidth / Math.min(Math.max(coverAspect, 1.2), 1.85))
     : artworkWidth;
 
   const queuePanelHeight = Math.max(260, Math.round(height * 0.36));
@@ -1132,14 +1138,16 @@ const styles = StyleSheet.create({
   artworkContainer: {
     borderRadius: radius.xl,
     overflow: 'hidden',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: '#0a0a0a',
     marginTop: spacing.xs,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     shadowColor: colors.textDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   artworkImageTouchable: {
     width: '100%',
