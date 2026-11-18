@@ -2133,13 +2133,8 @@ app.post('/local-api/sync/fast', async (c) => {
   return c.json({ status: 500, error: result.error || 'Đồng bộ thất bại' }, 500);
 });
 
-// 6.1. API: Đồng bộ R2 (Áp dụng bộ lọc bài xóa/ẩn và cập nhật tiến trình thời gian thực)
-app.post('/local-api/sync', async (c) => {
-  const config = loadConfig();
-  if (!config) {
-    return c.json({ status: 400, error: 'Thiếu cấu hình R2 trong .env' }, 400);
-  }
-
+// 6.1. Hàm thực thi đồng bộ R2 ngầm (không block HTTP request, cập nhật tiến trình liên tục)
+async function executeR2Sync(config: IndexerConfig): Promise<void> {
   currentSyncProgress = {
     active: true,
     step: 'Đang quét thư mục âm thanh trên máy tính...',
@@ -2213,7 +2208,7 @@ app.post('/local-api/sync', async (c) => {
 
     for (const [i, item] of scannedTracks.entries()) {
       completedSteps++;
-      const pct = 15 + Math.round((completedSteps / totalSteps) * 70);
+      const pct = 15 + Math.round((completedSteps / totalSteps) * 65);
       const isAlreadyOnCloud = existingR2Keys.has(item.track.file);
 
       if (isAlreadyOnCloud) {
@@ -2244,7 +2239,7 @@ app.post('/local-api/sync', async (c) => {
     for (const [coverId, buffer] of allCoversToUpload.entries()) {
       coverIdx++;
       completedSteps++;
-      const pct = 15 + Math.round((completedSteps / totalSteps) * 70);
+      const pct = 15 + Math.round((completedSteps / totalSteps) * 65);
       const coverKey = `covers/${coverId}.jpg`;
       const isCoverOnCloud = existingCoverKeys.has(coverKey);
       const hasCustomCover = existsSync(path.join(CUSTOM_COVERS_DIR, `${coverId}.jpg`));
@@ -2273,19 +2268,31 @@ app.post('/local-api/sync', async (c) => {
       }
     }
 
-    for (const item of scannedTracks) {
-      if (item.track.lyrics?.file) {
-        const lrcFile = path.join(LYRICS_DIR, `${item.track.id}.lrc`);
-        const sidecarLrc = item.filePath.replace(path.extname(item.filePath), '.lrc');
-        let text = '';
-        if (existsSync(lrcFile)) {
-          text = await fs.readFile(lrcFile, 'utf-8');
-        } else if (existsSync(sidecarLrc)) {
-          text = await fs.readFile(sidecarLrc, 'utf-8');
-        }
-        if (text) {
-          await uploader.uploadLyrics(item.track.lyrics.file, text);
-        }
+    // Đồng bộ lời bài hát có cập nhật tiến trình mượt mà
+    const tracksWithLyrics = scannedTracks.filter((item) => Boolean(item.track.lyrics?.file));
+    let lyricsIdx = 0;
+    for (const item of tracksWithLyrics) {
+      lyricsIdx++;
+      const lyricsPct = 80 + Math.round((lyricsIdx / Math.max(tracksWithLyrics.length, 1)) * 14);
+      currentSyncProgress = {
+        active: true,
+        step: `Đang đồng bộ lời bài hát (${lyricsIdx}/${tracksWithLyrics.length}): "${item.track.title}"`,
+        current: lyricsIdx,
+        total: tracksWithLyrics.length,
+        percent: lyricsPct,
+        error: null,
+      };
+
+      const lrcFile = path.join(LYRICS_DIR, `${item.track.id}.lrc`);
+      const sidecarLrc = item.filePath.replace(path.extname(item.filePath), '.lrc');
+      let text = '';
+      if (existsSync(lrcFile)) {
+        text = await fs.readFile(lrcFile, 'utf-8');
+      } else if (existsSync(sidecarLrc)) {
+        text = await fs.readFile(sidecarLrc, 'utf-8');
+      }
+      if (text) {
+        await uploader.uploadLyrics(item.track.lyrics!.file, text);
       }
     }
 
@@ -2294,7 +2301,7 @@ app.post('/local-api/sync', async (c) => {
       step: 'Đang kiểm tra đối chiếu tệp thực tế và cập nhật library.json lên R2...',
       current: totalSteps,
       total: totalSteps,
-      percent: 95,
+      percent: 96,
       error: null,
     };
 
@@ -2327,13 +2334,6 @@ app.post('/local-api/sync', async (c) => {
     };
 
     invalidateStatusCache();
-
-    return c.json({
-      status: 200,
-      message: 'Đồng bộ R2 hoàn tất',
-      trackCount: library.tracks.length,
-      albumCount: library.albums.length,
-    });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     currentSyncProgress = {
@@ -2344,8 +2344,30 @@ app.post('/local-api/sync', async (c) => {
       percent: 0,
       error: errMsg,
     };
-    return c.json({ status: 500, error: 'Lỗi khi đồng bộ R2: ' + errMsg }, 500);
   }
+}
+
+// 6.1. API: Đồng bộ R2 (Khởi chạy bất đồng bộ, phản hồi tức thì trong vài ms, tránh HTTP timeout)
+app.post('/local-api/sync', async (c) => {
+  const config = loadConfig();
+  if (!config) {
+    return c.json({ status: 400, error: 'Thiếu cấu hình R2 trong .env' }, 400);
+  }
+
+  if (currentSyncProgress.active) {
+    return c.json({ status: 200, message: 'Đồng bộ đang diễn ra', active: true });
+  }
+
+  // Khởi động đồng bộ ngầm không block HTTP request
+  executeR2Sync(config).catch((err) => {
+    console.error('[Sync Error]', err);
+  });
+
+  return c.json({
+    status: 200,
+    message: 'Đã bắt đầu đồng bộ R2 thành công',
+    active: true,
+  });
 });
 
 // 6.2. API: Quét các file thừa/mồ côi trên Cloudflare R2
