@@ -7,6 +7,7 @@ import type { Track } from '@music-app/shared';
 import { normalizeText } from '@music-app/shared';
 import { analyzeAudioFile } from './audioAnalysisService';
 import { getImageDimensions } from './imageDimensions';
+import { convertToSquareAmbientCover } from './imageConversionService';
 
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.m4a', '.flac', '.aac', '.ogg', '.wav']);
 
@@ -132,12 +133,28 @@ export async function scanAudioFile(filePath: string): Promise<ScannedTrack | nu
       }
     }
 
-    // Tự động nhận diện tỉ lệ khung hình ảnh bìa (w / h)
+    // Tự động nhận diện và chuyển đổi ảnh bìa ngang sang ảnh vuông 1:1 Ambient Blur
     let coverAspect: number | undefined;
     if (coverBuffer) {
       const dim = getImageDimensions(coverBuffer);
       if (dim && dim.width > 0 && dim.height > 0) {
-        coverAspect = Number((dim.width / dim.height).toFixed(3));
+        if (dim.width / dim.height > 1.05) {
+          const converted = await convertToSquareAmbientCover(coverBuffer);
+          if (converted !== coverBuffer) {
+            coverBuffer = converted;
+            coverMime = 'image/jpeg';
+            try {
+              await fs.mkdir(customCoversDir, { recursive: true });
+              await fs.writeFile(customTrackCover, converted);
+            } catch {
+              // Bỏ qua nếu lỗi ghi thư mục custom_covers
+            }
+          }
+        }
+        const finalDim = getImageDimensions(coverBuffer);
+        if (finalDim && finalDim.width > 0 && finalDim.height > 0) {
+          coverAspect = Number((finalDim.width / finalDim.height).toFixed(3));
+        }
       }
     }
 

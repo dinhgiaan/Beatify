@@ -41,6 +41,7 @@ import {
   downloadCoverImage,
 } from '../services/coverFetchService';
 import { defaultEntityResolutionService } from '../services/entityResolutionService';
+import { convertToSquareAmbientCover } from '../services/imageConversionService';
 
 export const app = new Hono();
 
@@ -859,11 +860,14 @@ const handleGetCover = async (c: Context) => {
 };
 
 // Hàm dùng chung để lưu ảnh bìa từ Buffer cho 1 bài hát
-async function saveTrackCoverBuffer(trackId: string, buffer: Buffer): Promise<{ albumId: string; coverUrl: string }> {
+async function saveTrackCoverBuffer(trackId: string, rawBuffer: Buffer): Promise<{ albumId: string; coverUrl: string }> {
   const scanned = cachedScannedTracks.find((t) => t.track.id === trackId);
   if (!scanned) {
     throw new Error('Không tìm thấy bài hát');
   }
+
+  // Tự động convert sang ảnh vuông 1:1 ambient blur nếu ảnh tải lên là ảnh ngang (16:9, 4:3, ...)
+  const buffer = await convertToSquareAmbientCover(rawBuffer);
 
   const albumId = scanned.track.albumId || `track_${trackId.slice(0, 8)}`;
 
