@@ -39,6 +39,7 @@ tools/indexer/temp_youtube_*
 tools/indexer/audio_analysis_cache.json
 tools/indexer/user_state.json
 tools/indexer/custom_covers/
+tools/indexer/custom_covers_backup_16_9/
 tools/indexer/lyrics/
 tools/indexer/library.json
 

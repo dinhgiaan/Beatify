@@ -9,14 +9,23 @@ describe('getImageDimensions', () => {
     expect(getImageDimensions(Buffer.alloc(10))).toBeNull();
   });
 
-  it('đọc đúng kích thước JPEG 1280x720 thực tế trong custom_covers', () => {
+  it('đọc đúng kích thước JPEG 1280x720 từ backup 16:9 hoặc 1280x1280 sau khi convert', () => {
+    const backupFile = path.resolve(__dirname, '../../custom_covers_backup_16_9/d6db86a91378.jpg');
+    if (fs.existsSync(backupFile)) {
+      const buf = fs.readFileSync(backupFile);
+      const dim = getImageDimensions(buf);
+      expect(dim).not.toBeNull();
+      expect(dim?.width).toBe(1280);
+      expect(dim?.height).toBe(720);
+    }
+
     const testFile = path.resolve(__dirname, '../../custom_covers/d6db86a91378.jpg');
     if (fs.existsSync(testFile)) {
       const buf = fs.readFileSync(testFile);
       const dim = getImageDimensions(buf);
       expect(dim).not.toBeNull();
       expect(dim?.width).toBe(1280);
-      expect(dim?.height).toBe(720);
+      expect(dim?.height).toBe(1280);
     }
   });
 
@@ -41,3 +50,4 @@ describe('getImageDimensions', () => {
     expect(dim).toEqual({ width: 100, height: 50 });
   });
 });
+

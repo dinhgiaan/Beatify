@@ -586,14 +586,14 @@ export const YoutubeService = {
             const thumbArrayBuf = await res.arrayBuffer();
             await fsPromises.writeFile(rawThumbPath, Buffer.from(thumbArrayBuf));
 
-            // Dùng ffmpeg để crop tâm vuông 1:1 và scale chuẩn 600x600 cho album cover
+            // Dùng ffmpeg tạo ảnh vuông 1:1 nền mờ Ambient (giữ trọn 100% chi tiết ảnh gốc 16:9)
             const squareCoverPath = path.join(tempDir, 'cover_square.jpg');
             const cropResult = await runCommand('ffmpeg', [
               '-y',
               '-i',
               rawThumbPath,
-              '-vf',
-              "crop='min(iw,ih)':'min(iw,ih)',scale=600:600",
+              '-filter_complex',
+              '[0:v]scale=1280:1280:force_original_aspect_ratio=increase,crop=1280:1280,boxblur=40:5,eq=brightness=-0.12[bg];[0:v]scale=1280:-1[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2',
               '-q:v',
               '2',
               squareCoverPath,

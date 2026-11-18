@@ -47,7 +47,6 @@ import { SHUFFLE_LABELS } from '../../constants/labels';
 import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
 import { EqualizerIndicator } from './EqualizerIndicator';
-import { VinylRecordView } from './VinylRecordView';
 import { useOffline } from '../../context';
 
 /**
@@ -90,8 +89,6 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
     moveQueueItem,
     sleepTimerRemainingSec,
     setSleepTimer,
-    isVinylMode,
-    toggleVinylMode,
   } = usePlayer();
 
   const { userState, toggleFavorite, fetchLyrics, saveTrack } = useLibrary();
@@ -108,7 +105,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   const [customLoopInput, setCustomLoopInput] = useState('');
   const [coverFit, setCoverFit] = useState<'cover' | 'contain'>('contain');
   const trackAspect = (currentTrack as { coverAspect?: number } | null)?.coverAspect;
-  const [coverAspect, setCoverAspect] = useState<number>(trackAspect || 1.778);
+  const [coverAspect, setCoverAspect] = useState<number>(trackAspect || 1.0);
 
   // Trạng thái kiểm tra và thông báo khi bài hát không có lời
   const [lyricsContent, setLyricsContent] = useState<string | null | undefined>(undefined);
@@ -166,7 +163,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
       return;
     }
     if (!currentTrack?.cover) {
-      setCoverAspect(1.778);
+      setCoverAspect(1.0);
       return;
     }
     let active = true;
@@ -178,8 +175,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
         }
       },
       () => {
-        // Dự phòng tỉ lệ 16:9 phổ biến của YouTube nếu không lấy được kích thước qua mạng
-        if (active) setCoverAspect(1.778);
+        if (active) setCoverAspect(1.0);
       }
     );
     return () => {
@@ -343,20 +339,8 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
           ) : null}
         </View>
 
-        {/* Nút bật/tắt Chế độ Đĩa Than Vinyl */}
-        <TouchableOpacity
-          style={[styles.turntableToggleBtn, isVinylMode && styles.turntableToggleBtnActive]}
-          onPress={toggleVinylMode}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Chuyển chế độ Đĩa Than Vinyl"
-        >
-          <DiscIcon size={14} color={isVinylMode ? '#000000' : colors.primary} />
-          <Text style={[styles.turntableToggleText, isVinylMode && styles.turntableToggleTextActive]}>
-            {isVinylMode ? 'VINYL' : 'BÌA'}
-          </Text>
-        </TouchableOpacity>
+        {/* Cân đối khoảng trống bên phải với nút đóng bên trái để tiêu đề luôn nằm chính giữa */}
+        <View style={styles.headerRightSpacer} />
       </View>
 
       {/* Nội dung cuộn an toàn phòng vệ (ScrollView) không bao giờ bị cắt trên màn hình nhỏ */}
@@ -365,30 +349,20 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* KHU VỰC TRÊN: Ảnh bìa vuông HOẶC Đĩa Than Vinyl HOẶC Hàng đợi phát (Căn giữa linh hoạt) */}
+        {/* KHU VỰC TRÊN: Ảnh bìa nghệ thuật HOẶC Hàng đợi phát (Căn giữa linh hoạt) */}
         <View style={styles.artworkSection}>
           {!showQueue ? (
-            isVinylMode ? (
-              <VinylRecordView
-                coverUri={currentTrack?.cover}
-                isPlaying={playerState.isPlaying}
-                positionSec={positionSec}
-                durationSec={durationSec}
-                size={Math.min(artworkWidth, 305)}
-              />
-            ) : (
-              <Animated.View
-                style={
-                  [
-                    styles.artworkContainer,
-                    {
-                      width: artworkWidth,
-                      height: artworkHeight,
-                      borderRadius: isLandscapeCover ? radius.md : radius.xl,
-                      transform: [{ scale: artworkScale }],
-                    },
-                  ]}
-              >
+            <Animated.View
+              style={[
+                styles.artworkContainer,
+                {
+                  width: artworkWidth,
+                  height: artworkHeight,
+                  borderRadius: isLandscapeCover ? radius.lg : radius.xl,
+                  transform: [{ scale: artworkScale }],
+                },
+              ]}
+            >
                 {currentTrack?.cover ? (
                   <TouchableOpacity
                     activeOpacity={0.95}
@@ -418,7 +392,6 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
                   </View>
                 )}
               </Animated.View>
-            )
           ) : (
           <View
             style={[
@@ -1076,29 +1049,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  turntableToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-  },
-  turntableToggleBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  turntableToggleText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: fontWeights.bold,
-    letterSpacing: 0.5,
-  },
-  turntableToggleTextActive: {
-    color: '#000000',
+  headerRightSpacer: {
+    width: 44,
+    height: 44,
   },
   headerTitleContainer: {
     alignItems: 'center',

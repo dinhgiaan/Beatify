@@ -72,6 +72,14 @@
      - Sửa `scanner.ts` ưu tiên lấy ảnh bìa HD (1280x720 và 1400x1400) từ thư mục `custom_covers/` thay vì dùng thumbnail nhỏ nén kém chất lượng trong audio tag.
      - Lệnh `sync` trên CLI (`cli.ts`) tự động đồng bộ toàn bộ 698 ảnh bìa HD từ `custom_covers/` lên Cloudflare R2.
      - Bổ sung tham số version `&v=hd` trong `LibraryContext.tsx` để iOS xóa sạch cache ảnh thumbnail mờ cũ và tải trực tiếp ảnh HD sắc nét.
+9. **Chuẩn hóa Ảnh bìa YouTube 1:1 Ambient Blurred Canvas & Tối giản Header Now Playing:**
+   - **Xóa bỏ nút gạt Đĩa than (Vinyl) ở Now Playing:** Xóa hoàn toàn toggle BÌA / VINYL khỏi header `NowPlayingView.tsx` theo Lựa chọn A của người dùng, căn giữa tiêu đề hoàn hảo bằng spacer cân đối hai bên, tạo giao diện Now Playing tối giản, tinh tế theo phong cách Apple Music.
+   - **Chuyển đổi 269 ảnh bìa YouTube ngang (16:9 / 4:3) sang 1:1 Vuông Ambient Blur:**
+     - Áp dụng bộ lọc `ffmpeg` (`boxblur=40:5,eq=brightness=-0.12` làm nền ambient mờ nghệ thuật + overlay ảnh gốc 16:9 chính giữa): Giữ trọn 100% chi tiết ảnh YouTube, không bị cắt xén hai bên, không bị méo/kéo dãn hình, hòa quyện mượt mà vào khung vuông chuẩn 1:1 của iOS Lock Screen, Control Center và Now Playing.
+     - Sao lưu an toàn toàn bộ 269 file ảnh gốc 16:9 vào `tools/indexer/custom_covers_backup_16_9/` (được đưa vào `.gitignore`).
+     - Tự động hóa cho tương lai: Cập nhật `youtubeService.ts` và server indexer (`server/index.ts`) tự động sinh ảnh 1:1 ambient blurred canvas cho mọi bài hát tải mới từ YouTube.
+     - Đặt tỉ lệ chuẩn `coverAspect` mặc định về 1.0 trong `NowPlayingView.tsx`.
+     - Kiểm thử tự động: 381/381 test PASS 100% toàn monorepo.
 
 
 **Việc tiếp theo:** Người dùng mở Web Dashboard (`pnpm --filter indexer ui`), bấm nút "Chuẩn hóa Tên bài & Ca sĩ" để duyệt và áp dụng chuẩn hóa vào thư viện khi muốn.
@@ -304,7 +312,7 @@
             1. Áp dụng kỹ thuật **Deferred Navigation**: Trì hoãn đổi route 80ms để viên thuốc lướt trọn vẹn 120fps trước khi màn hình mới render.
             2. Tính toán vị trí trực tiếp theo tỉ lệ `containerWidth / totalTabs` qua 1 lần đo container duy nhất, loại bỏ toàn bộ `onLayout` rời rạc của từng item.
             3. Giảm shadow blur từ 20px xuống 8px nhẹ nhàng, giảm 80% áp lực render GPU.
-**Cập nhật lần cuối:** 2026-11-15 (Sửa triệt để lỗi 5-7s delay phát nhạc bằng cách bỏ RNTP cache proxy, tối ưu TabBar 120fps bằng Deferred Navigation)
+**Cập nhật lần cuối:** 2026-11-18 (Chuyển đổi 269 ảnh bìa YouTube 16:9 sang 1:1 ambient blur, xóa toggle vinyl đĩa than tại Now Playing)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
