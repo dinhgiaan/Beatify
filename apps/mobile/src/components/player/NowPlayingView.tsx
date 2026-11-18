@@ -48,7 +48,7 @@ import { LyricsModal } from '../LyricsModal';
 import { EditTrackModal } from '../EditTrackModal';
 import { EqualizerIndicator } from './EqualizerIndicator';
 import { VinylRecordView } from './VinylRecordView';
-import { Waveform } from './Waveform';
+import { BassWaveformVisualizer } from './BassWaveformVisualizer';
 import { useOffline } from '../../context';
 
 /**
@@ -363,58 +363,73 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
         {/* KHU VỰC TRÊN: Ảnh bìa vuông HOẶC Đĩa Than Vinyl HOẶC Hàng đợi phát (Căn giữa linh hoạt) */}
         <View style={styles.artworkSection}>
           {!showQueue ? (
-          isVinylMode ? (
-            <VinylRecordView
-              coverUri={currentTrack?.cover}
-              isPlaying={playerState.isPlaying}
-              positionSec={positionSec}
-              durationSec={durationSec}
-              size={Math.min(artworkWidth, 305)}
-            />
-          ) : (
-            <Animated.View
-              style={
-                [
-                  styles.artworkContainer,
-                  {
-                    width: artworkWidth,
-                    height: artworkHeight,
-                    borderRadius: isLandscapeCover ? radius.md : radius.xl,
-                    transform: [{ scale: artworkScale }],
-                  },
-                ]}
-            >
-              {currentTrack?.cover ? (
-                <TouchableOpacity
-                  activeOpacity={0.95}
-                  onPress={() => setCoverFit((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
-                  style={styles.artworkImageTouchable}
-                  accessibilityRole="imagebutton"
-                  accessibilityLabel="Chạm để chuyển chế độ hiển thị ảnh bìa tràn viền hoặc thu gọn"
-                >
-                  <Image
-                    source={{ uri: currentTrack.cover }}
-                    style={styles.artworkImage}
-                    resizeMode={coverFit}
-                    onLoad={(e) => {
-                      const { width: w, height: h } = e.nativeEvent.source;
-                      if (w > 0 && h > 0) {
-                        setCoverAspect(w / h);
-                      }
-                    }}
-                  />
-                </TouchableOpacity>
+            <>
+              {isVinylMode ? (
+                <VinylRecordView
+                  coverUri={currentTrack?.cover}
+                  isPlaying={playerState.isPlaying}
+                  positionSec={positionSec}
+                  durationSec={durationSec}
+                  size={Math.min(artworkWidth, 305)}
+                />
               ) : (
-                <View style={styles.artworkPlaceholder}>
-                  <DiscIcon size={Math.round(artworkWidth * 0.35)} color={colors.borderLight} />
-                  <Text style={styles.artworkEmptyText}>
-                    {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
-                  </Text>
-                </View>
+                <Animated.View
+                  style={
+                    [
+                      styles.artworkContainer,
+                      {
+                        width: artworkWidth,
+                        height: artworkHeight,
+                        borderRadius: isLandscapeCover ? radius.md : radius.xl,
+                        transform: [{ scale: artworkScale }],
+                      },
+                    ]}
+                >
+                  {currentTrack?.cover ? (
+                    <TouchableOpacity
+                      activeOpacity={0.95}
+                      onPress={() => setCoverFit((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
+                      style={styles.artworkImageTouchable}
+                      accessibilityRole="imagebutton"
+                      accessibilityLabel="Chạm để chuyển chế độ hiển thị ảnh bìa tràn viền hoặc thu gọn"
+                    >
+                      <Image
+                        source={{ uri: currentTrack.cover }}
+                        style={styles.artworkImage}
+                        resizeMode={coverFit}
+                        onLoad={(e) => {
+                          const { width: w, height: h } = e.nativeEvent.source;
+                          if (w > 0 && h > 0) {
+                            setCoverAspect(w / h);
+                          }
+                        }}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.artworkPlaceholder}>
+                      <DiscIcon size={Math.round(artworkWidth * 0.35)} color={colors.borderLight} />
+                      <Text style={styles.artworkEmptyText}>
+                        {currentTrack ? 'Không có ảnh bìa' : 'Chưa có bài hát'}
+                      </Text>
+                    </View>
+                  )}
+                </Animated.View>
               )}
-            </Animated.View>
-          )
-        ) : (
+
+              {/* Sóng âm thanh động học giật lên xuống theo độ to & nhịp bài nhạc (đặt ngay dưới ảnh bìa) */}
+              <View style={styles.underCoverWaveformWrapper}>
+                <BassWaveformVisualizer
+                  isPlaying={playerState.isPlaying}
+                  loudnessLufs={currentTrack?.loudnessLufs}
+                  bpm={currentTrack?.bpm}
+                  trackId={currentTrack?.id}
+                  barCount={28}
+                  height={26}
+                  activeColor={colors.primary}
+                />
+              </View>
+            </>
+          ) : (
           <View
             style={[
               styles.queuePanelContainer,
@@ -568,7 +583,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
             </TouchableOpacity>
           </View>
 
-          {/* Sóng âm thanh Waveform đa dải tần & Thanh tua tiến trình nhạc (Scrubber) */}
+          {/* Thanh tua tiến trình nhạc (Scrubber) chuẩn Apple Music / Spotify */}
           <View style={styles.scrubberContainer}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -578,27 +593,16 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
               accessibilityRole="adjustable"
               accessibilityLabel="Thanh tua tiến trình bài hát"
             >
-              {/* Dải sóng âm thanh dạng Waveform Scrubber chuyên nghiệp */}
-              <View style={styles.waveformWrapper}>
-                <Waveform
-                  trackId={currentTrack?.id || 'default-track'}
-                  barCount={46}
-                  height={22}
-                  activeColor={colors.primary}
-                  inactiveColor="rgba(255, 255, 255, 0.2)"
-                />
-              </View>
-
               <View style={styles.scrubberTrack}>
                 <View style={[styles.scrubberFill, { width: `${progressPercent}%` }]} />
               </View>
             </TouchableOpacity>
 
-          <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
-            <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
+            <View style={styles.timeRow}>
+              <Text style={styles.timeText}>{formatTime(positionSec)}</Text>
+              <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
+            </View>
           </View>
-        </View>
 
         {/* Cụm điều khiển chính: Shuffle, Prev, Play/Pause, Next, Repeat */}
         <View style={styles.controlsRow}>
@@ -1304,27 +1308,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  waveformWrapper: {
+  underCoverWaveformWrapper: {
     width: '100%',
-    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   scrubberContainer: {
     width: '100%',
     marginBottom: spacing.xs,
   },
   scrubberTouchable: {
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     justifyContent: 'center',
   },
   scrubberTrack: {
     height: 4,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderRadius: radius.pill,
     overflow: 'hidden',
   },
   scrubberFill: {
     height: '100%',
     backgroundColor: colors.primary,
+    borderRadius: radius.pill,
   },
   timeRow: {
     flexDirection: 'row',

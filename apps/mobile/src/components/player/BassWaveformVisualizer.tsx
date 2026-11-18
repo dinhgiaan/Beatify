@@ -1,142 +1,196 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
-import { radius } from '../../theme';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { colors, radius } from '../../theme';
 
-interface BassWaveformVisualizerProps {
+export interface BassWaveformVisualizerProps {
   isPlaying: boolean;
+  loudnessLufs?: number;
+  bpm?: number;
+  trackId?: string;
   barCount?: number;
   height?: number;
+  activeColor?: string;
 }
 
 /**
- * BassWaveformVisualizer: Cụm Audio Spectrum Visualizer phong cách Studio DAC & Mastering Equalizer
- * - 24 cột sóng thanh mảnh, bo góc mềm mại, hiển thị dải phổ âm thanh từ Sub-bass (30Hz) đến Air/Highs (16kHz)
- * - Tông màu xanh ngọc lục bảo Studio Emerald (#10B981) siêu sang trọng, thanh lịch
- * - Hiệu ứng nảy hữu cơ (Organic Fluid Dynamic) theo đường cong tự nhiên khi phát nhạc, thu về trạng thái nghỉ tối giản khi tạm dừng
+ * BassWaveformVisualizer: Sóng âm thanh động học (Dynamic Audio-Reactive Visualizer)
+ * - Tự động giật nảy lên xuống sinh động theo nhịp điệu và độ to (loudness LUFS / BPM) của bài hát
+ * - Đặt ngay dưới ảnh bìa, tạo điểm nhấn thị giác đẳng cấp chuẩn studio hi-fi
+ * - Thu về mức tối giản phẳng lặng khi tạm dừng phát nhạc
  */
 export function BassWaveformVisualizer({
   isPlaying,
-  barCount = 24,
-  height = 36,
+  loudnessLufs,
+  bpm,
+  trackId,
+  barCount = 28,
+  height = 26,
+  activeColor = colors.primary,
 }: BassWaveformVisualizerProps) {
-  // Tạo mảng animation cho từng cột sóng
   const anims = useRef(
     Array.from({ length: barCount }, () => new Animated.Value(0.12))
   ).current;
 
+  const isMountedRef = useRef(true);
+
+  // Tính hệ số năng lượng âm thanh dựa trên loudness thực tế của bài hát (LUFS)
+  const baseLufs = loudnessLufs ?? -12;
+  const loudnessIntensity = Math.min(1.4, Math.max(0.65, 1.0 + (baseLufs - (-14)) * 0.05));
+
+  // Tốc độ nhịp tính theo BPM thực tế
+  const tempoFactor = bpm ? Math.min(1.5, Math.max(0.7, bpm / 120)) : 1.0;
+
   useEffect(() => {
+    isMountedRef.current = true;
+    const runningAnimations: Animated.CompositeAnimation[] = [];
+
     if (!isPlaying) {
+      // Khi tạm dừng: hạ toàn bộ cột sóng về mức nghỉ tối giản phẳng lặng
       anims.forEach((anim) => {
-        Animated.timing(anim, {
-          toValue: 0.12,
-          duration: 350,
+        const animExit = Animated.timing(anim, {
+          toValue: 0.1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
-        }).start();
+        });
+        runningAnimations.push(animExit);
+        animExit.start();
       });
-      return;
+
+      return () => {
+        isMountedRef.current = false;
+        runningAnimations.forEach((a) => a.stop());
+      };
     }
 
-    // Tần số dao động tự nhiên cho từng cột dựa theo phổ âm thanh thực tế:
-    // Cột thấp (Bass) nảy sâu và nhịp nhàng, cột giữa (Mid) nảy linh hoạt, cột cao (Treble) nháy nhanh
-    const baseDurations = [
-      480, 420, 360, 310, 260, 220, 190, 240, 280, 320, 250, 210,
-      180, 230, 290, 340, 270, 220, 190, 250, 310, 370, 430, 490,
-    ];
+    // Phân chia các dải tần số âm thanh:
+    // - Sub-bass / Kick (0 -> 28% số cột): nảy mạnh, giật cao theo beat
+    // - Mid / Vocal (28% -> 72%): rung dao động dồn dập
+    // - Treble / Air (72% -> 100%): nhấp nháy nhanh, linh hoạt
+    const subCount = Math.floor(barCount * 0.28);
+    const midCount = Math.floor(barCount * 0.44);
 
-    // Đường cong hình chuông (Bell Curve) cho biên độ tối đa:
-    // Năng lượng tập trung ở Sub-bass / Kick / Vocals và vuốt nhẹ về 2 đầu biên
-    const maxAmplitudes = [
-      0.45, 0.65, 0.85, 0.95, 1.0, 0.92, 0.88, 0.95, 0.82, 0.9, 0.96, 0.84,
-      0.89, 0.94, 0.85, 0.78, 0.92, 0.86, 0.75, 0.68, 0.6, 0.52, 0.45, 0.38,
-    ];
+    const animateBar = (index: number) => {
+      if (!isMountedRef.current) return;
 
-    const loops = anims.map((anim, idx) => {
-      const dur = baseDurations[idx % baseDurations.length] || 280;
-      const maxVal = maxAmplitudes[idx % maxAmplitudes.length] || 0.85;
-      const minVal = 0.14 + (idx % 4) * 0.04;
+      const isBass = index < subCount;
+      const isMid = index >= subCount && index < subCount + midCount;
 
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: maxVal,
-            duration: dur,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: minVal,
-            duration: Math.round(dur * 0.85),
-            useNativeDriver: true,
-          }),
-        ])
-      );
+      let minAmp: number;
+      let maxAmp: number;
+      let upDuration: number;
+      let downDuration: number;
+
+      if (isBass) {
+        minAmp = 0.12 + Math.random() * 0.08;
+        maxAmp = Math.min(1.0, (0.58 + Math.random() * 0.42) * loudnessIntensity);
+        upDuration = Math.round((65 + Math.random() * 75) / tempoFactor);
+        downDuration = Math.round((85 + Math.random() * 105) / tempoFactor);
+      } else if (isMid) {
+        minAmp = 0.14 + Math.random() * 0.1;
+        maxAmp = Math.min(0.95, (0.48 + Math.random() * 0.4) * loudnessIntensity);
+        upDuration = Math.round((55 + Math.random() * 65) / tempoFactor);
+        downDuration = Math.round((75 + Math.random() * 85) / tempoFactor);
+      } else {
+        minAmp = 0.1 + Math.random() * 0.08;
+        maxAmp = Math.min(0.85, (0.38 + Math.random() * 0.38) * loudnessIntensity);
+        upDuration = Math.round((45 + Math.random() * 55) / tempoFactor);
+        downDuration = Math.round((65 + Math.random() * 75) / tempoFactor);
+      }
+
+      const targetAnim = anims[index];
+      if (!targetAnim) return;
+
+      const seq = Animated.sequence([
+        Animated.timing(targetAnim, {
+          toValue: maxAmp,
+          duration: upDuration,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(targetAnim, {
+          toValue: minAmp,
+          duration: downDuration,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]);
+
+      runningAnimations[index] = seq;
+      seq.start(({ finished }) => {
+        if (finished && isMountedRef.current && isPlaying) {
+          animateBar(index);
+        }
+      });
+    };
+
+    // Khởi chạy với độ lệch pha ngẫu nhiên nhỏ để tạo độ giật tự nhiên
+    anims.forEach((_, idx) => {
+      const delay = Math.round((idx % 5) * 24 + Math.random() * 26);
+      const timer = setTimeout(() => {
+        if (isMountedRef.current && isPlaying) {
+          animateBar(idx);
+        }
+      }, delay);
+      runningAnimations.push({ stop: () => clearTimeout(timer) } as unknown as Animated.CompositeAnimation);
     });
 
-    loops.forEach((l) => l.start());
-
     return () => {
-      loops.forEach((l) => l.stop());
+      isMountedRef.current = false;
+      runningAnimations.forEach((a) => a.stop());
     };
-}, [isPlaying, anims, barCount]);
+  }, [isPlaying, loudnessIntensity, tempoFactor, trackId, anims, barCount]);
 
-  // Độ mờ đục (Opacity) phân lớp theo vị trí phổ âm thanh để tạo chiều sâu thị giác sang trọng
+  // Phân bổ độ mờ nhẹ ở 2 biên để tạo chiều sâu thị giác sang trọng
   const getBarOpacity = (index: number) => {
-    const center = barCount / 2;
+    const center = (barCount - 1) / 2;
     const distance = Math.abs(index - center) / center;
-    return Math.max(0.65, 1.0 - distance * 0.35);
+    return Math.max(0.7, 1.0 - distance * 0.3);
   };
 
   return (
     <View style={[styles.container, { height }]}>
-        <View style={styles.spectrumRow}>
-          {anims.map((anim, idx) => (
-              <View key={`spec-bar-${idx}`} style={[styles.barSlot, { height }]}>
-                <Animated.View
-                  style={[
-                    styles.barColumn,
-                    {
-                      height,
-                      opacity: getBarOpacity(idx),
-                      transform: [{ scaleY: anim }],
-                    },
-                  ]}
+      <View style={styles.spectrumRow}>
+        {anims.map((anim, idx) => (
+          <View key={`spec-bar-${idx}`} style={[styles.barSlot, { height }]}>
+            <Animated.View
+              style={[
+                styles.barColumn,
+                {
+                  height,
+                  backgroundColor: activeColor,
+                  opacity: getBarOpacity(idx),
+                  transform: [{ scaleY: anim }],
+                },
+              ]}
             />
-              </View>
+          </View>
         ))}
-            </View>
+      </View>
     </View>
-        );
+  );
 }
 
-        const styles = StyleSheet.create({
-          container: {
-          width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 6,
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-          spectrumRow: {
-          flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3.5,
-        width: '92%',
-        maxWidth: 320,
-        height: '100%',
+  spectrumRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
-        barSlot: {
-          flex: 1,
-        maxWidth: 4.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
+  barSlot: {
+    width: 4,
+    marginHorizontal: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-        barColumn: {
-          width: '100%',
-        borderRadius: radius.pill,
-        backgroundColor: '#10B981', // Studio Emerald Green
-        shadowColor: '#10B981',
-        shadowOffset: {width: 0, height: 0 },
-        shadowOpacity: 0.45,
-        shadowRadius: 4,
+  barColumn: {
+    width: 3.2,
+    borderRadius: radius.pill,
   },
 });
