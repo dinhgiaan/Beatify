@@ -40,7 +40,8 @@ Bản mẫu ở `references/build-ios.template.yml`. **Chưa được chạy th�
 
 ## Khi nào phải build lại
 
-Xem mục 4 của skill `phase-workflow`. Nếu chỉ đổi JS/TS thì người dùng dùng `npx expo start --dev-client` với app **Beatify Dev**: cùng Wi-Fi, mở app, nhập địa chỉ hoặc quét mã QR. Nếu mạng không cho cùng Wi-Fi, thử `--tunnel`.
+Người dùng **chỉ sử dụng bản build Production (.ipa)** cài qua Sideloadly trên Windows (không có máy Mac, không chạy Metro dev-server). Do đó, bất kỳ khi nào có cập nhật tính năng, chỉnh sửa logic hay giao diện JS/TS mà người dùng muốn sử dụng trên iPhone thì **bắt buộc phải trigger GitHub Actions build lại file .ipa Production** và tải về cài lại qua Sideloadly.
+Khi báo cáo cho người dùng, luôn nêu rõ: **CÓ CẦN BUILD LẠI .IPA PRODUCTION** và nêu rõ bản chất (chỉ cập nhật mã JS/TS hay có can thiệp cấu hình native).
 
 ## iOS 27 và Xcode (quan trọng)
 

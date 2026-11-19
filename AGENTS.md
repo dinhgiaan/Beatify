@@ -63,10 +63,13 @@ Nếu công cụ của bạn không tự nạp skill, hãy mở file `.agents/sk
 - Script và lệnh phải chạy được trên **Windows** (dùng Node, tránh cú pháp chỉ có trong bash).
 
 ## Ràng buộc về build (quan trọng)
+- **Quy tắc Vận hành Thực tế của Người dùng (BẮT BUỘC GHI NHỚ):**
+  - Người dùng **chỉ dùng bản build Production cài qua Sideload (Sideloadly / AltStore)**, KHÔNG chạy development (không có Mac, không dùng Metro bundler / dev client kết nối máy tính).
+  - Do đó: **Bất kỳ thay đổi nào (kể cả chỉ trong JS/TS/UI)** nếu muốn cập nhật lên iPhone để sử dụng và kiểm thử thì **BẮT BUỘC người dùng PHẢI chạy GitHub Actions build lại file `.ipa` Production và sideload lại**.
+  - Không được trả lời "không cần build lại" một cách máy móc theo lý thuyết dev client. Phải luôn nêu rõ: **CÓ CẦN BUILD LẠI `.ipa` PRODUCTION** để đưa mã mới lên iPhone (dù không có thay đổi native).
 - Mỗi lần build `.ipa` tốn phút macOS trên GitHub Actions và người dùng phải cài lại bằng tay.
 - **Không thêm thư viện native, không đổi plugin/`infoPlist` trong `app.config.ts`, không nâng cấp Expo/React Native nếu chưa hỏi người dùng.**
-- Trước khi thêm bất kỳ dependency nào có mã native: chạy `npx expo-doctor`, kiểm tra tương thích **New Architecture**, rồi báo người dùng "cần build lại".
-- Thay đổi chỉ trong JS/TS thì **không cần** build lại.
+- Trước khi thêm bất kỳ dependency nào có mã native: chạy `npx expo-doctor`, kiểm tra tương thích **New Architecture**, rồi báo người dùng "cần build lại native".
 - **Không đổi phiên bản Xcode, nhãn runner, Expo SDK, React Native** khi chưa hỏi. Dự án ghim Xcode 26.x và Expo SDK 57 ổn định vì iOS 27 (xem `docs/PLAN.md` mục 12.7).
 
 ## Ràng buộc về vận hành Server & Dọn dẹp R2
@@ -122,6 +125,6 @@ Nêu **nguyên nhân gốc (root cause)** trước, rồi mới sửa. Không s�
 1. Danh sách file đã tạo/sửa.
 2. Lệnh đã chạy và kết quả.
 3. Việc người dùng phải làm thủ công (nếu có), theo từng bước.
-4. Cần build lại `.ipa`: **CÓ / KHÔNG** (và vì sao).
+4. Cần build lại `.ipa` (Production): **CÓ** (để cập nhật tính năng mới lên iPhone qua GitHub Actions và Sideloadly) - nêu rõ bản chất: có đụng chạm mã native hay chỉ cập nhật JS/TS bundle.
 5. Mục nào trong `docs/ACCEPTANCE.md` cần thử trên iPhone.
 6. Đã cập nhật `docs/STATUS.md`.
