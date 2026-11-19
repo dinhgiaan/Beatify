@@ -3,6 +3,7 @@ import { promises as fsPromises } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execFile } from 'child_process';
+import { cleanLyricLine } from '@music-app/shared';
 
 export interface LyricsResult {
   source: 'lrclib-synced' | 'lrclib-plain' | 'yt-subs' | 'none';
@@ -284,6 +285,8 @@ export const LyricsService = {
           }
           j++;
         }
+
+        textLine = cleanLyricLine(textLine);
 
         if (
           textLine &&

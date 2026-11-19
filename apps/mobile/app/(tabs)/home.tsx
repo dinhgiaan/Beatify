@@ -212,6 +212,7 @@ export default function HomeScreen() {
                     tracks={section.tracks}
                     currentTrackId={currentTrack?.id}
                     isPlaying={playerState.isPlaying}
+                    isTrackOffline={isTrackOffline}
                     onTrackPress={handleTrackPress}
                     onTrackLongPress={handleTrackLongPress}
                   />
@@ -319,6 +320,7 @@ export default function HomeScreen() {
           handleAlbumPress,
           handleSeeAll,
           tracks,
+          isTrackOffline,
           cardWidth,
           artistChipWidth,
           cardGap,
@@ -387,11 +389,8 @@ export default function HomeScreen() {
           maxToRenderPerBatch={4}
           ListHeaderComponent={
             <View>
-              {/* E5: Lời chào chuẩn khung giờ + phụ đề ngắn gọn, có nút bánh răng mở Settings */}
-              <HomeGreeting
-                title={greeting.title}
-                subtitle="Hôm nay bạn muốn nghe gì?"
-              />
+              {/* Lời chào chuẩn khung giờ sang trọng, có nút tùy chọn góc phải */}
+              <HomeGreeting title={greeting.title} />
 
               {/* C4: Thông điệp Cold-start thân thiện, nhỏ gọn, không phô trương */}
               {recordCount === 0 && tracks.length > 0 && (

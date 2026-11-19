@@ -43,6 +43,25 @@
   - Chuyển toàn bộ các phương thức `haptics.tap()`, `haptics.success()`, `haptics.warning()` trong [src/lib/haptics.ts](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/lib/haptics.ts) thành no-op (không thực thi rung).
   - Loại bỏ hoàn toàn các lệnh `Vibration.vibrate()` trong [LyricPosterModal.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/player/LyricPosterModal.tsx).
   - Đảm bảo app chạy êm ái 100%, không còn bất kỳ rung giật hay phản hồi haptic nào trên toàn bộ thiết bị.
+- **8. Làm sạch Chuỗi Rác `&nbsp;` và Icon Nốt Nhạc trong Lời Bài Hát (LRC) & Đồng bộ R2 / Local:**
+  - Loại bỏ triệt để chuỗi rác HTML entity `&nbsp;`, các ký tự HTML escaping (`&amp;`, `&quot;`, `&#39;`, `&apos;`, `&lt;`, `&gt;`) và các biểu tượng nốt nhạc (`♪`, `♫`, `♬`, `♩`, 🎵, 🎶) trong toàn bộ lời bài hát (.lrc).
+  - Xử lý sạch sẽ 100% bài hát "Thiên Hà Trước Hiên Nhà (Prod. by Mikeezy)" của Datmaniac (`59c1532549d2`) và toàn bộ 28 bài hát khác trong kho nhạc bị dính hiện tượng tương tự.
+  - Đồng bộ tải lên Cloudflare R2 bucket (`lyrics/${trackId}.lrc`) cho 29 file `.lrc` và làm sạch 23 file `.lrc` trong thư mục nhạc local `D:\music for app` (đã sao lưu dự phòng toàn bộ file gốc trước khi xử lý vào `tools/indexer/backups/lyrics_cleanup_*`).
+  - Đưa hàm làm sạch dùng chung `cleanLyricLine` và `cleanLrcContent` vào `@music-app/shared`, đồng thời tích hợp trực tiếp vào bộ chuyển đổi phụ đề YouTube CC (`convertVttToLrc`) trong `lyricsService.ts` để ngăn chặn phát sinh trong tương lai.
+- **9. Chuẩn hóa UI/UX Nút Edit trong LyricsModal (`LyricsModal.tsx`):**
+  - Xóa bỏ hoàn toàn chữ "Edit", chỉ giữ lại icon bút chì (`EditIcon`).
+  - Định dạng lại nút theo chuẩn Apple HIG: kích thước 32x32, bo góc `radius.sm`, màu nền `colors.surfaceSecondary`, icon `colors.textMedium`, tạo sự đồng bộ và cân đối hoàn hảo với nút Đóng (`closeBtn`) bên cạnh trong `ModalHeader`.
+- **10. Tinh giản Giao diện Trang chủ, Nâng cấp Thẻ Chọn Nhanh & Icon Bottom Bar:**
+  - **Loại bỏ Text Label phụ (Subtitles):** Xóa toàn bộ các dòng text label dưới các title section ("Bài hát gần đây...", "Những bài hát bạn nghe nhiều nhất...", "Giai điệu quen thuộc...") trong [packages/shared/src/homeSections.ts](file:///d:/apps%20on%20phone/Beatify/packages/shared/src/homeSections.ts) và [SectionHeader.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/common/SectionHeader.tsx), giúp trang chủ thoáng đạt, tối giản và cao cấp.
+  - **Nâng cấp Toàn diện "Chọn nhanh cho bạn" ([QuickPickGrid.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/home/QuickPickGrid.tsx)):**
+    - Hiển thị đầy đủ, rõ nét Tên bài hát (13.5pt, semi-bold, `textPrimary`) và Tên nghệ sĩ (12pt, `textSecondary`).
+    - Tích hợp icon tích tròn màu xanh `offlineCheckBadge` (`CheckIcon` 8pt) ngay cạnh tên nghệ sĩ khi bài hát đã được tải về máy (`isTrackOffline`), đồng bộ chuẩn với danh sách Thư viện.
+    - Áp dụng `useWindowDimensions()` để tính toán chiều rộng ô co giãn chuẩn xác trên mọi kích thước màn hình.
+  - **Tối ưu Lời chào Trang chủ ([HomeGreeting.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/home/HomeGreeting.tsx)):**
+    - Tăng `paddingBottom: 28pt` tạo khoảng đệm cân đối, thông thoáng giữa Lời chào và khối Chọn nhanh.
+    - Xóa subtitle thừa dưới lời chào; chuẩn hóa nút icon bên phải thành nút tròn `36x36pt`, nền `surfaceElevated` bo tròn chuẩn Apple HIG.
+  - **Thay đổi Icon Tab thứ 3 Bottom Bar ([SvgIcons.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/icons/SvgIcons.tsx)):**
+    - Cập nhật biểu tượng `LibraryIcon` thành biểu tượng Your Library hiện đại chuẩn âm nhạc (kệ đĩa/sách nghiêng và đứng), thay thế cho hình cuốn sách cũ.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

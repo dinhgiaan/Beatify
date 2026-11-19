@@ -473,29 +473,30 @@ export function PlaylistIcon({ size = 20, color = '#ffffff' }: IconProps) {
   );
 }
 
-// 32. Library Icon (Thư viện âm nhạc)
+// 32. Library Icon (Thư viện âm nhạc - Your Library style chuẩn hiện đại)
 export function LibraryIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"
+        d="M4.5 7.5L8.5 20"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+        d="M13 4.5V20"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M9 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM11 8v6"
+        d="M18.5 4.5V20"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2.4"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );

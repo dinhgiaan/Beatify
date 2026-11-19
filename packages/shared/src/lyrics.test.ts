@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseLrc, findActiveLrcIndex, formatLrcSpacing } from './lyrics';
+import { parseLrc, findActiveLrcIndex, formatLrcSpacing, cleanLyricLine, cleanLrcContent } from './lyrics';
 
 describe('parseLrc', () => {
   it('phân tích cú pháp LRC chuẩn [mm:ss.xx]', () => {
@@ -87,5 +87,33 @@ describe('formatLrcSpacing', () => {
   it('xử lý chuỗi rỗng hoặc null', () => {
     expect(formatLrcSpacing('')).toBe('');
     expect(formatLrcSpacing(null)).toBe('');
+  });
+});
+
+describe('cleanLyricLine & cleanLrcContent', () => {
+  it('loại bỏ &nbsp; và các icon nốt nhạc ♪ ♫ ♬ ♩', () => {
+    const dirtyLine = '♪&nbsp;Xin cho anh em con vui chơi như xưa&nbsp;♪';
+    expect(cleanLyricLine(dirtyLine)).toBe('Xin cho anh em con vui chơi như xưa');
+  });
+
+  it('làm sạch toàn bộ nội dung LRC và giữ nguyên timestamp', () => {
+    const dirtyLrc = `[ar: Datmaniac]
+[ti: Thiên Hà Trước Hiên Nhà]
+[00:20.74] ♪&nbsp;Xin cho anh em con vui chơi như xưa&nbsp;♪
+[00:22.64] ♪&nbsp;Không lo sương đêm khi đi chơi rơi như mưa&nbsp;♪
+[00:24.48] ♪&nbsp;Lên non cao qua bao qua nhiêu ao tôm&nbsp;♪`;
+
+    const cleaned = cleanLrcContent(dirtyLrc);
+    expect(cleaned).toBe(`[ar: Datmaniac]
+[ti: Thiên Hà Trước Hiên Nhà]
+[00:20.74] Xin cho anh em con vui chơi như xưa
+[00:22.64] Không lo sương đêm khi đi chơi rơi như mưa
+[00:24.48] Lên non cao qua bao qua nhiêu ao tôm`);
+  });
+
+  it('tự động làm sạch khi parseLrc', () => {
+    const dirtyLrc = `[00:10.00] ♪&nbsp;Dòng có nốt nhạc&nbsp;♫`;
+    const parsed = parseLrc(dirtyLrc);
+    expect(parsed[0]?.text).toBe('Dòng có nốt nhạc');
   });
 });

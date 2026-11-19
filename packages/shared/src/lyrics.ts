@@ -61,7 +61,7 @@ export function parseLrc(content?: string | null): LrcLine[] {
     if (matches.length === 0) continue;
 
     // Loại bỏ tất cả các cụm timestamp để lấy nội dung text
-    const text = trimmed.replace(timeRegex, '').trim();
+    const text = cleanLyricLine(trimmed.replace(timeRegex, ''));
 
     for (const match of matches) {
       const minStr = match[1];
@@ -106,6 +106,54 @@ export function findActiveLrcIndex(lines: LrcLine[], currentTime: number): numbe
   }
 
   return ans;
+}
+
+/**
+ * Làm sạch một dòng văn bản lời bài hát:
+ * - Loại bỏ các thực thể HTML (như &nbsp;, &amp;, &quot;, &#39;, &apos;, &lt;, &gt;)
+ * - Loại bỏ các ký tự icon nốt nhạc và emoji âm nhạc (♪, ♫, ♬, ♩, 🎵, 🎶)
+ * - Chuẩn hóa khoảng trắng thừa
+ */
+export function cleanLyricLine(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/[♪♫♬♩🎵🎶]/gu, '')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Làm sạch toàn bộ nội dung file LRC:
+ * - Giữ nguyên mốc thời gian timestamp và các thẻ metadata chuẩn [ar:], [ti:], [offset:]
+ * - Làm sạch text từng dòng, loại bỏ &nbsp; và các icon nốt nhạc
+ */
+export function cleanLrcContent(raw?: string | null): string {
+  if (!raw) return '';
+  const lines = raw.split(/\r?\n/);
+  return lines
+    .map((line) => {
+      // Bỏ qua tag metadata chuẩn của LRC
+      const metaMatch = line.match(/^\[(ar|ti|al|au|by|re|ve|length|offset):/i);
+      if (metaMatch) return line;
+
+      // Nhận diện cụm timestamp
+      const tagMatch = line.match(/^((?:\[\d{1,3}:\d{2}(?:[.:]\d{2,3})?\])+)(.*)$/);
+      if (tagMatch && tagMatch[1] !== undefined && tagMatch[2] !== undefined) {
+        const tags = tagMatch[1];
+        const textPart = cleanLyricLine(tagMatch[2]);
+        return textPart ? `${tags} ${textPart}` : tags;
+      }
+
+      return cleanLyricLine(line);
+    })
+    .join('\n');
 }
 
 /**

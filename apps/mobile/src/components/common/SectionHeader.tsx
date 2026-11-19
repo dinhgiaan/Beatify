@@ -31,7 +31,7 @@ export function SectionHeader({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !subtitle && styles.containerCompact]}>
       {/* E3: Hàng tiêu đề section: 'Xem tất cả' căn giữa trực tiếp theo dòng TIÊU ĐỀ */}
       <View style={styles.topRow}>
         <Text style={styles.sectionTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -55,6 +55,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingTop: 0,
     paddingBottom: 14, // E4: khoảng cách phụ đề -> hàng card là 14pt
+  },
+  containerCompact: {
+    paddingBottom: 12, // Khi không có phụ đề: khoảng cách từ tiêu đề -> hàng card là 12pt
   },
   topRow: {
     flexDirection: 'row',

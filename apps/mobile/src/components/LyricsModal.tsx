@@ -193,12 +193,11 @@ export function LyricsModal({
                   onOpenEditLyrics(track);
                 }}
                 activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 accessibilityRole="button"
-                accessibilityLabel="Chỉnh sửa lời bài hát"
+                accessibilityLabel="Chỉnh sửa bài hát và lời"
               >
-                <EditIcon size={13} color={colors.primary} />
-                <Text style={styles.editText}>Edit</Text>
+                <EditIcon size={16} color={colors.textMedium} />
               </TouchableOpacity>
             }
           />
@@ -307,18 +306,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   editBtn: {
-    flexDirection: 'row',
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
-    backgroundColor: colors.primaryMutedLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-  },
-  editText: {
-    color: colors.primary,
-    fontSize: fontSizes.captionLarge,
-    fontWeight: fontWeights.semibold,
-    marginLeft: spacing.xs,
+    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,

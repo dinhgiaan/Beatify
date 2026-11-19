@@ -46,8 +46,7 @@ export const HomeGreeting = React.memo(function HomeGreeting({
     }
   };
 
-  const displayTitle = title && title.startsWith('Chào ') ? title : getStandardGreeting();
-  const displaySubtitle = subtitle || 'Hôm nay bạn muốn nghe gì?';
+  const displayTitle = title || getStandardGreeting();
 
   return (
     <View style={styles.container}>
@@ -56,21 +55,23 @@ export const HomeGreeting = React.memo(function HomeGreeting({
           <Text style={styles.title} numberOfLines={1}>
             {displayTitle}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {displaySubtitle}
-          </Text>
+          {Boolean(subtitle) && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          )}
         </View>
 
-        {/* B4: Nút Cài đặt nhanh góc phải */}
+        {/* Nút Cài đặt / Tùy chọn nhanh góc phải theo chuẩn Apple HIG (nền bo tròn surfaceElevated) */}
         <TouchableOpacity
           onPress={handleSettingsPress}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.settingsButton}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Cài đặt ứng dụng"
         >
-          <SettingsGearIcon size={22} color={colors.textSecondary} />
+          <SettingsGearIcon size={18} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: 20, // E4: dưới lời chào cách 20pt
+    paddingBottom: 28, // Khoảng cách thông thoáng giữa Lời chào và Chọn nhanh cho bạn
   },
   headerRow: {
     flexDirection: 'row',
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   title: {
-    fontSize: 30, // E2: lời chào 30pt/700
+    fontSize: 28,
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
     letterSpacing: -0.6,
@@ -106,9 +107,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,

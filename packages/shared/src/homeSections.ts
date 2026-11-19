@@ -462,7 +462,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'quick_picks',
                     kind: 'tracks',
                     title: 'Chọn nhanh cho bạn',
-                    subtitle: 'Giai điệu quen thuộc từ bài yêu thích',
                     layout: 'grid',
                     tracks: selected,
                   };
@@ -495,7 +494,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'continue_listening',
                     kind: 'tracks',
                     title: 'Tiếp tục nghe',
-                    subtitle: 'Bài hát gần đây trong danh sách phát của bạn',
                     layout: 'carousel',
                     tracks: selected,
                   };
@@ -529,7 +527,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'most_played_month',
                     kind: 'tracks',
                     title: 'Nghe nhiều tháng này',
-                    subtitle: 'Những bài hát bạn nghe nhiều nhất trong 30 ngày qua',
                     layout: 'carousel',
                     tracks: selected,
                   };
@@ -573,24 +570,19 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                   }
 
                   let title = 'Giai điệu buổi sáng';
-                  let subtitle = 'Khởi đầu ngày mới tràn đầy năng lượng';
 
                   switch (currentPeriod) {
                     case 'morning':
                       title = 'Giai điệu buổi sáng';
-                      subtitle = 'Khởi đầu ngày mới tràn đầy năng lượng';
                       break;
                     case 'afternoon':
                       title = 'Âm nhạc buổi chiều';
-                      subtitle = 'Tập trung và thư giãn cùng công việc';
                       break;
                     case 'evening':
                       title = 'Thư giãn buổi tối';
-                      subtitle = 'Giai điệu giải trí nhẹ nhàng sau ngày dài';
                       break;
                     case 'night':
                       title = 'Lắng đọng đêm muộn';
-                      subtitle = 'Không gian âm nhạc êm dịu và sâu lắng';
                       break;
                   }
 
@@ -598,7 +590,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'time_of_day',
                     kind: 'tracks',
                     title,
-                    subtitle,
                     layout: 'carousel',
                     tracks: selected,
                   };
@@ -644,7 +635,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'for_you',
                     kind: 'tracks',
                     title: 'Dành cho bạn',
-                    subtitle: 'Giai điệu gợi ý theo sở thích cá nhân',
                     layout: 'carousel',
                     tracks: selected,
                   };
@@ -739,7 +729,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'top_artists',
                     kind: 'artists',
                     title: 'Nghệ sĩ nghe nhiều nhất',
-                    subtitle: 'Các nghệ sĩ quen thuộc gần đây',
                     artists: finalArtists,
                   };
                 };
@@ -785,7 +774,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'rediscover',
                     kind: 'tracks',
                     title: 'Tìm lại giai điệu xưa',
-                    subtitle: 'Những bài hát bạn từng yêu thích đã lâu chưa nghe lại',
                     layout: 'carousel',
                     tracks: shuffled.slice(0, MAX_SECTION_ITEMS),
                   };
@@ -843,7 +831,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                     id: 'continue_albums',
                     kind: 'albums',
                     title: 'Album đang nghe dở',
-                    subtitle: 'Tiếp tục khám phá các album bạn chưa nghe trọn vẹn',
                     albums: candidateAlbums.slice(0, MAX_SECTION_ITEMS).map((c) => c.album),
                   };
                 };
@@ -937,7 +924,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                           id: 'genre_mix',
                           kind: 'tracks',
                           title: `Mix ${displayGenre}`,
-                          subtitle: `Khám phá các giai điệu ${displayGenre} tươi mới dành cho bạn`,
                           layout: 'carousel',
                           tracks: selected,
                         };
@@ -1012,7 +998,6 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                           id: 'discover',
                           kind: 'tracks',
                           title: 'Khám phá bài hát mới',
-                          subtitle: 'Khám phá giai điệu mới trong thư viện',
                           layout: 'carousel',
                           tracks: combined.slice(0, MAX_SECTION_ITEMS),
                         };
@@ -1076,16 +1061,11 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                         const shuffled = seededShuffle(candidateTracks, seed);
 
                         const title = selectedMode === 'high' ? 'Năng lượng sôi động' : 'Thư giãn êm dịu';
-                        const subtitle =
-                          selectedMode === 'high'
-                            ? 'Giai điệu tiết tấu nhanh và hứng khởi (BPM ≥ 120)'
-                            : 'Không gian âm nhạc nhẹ nhàng và thư thái (BPM ≤ 95)';
 
                         return {
                           id: 'energy',
                           kind: 'tracks',
                           title,
-                          subtitle,
                           layout: 'carousel',
                           tracks: shuffled.slice(0, MAX_SECTION_ITEMS),
                         };

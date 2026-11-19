@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import type { Track } from '@music-app/shared';
 import { colors, spacing, radius, fontWeights } from '../../theme';
-import { DiscIcon } from '../icons/SvgIcons';
+import { DiscIcon, CheckIcon } from '../icons/SvgIcons';
 import { EqualizerIndicator } from '../player/EqualizerIndicator';
 import { SectionHeader } from '../common/SectionHeader';
 import { PressableScale } from '../common/PressableScale';
@@ -20,18 +20,14 @@ export interface QuickPickGridProps {
   tracks: Track[];
   currentTrackId?: string | null;
   isPlaying?: boolean;
+  isTrackOffline?: (trackId: string) => boolean;
   onTrackPress: (track: Track, tracks: Track[]) => void;
   onTrackLongPress?: (track: Track) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Tính toán chiều rộng từng ô trong Hero Container
 const HERO_MARGIN_H = spacing.lg;
 const HERO_INNER_PADDING = spacing.sm;
 const GRID_COLUMN_GAP = spacing.sm;
-const ITEM_WIDTH = Math.floor(
-  (SCREEN_WIDTH - HERO_MARGIN_H * 2 - HERO_INNER_PADDING * 2 - GRID_COLUMN_GAP) / 2
-);
 
 export const QuickPickGrid = React.memo(function QuickPickGrid({
   title,
@@ -39,17 +35,24 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
   tracks,
   currentTrackId,
   isPlaying = false,
+  isTrackOffline,
   onTrackPress,
   onTrackLongPress,
 }: QuickPickGridProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const itemWidth = Math.floor(
+    (screenWidth - HERO_MARGIN_H * 2 - HERO_INNER_PADDING * 2 - GRID_COLUMN_GAP) / 2
+  );
+
   const renderItem = useCallback(
     (track: Track) => {
       const isCurrent = currentTrackId === track.id;
+      const isOffline = Boolean(isTrackOffline?.(track.id));
 
       return (
         <PressableScale
           key={track.id}
-          style={[styles.itemContainer, isCurrent && styles.itemContainerActive]}
+          style={[styles.itemContainer, { width: itemWidth }, isCurrent && styles.itemContainerActive]}
           onPress={() => {
             haptics.tap();
             onTrackPress(track, tracks);
@@ -59,7 +62,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
           accessibilityRole="button"
           accessibilityLabel={`${track.title}, ${track.artist}`}
         >
-          {/* D2: Ảnh bìa vuông 48pt bên trái */}
+          {/* Ảnh bìa vuông 48pt bên trái */}
           <View style={styles.coverWrapper}>
             {track.cover ? (
               <Image
@@ -83,7 +86,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
             )}
           </View>
 
-          {/* D2: Cột bên phải flex: 1, minWidth: 0 hiển thị tiêu đề và nghệ sĩ */}
+          {/* Cột bên phải flex: 1, minWidth: 0 hiển thị tiêu đề, nghệ sĩ và badge đã tải */}
           <View style={styles.infoWrapper}>
             <Text
               style={[styles.title, isCurrent && styles.titleActive]}
@@ -92,14 +95,21 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
             >
               {track.title}
             </Text>
-            <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
-              {track.artist}
-            </Text>
+            <View style={styles.artistRow}>
+              {isOffline && (
+                <View style={styles.offlineCheckBadge}>
+                  <CheckIcon size={8} color="#000000" />
+                </View>
+              )}
+              <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+                {track.artist}
+              </Text>
+            </View>
           </View>
         </PressableScale>
       );
     },
-    [currentTrackId, isPlaying, onTrackPress, onTrackLongPress, tracks]
+    [currentTrackId, isPlaying, isTrackOffline, itemWidth, onTrackPress, onTrackLongPress, tracks]
   );
 
   return (
@@ -133,13 +143,12 @@ const styles = StyleSheet.create({
     rowGap: spacing.sm,
   },
   itemContainer: {
-    width: ITEM_WIDTH,
     height: 64, // D2: chiều cao ô cố định ~64pt
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    paddingHorizontal: 10, // D2: padding ngang 10-12pt
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -149,7 +158,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceActive,
   },
   coverWrapper: {
-    width: 48, // D2: ảnh vuông 48-56pt
+    width: 48, // D2: ảnh vuông 48pt
     height: 48,
     borderRadius: radius.xs,
     backgroundColor: colors.surfaceElevated,
@@ -176,22 +185,39 @@ const styles = StyleSheet.create({
   infoWrapper: {
     flex: 1, // D2: cột flex: 1, minWidth: 0
     minWidth: 0,
-    marginLeft: 10,
+    marginLeft: 9,
     justifyContent: 'center',
-    paddingRight: 2,
+    paddingRight: 4,
   },
   title: {
-    fontSize: 14, // D2: 14pt, weight 600, textPrimary, 1 dòng
+    fontSize: 13.5,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
+    lineHeight: 18,
   },
   titleActive: {
     color: colors.primary,
   },
+  artistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  offlineCheckBadge: {
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+    flexShrink: 0,
+  },
   artist: {
-    fontSize: 12, // D2: 12pt, màu phụ, 1 dòng, ellipsis
+    flex: 1,
+    fontSize: 12,
     fontWeight: fontWeights.regular,
     color: colors.textSecondary,
-    marginTop: 2,
+    lineHeight: 16,
   },
 });
