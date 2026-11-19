@@ -15,7 +15,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="library"
+        name="home"
         options={{
           title: 'Trang chủ',
         }}
@@ -27,6 +27,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="library"
+        options={{
+          title: 'Thư viện',
+        }}
+      />
+      <Tabs.Screen
         name="collection"
         options={{
           title: 'Yêu thích',
@@ -35,6 +41,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="recent"
         options={{
+          href: null,
           title: 'Vừa nghe',
         }}
       />

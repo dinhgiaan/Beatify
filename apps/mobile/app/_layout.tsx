@@ -66,6 +66,12 @@ function RootAppContent() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="section/[id]"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );

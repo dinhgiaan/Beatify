@@ -11,3 +11,4 @@ export * from './formatters';
 export * from './smartTransition';
 export * from './sleepTimer';
 export * from './recommendation';
+export * from './homeSections';

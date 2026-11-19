@@ -46,6 +46,7 @@ export interface PlayerContextValue {
   sortMode: TrackSortMode;
   setSortMode: (mode: TrackSortMode) => void;
   recentTracks: Track[];
+  recentTrackIds: string[];
   recentLimit: number;
   setRecentLimit: (limit: number) => Promise<void>;
   clearRecentTracks: () => Promise<void>;
@@ -768,6 +769,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       sortMode,
       setSortMode,
       recentTracks,
+      recentTrackIds: recentTracksData.trackIds,
       recentLimit: recentTracksData.limit,
       setRecentLimit,
       clearRecentTracks,
@@ -815,6 +817,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       sortMode,
       setSortMode,
       recentTracks,
+      recentTracksData.trackIds,
       recentTracksData.limit,
       setRecentLimit,
       clearRecentTracks,

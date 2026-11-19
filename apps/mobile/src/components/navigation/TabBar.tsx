@@ -35,101 +35,113 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const screenWidth = Dimensions.get('window').width;
   const initialDockWidth = Math.min(screenWidth * 0.95, 410);
 
+  // Lọc chỉ các route hiển thị trên TabBar (loại bỏ các route có options.href === null)
+  const visibleRoutes = state.routes.filter((route: TabRoute) => {
+    const descriptor = descriptors[route.key];
+    const options = descriptor?.options as { href?: string | null } | undefined;
+    return options?.href !== null;
+  });
+
+  const activeVisibleIndex = visibleRoutes.findIndex(
+    (r: TabRoute) => r.key === state.routes[state.index]?.key
+  );
+
+  // Giữ nguyên vị trí tab hợp lệ trước đó khi chuyển sang route ẩn (tránh tụt về -1 hay NaN)
+  const currentTabRef = useRef(activeVisibleIndex >= 0 ? activeVisibleIndex : 0);
+
   // Shared value điều khiển index đang active và độ rộng thanh dock (khởi tạo ngay lập tức > 0)
-  const activeIndexShared = useSharedValue(state.index);
+  const activeIndexShared = useSharedValue(currentTabRef.current);
   const containerWidthShared = useSharedValue(initialDockWidth);
 
-  const currentTabRef = useRef(state.index);
-
-  // Đồng bộ vị trí khi state.index đổi từ bên ngoài (ví dụ deep link hoặc router.replace)
+  // Đồng bộ vị trí khi state.index đổi từ bên ngoài (chỉ trượt khi route đang chọn là route hiển thị)
   useEffect(() => {
-    if (currentTabRef.current !== state.index) {
-      currentTabRef.current = state.index;
-      activeIndexShared.value = withSpring(state.index, TAB_SPRING_CONFIG);
-    }
-  }, [state.index, activeIndexShared]);
+      if (activeVisibleIndex >= 0 && currentTabRef.current !== activeVisibleIndex) {
+        currentTabRef.current = activeVisibleIndex;
+        activeIndexShared.value = withSpring(activeVisibleIndex, TAB_SPRING_CONFIG);
+      }
+}, [activeVisibleIndex, activeIndexShared]);
 
-  return (
-    <View style={styles.tabBarWrapper} pointerEvents="box-none">
-      {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
-      <MiniPlayer />
+return (
+  <View style={styles.tabBarWrapper} pointerEvents="box-none">
+    {/* MiniPlayer xuất hiện ngay phía trên thanh tab khi có bài đang phát */}
+    <MiniPlayer />
 
-      {/* View ngoài: Chịu trách nhiệm đổ bóng và bo góc (bóng đổ nhẹ nhàng tối ưu GPU) */}
+    {/* View ngoài: Chịu trách nhiệm đổ bóng và bo góc (bóng đổ nhẹ nhàng tối ưu GPU) */}
+    <View
+      style={[
+        styles.dockShadowContainer,
+        {
+          marginBottom: Math.max(insets.bottom, 12),
+        },
+      ]}
+    >
+      {/* View trong: Chịu trách nhiệm overflow: 'hidden', border, background và chứa các tab item */}
       <View
-        style={[
-          styles.dockShadowContainer,
-          {
-            marginBottom: Math.max(insets.bottom, 12),
-          },
-        ]}
+        style={styles.dockInner}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0 && Math.abs(w - containerWidthShared.value) > 1) {
+            containerWidthShared.value = w;
+          }
+        }}
       >
-        {/* View trong: Chịu trách nhiệm overflow: 'hidden', border, background và chứa các tab item */}
-        <View
-          style={styles.dockInner}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - containerWidthShared.value) > 1) {
-              containerWidthShared.value = w;
+        {/* Một indicator duy nhất trượt mượt mà phía sau các icon */}
+        <TabIndicator
+          activeIndex={activeIndexShared}
+          containerWidth={containerWidthShared}
+          totalTabs={visibleRoutes.length}
+        />
+
+        {/* Danh sách các tab items */}
+        {visibleRoutes.map((route: TabRoute, index: number) => {
+          const descriptor = descriptors[route.key];
+          const options = descriptor?.options ?? {};
+          const isFocused = activeVisibleIndex === index;
+
+          const onPress = () => {
+            if (!isFocused) {
+              // Rung phản hồi nhẹ chuẩn iOS
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+
+              // Kích hoạt viên thuốc trượt tức thì trên UI thread
+              currentTabRef.current = index;
+              activeIndexShared.value = withSpring(index, TAB_SPRING_CONFIG);
             }
-          }}
-        >
-          {/* Một indicator duy nhất trượt mượt mà phía sau các icon */}
-          <TabIndicator
-            activeIndex={activeIndexShared}
-            containerWidth={containerWidthShared}
-            totalTabs={state.routes.length}
-          />
 
-          {/* Danh sách các tab items */}
-          {state.routes.map((route: TabRoute, index: number) => {
-            const descriptor = descriptors[route.key];
-            const options = descriptor?.options ?? {};
-            const isFocused = state.index === index;
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-            const onPress = () => {
-              if (!isFocused) {
-                // Rung phản hồi nhẹ chuẩn iOS
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-                // Kích hoạt viên thuốc trượt tức thì trên UI thread
-                currentTabRef.current = index;
-                activeIndexShared.value = withSpring(index, TAB_SPRING_CONFIG);
-              }
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
 
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            const onLongPress = () => {
-              navigation.emit({
-                type: 'tabLongPress',
-                target: route.key,
-              });
-            };
-
-            return (
-              <TabBarItem
-                key={route.key}
-                route={route}
-                index={index}
-                isFocused={isFocused}
-                options={options}
-                onPress={onPress}
-                onLongPress={onLongPress}
-              />
-            );
-          })}
-        </View>
+          return (
+            <TabBarItem
+              key={route.key}
+              route={route}
+              index={index}
+              isFocused={isFocused}
+              options={options}
+              onPress={onPress}
+              onLongPress={onLongPress}
+            />
+          );
+        })}
       </View>
     </View>
-  );
+  </View>
+);
 }
 
 const styles = StyleSheet.create({

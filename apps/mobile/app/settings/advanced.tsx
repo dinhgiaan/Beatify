@@ -18,6 +18,14 @@ import { ListGroup, SectionHeader, SettingRow } from '../../src/components/commo
 import { CheckIcon } from '../../src/components/icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
 import { getTabDebugLogs, clearTabDebugLogs } from '../../src/utils/debugLogger';
+import {
+  getHomeMetrics,
+  isHomeDebug,
+  setHomeDebug,
+  analyzeListeningHistory,
+  type ListeningHistoryDiagnostics,
+} from '../../src/services/stats/homeMetrics';
+import { statsStorage } from '../../src/services/stats/statsStorage';
 
 export default function AdvancedSettingsScreen() {
   const router = useRouter();
@@ -51,6 +59,30 @@ export default function AdvancedSettingsScreen() {
   const [showToken, setShowToken] = useState(false);
   const [customAudioUrl, setCustomAudioUrl] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  // C1 & C2: Hiệu năng Trang chủ & Chẩn đoán Lịch sử nghe
+  const [homeMetrics, setHomeMetricsState] = useState(getHomeMetrics());
+  const [isDebugHome, setIsDebugHome] = useState(isHomeDebug());
+  const [historyDiag, setHistoryDiag] = useState<ListeningHistoryDiagnostics>({
+    totalRecords: 0,
+    skippedCount: 0,
+    skippedPercent: 0,
+    unfinalizedCount: 0,
+    unfinalizedClusterPercent: 0,
+  });
+
+  useEffect(() => {
+    setHomeMetricsState(getHomeMetrics());
+    statsStorage.loadListeningRecords().then((records) => {
+      setHistoryDiag(analyzeListeningHistory(records));
+    });
+  }, []);
+
+  const handleToggleHomeDebug = (val: boolean) => {
+    triggerSelectionHaptic();
+    setHomeDebug(val);
+    setIsDebugHome(val);
+  };
 
   useEffect(() => {
     setInputUrl(serverUrl);
@@ -146,6 +178,49 @@ export default function AdvancedSettingsScreen() {
             triggerSelectionHaptic();
             router.push('/settings/transition-logs');
           }}
+        />
+      </ListGroup>
+
+      {/* C1: HIỆU NĂNG TRANG CHỦ */}
+      <SectionHeader title="HIỆU NĂNG TRANG CHỦ" />
+      <ListGroup>
+        <SettingRow
+          label="Thời gian tính gần nhất"
+          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.lastElapsedMs.toFixed(1)} ms` : 'Chưa đo'}
+        />
+        <SettingRow
+          label="Số lượng section đề xuất"
+          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.sectionCount} danh mục` : 'Chưa có'}
+        />
+        <SettingRow
+          label="Số bản ghi phân tích"
+          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.recordCount} bài nghe` : 'Chưa có'}
+        />
+        <SettingRow
+          label="Ghi log chi tiết Trang chủ"
+          description="In nhật ký buildHomeSections ra Console"
+          isSwitch
+          switchValue={isDebugHome}
+          onSwitchChange={handleToggleHomeDebug}
+        />
+      </ListGroup>
+
+      {/* C2: CHẨN ĐOÁN LỊCH SỬ NGHE */}
+      <SectionHeader title="CHẨN ĐOÁN LỊCH SỬ NGHE" />
+      <ListGroup>
+        <SettingRow
+          label="Tổng số bản ghi nghe"
+          value={`${historyDiag.totalRecords} lượt phát`}
+        />
+        <SettingRow
+          label="Tỷ lệ nghe lướt (Skip < 25%)"
+          description="Số bài dừng sớm trước 25% thời lượng"
+          value={`${historyDiag.skippedPercent.toFixed(1)}% (${historyDiag.skippedCount})`}
+        />
+        <SettingRow
+          label="Cụm chưa chốt (15s - 16s)"
+          description="Số bài có thời lượng nghe trong khoảng 15s - 16s"
+          value={`${historyDiag.unfinalizedClusterPercent.toFixed(1)}% (${historyDiag.unfinalizedCount})`}
         />
       </ListGroup>
 

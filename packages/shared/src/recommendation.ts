@@ -1,5 +1,6 @@
 import type { Track } from './schemas';
 import type { ListeningRecord } from './stats';
+import { SKIP_RATIO_THRESHOLD } from './constants';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -80,8 +81,8 @@ export function getSmartRecommendations(
   const nowEpoch = typeof options.now === 'number'
     ? options.now
     : options.now instanceof Date
-    ? options.now.getTime()
-    : Date.now();
+      ? options.now.getTime()
+      : Date.now();
 
   const currentTimeOfDay = getTimeOfDay(nowEpoch);
   const limit = options.limit ?? 25;
@@ -121,7 +122,7 @@ export function getSmartRecommendations(
       const ratio = Math.min(1.0, (r.listenedSec || 0) / r.durationSec);
       if (ratio >= 0.75) {
         existing.completionScore += 2;
-      } else if (ratio < 0.25) {
+      } else if (ratio < SKIP_RATIO_THRESHOLD) {
         existing.completionScore -= 1;
       }
     }
@@ -198,10 +199,10 @@ export function getSmartRecommendations(
             label: currentTimeOfDay === 'morning'
               ? 'Quen thuộc vào buổi sáng của bạn'
               : currentTimeOfDay === 'afternoon'
-              ? 'Hợp với buổi chiều làm việc'
-              : currentTimeOfDay === 'evening'
-              ? 'Giai điệu buổi tối yêu thích'
-              : 'Phù hợp với không gian đêm muộn',
+                ? 'Hợp với buổi chiều làm việc'
+                : currentTimeOfDay === 'evening'
+                  ? 'Giai điệu buổi tối yêu thích'
+                  : 'Phù hợp với không gian đêm muộn',
           };
         }
       }

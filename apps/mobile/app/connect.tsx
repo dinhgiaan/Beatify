@@ -65,10 +65,10 @@ export default function ConnectScreen() {
           syncLibrary({ silent: false, force: true }).catch(() => {});
         }
 
-        // Tự động chuyển về thư viện sau 2 giây
+        // Tự động chuyển về trang chủ sau 2 giây
         timer = setTimeout(() => {
           if (!isCancelled) {
-            router.replace('/(tabs)/library');
+            router.replace('/(tabs)/home');
           }
         }, 2000);
       } catch (err) {
@@ -116,10 +116,10 @@ export default function ConnectScreen() {
 
         <TouchableOpacity
           style={styles.doneBtn}
-          onPress={() => router.replace('/(tabs)/library')}
+          onPress={() => router.replace('/(tabs)/home')}
           activeOpacity={0.7}
         >
-          <Text style={styles.doneBtnText}>Về Thư viện</Text>
+          <Text style={styles.doneBtnText}>Về Trang chủ</Text>
         </TouchableOpacity>
       </View>
     </View>

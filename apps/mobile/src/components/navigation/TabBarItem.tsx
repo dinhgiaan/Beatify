@@ -3,6 +3,7 @@ import { TouchableOpacity, StyleSheet, type LayoutChangeEvent } from 'react-nati
 import type { Tabs } from 'expo-router';
 import {
   HomeIcon,
+  LibraryIcon,
   SearchIcon,
   HeartIcon,
   ClockRewindIcon,
@@ -30,8 +31,10 @@ export interface TabBarItemProps {
 function getTabIcon(routeName: string, color: string) {
   const size = 20;
   switch (routeName) {
-    case 'library':
+    case 'home':
       return <HomeIcon size={size} color={color} />;
+    case 'library':
+      return <LibraryIcon size={size} color={color} />;
     case 'search':
       return <SearchIcon size={size} color={color} />;
     case 'collection':
@@ -48,8 +51,10 @@ function getTabIcon(routeName: string, color: string) {
 function getTabLabel(routeName: string, customTitle?: string): string {
   if (customTitle) return customTitle;
   switch (routeName) {
-    case 'library':
+    case 'home':
       return 'Trang chủ';
+    case 'library':
+      return 'Thư viện';
     case 'search':
       return 'Tìm kiếm';
     case 'collection':

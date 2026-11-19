@@ -12,10 +12,10 @@ export default function NotFoundScreen() {
       <Text style={styles.desc}>Đường dẫn không tồn tại hoặc đã thay đổi.</Text>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.replace('/(tabs)/library')}
+        onPress={() => router.replace('/(tabs)/home')}
         activeOpacity={0.7}
       >
-        <Text style={styles.buttonText}>Quay lại Thư viện</Text>
+        <Text style={styles.buttonText}>Quay lại Trang chủ</Text>
       </TouchableOpacity>
     </View>
   );
