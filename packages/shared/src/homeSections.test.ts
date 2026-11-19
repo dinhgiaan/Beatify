@@ -6,6 +6,7 @@ import {
   buildTimeOfDay,
   buildRediscover,
   buildContinueAlbums,
+  buildMoodMix,
   buildGenreMix,
   buildEnergy,
   seededShuffle,
@@ -832,6 +833,38 @@ describe('homeSections logic & builders', () => {
                   // MIN_ALBUM_ITEMS = 3 nên nếu chỉ có 1 album studio thì chưa đủ số lượng tối thiểu, trả về null
                   const section = buildContinueAlbums(ctx, new Set());
                   expect(section).toBeNull();
+                });
+
+                it('buildMoodMix: tạo section dự đoán cảm xúc chính xác từ các bài nghe gần đây', () => {
+                  const sadTracks = [
+                    createMockTrack('sad-1', 'Cơn Mưa U Buồn', 'Vũ', { genre: 'Ballad', key: '8A', bpm: 70 }),
+                    createMockTrack('sad-2', 'Nước Mắt Cô Đơn', 'Mr Siro', { genre: 'Ballad', key: '7A', bpm: 72 }),
+                    createMockTrack('sad-3', 'Chia Tay Trong Mưa', 'Vũ', { genre: 'Ballad', key: '8A', bpm: 75 }),
+                    createMockTrack('sad-4', 'Dĩ Vãng Đau Thương', 'Bảo Anh', { genre: 'Ballad', key: '5A', bpm: 68 }),
+                    createMockTrack('other-1', 'Bình Thường', 'A', { genre: 'Pop' }),
+                  ];
+
+                  const ctx: HomeContext = {
+                    tracks: sadTracks,
+                    albums: [],
+                    records: [
+                      { trackId: 'sad-1', title: 'Cơn Mưa U Buồn', artist: 'Vũ', durationSec: 200, listenedSec: 200, timestamp: FIXED_NOW - 1000 },
+                      { trackId: 'sad-2', title: 'Nước Mắt Cô Đơn', artist: 'Mr Siro', durationSec: 200, listenedSec: 200, timestamp: FIXED_NOW - 2000 },
+                    ],
+                    favoriteIds: ['sad-1'],
+                    recentTrackIds: ['sad-1', 'sad-2'],
+                    now: FIXED_NOW,
+                  };
+
+                  const moodSection = buildMoodMix(ctx, new Set());
+                  expect(moodSection).not.toBeNull();
+                  expect(moodSection?.id).toBe('mood_mix');
+                  expect(moodSection?.title).toContain('Trầm lắng');
+                  if (moodSection && moodSection.kind === 'tracks') {
+                    expect(moodSection.tracks.length).toBeGreaterThanOrEqual(4);
+                    // Bài yêu thích và nghe nhiều 'sad-1' phải nằm top đầu
+                    expect(moodSection.tracks[0]?.id).toBe('sad-1');
+                  }
                 });
               });
             });

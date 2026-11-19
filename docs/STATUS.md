@@ -107,6 +107,21 @@
     - Tích hợp `PressableScale` nhún lò xo Reanimated cho các nút bấm lớn ("Lưu cấu hình máy chủ", "+ Thêm vào hàng phát").
     - Thêm viền focus highlight màu accent cho các ô nhập URL máy chủ, API token và Custom Audio URL.
   - **Kiểm thử & Typecheck:** Toàn bộ 426 tests (133 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **14. Nâng cấp Thuật toán Đề xuất Thông minh Dự đoán Cảm xúc (Emotion & Mood Prediction Engine):**
+  - **Lõi phân tích cảm xúc âm nhạc đa chiều (`packages/shared/src/moodEngine.ts`):**
+    - Phân loại 5 nhóm cảm xúc âm nhạc chính: `melancholy` (Trầm lắng & Hoài niệm), `chill` (Thư thái & Bình yên), `uplifting` (Tươi sáng & Lạc quan), `energetic` (Bùng nổ năng lượng), `focus` (Tập trung & Dòng chảy).
+    - Phân tích đa chiều dựa trên từ khóa ngữ nghĩa tiêu đề/album (từ điển tiếng Việt & tiếng Anh chuyên sâu), thể loại (Genre), nhịp điệu (BPM), khóa âm nhạc Camelot (Minor key 'A' $\to$ sâu lắng/buồn vs Major key 'B' $\to$ tươi sáng/vui) và độ ồn ReplayGain / Loudness.
+    - Hàm dự đoán tâm trạng người nghe `predictUserMood`: phân tích chuỗi bài nghe gần nhất (recency + completion rate, không bị skip) kết hợp với chu kỳ nhịp sinh học theo thời gian trong ngày (sáng/chiều/tối/đêm muộn).
+  - **Tích hợp Điểm Mood Affinity Boost vào Thuật toán Gợi ý (`packages/shared/src/recommendation.ts`):**
+    - Bổ sung `type: 'mood'` vào lý do gợi ý `RecommendationReason` và tham số `predictedMood`.
+    - Cộng điểm ưu tiên +18đ khi bài hát có độ tương đồng cảm xúc cao với tâm trạng dự đoán của người dùng.
+  - **Section Mới trên Trang chủ (`packages/shared/src/homeSections.ts`):**
+    - Bổ sung builder `buildMoodMix` (`mood_mix`) tự động tuyển chọn tối đa 15 bài hát phù hợp nhất với tâm trạng hiện tại.
+    - Tiêu đề và thông điệp động theo tâm trạng ("Tâm trạng: Trầm lắng & Hoài niệm", "Tâm trạng: Bùng nổ năng lượng", "Tâm trạng: Thư thái & Bình yên"...). Hỗ trợ `shuffleSalt` với `seededShuffle`.
+    - Đặt vị trí hợp lý sau `for_you`, kiểm soát chặt chẽ trường hợp cold-start (không có lịch sử nghe) để đảm bảo không tranh chấp bài với các section cơ bản khác.
+  - **Hiển thị Nhã nhặn theo chuẩn Apple HIG (`HomeGreeting.tsx` & `home.tsx`):**
+    - Hiển thị pill nhỏ `• Cảm xúc: [Tâm trạng dự đoán]` dưới lời chào Trang chủ.
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

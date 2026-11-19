@@ -3,6 +3,11 @@ import type { ListeningRecord } from './stats';
 import { normalizeArtistKey } from './stats';
 import { getSmartRecommendations } from './recommendation';
 import { SKIP_RATIO_THRESHOLD } from './constants';
+import {
+  analyzeTrackMood,
+  predictUserMood,
+  type UserMoodPrediction,
+} from './moodEngine';
 
 // ============================================================================
 // HẰNG SỐ & CẤU HÌNH NGƯỠNG CHUNG
@@ -65,6 +70,7 @@ export interface HomeContext {
   recentTrackIds: string[];
   now: number; // Unix epoch ms
   shuffleSalt?: number;
+  userMood?: UserMoodPrediction;
 }
 
 export type SectionBuilder = (
@@ -596,7 +602,102 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                 };
 
                 /**
-                 * 5. Dành cho bạn (For You)
+                 * 5. Tâm trạng đồng điệu (Mood Mix - Dự đoán cảm xúc)
+                 * Dự đoán cảm xúc của người dùng qua chuỗi bài nghe gần nhất & nhịp sinh học thời gian.
+                 * Tuyển chọn các bài hát tương thích cảm xúc nhất từ thư viện.
+                 */
+                export const buildMoodMix: SectionBuilder = (ctx, usedTrackIds) => {
+                  // Chỉ hiển thị khi người dùng đã có hành vi nghe nhạc hoặc bài nghe gần đây
+                  if (ctx.records.length === 0 && (!ctx.recentTrackIds || ctx.recentTrackIds.length === 0)) {
+                    return null;
+                  }
+
+                  const trackMap = getTrackMap(ctx.tracks);
+                  const userMood =
+                    ctx.userMood ||
+                    predictUserMood({
+                      now: ctx.now,
+                      recentTrackIds: ctx.recentTrackIds,
+                      records: ctx.records,
+                      tracksMap: trackMap,
+                    });
+
+                  const targetMood = userMood.mood;
+                  const index = getRecordIndex(ctx);
+                  const validPlays = index.validPlayCounts;
+                  const favoriteSet = new Set(ctx.favoriteIds);
+
+                  const candidates: Array<{ track: Track; score: number }> = [];
+
+                  for (const t of ctx.tracks) {
+                    if (usedTrackIds.has(t.id)) continue;
+
+                    const profile = analyzeTrackMood(t);
+                    let matchScore = 0;
+
+                    if (profile.primaryMood === targetMood) {
+                      matchScore += 30 + profile.confidence * 10;
+                    } else {
+                      // Hỗ trợ mood tương cận nhẹ
+                      const isCompatible =
+                        (targetMood === 'melancholy' && profile.primaryMood === 'chill') ||
+                        (targetMood === 'chill' && (profile.primaryMood === 'focus' || profile.primaryMood === 'melancholy')) ||
+                        (targetMood === 'energetic' && profile.primaryMood === 'uplifting') ||
+                        (targetMood === 'uplifting' && (profile.primaryMood === 'energetic' || profile.primaryMood === 'chill')) ||
+                        (targetMood === 'focus' && profile.primaryMood === 'chill');
+
+                      if (isCompatible) {
+                        matchScore += 18;
+                      }
+                    }
+
+                    if (matchScore > 0) {
+                      // Ưu tiên bài yêu thích
+                      if (favoriteSet.has(t.id)) {
+                        matchScore += 20;
+                      }
+
+                      // Ưu tiên bài nghe nhiều trọn vẹn
+                      const plays = validPlays.get(t.id) ?? 0;
+                      if (plays > 0) {
+                        matchScore += Math.min(15, plays * 3);
+                      }
+
+                      candidates.push({ track: t, score: matchScore });
+                    }
+                  }
+
+                  if (candidates.length < MIN_SECTION_ITEMS) {
+                    return null;
+                  }
+
+                  candidates.sort((a, b) => b.score - a.score);
+
+                  let selected: Track[];
+                  if (ctx.shuffleSalt && ctx.shuffleSalt > 0) {
+                    const topCandidates = candidates.slice(0, 30);
+                    const shuffled = seededShuffle(topCandidates, getDaySeed(ctx, 555));
+                    selected = shuffled.slice(0, MAX_SECTION_ITEMS).map((c) => c.track);
+                  } else {
+                    selected = candidates.slice(0, MAX_SECTION_ITEMS).map((c) => c.track);
+                  }
+
+                  if (selected.length < MIN_SECTION_ITEMS) {
+                    return null;
+                  }
+
+                  return {
+                    id: 'mood_mix',
+                    kind: 'tracks',
+                    title: userMood.title,
+                    subtitle: userMood.subtitle,
+                    layout: 'carousel',
+                    tracks: selected,
+                  };
+                };
+
+                /**
+                 * 6. Dành cho bạn (For You)
                  * Tái sử dụng getSmartRecommendations có sẵn (limit 20), không lặp thuật toán.
                  */
                 export const buildForYou: SectionBuilder = (ctx, usedTrackIds) => {
@@ -1101,6 +1202,7 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                         buildMostPlayedMonth,
                         buildTimeOfDay,
                         buildForYou,
+                        buildMoodMix,
                         buildTopArtists,
                         buildRediscover,
                         buildContinueAlbums,

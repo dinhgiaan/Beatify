@@ -5,9 +5,11 @@ import {
   buildHomeSections,
   getTimeOfDay,
   getTimeOfDayGreeting,
+  predictUserMood,
   type HomeSection,
   type HomeContext,
   type ListeningRecord,
+  type UserMoodPrediction,
 } from '@music-app/shared';
 import { useLibrary } from '../context/LibraryContext';
 import { usePlayer } from '../context/PlayerContext';
@@ -22,6 +24,7 @@ export interface HomeGreetingData {
 export interface UseHomeSectionsResult {
   sections: HomeSection[];
   greeting: HomeGreetingData;
+  userMood: UserMoodPrediction;
   isLoading: boolean;
   hasLoadedOnce: boolean;
   recordCount: number;
@@ -109,6 +112,17 @@ export function useHomeSections(): UseHomeSectionsResult {
     return getTimeOfDayGreeting(timeOfDay);
   }, [homeData.now]);
 
+  // Dự đoán cảm xúc & tâm trạng người dùng dựa trên hành vi gần nhất & nhịp sinh học
+  const userMood = useMemo(() => {
+    const tracksMap = new Map((tracks || []).map((t) => [t.id, t]));
+    return predictUserMood({
+      now: homeData.now,
+      recentTrackIds: recentTrackIds || [],
+      records: homeData.records,
+      tracksMap,
+    });
+  }, [homeData.now, recentTrackIds, homeData.records, tracks]);
+
   // Tính toán danh sách section của Trang chủ (A1: phụ thuộc trực tiếp vào homeData.records và homeData.now)
   const sections = useMemo(() => {
     if (!tracks || tracks.length === 0) return [];
@@ -121,6 +135,7 @@ export function useHomeSections(): UseHomeSectionsResult {
       recentTrackIds: recentTrackIds || [],
       now: homeData.now,
       shuffleSalt,
+      userMood,
     };
 
     // C1: Bọc buildHomeSections bằng performance.now()
@@ -143,20 +158,21 @@ export function useHomeSections(): UseHomeSectionsResult {
     }
 
     return result;
-}, [tracks, albums, homeData.records, favoriteIds, recentTrackIds, homeData.now, shuffleSalt]);
+  }, [tracks, albums, homeData.records, favoriteIds, recentTrackIds, homeData.now, shuffleSalt, userMood]);
 
-const reload = useCallback(async () => {
-  setIsLoading(true);
-  await loadData();
-}, [loadData]);
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    await loadData();
+  }, [loadData]);
 
-return {
-  sections,
-  greeting,
-  isLoading,
-  hasLoadedOnce,
-  recordCount: homeData.records.length,
-  reload,
-  reshuffle,
-};
+  return {
+    sections,
+    greeting,
+    userMood,
+    isLoading,
+    hasLoadedOnce,
+    recordCount: homeData.records.length,
+    reload,
+    reshuffle,
+  };
 }

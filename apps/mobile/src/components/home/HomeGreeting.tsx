@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { UserMoodPrediction } from '@music-app/shared';
 import { colors, spacing, fontWeights } from '../../theme';
 import { SettingsGearIcon } from '../icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../utils/haptics';
@@ -8,6 +9,7 @@ import { triggerSelectionHaptic } from '../../utils/haptics';
 export interface HomeGreetingProps {
   title?: string;
   subtitle?: string;
+  userMood?: UserMoodPrediction;
   onSettingsPress?: () => void;
 }
 
@@ -33,6 +35,7 @@ function getStandardGreeting(): string {
 export const HomeGreeting = React.memo(function HomeGreeting({
   title,
   subtitle,
+  userMood,
   onSettingsPress,
 }: HomeGreetingProps) {
   const router = useRouter();
@@ -55,6 +58,14 @@ export const HomeGreeting = React.memo(function HomeGreeting({
           <Text style={styles.title} numberOfLines={1}>
             {displayTitle}
           </Text>
+          {Boolean(userMood?.badgeText) && (
+            <View style={styles.moodBadgeRow}>
+              <View style={styles.moodPill}>
+                <Text style={styles.moodPillDot}>•</Text>
+                <Text style={styles.moodPillText}>Cảm xúc: {userMood?.badgeText}</Text>
+              </View>
+            </View>
+          )}
           {Boolean(subtitle) && (
             <Text style={styles.subtitle} numberOfLines={1}>
               {subtitle}
@@ -104,6 +115,33 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
     color: colors.textSecondary,
     marginTop: 2,
+    letterSpacing: -0.1,
+  },
+  moodBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  moodPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 4,
+  },
+  moodPillDot: {
+    color: colors.primary,
+    fontSize: 10,
+    lineHeight: 12,
+  },
+  moodPillText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.medium,
     letterSpacing: -0.1,
   },
   settingsButton: {

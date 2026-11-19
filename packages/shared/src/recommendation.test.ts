@@ -167,5 +167,41 @@ describe('recommendation engine', () => {
       // Should not be the top track due to recency penalty
       expect(topRec?.track.id).not.toBe('track-morning');
     });
+
+    it('boosts songs matching predicted mood', () => {
+      const now = new Date(2026, 10, 19, 14, 0).getTime();
+      const sadTracks: Track[] = [
+        {
+          id: 'sad-song',
+          title: 'Cơn Mưa U Buồn Nước Mắt',
+          artist: 'Vũ',
+          duration: 200,
+          file: 'music/sad.mp3',
+          storage: 'r2',
+          genre: 'Ballad',
+          bpm: 70,
+        },
+        {
+          id: 'other-song',
+          title: 'Khúc Ca Bình Thường',
+          artist: 'Ca Sĩ Khác',
+          duration: 200,
+          file: 'music/other.mp3',
+          storage: 'r2',
+        },
+      ];
+
+      const recommendations = getSmartRecommendations(
+        sadTracks,
+        [],
+        [],
+        { now, predictedMood: 'melancholy' }
+      );
+
+      const sadRec = recommendations.find(r => r.track.id === 'sad-song');
+      expect(sadRec).toBeDefined();
+      expect(sadRec?.reason.type).toBe('mood');
+      expect(sadRec?.reason.label).toContain('trầm lắng');
+    });
   });
 });

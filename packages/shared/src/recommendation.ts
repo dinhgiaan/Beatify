@@ -1,11 +1,16 @@
 import type { Track } from './schemas';
 import type { ListeningRecord } from './stats';
 import { SKIP_RATIO_THRESHOLD } from './constants';
+import {
+  analyzeTrackMood,
+  predictUserMood,
+  type MusicMood,
+} from './moodEngine';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 
 export interface RecommendationReason {
-  type: 'time_of_day' | 'top_artist' | 'favorite' | 'completion_rate' | 'discovery' | 'frequent';
+  type: 'time_of_day' | 'top_artist' | 'favorite' | 'completion_rate' | 'discovery' | 'frequent' | 'mood';
   label: string;
 }
 
@@ -19,6 +24,8 @@ export interface RecommendedTrack {
 export interface RecommendationOptions {
   limit?: number;
   now?: number | Date;
+  predictedMood?: MusicMood;
+  recentTrackIds?: string[];
 }
 
 /**
@@ -97,6 +104,24 @@ export function getSmartRecommendations(
 
   const currentTimeOfDay = getTimeOfDay(nowEpoch);
   const limit = options.limit ?? 25;
+
+  // Dự đoán cảm xúc / tâm trạng hiện tại của người dùng
+  const userMoodPrediction = options.predictedMood
+    ? {
+        mood: options.predictedMood,
+        title: '',
+        subtitle: '',
+        badgeText: options.predictedMood,
+        confidence: 1,
+        reason: '',
+      }
+    : predictUserMood({
+        now: nowEpoch,
+        recentTrackIds: options.recentTrackIds || [],
+        records,
+        tracksMap: new Map(allTracks.map((t) => [t.id, t])),
+      });
+  const activeUserMood = userMoodPrediction.mood;
 
   // 1. Phân tích dữ liệu lịch sử nghe nhạc
   const trackStatsMap = new Map<string, {
@@ -263,6 +288,29 @@ export function getSmartRecommendations(
       if (track.replayGain && track.replayGain < -8) {
         // Bài hát có độ lớn cao -> trừ nhẹ vào ban đêm
         score -= 4;
+      }
+    }
+
+    // Điểm cảm xúc đồng điệu (Mood Affinity Boost)
+    const trackMoodProfile = analyzeTrackMood(track);
+    if (trackMoodProfile.primaryMood === activeUserMood) {
+      const moodScore = Math.round(18 * trackMoodProfile.confidence);
+      score += moodScore;
+      if (moodScore > maxReasonScore) {
+        const moodName =
+          activeUserMood === 'melancholy'
+            ? 'trầm lắng'
+            : activeUserMood === 'chill'
+              ? 'thư thái'
+              : activeUserMood === 'uplifting'
+                ? 'tươi sáng'
+                : activeUserMood === 'energetic'
+                  ? 'sôi động'
+                  : 'tập trung';
+        bestReason = {
+          type: 'mood',
+          label: `Hợp với tâm trạng ${moodName} của bạn`,
+        };
       }
     }
 

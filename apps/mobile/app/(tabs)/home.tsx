@@ -58,7 +58,7 @@ export default function HomeScreen() {
   const { currentTrack, playerState, playQueue, playNext, togglePlay } = usePlayer();
   const { isTrackOffline, isDownloading, downloadTrack, deleteOfflineTrack } = useOffline();
 
-  const { sections, greeting, isLoading, hasLoadedOnce, recordCount, reload, reshuffle } =
+  const { sections, greeting, userMood, isLoading, hasLoadedOnce, recordCount, reload, reshuffle } =
     useHomeSections();
 
   const flatListRef = useRef<FlatList<HomeSection>>(null);
@@ -345,7 +345,7 @@ export default function HomeScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top + spacing.xs }]}>
         <StatusBar barStyle="light-content" />
-        <HomeGreeting title={greeting.title} subtitle={greeting.subtitle} />
+        <HomeGreeting title={greeting.title} subtitle={greeting.subtitle} userMood={userMood} />
         <View style={styles.emptyContainer}>
           <DiscIcon size={56} color={colors.borderLight} />
           <Text style={styles.emptyTitle}>Thư viện chưa có bài hát</Text>
@@ -390,7 +390,7 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <View>
               {/* Lời chào chuẩn khung giờ sang trọng, có nút tùy chọn góc phải */}
-              <HomeGreeting title={greeting.title} />
+              <HomeGreeting title={greeting.title} userMood={userMood} />
 
               {/* C4: Thông điệp Cold-start thân thiện, nhỏ gọn, không phô trương */}
               {recordCount === 0 && tracks.length > 0 && (
