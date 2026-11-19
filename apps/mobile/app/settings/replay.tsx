@@ -11,6 +11,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  FadeIn,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -174,19 +175,25 @@ export default function ReplayScreen() {
         showsVerticalScrollIndicator={false}
       >
         {activeTab !== 'memories' ? (
-          <>
+          <Animated.View key={activeTab} entering={FadeIn.duration(220)} style={{ flex: 1 }}>
             {/* TỔNG QUAN KỲ (LƯỢT NGHE & PHÚT NGHE) - THIẾT KẾ CÂN ĐỐI KHÔNG BỊ CHE KHUẤT */}
             <View style={styles.metricBanner}>
               <View style={styles.metricItem}>
+                <View style={styles.metricHeaderRow}>
+                  <ClockIcon size={16} color={tokens.colors.accent} />
+                  <Text style={styles.metricLabel}>{STATS_LABELS.MINUTES}</Text>
+                </View>
                 <Text style={styles.metricNumber}>
                   {Math.round(currentPeriodStats.totalMinutes)}
                 </Text>
-                <Text style={styles.metricLabel}>{STATS_LABELS.MINUTES}</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
+                <View style={styles.metricHeaderRow}>
+                  <HeadphonesIcon size={16} color={tokens.colors.accent} />
+                  <Text style={styles.metricLabel}>{STATS_LABELS.PLAYS}</Text>
+                </View>
                 <Text style={styles.metricNumber}>{currentPeriodStats.totalPlays}</Text>
-                <Text style={styles.metricLabel}>{STATS_LABELS.PLAYS}</Text>
               </View>
             </View>
 
@@ -213,10 +220,22 @@ export default function ReplayScreen() {
                   ) => {
                     const matchedTrack = trackMap.get(t.trackId);
                     const coverUrl = matchedTrack?.cover;
+                    const rankStyle =
+                      idx === 0
+                        ? styles.rankGold
+                        : idx === 1
+                          ? styles.rankSilver
+                          : idx === 2
+                            ? styles.rankBronze
+                            : styles.rankNormal;
 
                     return (
                       <View key={t.trackId} style={styles.trackRow}>
-                        <Text style={styles.trackIndex}>#{idx + 1}</Text>
+                        <View style={[styles.rankBadge, rankStyle]}>
+                          <Text style={[styles.trackIndex, idx < 3 && styles.trackIndexTop]}>
+                            {idx + 1}
+                          </Text>
+                        </View>
 
                         {/* Thumbnail ảnh bìa nhỏ với expo-image memory-disk */}
                         <View style={styles.thumbWrapper}>
@@ -266,37 +285,57 @@ export default function ReplayScreen() {
                 </View>
               ) : (
                 currentPeriodStats.topArtists.map(
-                  (a: { artist: string; count: number; minutes: number }, idx: number) => (
-                    <View key={a.artist} style={styles.artistRow}>
-                      <Text style={styles.artistIndex}>#{idx + 1}</Text>
-                      <View style={styles.artistInfo}>
-                        <Text style={styles.artistName} numberOfLines={1}>
-                          {a.artist}
+                  (a: { artist: string; count: number; minutes: number }, idx: number) => {
+                    const rankStyle =
+                      idx === 0
+                        ? styles.rankGold
+                        : idx === 1
+                          ? styles.rankSilver
+                          : idx === 2
+                            ? styles.rankBronze
+                            : styles.rankNormal;
+
+                    return (
+                      <View key={a.artist} style={styles.artistRow}>
+                        <View style={[styles.rankBadge, rankStyle]}>
+                          <Text style={[styles.artistIndex, idx < 3 && styles.artistIndexTop]}>
+                            {idx + 1}
+                          </Text>
+                        </View>
+                        <View style={styles.artistInfo}>
+                          <Text style={styles.artistName} numberOfLines={1}>
+                            {a.artist}
+                          </Text>
+                        </View>
+                        <Text style={styles.artistCount}>
+                          {a.count} {STATS_LABELS.PLAYS.toLowerCase()}
                         </Text>
                       </View>
-                      <Text style={styles.artistCount}>
-                        {a.count} {STATS_LABELS.PLAYS.toLowerCase()}
-                      </Text>
-                    </View>
-                  )
+                    );
+                  }
                 )
               )}
             </ListGroup>
-          </>
+          </Animated.View>
         ) : (
           /* TAB KỶ NIỆM & CỘT MỐC */
-          <>
+          <Animated.View key={activeTab} entering={FadeIn.duration(220)} style={{ flex: 1 }}>
             <SectionHeader title="DẤU ẤN ĐẦU TIÊN" />
             <ListGroup>
               {report.firstTrackEver ? (
                 <View style={styles.memoryBox}>
-                  <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
-                    {cleanTrackTitle(report.firstTrackEver.title)}
-                  </Text>
-                  <Text style={styles.memorySubtitle}>{report.firstTrackEver.artist}</Text>
-                  <Text style={styles.memoryDate}>
-                    Bài hát mở màn cho kho nhạc vào {report.firstTrackEver.playedAt}
-                  </Text>
+                  <View style={styles.memoryIconCircle}>
+                    <MusicNoteIcon size={20} color={tokens.colors.accent} />
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
+                      {cleanTrackTitle(report.firstTrackEver.title)}
+                    </Text>
+                    <Text style={styles.memorySubtitle}>{report.firstTrackEver.artist}</Text>
+                    <Text style={styles.memoryDate}>
+                      Bài hát mở màn cho kho nhạc vào {report.firstTrackEver.playedAt}
+                    </Text>
+                  </View>
                 </View>
               ) : (
                 <View style={styles.emptyBox}>
@@ -309,13 +348,18 @@ export default function ReplayScreen() {
             <ListGroup>
               {report.mostPlayedTrackEver ? (
                 <View style={styles.memoryBox}>
-                  <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
-                    {cleanTrackTitle(report.mostPlayedTrackEver.title)}
-                  </Text>
-                  <Text style={styles.memorySubtitle}>{report.mostPlayedTrackEver.artist}</Text>
-                  <Text style={styles.memoryDate}>
-                    Đã đồng hành cùng bạn {report.mostPlayedTrackEver.count} {STATS_LABELS.PLAYS.toLowerCase()}
-                  </Text>
+                  <View style={[styles.memoryIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.12)' }]}>
+                    <HeartIcon size={20} color="#f43f5e" fill="#f43f5e" />
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
+                      {cleanTrackTitle(report.mostPlayedTrackEver.title)}
+                    </Text>
+                    <Text style={styles.memorySubtitle}>{report.mostPlayedTrackEver.artist}</Text>
+                    <Text style={styles.memoryDate}>
+                      Đã đồng hành cùng bạn {report.mostPlayedTrackEver.count} {STATS_LABELS.PLAYS.toLowerCase()}
+                    </Text>
+                  </View>
                 </View>
               ) : (
                 <View style={styles.emptyBox}>
@@ -353,7 +397,7 @@ export default function ReplayScreen() {
                 </View>
               ))}
             </ListGroup>
-          </>
+          </Animated.View>
         )}
       </ScrollView>
     </View>
@@ -435,6 +479,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  metricHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   metricNumber: {
     ...tokens.typography.largeTitle,
     fontSize: 28,
@@ -444,7 +494,6 @@ const styles = StyleSheet.create({
   metricLabel: {
     ...tokens.typography.footnote,
     color: tokens.colors.textSecondary,
-    marginTop: 2,
   },
   metricDivider: {
     width: tokens.hairlineWidth,
@@ -458,11 +507,41 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.sm + 2,
     paddingHorizontal: tokens.spacing.md,
   },
+  rankBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: tokens.spacing.xs,
+  },
+  rankGold: {
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  rankSilver: {
+    backgroundColor: 'rgba(226, 232, 240, 0.16)',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  rankBronze: {
+    backgroundColor: 'rgba(217, 119, 6, 0.16)',
+    borderWidth: 1,
+    borderColor: '#d97706',
+  },
+  rankNormal: {
+    backgroundColor: 'transparent',
+  },
   trackIndex: {
     ...tokens.typography.headline,
-    fontSize: 14,
+    fontSize: 13,
     color: tokens.colors.textDim,
-    width: 24,
+    textAlign: 'center',
+  },
+  trackIndexTop: {
+    fontWeight: '700',
+    color: tokens.colors.textPrimary,
   },
   thumbWrapper: {
     width: 40,
@@ -519,12 +598,17 @@ const styles = StyleSheet.create({
   },
   artistIndex: {
     ...tokens.typography.headline,
-    fontSize: 14,
+    fontSize: 13,
     color: tokens.colors.textDim,
-    width: 24,
+    textAlign: 'center',
+  },
+  artistIndexTop: {
+    fontWeight: '700',
+    color: tokens.colors.textPrimary,
   },
   artistInfo: {
     flex: 1,
+    paddingLeft: tokens.spacing.xs,
   },
   artistName: {
     ...tokens.typography.body,
@@ -539,7 +623,21 @@ const styles = StyleSheet.create({
   },
   // Memories
   memoryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: tokens.spacing.lg,
+  },
+  memoryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: tokens.colors.accentMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: tokens.spacing.md,
+  },
+  memoryContent: {
+    flex: 1,
   },
   memoryTitle: {
     ...tokens.typography.headline,

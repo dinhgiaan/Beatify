@@ -10,11 +10,12 @@ import {
   Share,
   StyleSheet,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
 import { useLibrary, usePlayer } from '../../src/context';
-import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
+import { ListGroup, SectionHeader, SettingRow, PressableScale } from '../../src/components/common';
 import { CheckIcon } from '../../src/components/icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
 import { getTabDebugLogs, clearTabDebugLogs } from '../../src/utils/debugLogger';
@@ -59,6 +60,7 @@ export default function AdvancedSettingsScreen() {
   const [showToken, setShowToken] = useState(false);
   const [customAudioUrl, setCustomAudioUrl] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   // C1 & C2: Hiệu năng Trang chủ & Chẩn đoán Lịch sử nghe
   const [homeMetrics, setHomeMetricsState] = useState(getHomeMetrics());
@@ -167,7 +169,8 @@ export default function AdvancedSettingsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* NHẬT KÝ CHUYỂN BÀI (Chuyển vào nhóm Nâng cao) */}
+      <Animated.View entering={FadeIn.duration(200)} style={{ flex: 1 }}>
+        {/* NHẬT KÝ CHUYỂN BÀI (Chuyển vào nhóm Nâng cao) */}
       <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ" />
       <ListGroup>
         <SettingRow
@@ -342,9 +345,14 @@ export default function AdvancedSettingsScreen() {
         <View style={styles.inputBox}>
           <Text style={styles.inputLabel}>Địa chỉ Cloudflare Worker (Server URL)</Text>
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              focusedInput === 'url' && styles.textInputFocused,
+            ]}
             value={inputUrl}
             onChangeText={setInputUrl}
+            onFocus={() => setFocusedInput('url')}
+            onBlur={() => setFocusedInput(null)}
             placeholder="https://beatify-api.worker.dev"
             placeholderTextColor={tokens.colors.textMuted}
             autoCapitalize="none"
@@ -362,9 +370,14 @@ export default function AdvancedSettingsScreen() {
             </TouchableOpacity>
           </View>
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              focusedInput === 'token' && styles.textInputFocused,
+            ]}
             value={inputToken}
             onChangeText={setInputToken}
+            onFocus={() => setFocusedInput('token')}
+            onBlur={() => setFocusedInput(null)}
             placeholder="Nhập token bảo mật..."
             placeholderTextColor={tokens.colors.textMuted}
             secureTextEntry={!showToken}
@@ -372,15 +385,14 @@ export default function AdvancedSettingsScreen() {
             autoCorrect={false}
           />
 
-          <TouchableOpacity
+          <PressableScale
             style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
             onPress={handleSaveConfig}
             disabled={isSavingConfig}
-            activeOpacity={0.7}
           >
             <CheckIcon size={16} color="#000000" />
             <Text style={styles.saveBtnText}>Lưu cấu hình máy chủ</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </ListGroup>
 
@@ -389,24 +401,29 @@ export default function AdvancedSettingsScreen() {
       <ListGroup>
         <View style={styles.inputBox}>
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              focusedInput === 'audio' && styles.textInputFocused,
+            ]}
             value={customAudioUrl}
             onChangeText={setCustomAudioUrl}
+            onFocus={() => setFocusedInput('audio')}
+            onBlur={() => setFocusedInput(null)}
             placeholder="https://example.com/audio.mp3"
             placeholderTextColor={tokens.colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
           />
-          <TouchableOpacity
+          <PressableScale
             style={styles.mysteryAddBtn}
             onPress={handleAddCustomAudio}
-            activeOpacity={0.7}
           >
             <Text style={styles.mysteryAddBtnText}>+ Thêm vào hàng phát</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </ListGroup>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -438,6 +455,11 @@ const styles = StyleSheet.create({
     borderWidth: tokens.hairlineWidth,
     borderColor: tokens.colors.separator,
     marginBottom: tokens.spacing.md,
+  },
+  textInputFocused: {
+    borderColor: tokens.colors.accent,
+    backgroundColor: tokens.colors.bgSurface,
+    borderWidth: 1.5,
   },
   tokenLabelRow: {
     flexDirection: 'row',

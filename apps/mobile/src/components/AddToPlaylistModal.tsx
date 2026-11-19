@@ -10,7 +10,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  LayoutAnimation,
 } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+} from 'react-native-reanimated';
 import type { Track, UserState, Playlist } from '@music-app/shared';
 import { colors, fontSizes, fontWeights, spacing, radius } from '../theme';
 import { PlaylistIcon, CheckIcon, PlusIcon, CloseIcon } from './icons/SvgIcons';
@@ -125,6 +132,14 @@ export function AddToPlaylistModal({
     }
   };
 
+  const toggleCreateNewSmooth = (enable: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCreatingNew(enable);
+    if (!enable) {
+      setNewTitle('');
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -136,81 +151,81 @@ export function AddToPlaylistModal({
         style={styles.modalBackdrop}
         activeOpacity={1}
         onPress={() => {
-          setIsCreatingNew(false);
-          setNewTitle('');
+          toggleCreateNewSmooth(false);
           onClose();
         }}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.card}
-          onStartShouldSetResponder={() => true}
+        <Animated.View
+          entering={SlideInDown.duration(280)}
+          exiting={SlideOutDown.duration(200)}
+          style={{ width: '100%', alignItems: 'center' }}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Thêm vào playlist</Text>
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {track.title} • {track.artist}
-              </Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.card}
+            onStartShouldSetResponder={() => true}
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>Thêm vào playlist</Text>
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {track.title} • {track.artist}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  toggleCreateNewSmooth(false);
+                  onClose();
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <CloseIcon size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                setIsCreatingNew(false);
-                setNewTitle('');
-                onClose();
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <CloseIcon size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
 
-          {/* Form tạo nhanh playlist mới */}
-          {isCreatingNew ? (
-            <View style={styles.createFormBox}>
-              <Text style={styles.createFormLabel}>Tên playlist mới</Text>
-              <TextInput
-                style={styles.createInput}
-                placeholder="Ví dụ: Chill rap, Nhạc đêm..."
-                placeholderTextColor={colors.textTertiary}
-                value={newTitle}
-                onChangeText={setNewTitle}
-                autoFocus
-                maxLength={50}
-              />
-              <View style={styles.createFormActions}>
+            {/* Form tạo nhanh playlist mới */}
+            {isCreatingNew ? (
+              <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.createFormBox}>
+                <Text style={styles.createFormLabel}>Tên playlist mới</Text>
+                <TextInput
+                  style={styles.createInput}
+                  placeholder="Ví dụ: Chill rap, Nhạc đêm..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={newTitle}
+                  onChangeText={setNewTitle}
+                  autoFocus
+                  maxLength={50}
+                />
+                <View style={styles.createFormActions}>
+                  <TouchableOpacity
+                    style={styles.cancelCreateBtn}
+                    onPress={() => toggleCreateNewSmooth(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.cancelCreateBtnText}>Hủy</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.confirmCreateBtn}
+                    onPress={handleCreateAndAdd}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.confirmCreateBtnText}>Tạo & Thêm vào</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            ) : (
+              <>
+                {/* Nút tạo nhanh playlist */}
                 <TouchableOpacity
-                  style={styles.cancelCreateBtn}
-                  onPress={() => {
-                    setIsCreatingNew(false);
-                    setNewTitle('');
-                  }}
+                  style={styles.newPlaylistTriggerBtn}
+                  onPress={() => toggleCreateNewSmooth(true)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.cancelCreateBtnText}>Hủy</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.confirmCreateBtn}
-                  onPress={handleCreateAndAdd}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmCreateBtnText}>Tạo & Thêm vào</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <>
-              {/* Nút tạo nhanh playlist */}
-              <TouchableOpacity
-                style={styles.newPlaylistTriggerBtn}
-                onPress={() => setIsCreatingNew(true)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.newPlaylistIconBox}>
-                  <PlusIcon size={18} color={colors.primary} />
-                </View>
+                  <View style={styles.newPlaylistIconBox}>
+                    <PlusIcon size={18} color={colors.primary} />
+                  </View>
                 <Text style={styles.newPlaylistTriggerText}>Tạo danh sách phát mới</Text>
               </TouchableOpacity>
 
@@ -277,8 +292,7 @@ export function AddToPlaylistModal({
           <TouchableOpacity
             style={styles.cancelBtn}
             onPress={() => {
-              setIsCreatingNew(false);
-              setNewTitle('');
+              toggleCreateNewSmooth(false);
               onClose();
             }}
             activeOpacity={0.7}
@@ -286,6 +300,7 @@ export function AddToPlaylistModal({
             <Text style={styles.cancelBtnText}>Đóng</Text>
           </TouchableOpacity>
         </KeyboardAvoidingView>
+      </Animated.View>
       </TouchableOpacity>
     </Modal>
   );

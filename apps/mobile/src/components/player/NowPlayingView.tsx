@@ -12,6 +12,7 @@ import {
   Alert,
   Animated,
   Vibration,
+  LayoutAnimation,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -99,6 +100,11 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+
+  const toggleQueue = useCallback((explicit?: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowQueue((prev) => (typeof explicit === 'boolean' ? explicit : !prev));
+  }, []);
   const [sleepTimerDialogVisible, setSleepTimerDialogVisible] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState('');
   const [loopModalVisible, setLoopModalVisible] = useState(false);
@@ -404,7 +410,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
                 DANH SÁCH CHỜ ({tracks.length})
               </Text>
               <TouchableOpacity
-                onPress={() => setShowQueue(false)}
+                onPress={() => toggleQueue(false)}
                 style={styles.queueBackBtn}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -686,7 +692,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
           {/* Nút 2: Hàng đợi / Ảnh bìa */}
           <TouchableOpacity
             style={[styles.bottomButton, showQueue && styles.bottomButtonActive]}
-            onPress={() => setShowQueue(!showQueue)}
+            onPress={() => toggleQueue()}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"

@@ -89,6 +89,24 @@
       4. `Ghệ Mới (ft. Young H)` (`3062503bbdad`) - Tải mới thành công từ YouTube kèm ảnh bìa HD và lời bài hát LRC đồng bộ.
     - Đã đồng bộ toàn bộ file âm thanh, ảnh bìa, lời bài hát và `library.json` mới lên Cloudflare R2 bucket.
   - **Kiểm thử & Typecheck:** Toàn bộ 426 tests (133 shared, 25 api, 124 mobile bao gồm uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **13. Nâng cấp Toàn diện UI/UX Animation & Tinh chỉnh Hồ sơ Người dùng (Replay, Nâng cao, Playlists, Now Playing):**
+  - **Modal Tuyển tập & Thêm vào Playlist (`PlaylistModal.tsx` & `AddToPlaylistModal.tsx`):**
+    - Chuyển tab Playlist $\leftrightarrow$ Yêu thích tích hợp hiệu ứng viên thuốc trượt Reanimated (`slidingActivePill`, `withSpring`, `useSharedValue`).
+    - Chuyển view mềm mại với `Animated.View entering={FadeIn.duration(200)}` và `LayoutAnimation.configureNext`.
+    - Mở form tạo playlist / thêm bài hát trơn tru bằng animation trượt mở rộng mượt mà, loại bỏ cảm giác xuất hiện đột ngột.
+  - **NowPlayingView / Hàng đợi phát (Queue):**
+    - Tích hợp `LayoutAnimation` khi chuyển đổi giữa Bìa đĩa nghệ thuật và Hàng đợi phát (Queue), chuyển cảnh êm ái tự nhiên.
+  - **Thống kê Replay (`apps/mobile/app/settings/replay.tsx`):**
+    - BẢO TỒN TUYỆT ĐỐI 100% animation trượt active tab (`slidingActivePill`, `withSpring`, `useSharedValue`), vượt qua toàn bộ 14 tests của `uiRegression.test.ts`.
+    - Bọc chuyển tab bằng `Animated.View entering={FadeIn.duration(220)}`.
+    - Card Tổng quan kỳ (`metricBanner`): Thêm icon `ClockIcon` và `HeadphonesIcon`, thiết kế card số liệu nổi bật.
+    - Bảng xếp hạng Top bài hát & Top nghệ sĩ: Thêm huy hiệu Top 3 màu sắc sang trọng (#1 Vàng kim `#f59e0b`, #2 Bạc `#e2e8f0`, #3 Đồng `#d97706`).
+    - Thẻ Dấu ấn đầu tiên & Bài hát gắn bó nhất: Bổ sung icon minh họa và khung bo mềm mại.
+  - **Màn hình Nâng cao (`apps/mobile/app/settings/advanced.tsx`):**
+    - Bọc toàn màn hình bằng `Animated.View entering={FadeIn.duration(200)}`.
+    - Tích hợp `PressableScale` nhún lò xo Reanimated cho các nút bấm lớn ("Lưu cấu hình máy chủ", "+ Thêm vào hàng phát").
+    - Thêm viền focus highlight màu accent cho các ô nhập URL máy chủ, API token và Custom Audio URL.
+  - **Kiểm thử & Typecheck:** Toàn bộ 426 tests (133 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

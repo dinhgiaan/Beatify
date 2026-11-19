@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -11,7 +11,15 @@ import {
   SafeAreaView,
   StatusBar,
   Image,
+  Dimensions,
+  LayoutAnimation,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeIn,
+} from 'react-native-reanimated';
 import type { Track, UserState, Playlist } from '@music-app/shared';
 import {
   CloseIcon,
@@ -49,10 +57,54 @@ export function PlaylistModal({
   const [activeTab, setActiveTab] = useState<'playlists' | 'favorites'>('playlists');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
 
+  // Reanimated sliding active pill cho tab switcher Playlist / Favorites
+  const activeTabIdx = activeTab === 'playlists' ? 0 : 1;
+  const activeTabShared = useSharedValue(activeTabIdx);
+  const screenWidth = Dimensions.get('window').width;
+  const tabTrackWidthShared = useSharedValue(Math.max(screenWidth - 32, 280));
+
+  useEffect(() => {
+    activeTabShared.value = withSpring(activeTab === 'playlists' ? 0 : 1, {
+      damping: 20,
+      stiffness: 160,
+      mass: 0.7,
+    });
+  }, [activeTab, activeTabShared]);
+
+  const pillAnimStyle = useAnimatedStyle(() => {
+    const availableWidth = Math.max(0, tabTrackWidthShared.value - 6);
+    const itemWidth = availableWidth / 2;
+    return {
+      width: itemWidth > 0 ? itemWidth : 0,
+      transform: [
+        {
+          translateX: activeTabShared.value * itemWidth,
+        },
+      ],
+      opacity: tabTrackWidthShared.value > 0 ? 1 : 0,
+    };
+  });
+
+  const handleSwitchTab = (tab: 'playlists' | 'favorites') => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setActiveTab(tab);
+    setSelectedPlaylistId(null);
+  };
+
+  const handleSelectPlaylist = (id: string | null) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSelectedPlaylistId(id);
+  };
+
   // Trạng thái tạo playlist
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
+
+  const toggleCreating = (enable: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCreating(enable);
+  };
 
   // Trạng thái thêm bài hát vào playlist
   const [isAddingTracks, setIsAddingTracks] = useState(false);
@@ -111,10 +163,10 @@ export function PlaylistModal({
       playlists: [newPlaylist, ...prev.playlists],
     }));
 
-    setIsCreating(false);
+    toggleCreating(false);
     setNewPlaylistName('');
     setNewPlaylistDesc('');
-    setSelectedPlaylistId(newPlaylist.id);
+    handleSelectPlaylist(newPlaylist.id);
   };
 
   // Xóa Playlist
@@ -234,7 +286,7 @@ export function PlaylistModal({
 
           <TouchableOpacity
             style={styles.createBtn}
-            onPress={() => setIsCreating(true)}
+            onPress={() => toggleCreating(true)}
             activeOpacity={0.7}
           >
             <PlusIcon size={16} color="#1DB954" />
@@ -242,49 +294,53 @@ export function PlaylistModal({
           </TouchableOpacity>
         </View>
 
-        {/* Tab switcher */}
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'playlists' && styles.tabBtnActive]}
-            onPress={() => {
-              setActiveTab('playlists');
-              setSelectedPlaylistId(null);
+        {/* Tab switcher với sliding active pill mượt mà */}
+        <View style={styles.tabTrackContainer}>
+          <View
+            style={styles.tabTrack}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) tabTrackWidthShared.value = w;
             }}
-            activeOpacity={0.7}
           >
-            <PlaylistIcon size={16} color={activeTab === 'playlists' ? '#1DB954' : '#71717a'} />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'playlists' ? styles.tabTextActive : styles.tabTextInactive,
-              ]}
-            >
-              Playlist ({userState.playlists.length})
-            </Text>
-          </TouchableOpacity>
+            <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
 
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'favorites' && styles.tabBtnActiveFavorites]}
-            onPress={() => {
-              setActiveTab('favorites');
-              setSelectedPlaylistId(null);
-            }}
-            activeOpacity={0.7}
-          >
-            <HeartIcon
-              size={16}
-              color={activeTab === 'favorites' ? '#f43f5e' : '#71717a'}
-              fill={activeTab === 'favorites' ? '#f43f5e' : 'none'}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'favorites' ? styles.tabTextActiveFavorites : styles.tabTextInactive,
-              ]}
+            <TouchableOpacity
+              style={styles.tabBtn}
+              onPress={() => handleSwitchTab('playlists')}
+              activeOpacity={0.7}
             >
-              Favorites ({userState.favoriteIds.length})
-            </Text>
-          </TouchableOpacity>
+              <PlaylistIcon size={16} color={activeTab === 'playlists' ? '#000000' : '#a1a1aa'} />
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'playlists' ? styles.tabTextActive : styles.tabTextInactive,
+                ]}
+              >
+                Playlist ({userState.playlists.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabBtn}
+              onPress={() => handleSwitchTab('favorites')}
+              activeOpacity={0.7}
+            >
+              <HeartIcon
+                size={16}
+                color={activeTab === 'favorites' ? '#000000' : '#a1a1aa'}
+                fill={activeTab === 'favorites' ? '#000000' : 'none'}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'favorites' ? styles.tabTextActive : styles.tabTextInactive,
+                ]}
+              >
+                Yêu thích ({userState.favoriteIds.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Body content */}
@@ -292,7 +348,7 @@ export function PlaylistModal({
           !selectedPlaylistId ? (
             /* Danh sách các playlist */
             userState.playlists.length === 0 ? (
-              <View style={styles.centerBox}>
+              <Animated.View key="pl-empty" entering={FadeIn.duration(200)} style={styles.centerBox}>
                 <View style={styles.emptyIconCircle}>
                   <PlaylistIcon size={36} color="#71717a" />
                 </View>
@@ -302,52 +358,57 @@ export function PlaylistModal({
                 </Text>
                 <TouchableOpacity
                   style={styles.actionBtnPrimary}
-                  onPress={() => setIsCreating(true)}
+                  onPress={() => toggleCreating(true)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.actionBtnPrimaryText}>+ Tạo Playlist</Text>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             ) : (
-
-              <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
-                {userState.playlists.map((pl) => (
-                  <TouchableOpacity
-                    key={pl.id}
-                    style={styles.playlistCard}
-                    onPress={() => setSelectedPlaylistId(pl.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.playlistCardIcon}>
-                      <PlaylistIcon size={24} color="#1DB954" />
-                    </View>
-                    <View style={styles.playlistCardInfo}>
-                      <Text style={styles.playlistCardTitle} numberOfLines={1}>
-                        {pl.name}
-                      </Text>
-                      <Text style={styles.playlistCardMeta}>
-                        {pl.trackIds.length} bài hát {pl.description ? `• ${pl.description}` : ''}
-                      </Text>
-                    </View>
+              <Animated.View key="pl-list" entering={FadeIn.duration(200)} style={{ flex: 1 }}>
+                <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
+                  {userState.playlists.map((pl) => (
                     <TouchableOpacity
-                      style={styles.deleteMiniBtn}
-                      onPress={() => handleDeletePlaylist(pl)}
-                      activeOpacity={0.6}
+                      key={pl.id}
+                      style={styles.playlistCard}
+                      onPress={() => handleSelectPlaylist(pl.id)}
+                      activeOpacity={0.7}
                     >
-                      <TrashIcon size={16} color="#71717a" />
+                      <View style={styles.playlistCardIcon}>
+                        <PlaylistIcon size={24} color="#1DB954" />
+                      </View>
+                      <View style={styles.playlistCardInfo}>
+                        <Text style={styles.playlistCardTitle} numberOfLines={1}>
+                          {pl.name}
+                        </Text>
+                        <Text style={styles.playlistCardMeta}>
+                          {pl.trackIds.length} bài hát {pl.description ? `• ${pl.description}` : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.deleteMiniBtn}
+                        onPress={() => handleDeletePlaylist(pl)}
+                        activeOpacity={0.6}
+                      >
+                        <TrashIcon size={16} color="#71717a" />
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                  ))}
+                </ScrollView>
+              </Animated.View>
             )
           ) : (
             /* Chi tiết Playlist */
             activePlaylist && (
-              <View style={styles.detailContainer}>
+              <Animated.View
+                key={`pl-detail-${activePlaylist.id}`}
+                entering={FadeIn.duration(200)}
+                style={styles.detailContainer}
+              >
                 <View style={styles.detailHeader}>
                   <TouchableOpacity
                     style={styles.backBtn}
-                    onPress={() => setSelectedPlaylistId(null)}
+                    onPress={() => handleSelectPlaylist(null)}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.backBtnText}>← Danh sách</Text>
@@ -393,7 +454,6 @@ export function PlaylistModal({
                     <Text style={styles.emptyTitle}>Playlist này còn trống</Text>
                     <Text style={styles.emptyDesc}>Bấm "Thêm bài" bên trên để chọn bài hát từ thư viện vào đây.</Text>
                   </View>
-
                 ) : (
                   <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
                     {activePlaylistTracks.map((track) => {
@@ -447,13 +507,13 @@ export function PlaylistModal({
                     })}
                   </ScrollView>
                 )}
-              </View>
+              </Animated.View>
             )
           )
         ) : (
           /* TAB 2: YÊU THÍCH */
           favoriteTracks.length === 0 ? (
-            <View style={styles.centerBox}>
+            <Animated.View key="fav-empty" entering={FadeIn.duration(200)} style={styles.centerBox}>
               <View style={[styles.emptyIconCircle, { backgroundColor: '#261217' }]}>
                 <HeartIcon size={36} color="#f43f5e" fill="#f43f5e" />
               </View>
@@ -461,59 +521,61 @@ export function PlaylistModal({
               <Text style={styles.emptyDesc}>
                 Nhấn vào biểu tượng trái tim khi đang phát nhạc hoặc trên Web để lưu bài hát vào danh sách này.
               </Text>
-            </View>
+            </Animated.View>
           ) : (
-            <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
-              {favoriteTracks.map((track) => {
-                const isPlayingThis = currentTrackId === track.id && isPlaying;
-                return (
-                  <View key={track.id} style={styles.trackRow}>
-                    <TouchableOpacity
-                      style={styles.trackPlayBtn}
-                      onPress={() => onPlayTrack(track)}
-                      activeOpacity={0.7}
-                    >
-                      {isPlayingThis ? (
-                        <PauseIcon size={18} color="#1DB954" />
-                      ) : (
-                        <PlayIcon size={18} color="#ffffff" />
-                      )}
-                    </TouchableOpacity>
-
-                    {/* Ảnh bìa bài hát yêu thích */}
-                    <View style={styles.trackCoverWrapper}>
-                      {track.cover ? (
-                        <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.trackCoverPlaceholder}>
-                          <DiscIcon size={16} color="#71717a" />
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.trackInfo}>
-                      <Text
-                        style={[styles.trackTitle, isPlayingThis && styles.trackTitleActive]}
-                        numberOfLines={1}
+            <Animated.View key="fav-list" entering={FadeIn.duration(200)} style={{ flex: 1 }}>
+              <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
+                {favoriteTracks.map((track) => {
+                  const isPlayingThis = currentTrackId === track.id && isPlaying;
+                  return (
+                    <View key={track.id} style={styles.trackRow}>
+                      <TouchableOpacity
+                        style={styles.trackPlayBtn}
+                        onPress={() => onPlayTrack(track)}
+                        activeOpacity={0.7}
                       >
-                        {track.title}
-                      </Text>
-                      <Text style={styles.trackArtist} numberOfLines={1}>
-                        {track.artist}
-                      </Text>
-                    </View>
+                        {isPlayingThis ? (
+                          <PauseIcon size={18} color="#1DB954" />
+                        ) : (
+                          <PlayIcon size={18} color="#ffffff" />
+                        )}
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.favToggleBtn}
-                      onPress={() => handleToggleFavorite(track.id)}
-                      activeOpacity={0.7}
-                    >
-                      <HeartIcon size={18} color="#f43f5e" fill="#f43f5e" />
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </ScrollView>
+                      {/* Ảnh bìa bài hát yêu thích */}
+                      <View style={styles.trackCoverWrapper}>
+                        {track.cover ? (
+                          <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.trackCoverPlaceholder}>
+                            <DiscIcon size={16} color="#71717a" />
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.trackInfo}>
+                        <Text
+                          style={[styles.trackTitle, isPlayingThis && styles.trackTitleActive]}
+                          numberOfLines={1}
+                        >
+                          {track.title}
+                        </Text>
+                        <Text style={styles.trackArtist} numberOfLines={1}>
+                          {track.artist}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.favToggleBtn}
+                        onPress={() => handleToggleFavorite(track.id)}
+                        activeOpacity={0.7}
+                      >
+                        <HeartIcon size={18} color="#f43f5e" fill="#f43f5e" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </Animated.View>
           )
         )}
 
@@ -545,7 +607,7 @@ export function PlaylistModal({
               <View style={styles.dialogActions}>
                 <TouchableOpacity
                   style={styles.dialogCancelBtn}
-                  onPress={() => setIsCreating(false)}
+                  onPress={() => toggleCreating(false)}
                 >
                   <Text style={styles.dialogCancelText}>Hủy</Text>
                 </TouchableOpacity>
@@ -688,6 +750,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
+  tabTrackContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#22252a',
+  },
+  tabTrack: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: '#16181d',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  slidingActivePill: {
+    position: 'absolute',
+    top: 3,
+    bottom: 3,
+    left: 3,
+    backgroundColor: '#1DB954',
+    borderRadius: 9,
+  },
   tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -702,9 +787,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#16181d',
+    borderRadius: 9,
     gap: 6,
+    zIndex: 1,
   },
   tabBtnActive: {
     backgroundColor: '#16281c',
@@ -721,7 +806,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#1DB954',
+    color: '#000000',
+    fontWeight: '700',
   },
   tabTextActiveFavorites: {
     color: '#f43f5e',
