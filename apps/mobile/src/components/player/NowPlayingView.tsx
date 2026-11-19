@@ -442,7 +442,9 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
                       {isCurrent ? (
                         <EqualizerIndicator isPlaying={playerState.isPlaying} size={15} color={colors.primary} />
                       ) : (
-                        <Text style={styles.queueIndexText}>{index + 1}</Text>
+                        <Text style={styles.queueIndexText} numberOfLines={1}>
+                          {index + 1}
+                        </Text>
                       )}
                     </View>
 
@@ -1182,9 +1184,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   queueItemIndex: {
-    width: 20,
+    minWidth: 30,
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.xs,
+    paddingHorizontal: 2,
   },
   queueCoverWrapper: {
     width: 36,
@@ -1208,6 +1212,8 @@ const styles = StyleSheet.create({
   queueIndexText: {
     fontSize: fontSizes.caption,
     color: colors.textTertiary,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   queueItemInfo: {
     flex: 1,

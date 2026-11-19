@@ -146,6 +146,16 @@
     - **Màn hình "Lưu trữ & Lịch sử" (`storage.tsx`):** Phân cách 2 section (Nhạc ngoại tuyến, Lịch sử nghe gần đây) với khoảng cách 26pt. Nhãn "Số bài lưu tối đa" cách thanh chip chọn số bài 8pt rõ ràng, không còn dính cục. Bảo toàn nguyên vẹn `slidingActivePill` và `withSpring`.
     - **Màn hình Cài đặt chính (`settings/index.tsx`):** Tách thẻ Hero Stats khỏi nhóm "TÙY CHỌN ỨNG DỤNG" 24pt, tiêu đề `variant="list"`.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **17. Khắc phục Triệt để Lỗi Rớt Dòng Số Thứ Tự trong Hàng Đợi Phát (Queue) $\ge 200$ & Chuẩn hóa Đánh số Bài hát:**
+  - **Khắc phục Modal Danh sách chờ / Hàng đợi phát (`NowPlayingView.tsx`):**
+    - Sửa lỗi root cause container `queueItemIndex` bị giới hạn cứng `width: 20` khiến các bài từ số 200 trở đi có 3 chữ số bề ngang vượt 20px bị React Native tự động bẻ chữ số cuối xuống dòng thứ 2 (ví dụ: dòng 1 "20", dòng 2 "0").
+    - Nâng cấp `queueItemIndex` sang `minWidth: 30`, căn giữa `justifyContent: 'center'`, padding ngang 2pt.
+    - Bổ sung ràng buộc `numberOfLines={1}` cho `<Text style={styles.queueIndexText} numberOfLines={1}>`, triệt tiêu hoàn toàn nguy cơ rớt dòng dưới mọi kích thước chữ.
+    - Bổ sung `fontVariant: ['tabular-nums']` và `textAlign: 'center'` giúp các con số từ 1 đến 999+ căn thẳng hàng dọc hoàn hảo.
+  - **Rà soát & Phòng vệ Toàn diện trên các Màn hình Danh sách:**
+    - `apps/mobile/app/section/[id].tsx`: Nâng cấp `trackIndexWrapper` từ `width: 24` lên `minWidth: 28`, bổ sung `numberOfLines={1}`, `fontVariant: ['tabular-nums']` và `textAlign: 'center'`.
+    - `apps/mobile/src/components/CollectionDetailModal.tsx`: Đồng bộ `minWidth: 30` cho cả lúc hiển thị `EqualizerIndicator` và số thứ tự bài hát, bổ sung `numberOfLines={1}` và `fontVariant: ['tabular-nums']`.
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

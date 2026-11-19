@@ -121,11 +121,13 @@ export function CollectionDetailModal({
         activeOpacity={0.7}
       >
         {isCurrent ? (
-          <View style={{ width: 24, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 30, alignItems: 'center', justifyContent: 'center' }}>
             <EqualizerIndicator isPlaying={playerState.isPlaying} size={14} color={colors.primary} />
           </View>
         ) : (
-          <Text style={styles.indexText}>{index + 1}</Text>
+          <Text style={styles.indexText} numberOfLines={1}>
+            {index + 1}
+          </Text>
         )}
 
         {/* Ảnh bìa bài hát */}
@@ -604,11 +606,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   indexText: {
-    width: 28,
+    minWidth: 30,
     color: colors.textTertiary,
     fontSize: fontSizes.subhead,
     fontWeight: fontWeights.medium,
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   indexTextActive: {
     color: colors.primary,

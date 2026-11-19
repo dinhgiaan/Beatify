@@ -254,7 +254,9 @@ export default function SectionDetailScreen() {
                   {isCurrent ? (
                     <EqualizerIndicator isPlaying={playerState.isPlaying} size={14} color={colors.primary} />
                   ) : (
-                    <Text style={styles.trackIndexText}>{index + 1}</Text>
+                    <Text style={styles.trackIndexText} numberOfLines={1}>
+                      {index + 1}
+                    </Text>
                   )}
                 </View>
 
@@ -486,13 +488,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   trackIndexWrapper: {
-    width: 24,
+    minWidth: 28,
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.xs,
+    paddingHorizontal: 2,
   },
   trackIndexText: {
     ...typography.caption,
     color: colors.textMuted,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   trackCoverWrapper: {
     width: 44,
