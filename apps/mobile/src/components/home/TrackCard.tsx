@@ -1,16 +1,18 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import type { Track } from '@music-app/shared';
 import { colors, spacing, radius, typography } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 import { EqualizerIndicator } from '../player/EqualizerIndicator';
+import { PressableScale } from '../common/PressableScale';
 import { haptics } from '../../lib/haptics';
 
-export const TRACK_CARD_WIDTH = 140;
+export const DEFAULT_TRACK_CARD_WIDTH = 104;
 
 export interface TrackCardProps {
   track: Track;
+  cardWidth?: number;
   isCurrent?: boolean;
   isPlaying?: boolean;
   onPress: (track: Track) => void;
@@ -19,6 +21,7 @@ export interface TrackCardProps {
 
 export const TrackCard = React.memo(function TrackCard({
   track,
+  cardWidth = DEFAULT_TRACK_CARD_WIDTH,
   isCurrent = false,
   isPlaying = false,
   onPress,
@@ -34,16 +37,15 @@ export const TrackCard = React.memo(function TrackCard({
   }, [onLongPress, track]);
 
   return (
-    <TouchableOpacity
-      style={styles.container}
+    <PressableScale
+      style={[styles.container, { width: cardWidth }]}
       onPress={handlePress}
       onLongPress={handleLongPress}
       delayLongPress={450}
-      activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={`${track.title}, ${track.artist}`}
     >
-      <View style={styles.coverWrapper}>
+      <View style={[styles.coverWrapper, { width: cardWidth, height: cardWidth }]}>
         {track.cover ? (
           <Image
             source={{ uri: track.cover }}
@@ -55,7 +57,7 @@ export const TrackCard = React.memo(function TrackCard({
           />
         ) : (
           <View style={styles.coverPlaceholder}>
-            <DiscIcon size={36} color={colors.borderLight} />
+            <DiscIcon size={Math.round(cardWidth * 0.35)} color={colors.borderLight} />
           </View>
         )}
 
@@ -76,24 +78,26 @@ export const TrackCard = React.memo(function TrackCard({
       <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
         {track.artist}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    width: TRACK_CARD_WIDTH,
     marginRight: spacing.md,
   },
   coverWrapper: {
-    width: TRACK_CARD_WIDTH,
-    height: TRACK_CARD_WIDTH,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
     borderColor: colors.borderLight,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   coverImage: {
     width: '100%',
@@ -114,17 +118,18 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.subheadline,
+    fontSize: 13.5,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginTop: spacing.xs + 2,
+    marginTop: spacing.xs,
   },
   titleActive: {
     color: colors.primary,
   },
   artist: {
     ...typography.caption1,
+    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
   },
 });
-

@@ -644,4 +644,65 @@ describe('homeSections logic & builders', () => {
                   expect(sections.length).toBeGreaterThan(0);
                 });
               });
+
+              describe('kiểm thử shuffleSalt và xáo trộn ngẫu nhiên', () => {
+                it('shuffleSalt = 0 hoặc undefined giữ nguyên thứ tự mặc định', () => {
+                  const ctx1: HomeContext = {
+                    tracks: mockTracks,
+                    albums: mockAlbums,
+                    records: [],
+                    favoriteIds: ['track-1'],
+                    recentTrackIds: ['track-1', 'track-2'],
+                    now: FIXED_NOW,
+                  };
+                  const ctx2: HomeContext = {
+                    ...ctx1,
+                    shuffleSalt: 0,
+                  };
+
+                  const sec1 = buildHomeSections(ctx1);
+                  const sec2 = buildHomeSections(ctx2);
+
+                  expect(sec1.map((s) => s.id)).toEqual(sec2.map((s) => s.id));
+                  for (let i = 0; i < sec1.length; i++) {
+                    const s1 = sec1[i];
+                    const s2 = sec2[i];
+                    if (s1?.kind === 'tracks' && s2?.kind === 'tracks') {
+                      expect(s1.tracks.map((t) => t.id)).toEqual(s2.tracks.map((t) => t.id));
+                    }
+                  }
+                });
+
+                it('cùng context nhưng khác shuffleSalt tạo ra seed khác và thứ tự xáo trộn khác', () => {
+                  const ctxSalt0: HomeContext = {
+                    tracks: mockTracks,
+                    albums: mockAlbums,
+                    records: [],
+                    favoriteIds: ['track-1'],
+                    recentTrackIds: ['track-1', 'track-2'],
+                    now: FIXED_NOW,
+                    shuffleSalt: 0,
+                  };
+                  const ctxSalt1: HomeContext = {
+                    ...ctxSalt0,
+                    shuffleSalt: 42,
+                  };
+
+                  expect(getDaySeed(ctxSalt0)).not.toBe(getDaySeed(ctxSalt1));
+
+                  const sec0 = buildHomeSections(ctxSalt0);
+                  const sec1 = buildHomeSections(ctxSalt1);
+
+                  // Tìm một section có áp dụng seededShuffle (ví dụ: discover)
+                  const discover0 = sec0.find((s) => s.id === 'discover');
+                  const discover1 = sec1.find((s) => s.id === 'discover');
+
+                  if (discover0 && discover1 && discover0.kind === 'tracks' && discover1.kind === 'tracks') {
+                    // Xác nhận ID danh sách bài hát có thay đổi khi đổi salt
+                    const ids0 = discover0.tracks.map((t) => t.id);
+                    const ids1 = discover1.tracks.map((t) => t.id);
+                    expect(ids0).not.toEqual(ids1);
+                  }
+                });
+              });
             });

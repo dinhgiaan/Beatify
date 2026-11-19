@@ -1,36 +1,46 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import type { HomeArtistItem } from '@music-app/shared';
-import { colors, spacing, radius, typography } from '../../theme';
+import { colors, spacing, fontWeights } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 import { haptics } from '../../lib/haptics';
+import { PressableScale } from '../common/PressableScale';
 
 export const ARTIST_CHIP_WIDTH = 90;
 
 export interface ArtistChipProps {
   artist: HomeArtistItem;
   onPress: (artist: HomeArtistItem) => void;
+  cardWidth?: number;
 }
 
 export const ArtistChip = React.memo(function ArtistChip({
   artist,
   onPress,
+  cardWidth = ARTIST_CHIP_WIDTH,
 }: ArtistChipProps) {
   const handlePress = useCallback(() => {
     haptics.tap();
     onPress(artist);
   }, [onPress, artist]);
 
+  const avatarSize = Math.max(64, cardWidth - 10);
+
   return (
-    <TouchableOpacity
-      style={styles.container}
+    <PressableScale
+      style={[styles.container, { width: cardWidth }]}
       onPress={handlePress}
-      activeOpacity={0.75}
+      scaleTo={0.94}
       accessibilityRole="button"
       accessibilityLabel={`Nghệ sĩ ${artist.artist}, ${artist.trackCount} bài hát`}
     >
-      <View style={styles.avatarWrapper}>
+      <View
+        style={[
+          styles.avatarWrapper,
+          { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
+        ]}
+      >
         {artist.coverUrl ? (
           <Image
             source={{ uri: artist.coverUrl }}
@@ -42,7 +52,7 @@ export const ArtistChip = React.memo(function ArtistChip({
           />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <DiscIcon size={30} color={colors.borderLight} />
+            <DiscIcon size={Math.round(avatarSize * 0.4)} color={colors.borderLight} />
           </View>
         )}
       </View>
@@ -53,20 +63,16 @@ export const ArtistChip = React.memo(function ArtistChip({
       <Text style={styles.subtext} numberOfLines={1}>
         {artist.trackCount} bài
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    width: ARTIST_CHIP_WIDTH,
     alignItems: 'center',
     marginRight: spacing.md,
   },
   avatarWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.pill,
     backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
     borderWidth: 1.5,
@@ -86,18 +92,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   name: {
-    ...typography.caption1,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
     marginTop: spacing.xs,
     textAlign: 'center',
     width: '100%',
   },
   subtext: {
-    ...typography.caption2,
+    fontSize: 12,
+    fontWeight: fontWeights.regular,
     color: colors.textSecondary,
     marginTop: 1,
     textAlign: 'center',
   },
 });
-

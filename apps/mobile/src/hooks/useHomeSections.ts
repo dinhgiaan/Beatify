@@ -26,6 +26,7 @@ export interface UseHomeSectionsResult {
   hasLoadedOnce: boolean;
   recordCount: number;
   reload: () => Promise<void>;
+  reshuffle: () => void;
 }
 
 /**
@@ -50,7 +51,12 @@ export function useHomeSections(): UseHomeSectionsResult {
 
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [shuffleSalt, setShuffleSalt] = useState(0);
   const lastCalculationTimeRef = useRef<number>(0);
+
+  const reshuffle = useCallback(() => {
+    setShuffleSalt((s) => s + 1);
+  }, []);
 
   // Hàm tải dữ liệu lịch sử nghe
   const loadData = useCallback(async () => {
@@ -83,60 +89,61 @@ export function useHomeSections(): UseHomeSectionsResult {
       setIsLoading(false);
       setHasLoadedOnce(true);
     }
-}, [hasLoadedOnce]);
+  }, [hasLoadedOnce]);
 
-// Tự động cập nhật dữ liệu mỗi khi người dùng quay lại tab Trang chủ
-useFocusEffect(
-  useCallback(() => {
-    loadData();
-  }, [loadData])
-);
+  // Tự động cập nhật dữ liệu mỗi khi người dùng quay lại tab Trang chủ
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
-// Danh sách ID bài hát yêu thích
-const favoriteIds = useMemo(() => {
-  return userState.favoriteIds || [];
-}, [userState.favoriteIds]);
+  // Danh sách ID bài hát yêu thích
+  const favoriteIds = useMemo(() => {
+    return userState.favoriteIds || [];
+  }, [userState.favoriteIds]);
 
-// Thông điệp chào theo khung giờ trong ngày (thuần túy phụ thuộc vào homeData.now)
-const greeting = useMemo(() => {
-  const timeOfDay = getTimeOfDay(homeData.now);
-  return getTimeOfDayGreeting(timeOfDay);
+  // Thông điệp chào theo khung giờ trong ngày (thuần túy phụ thuộc vào homeData.now)
+  const greeting = useMemo(() => {
+    const timeOfDay = getTimeOfDay(homeData.now);
+    return getTimeOfDayGreeting(timeOfDay);
   }, [homeData.now]);
 
-// Tính toán danh sách section của Trang chủ (A1: phụ thuộc trực tiếp vào homeData.records và homeData.now)
-const sections = useMemo(() => {
-  if (!tracks || tracks.length === 0) return [];
+  // Tính toán danh sách section của Trang chủ (A1: phụ thuộc trực tiếp vào homeData.records và homeData.now)
+  const sections = useMemo(() => {
+    if (!tracks || tracks.length === 0) return [];
 
-  const ctx: HomeContext = {
-    tracks,
-    albums,
-    records: homeData.records,
-    favoriteIds,
-    recentTrackIds: recentTrackIds || [],
-    now: homeData.now,
-  };
+    const ctx: HomeContext = {
+      tracks,
+      albums,
+      records: homeData.records,
+      favoriteIds,
+      recentTrackIds: recentTrackIds || [],
+      now: homeData.now,
+      shuffleSalt,
+    };
 
-// C1: Bọc buildHomeSections bằng performance.now()
-const t0 = performance.now();
-const result = buildHomeSections(ctx);
-const elapsed = performance.now() - t0;
+    // C1: Bọc buildHomeSections bằng performance.now()
+    const t0 = performance.now();
+    const result = buildHomeSections(ctx);
+    const elapsed = performance.now() - t0;
 
-lastCalculationTimeRef.current = elapsed;
-recordHomeMetrics({
-  lastElapsedMs: elapsed,
-  sectionCount: result.length,
-  recordCount: homeData.records.length,
-  timestamp: homeData.now,
-});
+    lastCalculationTimeRef.current = elapsed;
+    recordHomeMetrics({
+      lastElapsedMs: elapsed,
+      sectionCount: result.length,
+      recordCount: homeData.records.length,
+      timestamp: homeData.now,
+    });
 
-if (__DEV__ || isHomeDebug()) {
-  console.log(
-    `[useHomeSections] Dựng ${result.length} sections (${homeData.records.length} records, ${tracks.length} tracks) mất ${elapsed.toFixed(1)}ms`
-  );
-}
+    if (__DEV__ || isHomeDebug()) {
+      console.log(
+        `[useHomeSections] Dựng ${result.length} sections (${homeData.records.length} records, ${tracks.length} tracks) mất ${elapsed.toFixed(1)}ms`
+      );
+    }
 
-return result;
-  }, [tracks, albums, homeData.records, favoriteIds, recentTrackIds, homeData.now]);
+    return result;
+}, [tracks, albums, homeData.records, favoriteIds, recentTrackIds, homeData.now, shuffleSalt]);
 
 const reload = useCallback(async () => {
   setIsLoading(true);
@@ -150,5 +157,6 @@ return {
   hasLoadedOnce,
   recordCount: homeData.records.length,
   reload,
+  reshuffle,
 };
 }

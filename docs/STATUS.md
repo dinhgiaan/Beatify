@@ -2,18 +2,18 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn tất Thiết kế & Tối ưu hóa Trang chủ mới (Beatify Home Screen — Bước 1, 2, 3):
+**Phase hiện tại:** Hoàn tất Thiết kế & Tối ưu hóa Trang chủ mới (Beatify Home Screen — Bước 1, 2, 3, 4):
 - **1. Tầng Logic Gợi ý & Dựng Section (`@music-app/shared/src/homeSections.ts`):**
   - Dựng 11 builders chuyên biệt: Quick Picks (6 bài), Continue Listening (vừa nghe), Most Played Month (nghe nhiều trong tháng), Time of Day (khung giờ), For You (gợi ý), Top Artists (nghe nhiều), Rediscover (nghe lại bài cũ), Continue Albums (album đang nghe dở), Genre Mix (thể loại), Discover (ngẫu nhiên), Energy (tiết tấu nhanh).
-  - Thuật toán deduplication theo `usedTrackIds` đảm bảo không trùng lặp bài giữa các section.
-  - Benchmark đạt 37ms với 10.000 records, 362 bài hát và 236 albums.
-- **2. Hoàn thiện UI/UX Trang chủ (`apps/mobile/app/(tabs)/home.tsx` & `src/components/home/`):**
-  - Tabs Navigation: Tab Trang chủ chính thức, thanh dock 5 tab hiển thị (Trang chủ, Tìm kiếm, Thư viện, Bộ sưu tập, Danh sách phát).
-  - Hoàn thiện A1-A6: đồng bộ hóa `records` và `now` trong một state duy nhất, bảo vệ TabBar sliding pill khi vào route ẩn, trích xuất `recentTrackIds` từ RAM trong `PlayerContext` không đọc đĩa lặp lại, đồng bộ logic ảnh bìa album tương thích 100% với `library.tsx`, tối giản tiêu đề lời chào và phân tích triệt để VirtualizedList/Key collision.
-  - Skeleton: `HomeSkeleton` với hiệu ứng Reanimated Opacity Pulse êm ái khi tải lần đầu, không flash khi quay lại tab.
-  - Route ẩn `app/section/[id].tsx`: "Xem tất cả" chi tiết cho mọi section có > 6 mục (riêng `continue_listening` trỏ sang `/recent`).
-  - Haptic feedback Apple-style (`haptics.tap()`) trên mọi thẻ bài hát, album, nghệ sĩ.
-  - Trạng thái Cold start: Banner thông điệp thân thiện khi chưa có lịch sử nghe; EmptyState với nút đồng bộ khi thư viện rỗng.
+  - Hỗ trợ `shuffleSalt` trong `HomeContext` và `getDaySeed` giúp xáo trộn thứ tự gợi ý ngẫu hứng mà không lệch cache ngày.
+  - Benchmark đạt 34ms với 10.000 records, 362 bài hát và 236 albums.
+- **2. Hoàn thiện UI/UX Trang chủ & Khắc phục Animation Tab Bar (`apps/mobile/app/(tabs)/home.tsx` & `src/components/`):**
+  - **Khắc phục Triệt để Animation Tab Bar:** Chẩn đoán root cause (ReduceMotion hệ thống bỏ qua spring + đồng bộ currentTabRef sớm), sửa `TAB_SPRING_CONFIG` dùng `ReduceMotion.Never`, ghim vị trí viên thuốc trượt với `lastKnownVisibleIndex` chống mất animation khi remount; tách bộ tính toán thuần `tabBarUtils.ts` (test 100% PASS).
+  - **Animation TabBarItem Mượt mà:** Icon được chọn phóng to 1.0 $\to$ 1.12 với spring; hiệu ứng hòa sắc chuyển màu không giật; hiệu ứng nhún lò xo phản hồi khi chạm (scale 0.92); nhấn giữ tab Trang chủ kích hoạt hiệu ứng xoay nảy (-16° $\to$ 16° $\to$ 0°) kèm rung xúc giác Apple.
+  - **Tái thiết kế Thị giác Trang chủ (Chuẩn 3.5 Card):** Hook `useCardWidth` tính toán chiều rộng chuẩn `clamp(92, 128)` hiển thị đúng 3.5 thẻ bài hát/album trên một màn hình; `ArtistChip` co giãn theo tỉ lệ 0.8; `SectionRow` hỗ trợ cuộn hãm nhanh từng thẻ (`snapToInterval` & `decelerationRate="fast"`).
+  - **Phân cấp Typography & Bố cục:** Tiêu đề section ~22pt bold + phụ đề 13pt; nút "Xem tất cả" kèm mũi tên chevron và diện tích chạm $\ge 44\text{pt}$; thẻ bài hát hiển thị tiêu đề 1 dòng 13.5pt semibold và tên ca sĩ 12pt; `QuickPickGrid` được đóng gói trong khối Hero card nổi bật với viền và nền surface tinh tế; khoảng cách các section thoáng đạt 28pt.
+  - **Làm mới Đề xuất (Reshuffle):** Kéo thả để làm mới (Pull-to-refresh) đồng bộ thư viện và nạp lại; nhấn giữ tab Trang chủ đổi `shuffleSalt`, tính toán lại danh mục và tự động cuộn mượt về đầu trang.
+  - **Animation Tương tác & Trình diễn:** Component `PressableScale` nhún nhẹ 0.96 trên UI thread; hiệu ứng xuất hiện so le `FadeInDown` cho 4 section đầu tiên khi mở app; chuyển cảnh mờ dần mượt mà (`FadeIn` / `FadeOut`) từ Skeleton sang nội dung thật.
 - **3. Chẩn đoán & Số liệu Thực tế trên Máy (`apps/mobile/app/settings/advanced.tsx`):**
   - Đo thời gian tính toán bằng `performance.now()`, hiển thị thời gian tính (ms), số section, số records.
   - Hỗ trợ cờ debug log Trang chủ ra Console khi cần.

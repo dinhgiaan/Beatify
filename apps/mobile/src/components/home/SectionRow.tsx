@@ -1,6 +1,14 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, type ListRenderItem } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  type ListRenderItem,
+} from 'react-native';
 import { SectionHeader } from '../common/SectionHeader';
+import { ChevronRightIcon } from '../icons/SvgIcons';
 import { spacing, colors, typography, fontWeights } from '../../theme';
 import { haptics } from '../../lib/haptics';
 
@@ -44,24 +52,34 @@ export const SectionRow = React.memo(function SectionRow<T>({
           haptics.tap();
           onSeeAll();
         }}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={styles.seeAllButton}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel={`Xem tất cả ${title}`}
       >
         <Text style={styles.seeAllText}>Xem tất cả</Text>
+        <ChevronRightIcon size={14} color={colors.primary} />
       </TouchableOpacity>
     ) : undefined);
 
   return (
     <View style={styles.container}>
-      <SectionHeader title={title} subtitle={subtitle} rightElement={effectiveRightElement} />
+      <SectionHeader
+        title={title}
+        subtitle={subtitle}
+        rightElement={effectiveRightElement}
+        variant="section"
+      />
       <FlatList
         data={data}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
+        snapToInterval={itemWidth + itemSpacing}
+        decelerationRate="fast"
+        snapToAlignment="start"
         initialNumToRender={4}
         maxToRenderPerBatch={6}
         windowSize={5}
@@ -74,10 +92,17 @@ export const SectionRow = React.memo(function SectionRow<T>({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.sm,
+    marginBottom: 28, // Khoảng cách giữa các section 28-32pt (C3)
   },
   listContent: {
     paddingHorizontal: spacing.lg,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    minHeight: 44, // Touch target >= 44pt (C2)
+    justifyContent: 'center',
   },
   seeAllText: {
     ...typography.subheadline,

@@ -3,15 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import type { Track } from '@music-app/shared';
-import { colors, spacing, radius, typography } from '../../theme';
+import { colors, spacing, radius, fontWeights } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 import { EqualizerIndicator } from '../player/EqualizerIndicator';
 import { SectionHeader } from '../common/SectionHeader';
+import { PressableScale } from '../common/PressableScale';
 import { haptics } from '../../lib/haptics';
 
 export interface QuickPickGridProps {
@@ -25,9 +25,13 @@ export interface QuickPickGridProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const GRID_PADDING = spacing.lg;
-const GRID_GAP = spacing.sm;
-const ITEM_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
+// Tính toán chiều rộng từng ô trong Hero Container
+const HERO_MARGIN_H = spacing.lg;
+const HERO_INNER_PADDING = spacing.sm;
+const GRID_COLUMN_GAP = spacing.sm;
+const ITEM_WIDTH = Math.floor(
+  (SCREEN_WIDTH - HERO_MARGIN_H * 2 - HERO_INNER_PADDING * 2 - GRID_COLUMN_GAP) / 2
+);
 
 export const QuickPickGrid = React.memo(function QuickPickGrid({
   title,
@@ -43,7 +47,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
       const isCurrent = currentTrackId === track.id;
 
       return (
-        <TouchableOpacity
+          <PressableScale
           key={track.id}
           style={[styles.itemContainer, isCurrent && styles.itemContainerActive]}
           onPress={() => {
@@ -51,8 +55,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
             onTrackPress(track, tracks);
           }}
           onLongPress={() => onTrackLongPress?.(track)}
-          delayLongPress={450}
-          activeOpacity={0.7}
+          scaleTo={0.96}
           accessibilityRole="button"
           accessibilityLabel={`${track.title}, ${track.artist}`}
         >
@@ -91,91 +94,100 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
               {track.artist}
             </Text>
           </View>
-        </TouchableOpacity>
+        </PressableScale >
       );
     },
-    [currentTrackId, isPlaying, onTrackPress, onTrackLongPress, tracks]
+[currentTrackId, isPlaying, onTrackPress, onTrackLongPress, tracks]
   );
 
-  return (
-    <View style={styles.container}>
-      <SectionHeader title={title} subtitle={subtitle} />
-      <View style={styles.grid}>
-        {tracks.slice(0, 6).map(renderItem)}
+return (
+  <View style={styles.container}>
+    <SectionHeader title={title} subtitle={subtitle} />
+      <View style={styles.heroContainer}>
+        <View style={styles.grid}>
+          {tracks.slice(0, 6).map(renderItem)}
+        </View>
       </View>
     </View>
-  );
+    );
 });
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.xs,
+    const styles = StyleSheet.create({
+      container: {
+    marginBottom: 28,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: GRID_PADDING,
-    rowGap: GRID_GAP,
-  },
-  itemContainer: {
-    width: ITEM_WIDTH,
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    padding: 4,
+    heroContainer: {
+      marginHorizontal: HERO_MARGIN_H,
+    padding: HERO_INNER_PADDING,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  itemContainerActive: {
-    borderColor: colors.primaryBorder,
+    grid: {
+      flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.sm,
+  },
+    itemContainer: {
+      width: ITEM_WIDTH,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+    itemContainerActive: {
+      borderColor: colors.primaryBorder,
     backgroundColor: colors.surfaceActive,
   },
-  coverWrapper: {
-    width: 44,
+    coverWrapper: {
+      width: 44,
     height: 44,
-    borderRadius: radius.xs,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
     position: 'relative',
   },
-  coverImage: {
-    width: '100%',
+    coverImage: {
+      width: '100%',
     height: '100%',
   },
-  coverPlaceholder: {
-    width: '100%',
+    coverPlaceholder: {
+      width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,
   },
-  playingOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    playingOverlay: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  infoWrapper: {
-    flex: 1,
+    infoWrapper: {
+      flex: 1,
     marginLeft: spacing.sm,
     justifyContent: 'center',
     paddingRight: 4,
   },
-  title: {
-    ...typography.caption1,
-    fontWeight: '600',
+    title: {
+    fontSize: 13,
+    fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
   },
-  titleActive: {
-    color: colors.primary,
+    titleActive: {
+      color: colors.primary,
   },
-  artist: {
-    ...typography.caption2,
+    artist: {
+      fontSize: 12,
+    fontWeight: fontWeights.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
 });
-

@@ -5,4 +5,5 @@ export * from './ArtistChip';
 export * from './QuickPickGrid';
 export * from './SectionRow';
 export * from './HomeSkeleton';
+export * from './useCardWidth';
 

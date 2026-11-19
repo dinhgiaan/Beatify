@@ -546,6 +546,21 @@ export function ChevronDownIcon({ size = 24, color = '#ffffff' }: IconProps) {
   );
 }
 
+// Chevron Right Icon (Mũi tên sang phải cho nút Xem tất cả / Điều hướng)
+export function ChevronRightIcon({ size = 20, color = '#ffffff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 18l6-6-6-6"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 // Chevron Up Icon (Mũi tên lên cuộn về đầu trang không chân)
 export function ChevronUpIcon({ size = 24, color = '#ffffff' }: IconProps) {
   return (

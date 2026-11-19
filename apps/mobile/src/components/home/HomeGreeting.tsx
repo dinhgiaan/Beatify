@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, fontWeights } from '../../theme';
 
 export interface HomeGreetingProps {
   title: string;
@@ -9,7 +9,7 @@ export interface HomeGreetingProps {
 
 /**
  * Lời chào Trang chủ theo khung giờ (Sáng / Chiều / Tối / Đêm muộn)
- * Thiết kế tối giản, sạch sẽ, chuẩn Apple HIG (đã bỏ nút cài đặt nhanh theo yêu cầu)
+ * Thiết kế phân cấp thị giác mạnh mẽ: Hero title ~28pt bold + compact subtitle (C4)
  */
 export const HomeGreeting = React.memo(function HomeGreeting({
   title,
@@ -34,12 +34,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   title: {
-    ...typography.heroTitle,
+    fontSize: 28, // Large hero title ~28pt bold (C4)
+    fontWeight: fontWeights.bold,
     color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    ...typography.subheadline,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
+    letterSpacing: -0.1,
   },
 });
