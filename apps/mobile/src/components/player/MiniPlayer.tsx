@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: '94%',
     maxWidth: 380,
     height: MINI_PLAYER_HEIGHT,
-    backgroundColor: 'rgba(28, 28, 30, 0.88)', // iOS 18 Glassmorphism đồng bộ với Floating Dock
+    backgroundColor: 'rgba(24, 24, 27, 0.96)', // Nền đặc iOS Surface không để chữ phía sau lộ qua
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',

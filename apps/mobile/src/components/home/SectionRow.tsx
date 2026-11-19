@@ -92,7 +92,7 @@ export const SectionRow = React.memo(function SectionRow<T>({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 28, // Khoảng cách giữa các section 28-32pt (C3)
+    marginBottom: 32, // E4: Khoảng cách giữa các section 32pt
   },
   listContent: {
     paddingHorizontal: spacing.lg,

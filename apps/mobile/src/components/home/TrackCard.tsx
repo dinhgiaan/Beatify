@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import type { Track } from '@music-app/shared';
-import { colors, spacing, radius, typography } from '../../theme';
+import { colors, spacing, radius, fontWeights } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 import { EqualizerIndicator } from '../player/EqualizerIndicator';
 import { PressableScale } from '../common/PressableScale';
@@ -17,6 +17,22 @@ export interface TrackCardProps {
   isPlaying?: boolean;
   onPress: (track: Track) => void;
   onLongPress?: (track: Track) => void;
+}
+
+function areTrackCardPropsEqual(prev: TrackCardProps, next: TrackCardProps): boolean {
+  if (prev.track.id !== next.track.id) return false;
+  if (prev.cardWidth !== next.cardWidth) return false;
+  if (prev.isCurrent !== next.isCurrent) return false;
+  // B2: Chỉ khi bài đang được chọn thì trạng thái isPlaying mới gây re-render
+  if (prev.isCurrent && prev.isPlaying !== next.isPlaying) return false;
+  if (
+    prev.track.title !== next.track.title ||
+    prev.track.artist !== next.track.artist ||
+    prev.track.cover !== next.track.cover
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export const TrackCard = React.memo(function TrackCard({
@@ -42,6 +58,7 @@ export const TrackCard = React.memo(function TrackCard({
       onPress={handlePress}
       onLongPress={handleLongPress}
       delayLongPress={450}
+      scaleTo={0.96}
       accessibilityRole="button"
       accessibilityLabel={`${track.title}, ${track.artist}`}
     >
@@ -80,7 +97,7 @@ export const TrackCard = React.memo(function TrackCard({
       </Text>
     </PressableScale>
   );
-});
+}, areTrackCardPropsEqual);
 
 const styles = StyleSheet.create({
   container: {
@@ -93,11 +110,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   coverImage: {
     width: '100%',
@@ -117,9 +129,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    ...typography.subheadline,
-    fontSize: 13.5,
-    fontWeight: '600',
+    fontSize: 13, // E2: tên bài 13pt/600
+    fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
     marginTop: spacing.xs,
   },
@@ -127,9 +138,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   artist: {
-    ...typography.caption1,
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 12, // E2: nghệ sĩ 12pt/400
+    fontWeight: fontWeights.regular,
+    color: colors.textTertiary, // E1: màu xám dịu
     marginTop: 2,
   },
 });

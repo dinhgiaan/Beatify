@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Share,
   Alert,
-  Vibration,
   type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -140,7 +139,6 @@ export function LyricPosterModal({
   };
 
   const handleShare = async () => {
-    Vibration.vibrate(15);
     const title = track?.title || 'Beatify';
     const artist = track?.artist || 'Unknown';
     const message = `"${lyricText}"\n\n— Bài hát: ${title} • ${artist}\nNghe trọn vẹn trên Beatify Music.`;
@@ -296,7 +294,6 @@ export function LyricPosterModal({
                       isActive && styles.chipActiveRing,
                     ]}
                     onPress={() => {
-                      Vibration.vibrate(10);
                       setSelectedTheme(themeKey);
                     }}
                     activeOpacity={0.8}
@@ -327,7 +324,6 @@ export function LyricPosterModal({
                     key={f.id}
                     style={[styles.toggleBtn, isActive && styles.toggleBtnActive]}
                     onPress={() => {
-                      Vibration.vibrate(10);
                       setSelectedFont(f.id as FontStyleOption);
                     }}
                     activeOpacity={0.7}
@@ -352,7 +348,6 @@ export function LyricPosterModal({
                     key={a}
                     style={[styles.segmentBtn, textAlign === a && styles.segmentBtnActive]}
                     onPress={() => {
-                      Vibration.vibrate(10);
                       setTextAlign(a);
                     }}
                   >
@@ -368,7 +363,6 @@ export function LyricPosterModal({
                 <TouchableOpacity
                   style={[styles.segmentBtn, aspect === 'square' && styles.segmentBtnActive]}
                   onPress={() => {
-                    Vibration.vibrate(10);
                     setAspect('square');
                   }}
                 >
@@ -379,7 +373,6 @@ export function LyricPosterModal({
                 <TouchableOpacity
                   style={[styles.segmentBtn, aspect === 'story' && styles.segmentBtnActive]}
                   onPress={() => {
-                    Vibration.vibrate(10);
                     setAspect('story');
                   }}
                 >
@@ -394,7 +387,6 @@ export function LyricPosterModal({
             <TouchableOpacity
               style={styles.toggleArtworkRow}
               onPress={() => {
-                Vibration.vibrate(10);
                 setUseArtworkBg(!useArtworkBg);
               }}
               activeOpacity={0.7}

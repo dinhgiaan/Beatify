@@ -31,6 +31,8 @@ export class RntpPlayerService implements IPlayerService {
 
     this.initPromise = (async () => {
       // Khởi tạo player với cấu hình nghe nhạc và dừng khi rút tai nghe.
+      // - audioMixing: 'exclusive' để iOS cấp quyền sở hữu MPNowPlayingInfoCenter / MPRemoteCommandCenter,
+      //   giúp hiển thị đầy đủ trên Màn hình khóa (Lock Screen) và Trung tâm điều khiển (Control Center).
       // - autoUpdateMetadataFromStream: false giúp AVPlayer bỏ qua việc phân tích stream metadata từ mạng,
       //   tiết kiệm 200-300ms vì app đã có sẵn metadata chuẩn từ library.json
       // - Tuyệt đối không bật cache proxy cục bộ (CacheProxyServer) của RNTP vì proxy này
@@ -38,7 +40,7 @@ export class RntpPlayerService implements IPlayerService {
       // Native AVPlayer sẽ kết nối trực tiếp tới Cloudflare Worker đã tối ưu direct R2 streaming.
       await TrackPlayer.setupPlayer({
         contentType: 'music',
-        audioMixing: 'mix',
+        audioMixing: 'exclusive',
         handleAudioBecomingNoisy: true,
         autoUpdateMetadataFromStream: false,
       });

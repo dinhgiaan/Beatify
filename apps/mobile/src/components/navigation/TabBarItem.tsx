@@ -10,7 +10,6 @@ import Animated, {
   withSpring,
   withSequence,
   withTiming,
-  useReducedMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import type { Tabs } from 'expo-router';
@@ -23,7 +22,7 @@ import {
   PlaylistIcon,
 } from '../icons/SvgIcons';
 import { colors, radius } from '../../theme';
-import { MOTION } from '../../lib/motion';
+import { MOTION, useMotionEnabled } from '../../lib/motion';
 
 type TabsTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -97,7 +96,7 @@ function getTabLabel(routeName: string, customTitle?: string): string {
     onLongPress,
     onLayout,
   }: TabBarItemProps) {
-    const isReducedMotion = useReducedMotion();
+    const isMotionEnabled = useMotionEnabled();
     const label = getTabLabel(route.name, options?.title);
 
     // B2: Shared value điều khiển trạng thái active (0 -> 1)
@@ -111,21 +110,21 @@ function getTabLabel(routeName: string, customTitle?: string): string {
     const bounceScale = useSharedValue(1);
 
     useEffect(() => {
-      if (isReducedMotion) {
+      if (!isMotionEnabled) {
         activeProgress.value = isFocused ? 1 : 0;
       } else {
         activeProgress.value = withSpring(isFocused ? 1 : 0, MOTION.spring.default);
       }
-    }, [isFocused, isReducedMotion, activeProgress]);
+    }, [isFocused, isMotionEnabled, activeProgress]);
 
     const handlePressIn = () => {
-      if (!isReducedMotion) {
+      if (isMotionEnabled) {
         pressScale.value = withSpring(0.92, MOTION.spring.press);
       }
     };
 
     const handlePressOut = () => {
-      if (!isReducedMotion) {
+      if (isMotionEnabled) {
         pressScale.value = withSpring(1, MOTION.spring.press);
       }
     };
@@ -134,7 +133,7 @@ function getTabLabel(routeName: string, customTitle?: string): string {
       if (route.name === 'home') {
         // B4: Phản hồi haptic vừa phải và animation xoay nảy icon Trang chủ
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
-        if (!isReducedMotion) {
+        if (isMotionEnabled) {
           rotateDeg.value = withSequence(
             withTiming(-16, { duration: 90 }),
             withTiming(16, { duration: 110 }),

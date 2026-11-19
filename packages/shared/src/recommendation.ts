@@ -67,6 +67,17 @@ export function getTimeOfDayGreeting(timeOfDay: TimeOfDay): { title: string; sub
   }
 }
 
+const artistNormCache = new Map<string, string>();
+
+function getNormArtist(artist: string): string {
+  let norm = artistNormCache.get(artist);
+  if (norm === undefined) {
+    norm = artist.trim().toLowerCase();
+    artistNormCache.set(artist, norm);
+  }
+  return norm;
+}
+
 /**
  * Thuật toán đề xuất bài hát thông minh dựa vào thói quen, sở thích và khung giờ
  */
@@ -98,17 +109,22 @@ export function getSmartRecommendations(
 
   const artistPlaysMap = new Map<string, number>();
 
-  for (const r of records) {
-    if (!r.trackId) continue;
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i];
+    if (!r || !r.trackId) continue;
 
     const rTimeOfDay = getTimeOfDay(r.timestamp);
-    const existing = trackStatsMap.get(r.trackId) || {
-      totalPlays: 0,
-      totalListenedSec: 0,
-      completionScore: 0,
-      timeOfDayPlays: { morning: 0, afternoon: 0, evening: 0, night: 0 },
-      lastPlayedTimestamp: 0,
-    };
+    let existing = trackStatsMap.get(r.trackId);
+    if (!existing) {
+      existing = {
+        totalPlays: 0,
+        totalListenedSec: 0,
+        completionScore: 0,
+        timeOfDayPlays: { morning: 0, afternoon: 0, evening: 0, night: 0 },
+        lastPlayedTimestamp: 0,
+      };
+      trackStatsMap.set(r.trackId, existing);
+    }
 
     existing.totalPlays += 1;
     existing.totalListenedSec += r.listenedSec || 0;
@@ -127,11 +143,9 @@ export function getSmartRecommendations(
       }
     }
 
-    trackStatsMap.set(r.trackId, existing);
-
     // Thống kê nghệ sĩ nghe nhiều
     if (r.artist) {
-      const normArtist = r.artist.trim().toLowerCase();
+      const normArtist = getNormArtist(r.artist);
       artistPlaysMap.set(normArtist, (artistPlaysMap.get(normArtist) || 0) + 1);
     }
   }

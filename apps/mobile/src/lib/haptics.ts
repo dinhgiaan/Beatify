@@ -1,34 +1,13 @@
-import * as Haptics from 'expo-haptics';
-
 /**
- * Haptic feedback wrapper an toàn, nhẹ nhàng kiểu Apple
+ * Vô hiệu hóa toàn bộ rung phản hồi xúc giác (Haptics) trên toàn app theo yêu cầu người dùng
  */
 export const haptics = {
-  /** Chạm nhẹ (selection/tap) */
-  tap: async () => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {
-      // bỏ qua nếu thiết bị không hỗ trợ
-    }
-  },
+  /** Chạm nhẹ (selection/tap) - Đã tắt hoàn toàn */
+  tap: async (): Promise<void> => {},
 
-  /** Thành công (yêu thích, lưu) */
-  success: async () => {
-    try {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      // bỏ qua
-    }
-  },
+  /** Thành công (yêu thích, lưu) - Đã tắt hoàn toàn */
+  success: async (): Promise<void> => {},
 
-  /** Cảnh báo / Xóa */
-  warning: async () => {
-    try {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } catch {
-      // bỏ qua
-    }
-  },
+  /** Cảnh báo / Xóa - Đã tắt hoàn toàn */
+  warning: async (): Promise<void> => {},
 };
-

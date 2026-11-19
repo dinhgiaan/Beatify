@@ -22,7 +22,7 @@ export const tokens = {
     textPrimary: '#ffffff',
     textSecondary: '#a1a1aa',
     textTertiary: '#71717a',
-    textMuted: '#71717a',
+    textMuted: '#84848d',
     textDim: '#52525b',
 
     // Điểm nhấn & Trạng thái (chỉ dùng cho switch on, nút chính, item đang chọn)

@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import type { Album } from '@music-app/shared';
-import { colors, spacing, radius, typography } from '../../theme';
+import { colors, spacing, radius, fontWeights } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 import { PressableScale } from '../common/PressableScale';
 import { haptics } from '../../lib/haptics';
@@ -14,6 +14,16 @@ export interface AlbumCardProps {
   cardWidth?: number;
   coverUri?: string;
   onPress: (album: Album) => void;
+}
+
+function areAlbumCardPropsEqual(prev: AlbumCardProps, next: AlbumCardProps): boolean {
+  return (
+    prev.album.id === next.album.id &&
+    prev.cardWidth === next.cardWidth &&
+    prev.coverUri === next.coverUri &&
+    prev.album.title === next.album.title &&
+    prev.album.artist === next.album.artist
+  );
 }
 
 export const AlbumCard = React.memo(function AlbumCard({
@@ -33,6 +43,7 @@ export const AlbumCard = React.memo(function AlbumCard({
     <PressableScale
       style={[styles.container, { width: cardWidth }]}
       onPress={handlePress}
+      scaleTo={0.96}
       accessibilityRole="button"
       accessibilityLabel={`Album ${album.title}, ${album.artist}`}
     >
@@ -61,7 +72,7 @@ export const AlbumCard = React.memo(function AlbumCard({
       </Text>
     </PressableScale>
   );
-});
+}, areAlbumCardPropsEqual);
 
 const styles = StyleSheet.create({
   container: {
@@ -71,13 +82,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
+    position: 'relative',
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   coverImage: {
     width: '100%',
@@ -91,16 +98,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   title: {
-    ...typography.subheadline,
-    fontSize: 13.5,
-    fontWeight: '600',
+    fontSize: 13, // E2: tên album 13pt/600
+    fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
     marginTop: spacing.xs,
   },
   artist: {
-    ...typography.caption1,
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 12, // E2: nghệ sĩ 12pt/400
+    fontWeight: fontWeights.regular,
+    color: colors.textTertiary, // E1: màu xám dịu
     marginTop: 2,
   },
 });

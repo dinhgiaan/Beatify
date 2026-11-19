@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   subtext: {
     fontSize: 12,
     fontWeight: fontWeights.regular,
-    color: colors.textSecondary,
+    color: colors.textTertiary, // E1: màu xám dịu
     marginTop: 1,
     textAlign: 'center',
   },

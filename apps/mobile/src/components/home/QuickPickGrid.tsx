@@ -47,7 +47,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
       const isCurrent = currentTrackId === track.id;
 
       return (
-          <PressableScale
+        <PressableScale
           key={track.id}
           style={[styles.itemContainer, isCurrent && styles.itemContainerActive]}
           onPress={() => {
@@ -59,6 +59,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
           accessibilityRole="button"
           accessibilityLabel={`${track.title}, ${track.artist}`}
         >
+          {/* D2: Ảnh bìa vuông 48pt bên trái */}
           <View style={styles.coverWrapper}>
             {track.cover ? (
               <Image
@@ -71,7 +72,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
               />
             ) : (
               <View style={styles.coverPlaceholder}>
-                <DiscIcon size={20} color={colors.borderLight} />
+                <DiscIcon size={24} color={colors.borderLight} />
               </View>
             )}
 
@@ -82,6 +83,7 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
             )}
           </View>
 
+          {/* D2: Cột bên phải flex: 1, minWidth: 0 hiển thị tiêu đề và nghệ sĩ */}
           <View style={styles.infoWrapper}>
             <Text
               style={[styles.title, isCurrent && styles.titleActive]}
@@ -94,98 +96,100 @@ export const QuickPickGrid = React.memo(function QuickPickGrid({
               {track.artist}
             </Text>
           </View>
-        </PressableScale >
+        </PressableScale>
       );
     },
-[currentTrackId, isPlaying, onTrackPress, onTrackLongPress, tracks]
+    [currentTrackId, isPlaying, onTrackPress, onTrackLongPress, tracks]
   );
 
-return (
-  <View style={styles.container}>
-    <SectionHeader title={title} subtitle={subtitle} />
+  return (
+    <View style={styles.container}>
+      <SectionHeader title={title} subtitle={subtitle} />
       <View style={styles.heroContainer}>
         <View style={styles.grid}>
           {tracks.slice(0, 6).map(renderItem)}
         </View>
       </View>
     </View>
-    );
+  );
 });
 
-    const styles = StyleSheet.create({
-      container: {
-    marginBottom: 28,
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 32, // E4: section Chọn nhanh cách section tiếp theo 32pt
   },
-    heroContainer: {
-      marginHorizontal: HERO_MARGIN_H,
+  heroContainer: {
+    marginHorizontal: HERO_MARGIN_H,
     padding: HERO_INNER_PADDING,
     backgroundColor: colors.surfaceElevated,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-    grid: {
-      flexDirection: 'row',
+  grid: {
+    flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     rowGap: spacing.sm,
   },
-    itemContainer: {
-      width: ITEM_WIDTH,
-    height: 56,
+  itemContainer: {
+    width: ITEM_WIDTH,
+    height: 64, // D2: chiều cao ô cố định ~64pt
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    padding: 5,
+    paddingHorizontal: 10, // D2: padding ngang 10-12pt
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-    itemContainerActive: {
-      borderColor: colors.primaryBorder,
+  itemContainerActive: {
+    borderColor: colors.primaryBorder,
     backgroundColor: colors.surfaceActive,
   },
-    coverWrapper: {
-      width: 44,
-    height: 44,
-    borderRadius: radius.sm,
+  coverWrapper: {
+    width: 48, // D2: ảnh vuông 48-56pt
+    height: 48,
+    borderRadius: radius.xs,
     backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
     position: 'relative',
   },
-    coverImage: {
-      width: '100%',
+  coverImage: {
+    width: '100%',
     height: '100%',
   },
-    coverPlaceholder: {
-      width: '100%',
+  coverPlaceholder: {
+    width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,
   },
-    playingOverlay: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  playingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-    infoWrapper: {
-      flex: 1,
-    marginLeft: spacing.sm,
+  infoWrapper: {
+    flex: 1, // D2: cột flex: 1, minWidth: 0
+    minWidth: 0,
+    marginLeft: 10,
     justifyContent: 'center',
-    paddingRight: 4,
+    paddingRight: 2,
   },
-    title: {
-    fontSize: 13,
+  title: {
+    fontSize: 14, // D2: 14pt, weight 600, textPrimary, 1 dòng
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
   },
-    titleActive: {
-      color: colors.primary,
+  titleActive: {
+    color: colors.primary,
   },
-    artist: {
-      fontSize: 12,
+  artist: {
+    fontSize: 12, // D2: 12pt, màu phụ, 1 dòng, ellipsis
     fontWeight: fontWeights.regular,
     color: colors.textSecondary,
     marginTop: 2,

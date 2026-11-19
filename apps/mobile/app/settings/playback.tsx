@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -18,6 +18,10 @@ import { tokens } from '../../src/theme/tokens';
 import { usePlayer } from '../../src/context';
 import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
+import {
+  loadRespectSystemReduceMotion,
+  saveRespectSystemReduceMotion,
+} from '../../src/services/player/motionPreferences';
 
 const DURATIONS = [2, 3, 4, 5, 6, 8] as const;
 
@@ -30,6 +34,12 @@ export default function PlaybackSettingsScreen() {
     transitionSettings,
     updateTransitionSettings,
   } = usePlayer();
+
+  const [respectSystemMotion, setRespectSystemMotion] = useState(false);
+
+  useEffect(() => {
+    loadRespectSystemReduceMotion().then(setRespectSystemMotion).catch(() => {});
+  }, []);
 
   const activeIdx = DURATIONS.indexOf(transitionSettings.durationSec as (typeof DURATIONS)[number]);
   const activeIndexShared = useSharedValue(activeIdx >= 0 ? activeIdx : 2);
@@ -176,6 +186,21 @@ export default function PlaybackSettingsScreen() {
           onPress={() => {
             triggerSelectionHaptic();
             router.push('/settings/transition-logs');
+          }}
+        />
+      </ListGroup>
+
+      <SectionHeader title="HIỆU ỨNG & CHUYỂN ĐỘNG" variant="list" />
+      <ListGroup>
+        <SettingRow
+          label="Tôn trọng Giảm chuyển động của hệ thống"
+          description="Tự động tắt hiệu ứng trượt và nảy nếu iOS bật Reduce Motion (Mặc định: TẮT)"
+          isSwitch
+          switchValue={respectSystemMotion}
+          onSwitchChange={(val) => {
+            triggerSelectionHaptic();
+            setRespectSystemMotion(val);
+            saveRespectSystemReduceMotion(val).catch(() => {});
           }}
         />
       </ListGroup>

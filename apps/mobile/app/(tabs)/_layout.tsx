@@ -12,6 +12,7 @@ export default function TabsLayout() {
       tabBar={renderCustomTabBar}
       screenOptions={{
         headerShown: false,
+        freezeOnBlur: true,
       }}
     >
       <Tabs.Screen

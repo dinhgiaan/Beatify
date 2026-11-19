@@ -45,14 +45,14 @@ export const colors = {
   primaryDarker: '#1e4828',
   primaryLight: '#22c55e',
 
-  // 3. Màu chữ (Typography)
-  textPrimary: '#ffffff',
-  textSecondary: '#d4d4d8',
-  textSecondaryAlt: '#cccccc',
-  textMuted: '#a1a1aa',
-  textMutedAlt: '#a0a0a0',
-  textSubtle: '#888888',
-  textTertiary: '#71717a',
+  // 3. Màu chữ (Typography) - Phân cấp 3 tầng rõ ràng (E1)
+  textPrimary: '#ffffff',      // Cấp 1: Tiêu đề trắng nổi bật
+  textSecondary: '#a1a1aa',    // Cấp 2: Phụ đề xám vừa
+  textSecondaryAlt: '#a1a1aa',
+  textMuted: '#84848d',        // Cấp 3: Chú thích & tên nghệ sĩ
+  textMutedAlt: '#84848d',
+  textSubtle: '#84848d',
+  textTertiary: '#71717a',     // Cấp 3: Metadata xám dịu
   textDisabled: '#666666',
   textDarker: '#555555',
   textDark: '#000000',

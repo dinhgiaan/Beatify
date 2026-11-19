@@ -10,9 +10,10 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  useReducedMotion,
 } from 'react-native-reanimated';
-import { MOTION } from '../../lib/motion';
+import { MOTION, useMotionEnabled } from '../../lib/motion';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export interface PressableScaleProps {
   children: React.ReactNode;
@@ -31,8 +32,10 @@ export interface PressableScaleProps {
 }
 
 /**
- * PressableScale: Hiệu ứng nhún lò xo êm ái khi nhấn (scale 0.96)
- * Chạy 100% trên UI thread qua Reanimated withSpring, tôn trọng useReducedMotion
+ * PressableScale: Hiệu ứng nhún lò xo êm ái khi nhấn (mặc định scale 0.96)
+ * - Chạy 100% trên UI thread qua Reanimated withSpring
+ * - Tôn trọng hook useMotionEnabled() (không phụ thuộc Reduce Motion hệ thống trừ khi người dùng bật)
+ * - Dùng AnimatedPressable trực tiếp, bảo đảm flexDirection và layout flex không bị vỡ bởi View bọc ngoài
  */
 export function PressableScale({
   children,
@@ -49,17 +52,17 @@ export function PressableScale({
   accessibilityRole = 'button',
   testID,
 }: PressableScaleProps) {
-  const isReducedMotion = useReducedMotion();
+  const isMotionEnabled = useMotionEnabled();
   const effectiveActiveScale = scaleTo ?? activeScale;
   const scale = useSharedValue(1);
 
   const handlePressIn = () => {
-    if (disabled || isReducedMotion) return;
+    if (disabled || !isMotionEnabled) return;
     scale.value = withSpring(effectiveActiveScale, MOTION.spring.press);
   };
 
   const handlePressOut = () => {
-    if (disabled || isReducedMotion) return;
+    if (disabled || !isMotionEnabled) return;
     scale.value = withSpring(1, MOTION.spring.press);
   };
 
@@ -68,7 +71,7 @@ export function PressableScale({
   }));
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={delayLongPress}
@@ -79,9 +82,9 @@ export function PressableScale({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={accessibilityRole}
       testID={testID}
-      style={style}
+      style={[style, contentStyle, animStyle]}
     >
-      <Animated.View style={[animStyle, contentStyle]}>{children}</Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressable>
   );
 }

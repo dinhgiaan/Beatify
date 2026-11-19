@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
-  useReducedMotion,
 } from 'react-native-reanimated';
+import { useMotionEnabled } from '../../lib/motion';
 import { radius } from '../../theme';
 
 export interface TabIndicatorProps {
@@ -23,7 +23,7 @@ export function TabIndicator({
   containerWidth,
   totalTabs,
 }: TabIndicatorProps) {
-  const isReducedMotion = useReducedMotion();
+  const isMotionEnabled = useMotionEnabled();
 
   const pillAnimStyle = useAnimatedStyle(() => {
     // Trừ 8px padding (4px trái, 4px phải của dockInner)
@@ -32,7 +32,7 @@ export function TabIndicator({
 
     // Tính toán độ giãn chiều ngang (width) khi lướt giữa các tab (tắt nếu bật Giảm chuyển động)
     let stretch = 0;
-    if (!isReducedMotion && tabWidth > 0) {
+    if (isMotionEnabled && tabWidth > 0) {
       const fraction = Math.abs(activeIndex.value - Math.round(activeIndex.value));
       // Tối đa giãn thêm ~12% chiều rộng tab tại điểm giữa
       stretch = Math.sin(fraction * Math.PI) * (tabWidth * 0.12);

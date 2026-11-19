@@ -1,8 +1,50 @@
-import { Easing, ReduceMotion } from 'react-native-reanimated';
+import { useState, useEffect } from 'react';
+import { Easing, ReduceMotion, useReducedMotion } from 'react-native-reanimated';
+import {
+  loadRespectSystemReduceMotion,
+  getRespectSystemReduceMotionSync,
+  subscribeRespectSystemReduceMotion,
+} from '../services/player/motionPreferences';
+
+// Kích hoạt nạp cài đặt từ đĩa ngay khi khởi động
+loadRespectSystemReduceMotion().catch(() => {});
+
+/**
+ * Hook duy nhất quyết định ứng dụng có chạy chuyển động (animation) hay không:
+ * - Mặc định trả về true (luôn chạy animation, không phụ thuộc vào cài đặt hệ thống).
+ * - Nếu người dùng BẬT công tắc "Tôn trọng Giảm chuyển động của hệ thống", hook sẽ trả về !useReducedMotion().
+ */
+export function useMotionEnabled(): boolean {
+  const systemReduced = useReducedMotion();
+  const [respectSystem, setRespectSystem] = useState(getRespectSystemReduceMotionSync());
+
+  useEffect(() => {
+    // Đảm bảo đồng bộ với file cấu hình
+    loadRespectSystemReduceMotion().then(setRespectSystem).catch(() => {});
+    const unsubscribe = subscribeRespectSystemReduceMotion((enabled) => {
+      setRespectSystem(enabled);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (respectSystem) {
+    return !systemReduced;
+  }
+  return true;
+}
+
+/**
+ * Trả về chế độ ReduceMotion cho Reanimated config:
+ * - ReduceMotion.Never khi tắt "Tôn trọng Giảm chuyển động" (mặc định)
+ * - ReduceMotion.System khi bật công tắc
+ */
+export function getMotionReduceMode(): ReduceMotion {
+  return getRespectSystemReduceMotionSync() ? ReduceMotion.System : ReduceMotion.Never;
+}
 
 /**
  * Hằng số animation duration, easing và spring dùng chung cho toàn bộ app
- * Tôn trọng thiết lập Reduce Motion của người dùng trên iOS.
+ * Mặc định dùng ReduceMotion.Never để bảo đảm trải nghiệm chuyển động trọn vẹn 60/120fps.
  */
 export const MOTION = {
   duration: {
@@ -13,33 +55,28 @@ export const MOTION = {
     transition: 400,
   },
   easing: {
-    // Ease-out mượt khi phần tử xuất hiện
     out: Easing.out(Easing.cubic),
-    // Ease-in khi phần tử biến mất
     in: Easing.in(Easing.cubic),
-    // Ease in-out cho chuyển trạng thái
     inOut: Easing.inOut(Easing.cubic),
   },
   spring: {
-    // Spring nhẹ nhàng, tự nhiên kiểu iOS, không nảy quá đà
     default: {
       damping: 24,
       stiffness: 280,
       mass: 0.8,
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     },
     sheet: {
       damping: 28,
       stiffness: 320,
       mass: 0.9,
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     },
     press: {
       damping: 18,
       stiffness: 350,
       mass: 0.6,
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     },
   },
 } as const;
-

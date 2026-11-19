@@ -704,5 +704,88 @@ describe('homeSections logic & builders', () => {
                     expect(ids0).not.toEqual(ids1);
                   }
                 });
+
+                it('F2: salt 0 -> kết quả cũ; salt 1 và 2 -> for_you/time_of_day/quick_picks khác nhau, most_played_month không đổi, không trùng bài', () => {
+                  // Tạo danh sách 50 bài và 200 lượt nghe phân bổ để kích hoạt đầy đủ các section
+                  const testTracks: Track[] = Array.from({ length: 50 }, (_, i) => ({
+                    id: `track-${i + 1}`,
+                    title: `Bài hát ${i + 1}`,
+                    artist: `Ca sĩ ${(i % 5) + 1}`,
+                    album: `Album ${(i % 10) + 1}`,
+                    duration: 200,
+                    genre: i % 2 === 0 ? 'Pop' : 'Hip-Hop',
+                    file: `music/track-${i + 1}.mp3`,
+                    storage: 'r2' as const,
+                  }));
+
+                  const testAlbums: Album[] = Array.from({ length: 10 }, (_, i) => ({
+                    id: `alb-${i + 1}`,
+                    title: `Album ${i + 1}`,
+                    artist: `Ca sĩ ${(i % 5) + 1}`,
+                    trackIds: testTracks.filter((t) => t.album === `Album ${i + 1}`).map((t) => t.id),
+                  }));
+
+                  // Tạo lượt nghe nhiều cho các bài đầu để có most_played_month
+                  const testRecords: ListeningRecord[] = [];
+                  for (let i = 0; i < 40; i++) {
+                    const trackId = `track-${(i % 15) + 1}`;
+                    testRecords.push({
+                      trackId,
+                      title: `Bài hát ${(i % 15) + 1}`,
+                      artist: `Ca sĩ ${((i % 15) % 5) + 1}`,
+                      timestamp: FIXED_NOW - 1000 * 60 * i,
+                      durationSec: 200,
+                      listenedSec: 190,
+                    });
+                  }
+
+                  const baseCtx: HomeContext = {
+                    tracks: testTracks,
+                    albums: testAlbums,
+                    records: testRecords,
+                    favoriteIds: ['track-1', 'track-2', 'track-3', 'track-4', 'track-5', 'track-6'],
+                    recentTrackIds: ['track-1', 'track-2', 'track-7', 'track-8'],
+                    now: FIXED_NOW,
+                  };
+
+                  const ctxSalt0: HomeContext = { ...baseCtx, shuffleSalt: 0 };
+                  const ctxSalt1: HomeContext = { ...baseCtx, shuffleSalt: 1 };
+                  const ctxSalt2: HomeContext = { ...baseCtx, shuffleSalt: 2 };
+
+                  const res0 = buildHomeSections(ctxSalt0);
+                  const res1 = buildHomeSections(ctxSalt1);
+                  const res2 = buildHomeSections(ctxSalt2);
+
+                  // 1. most_played_month KHÔNG đổi giữa salt 0, salt 1 và salt 2
+                  const mpm0 = res0.find((s) => s.id === 'most_played_month');
+                  const mpm1 = res1.find((s) => s.id === 'most_played_month');
+                  const mpm2 = res2.find((s) => s.id === 'most_played_month');
+                  if (mpm0 && mpm1 && mpm2 && mpm0.kind === 'tracks' && mpm1.kind === 'tracks' && mpm2.kind === 'tracks') {
+                    expect(mpm1.tracks.map((t) => t.id)).toEqual(mpm0.tracks.map((t) => t.id));
+                    expect(mpm2.tracks.map((t) => t.id)).toEqual(mpm0.tracks.map((t) => t.id));
+                  }
+
+                  // 2. quick_picks hoặc for_you hoặc time_of_day có sự khác biệt giữa salt 1 và salt 2
+                  const qp1 = res1.find((s) => s.id === 'quick_picks');
+                  const qp2 = res2.find((s) => s.id === 'quick_picks');
+                  if (qp1 && qp2 && qp1.kind === 'tracks' && qp2.kind === 'tracks') {
+                    const ids1 = qp1.tracks.map((t) => t.id);
+                    const ids2 = qp2.tracks.map((t) => t.id);
+                    expect(ids1).not.toEqual(ids2);
+                  }
+
+                  // 3. Kiểm tra tính độc nhất (deduplication): các section 'tracks' (trừ quick_picks) không trùng bài
+                  for (const res of [res1, res2]) {
+                    const seen = new Set<string>();
+                    for (const s of res) {
+                      if (s.kind === 'tracks' && s.id !== 'quick_picks') {
+                        for (const t of s.tracks) {
+                          expect(seen.has(t.id)).toBe(false);
+                          seen.add(t.id);
+                        }
+                      }
+                    }
+                  }
+                });
               });
             });

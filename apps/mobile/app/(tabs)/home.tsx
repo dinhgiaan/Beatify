@@ -10,7 +10,15 @@ import {
 } from 'react-native';
 import { useRouter, useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  FadeIn,
+  FadeOut,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   normalizeArtistKey,
   type Track,
@@ -55,15 +63,30 @@ export default function HomeScreen() {
 
   const flatListRef = useRef<FlatList<HomeSection>>(null);
   const hasPlayedInitialAnimationRef = useRef(false);
+  const listOpacity = useSharedValue(1);
 
-  // D3: Lắng nghe sự kiện nhấn giữ tab Home ở TabBar để làm mới đề xuất & cuộn lên đầu
+  const listAnimStyle = useAnimatedStyle(() => ({
+    opacity: listOpacity.value,
+  }));
+
+  // F3: Phản hồi thị giác fade nhẹ + rung xúc giác khi xáo trộn đề xuất
+  const handleReshuffleWithFeedback = useCallback(() => {
+    haptics.tap();
+    listOpacity.value = withSequence(
+      withTiming(0.4, { duration: 120 }),
+      withTiming(1, { duration: 240 })
+    );
+    reshuffle();
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, [reshuffle, listOpacity]);
+
+  // D3 & F3: Lắng nghe sự kiện nhấn giữ tab Home ở TabBar để làm mới đề xuất & cuộn lên đầu
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabLongPress' as never, () => {
-      reshuffle();
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      handleReshuffleWithFeedback();
     });
     return unsubscribe;
-  }, [navigation, reshuffle]);
+  }, [navigation, handleReshuffleWithFeedback]);
 
   // E2: Đánh dấu hoàn thành animation xuất hiện so le sau khi tải lần đầu
   useEffect(() => {
@@ -349,22 +372,31 @@ export default function HomeScreen() {
   }
 
   return (
-      <Animated.View entering={FadeIn.duration(250)} style={styles.container}>
-        <StatusBar barStyle="light-content" />
+    <Animated.View entering={FadeIn.duration(250)} style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
+      <Animated.View style={[{ flex: 1 }, listAnimStyle]}>
         <FlatList
           ref={flatListRef}
           data={sections}
           renderItem={renderSectionItem}
           keyExtractor={(item) => item.id}
+          initialNumToRender={3}
+          windowSize={7}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={4}
           ListHeaderComponent={
             <View>
-              <HomeGreeting title={greeting.title} subtitle={greeting.subtitle} />
+              {/* E5: Lời chào chuẩn khung giờ + phụ đề ngắn gọn, có nút bánh răng mở Settings */}
+              <HomeGreeting
+                title={greeting.title}
+                subtitle="Hôm nay bạn muốn nghe gì?"
+              />
 
               {/* C4: Thông điệp Cold-start thân thiện, nhỏ gọn, không phô trương */}
               {recordCount === 0 && tracks.length > 0 && (
                 <View style={styles.coldStartBanner}>
-                  <Text style={styles.coldStartTitle}>Nghe nhạc để Beatify hiểu gu của bạn ✨</Text>
+                  <Text style={styles.coldStartTitle}>Nghe nhạc để Beatify hiểu gu của bạn</Text>
                   <Text style={styles.coldStartSubtitle}>
                     Các danh mục đề xuất sẽ tự động điều chỉnh theo thói quen và khung giờ nghe của bạn.
                   </Text>
@@ -399,8 +431,9 @@ export default function HomeScreen() {
             ) : null
           }
         />
+      </Animated.View>
 
-        {/* Menu thao tác bài hát (Action Sheet) */}
+      {/* Menu thao tác bài hát (Action Sheet) */}
         <TrackActionSheet
           visible={actionSheetVisible}
           onClose={() => setActionSheetVisible(false)}

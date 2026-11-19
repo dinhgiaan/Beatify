@@ -5,6 +5,7 @@ import {
   Text,
   Pressable,
   StyleSheet,
+  InteractionManager,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -80,8 +81,12 @@ export default function SettingsMainScreen() {
   const [replayReport, setReplayReport] = useState<FullReplayReport | null>(null);
 
   useEffect(() => {
-    statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
-    statsStorage.getReplayReport().then(setReplayReport).catch(() => { });
+    // B4: Hoãn việc đọc đĩa và tính toán Replay nặng sau khi frame chuyển cảnh hoàn tất
+    const task = InteractionManager.runAfterInteractions(() => {
+      statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+      statsStorage.getReplayReport().then(setReplayReport).catch(() => { });
+    });
+    return () => task.cancel();
   }, []);
 
   const totalPlays = replayReport?.allTime.totalPlays || 0;

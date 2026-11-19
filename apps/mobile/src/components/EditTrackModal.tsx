@@ -14,6 +14,11 @@ import {
   useWindowDimensions,
   Image,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import type { Track, UpdateTrack } from '@music-app/shared';
@@ -52,33 +57,46 @@ export function EditTrackModal({
   const keyboardHeight = useKeyboardHeight();
   const isKeyboardVisible = keyboardHeight > 0;
 
-  // Khi bàn phím mở, Home bar bị bàn phím che nên chân sheet chỉ cần đệm nhẹ spacing.sm
+  // Quản lý tab đang chọn: 'info' (Thông tin bài hát) hoặc 'lyrics' (Lời bài hát LRC)
+  const [activeTab, setActiveTab] = useState<'info' | 'lyrics'>('info');
+  const activeTabIndex = useSharedValue(0);
+  const [tabBarWidth, setTabBarWidth] = useState(0);
+
+  const handleTabChange = (tab: 'info' | 'lyrics') => {
+    setActiveTab(tab);
+    activeTabIndex.value = withSpring(tab === 'info' ? 0 : 1, {
+      damping: 22,
+      stiffness: 180,
+      mass: 0.7,
+    });
+  };
+
+  // Animation viên thuốc trượt (Sliding Active Pill) tuân thủ quy tắc bảo vệ UI cốt lõi
+  const slidingActivePill = useAnimatedStyle(() => {
+    const itemWidth = tabBarWidth > 0 ? (tabBarWidth - 8) / 2 : 0;
+    return {
+      width: Math.max(0, itemWidth),
+      transform: [{ translateX: activeTabIndex.value * itemWidth }],
+    };
+  });
+
+  // Khi bàn phím mở, Home bar bị che nên chân sheet chỉ cần đệm nhẹ
   const sheetPaddingBottom = isKeyboardVisible
     ? spacing.sm
     : Math.max(spacing.lg, insets.bottom + spacing.sm);
 
-  // Chiều cao cố định ngoài ScrollView (paddingTop 20, sheetPaddingBottom, header ~64, footer ~74, buffer an toàn 16)
+  // Chiều cao cố định ngoài ScrollView (paddingTop, sheetPaddingBottom, header ~64, tabs ~46, footer ~74, buffer an toàn 16)
   const fixedModalElementsHeight =
-    spacing.xl + sheetPaddingBottom + 64 + 74 + spacing.lg;
+    spacing.xl + sheetPaddingBottom + 64 + 46 + 74 + spacing.lg;
 
   // Chiều cao tối đa khả dụng cho phần thân cuộn khi bàn phím mở
   const availableBodyHeight =
     screenHeight - insets.top - keyboardHeight - fixedModalElementsHeight;
 
-  // Nếu bàn phím mở: giới hạn không vượt quá khoảng trống khả dụng để đỉnh sheet không bị đẩy vọt qua Status Bar
-  // Nếu chiều cao khả dụng nhỏ hơn modalBodyMinHeight thì ưu tiên chiều cao khả dụng (không ép min)
+  // Mở rộng không gian tối đa: 70% màn hình khi đóng bàn phím và tận dụng trọn vẹn khi mở bàn phím
   const maxBodyHeight = isKeyboardVisible
-    ? availableBodyHeight < layout.modalBodyMinHeight
-      ? Math.max(100, availableBodyHeight)
-      : Math.min(
-          layout.modalBodyMaxHeight,
-          Math.round(screenHeight * 0.46),
-          availableBodyHeight
-        )
-    : Math.max(
-        layout.modalBodyMinHeight,
-        Math.min(layout.modalBodyMaxHeight, Math.round(screenHeight * 0.46))
-      );
+    ? Math.max(220, availableBodyHeight)
+    : Math.max(layout.modalBodyMinHeight, Math.round(screenHeight * 0.70));
 
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -101,6 +119,8 @@ export function EditTrackModal({
       setCoverUri(track.cover);
       setLyrics('');
       setErrorMessage(null);
+      setActiveTab('info');
+      activeTabIndex.value = 0;
 
       if (onFetchLyrics) {
         setIsLoadingLyrics(true);
@@ -118,7 +138,7 @@ export function EditTrackModal({
           });
       }
     }
-  }, [track, visible, onFetchLyrics]);
+  }, [track, visible, onFetchLyrics, activeTabIndex]);
 
   if (!track) return null;
 
@@ -144,10 +164,14 @@ export function EditTrackModal({
 
     if (!trimmedTitle) {
       setErrorMessage('Tên bài hát không được để trống');
+      setActiveTab('info');
+      activeTabIndex.value = 0;
       return;
     }
     if (!trimmedArtist) {
       setErrorMessage('Tên nghệ sĩ không được để trống');
+      setActiveTab('info');
+      activeTabIndex.value = 0;
       return;
     }
 
@@ -156,6 +180,8 @@ export function EditTrackModal({
       const num = parseInt(year.trim(), 10);
       if (isNaN(num) || num < 1900 || num > 2100) {
         setErrorMessage('Năm phát hành không hợp lệ (1900 - 2100)');
+        setActiveTab('info');
+        activeTabIndex.value = 0;
         return;
       }
       parsedYear = num;
@@ -208,6 +234,8 @@ export function EditTrackModal({
     );
   };
 
+  const lineCount = lyrics.trim() ? lyrics.split('\n').filter(Boolean).length : 0;
+
   return (
     <Modal
       visible={visible}
@@ -233,6 +261,42 @@ export function EditTrackModal({
             closeDisabled={isSaving || isDeleting}
           />
 
+          {/* Phân đoạn Tabs: Thông tin bài hát vs Lời bài hát */}
+          <View
+            style={styles.tabBarTrack}
+            onLayout={(e) => setTabBarWidth(e.nativeEvent.layout.width)}
+          >
+            <Animated.View style={[styles.slidingActivePill, slidingActivePill]} />
+            <TouchableOpacity
+              style={styles.tabButton}
+              onPress={() => handleTabChange('info')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  activeTab === 'info' && styles.tabButtonTextActive,
+                ]}
+              >
+                Thông tin bài hát
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.tabButton}
+              onPress={() => handleTabChange('lyrics')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  activeTab === 'lyrics' && styles.tabButtonTextActive,
+                ]}
+              >
+                Lời bài hát (LRC)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Error Banner */}
           {errorMessage ? (
             <View style={styles.errorBox}>
@@ -245,124 +309,171 @@ export function EditTrackModal({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Ảnh bìa bài hát (Đổi ảnh HD sắc nét từ thư viện máy) */}
-            <View style={styles.coverRow}>
-              <View style={styles.coverBox}>
-                {coverUri ? (
-                  <Image source={{ uri: coverUri }} style={styles.coverImg} resizeMode="cover" />
-                ) : (
-                  <View style={styles.coverEmptyBox}>
-                    <Text style={styles.coverEmptyText}>Chưa có bìa</Text>
+            {activeTab === 'info' ? (
+              <View style={styles.tabContent}>
+                {/* Ảnh bìa bài hát (Đổi ảnh HD sắc nét từ thư viện máy) */}
+                <View style={styles.coverRow}>
+                  <View style={styles.coverBox}>
+                    {coverUri ? (
+                      <Image source={{ uri: coverUri }} style={styles.coverImg} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.coverEmptyBox}>
+                        <Text style={styles.coverEmptyText}>Chưa có bìa</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-              <View style={styles.coverActions}>
-                <Text style={styles.label}>ẢNH BÌA BÀI HÁT</Text>
-                <TouchableOpacity
-                  style={styles.pickCoverBtn}
-                  onPress={handlePickCover}
-                  activeOpacity={0.7}
-                  disabled={isSaving || isDeleting}
-                >
-                  <Text style={styles.pickCoverBtnText}>
-                    {coverUri ? 'Đổi ảnh bìa nét hơn' : 'Chọn ảnh HD từ máy'}
+                  <View style={styles.coverActions}>
+                    <Text style={styles.label}>ẢNH BÌA BÀI HÁT</Text>
+                    <TouchableOpacity
+                      style={styles.pickCoverBtn}
+                      onPress={handlePickCover}
+                      activeOpacity={0.7}
+                      disabled={isSaving || isDeleting}
+                    >
+                      <Text style={styles.pickCoverBtnText}>
+                        {coverUri ? 'Đổi ảnh bìa nét hơn' : 'Chọn ảnh HD từ máy'}
+                      </Text>
+                    </TouchableOpacity>
+                    {coverUri && (
+                      <TouchableOpacity
+                        style={styles.removeCoverBtn}
+                        onPress={() => setCoverUri(undefined)}
+                        activeOpacity={0.7}
+                        disabled={isSaving || isDeleting}
+                      >
+                        <Text style={styles.removeCoverBtnText}>Xóa ảnh bìa</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {/* Tên bài hát */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>
+                    TÊN BÀI HÁT <Text style={styles.requiredMark}>*</Text>
                   </Text>
-                </TouchableOpacity>
-                {coverUri && (
-                  <TouchableOpacity
-                    style={styles.removeCoverBtn}
-                    onPress={() => setCoverUri(undefined)}
-                    activeOpacity={0.7}
-                    disabled={isSaving || isDeleting}
-                  >
-                    <Text style={styles.removeCoverBtnText}>Xóa ảnh bìa</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                  <TextInput
+                    style={styles.input}
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="Nhập tên bài hát"
+                    placeholderTextColor={colors.textPlaceholder}
+                    editable={!isSaving && !isDeleting}
+                  />
+                </View>
 
-            {/* Tên bài hát */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                TÊN BÀI HÁT <Text style={styles.requiredMark}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Nhập tên bài hát"
-                placeholderTextColor={colors.textPlaceholder}
-                editable={!isSaving && !isDeleting}
-              />
-            </View>
+                {/* Nghệ sĩ */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>
+                    NGHỆ SĨ / CA SĨ <Text style={styles.requiredMark}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={artist}
+                    onChangeText={setArtist}
+                    placeholder="Nhập tên ca sĩ hoặc nghệ sĩ"
+                    placeholderTextColor={colors.textPlaceholder}
+                    editable={!isSaving && !isDeleting}
+                  />
+                </View>
 
-            {/* Nghệ sĩ */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                NGHỆ SĨ / CA SĨ <Text style={styles.requiredMark}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={artist}
-                onChangeText={setArtist}
-                placeholder="Nhập tên ca sĩ hoặc nghệ sĩ"
-                placeholderTextColor={colors.textPlaceholder}
-                editable={!isSaving && !isDeleting}
-              />
-            </View>
-
-            {/* Hàng Album & Năm */}
-            <View style={styles.rowInputs}>
-              <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.sm }]}>
-                <Text style={styles.label}>ALBUM</Text>
-                <TextInput
-                  style={styles.input}
-                  value={album}
-                  onChangeText={setAlbum}
-                  placeholder="Tên album (tùy chọn)"
-                  placeholderTextColor={colors.textPlaceholder}
-                  editable={!isSaving && !isDeleting}
-                />
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>NĂM</Text>
-                <TextInput
-                  style={styles.input}
-                  value={year}
-                  onChangeText={setYear}
-                  placeholder="2026"
-                  placeholderTextColor={colors.textPlaceholder}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  editable={!isSaving && !isDeleting}
-                />
-              </View>
-            </View>
-
-            {/* Lời bài hát (.LRC) */}
-            <View style={styles.inputGroup}>
-              <View style={styles.lyricsLabelRow}>
-                <Text style={styles.label}>LỜI BÀI HÁT (.LRC HOẶC TEXT)</Text>
-                {isLoadingLyrics && (
-                  <View style={styles.lyricsLoadingRow}>
-                    <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: spacing.xs }} />
-                    <Text style={styles.lyricsLoadingText}>Đang nạp lời...</Text>
+                {/* Hàng Album & Năm */}
+                <View style={styles.rowInputs}>
+                  <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.sm }]}>
+                    <Text style={styles.label}>ALBUM</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={album}
+                      onChangeText={setAlbum}
+                      placeholder="Tên album (tùy chọn)"
+                      placeholderTextColor={colors.textPlaceholder}
+                      editable={!isSaving && !isDeleting}
+                    />
                   </View>
-                )}
+
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>NĂM</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={year}
+                      onChangeText={setYear}
+                      placeholder="2026"
+                      placeholderTextColor={colors.textPlaceholder}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      editable={!isSaving && !isDeleting}
+                    />
+                  </View>
+                </View>
               </View>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={lyrics}
-                onChangeText={setLyrics}
-                placeholder="Dán nội dung lời bài hát hoặc cú pháp .lrc [00:12.34]..."
-                placeholderTextColor={colors.textPlaceholder}
-                multiline
-                numberOfLines={5}
-                textAlignVertical="top"
-                editable={!isSaving && !isDeleting && !isLoadingLyrics}
-              />
-            </View>
+            ) : (
+              /* TAB LỜI BÀI HÁT (LYRICS) - MỞ RỘNG TOÀN DIỆN CHIỀU CAO */
+              <View style={styles.tabContent}>
+                <View style={styles.lyricsControlHeader}>
+                  <View style={styles.lyricsBadge}>
+                    <Text style={styles.lyricsBadgeText}>
+                      {lineCount > 0 ? `${lineCount} dòng lời` : 'Chưa có lời bài hát'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.lyricsActionButtons}>
+                    {onFetchLyrics && (
+                      <TouchableOpacity
+                        style={styles.fetchLyricsBtn}
+                        onPress={() => {
+                          if (!track) return;
+                          setIsLoadingLyrics(true);
+                          onFetchLyrics(track.id)
+                            .then((content) => {
+                              if (content) setLyrics(content);
+                            })
+                            .finally(() => setIsLoadingLyrics(false));
+                        }}
+                        disabled={isLoadingLyrics || isSaving}
+                        activeOpacity={0.7}
+                      >
+                        {isLoadingLyrics ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Text style={styles.fetchLyricsBtnText}>Tải lại từ server</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+
+                    {lyrics.trim().length > 0 && (
+                      <TouchableOpacity
+                        style={styles.clearLyricsBtn}
+                        onPress={() => setLyrics('')}
+                        disabled={isSaving}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.clearLyricsBtnText}>Xóa trắng</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {/* Khung soạn thảo lời bài hát mở rộng toàn diện */}
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.lyricsTextAreaExpanded,
+                    {
+                      minHeight: isKeyboardVisible
+                        ? Math.max(160, availableBodyHeight - 56)
+                        : 340,
+                    },
+                  ]}
+                  value={lyrics}
+                  onChangeText={setLyrics}
+                  placeholder="Dán nội dung lời bài hát hoặc cú pháp .lrc [00:12.34]..."
+                  placeholderTextColor={colors.textPlaceholder}
+                  multiline
+                  textAlignVertical="top"
+                  editable={!isSaving && !isDeleting && !isLoadingLyrics}
+                />
+              </View>
+            )}
           </ScrollView>
 
           {/* Action buttons footer */}
@@ -435,7 +546,42 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingTop: spacing.xl,
     paddingHorizontal: spacing.xl,
-    maxHeight: '92%',
+    maxHeight: '94%',
+  },
+  tabBarTrack: {
+    height: 38,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    padding: 3,
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    position: 'relative',
+  },
+  slidingActivePill: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    bottom: 3,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  tabButtonText: {
+    fontSize: fontSizes.subhead,
+    fontWeight: fontWeights.medium,
+    color: colors.textSecondary,
+  },
+  tabButtonTextActive: {
+    color: colors.textDark,
+    fontWeight: fontWeights.bold,
+  },
+  tabContent: {
+    paddingBottom: spacing.sm,
   },
   errorBox: {
     backgroundColor: colors.dangerBgMuted,
@@ -480,30 +626,66 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     fontSize: fontSizes.body,
   },
-  textArea: {
-    minHeight: 96,
-    textAlignVertical: 'top',
-    paddingTop: spacing.sm,
-  },
-  lyricsLabelRow: {
+  lyricsControlHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  lyricsLoadingRow: {
+  lyricsBadge: {
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  lyricsBadgeText: {
+    fontSize: fontSizes.caption,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.medium,
+  },
+  lyricsActionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
   },
-  lyricsLoadingText: {
+  fetchLyricsBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  fetchLyricsBtnText: {
     fontSize: fontSizes.caption,
     color: colors.primary,
+    fontWeight: fontWeights.medium,
+  },
+  clearLyricsBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+    backgroundColor: colors.dangerBg,
+  },
+  clearLyricsBtnText: {
+    fontSize: fontSizes.caption,
+    color: colors.danger,
+    fontWeight: fontWeights.medium,
+  },
+  lyricsTextAreaExpanded: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 13,
+    lineHeight: 20,
+    paddingTop: spacing.sm,
+    textAlignVertical: 'top',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -567,20 +749,17 @@ const styles = StyleSheet.create({
   coverRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing.md,
     gap: spacing.md,
-    marginBottom: spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   coverBox: {
-    width: 68,
-    height: 68,
+    width: 80,
+    height: 80,
     borderRadius: radius.md,
     overflow: 'hidden',
     backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   coverImg: {
     width: '100%',
@@ -588,36 +767,40 @@ const styles = StyleSheet.create({
   },
   coverEmptyBox: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xs,
   },
   coverEmptyText: {
-    fontSize: 10,
-    color: colors.textTertiary,
+    color: colors.textMuted,
+    fontSize: fontSizes.caption,
+    textAlign: 'center',
   },
   coverActions: {
     flex: 1,
-    gap: 4,
+    justifyContent: 'center',
   },
   pickCoverBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 7,
+    backgroundColor: colors.surfaceSecondary,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
     alignItems: 'center',
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   pickCoverBtnText: {
-    color: colors.textDark,
-    fontSize: fontSizes.captionLarge,
-    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.medium,
   },
   removeCoverBtn: {
+    paddingVertical: spacing.xs,
     alignItems: 'center',
-    paddingVertical: 4,
   },
   removeCoverBtnText: {
-    color: colors.dangerLight,
-    fontSize: 11,
-    fontWeight: fontWeights.semibold,
+    color: colors.danger,
+    fontSize: fontSizes.caption,
   },
 });
