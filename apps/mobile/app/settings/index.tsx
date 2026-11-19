@@ -190,52 +190,54 @@ export default function SettingsMainScreen() {
       </View>
     </View>
 
-      {/* DANH SÁCH CÁC NHÓM CÀI ĐẶT GROUPED LIST (iOS SETTINGS) */ }
-      <SectionHeader title="TÙY CHỌN ỨNG DỤNG" />
-      <ListGroup>
-        <SettingRow
-          label="Hồ sơ"
-          description="Tên, ảnh đại diện và giới thiệu"
-          icon={<ProfileIcon size={20} color={tokens.colors.accent} />}
-          showChevron
-          onPress={() => navigateTo('/settings/profile')}
-        />
+      {/* DANH SÁCH CÁC NHÓM CÀI ĐẶT GROUPED LIST (iOS SETTINGS) */}
+      <View style={{ marginTop: 24 }}>
+        <SectionHeader title="TÙY CHỌN ỨNG DỤNG" variant="list" />
+        <ListGroup>
+          <SettingRow
+            label="Hồ sơ"
+            description="Tên, ảnh đại diện và giới thiệu"
+            icon={<ProfileIcon size={20} color={tokens.colors.accent} />}
+            showChevron
+            onPress={() => navigateTo('/settings/profile')}
+          />
 
-        <SettingRow
-          label="Thống kê Replay"
-          description="Theo tuần, tháng, năm và kỷ niệm"
-          icon={<TrophyIcon size={20} color="#fbbf24" />}
-          value={`${totalPlays} lượt`}
-          showChevron
-          onPress={() => navigateTo('/settings/replay')}
-        />
+          <SettingRow
+            label="Thống kê Replay"
+            description="Theo tuần, tháng, năm và kỷ niệm"
+            icon={<TrophyIcon size={20} color="#fbbf24" />}
+            value={`${totalPlays} lượt`}
+            showChevron
+            onPress={() => navigateTo('/settings/replay')}
+          />
 
-        <SettingRow
-          label="Phát nhạc"
-          description="Đĩa than Vinyl 360°, Chuyển bài thông minh"
-          icon={<DiscIcon size={20} color="#60a5fa" />}
-          value={transitionSettings.enabled ? `${transitionSettings.durationSec}s fade` : 'Tắt'}
-          showChevron
-          onPress={() => navigateTo('/settings/playback')}
-        />
+          <SettingRow
+            label="Phát nhạc"
+            description="Đĩa than Vinyl 360°, Chuyển bài thông minh"
+            icon={<DiscIcon size={20} color="#60a5fa" />}
+            value={transitionSettings.enabled ? `${transitionSettings.durationSec}s fade` : 'Tắt'}
+            showChevron
+            onPress={() => navigateTo('/settings/playback')}
+          />
 
-        <SettingRow
-          label="Lưu trữ & Lịch sử"
-          description="Nhạc offline, lịch sử nghe gần đây"
-          icon={<DownloadIcon size={20} color={tokens.colors.accent} />}
-          value={formatBytes(totalSizeBytes)}
-          showChevron
-          onPress={() => navigateTo('/settings/storage')}
-        />
+          <SettingRow
+            label="Lưu trữ & Lịch sử"
+            description="Nhạc offline, lịch sử nghe gần đây"
+            icon={<DownloadIcon size={20} color={tokens.colors.accent} />}
+            value={formatBytes(totalSizeBytes)}
+            showChevron
+            onPress={() => navigateTo('/settings/storage')}
+          />
 
-        <SettingRow
-          label="Nâng cao"
-          description="Cloudflare Worker, ETag, Nhật ký chuyển bài"
-          icon={<MysteryIcon size={20} color={tokens.colors.textSecondary} />}
-          showChevron
-          onPress={() => navigateTo('/settings/advanced')}
-        />
-      </ListGroup>
+          <SettingRow
+            label="Nâng cao"
+            description="Cloudflare Worker, ETag, Nhật ký chuyển bài"
+            icon={<MysteryIcon size={20} color={tokens.colors.textSecondary} />}
+            showChevron
+            onPress={() => navigateTo('/settings/advanced')}
+          />
+        </ListGroup>
+      </View>
 
   {/* FOOTER THÔNG TIN APP */ }
   <View style={styles.footerBox}>

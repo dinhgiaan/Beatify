@@ -11,6 +11,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  FadeIn,
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,127 +84,137 @@ export default function PlaybackSettingsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* ĐĨA THAN VINYL */}
-      <SectionHeader title="ĐĨA THAN VINYL" />
-      <ListGroup>
-        <SettingRow
-          label="Chế độ đĩa than 360°"
-          description="Cần kim tonearm và hiệu ứng xoay 33⅓ RPM trên màn hình đang phát (Now Playing)"
-          isSwitch
-          switchValue={isVinylMode}
-          onSwitchChange={toggleVinylMode}
-        />
-      </ListGroup>
-
-      {/* CHUYỂN BÀI THÔNG MINH */}
-      <SectionHeader
-        title="CHUYỂN BÀI THÔNG MINH"
-        subtitle="Hòa âm fade âm lượng mượt mà giữa hai bài hát liên tiếp"
-      />
-      <ListGroup>
-        <SettingRow
-          label="Kích hoạt chuyển bài"
-          description="Tự động fade âm lượng giữa bài cũ và bài mới"
-          isSwitch
-          switchValue={transitionSettings.enabled}
-          onSwitchChange={(val) => updateTransitionSettings({ enabled: val })}
-        />
-
-        {/* Chip thời gian: mờ khi Switch tắt kèm hiệu ứng sliding pill */}
-        <View
-          style={[
-            styles.durationContainer,
-            !transitionSettings.enabled && styles.durationDisabled,
-          ]}
-        >
-          <View style={styles.durationHeader}>
-            <Text style={styles.durationLabel}>Thời gian chuyển bài</Text>
-            <Text style={styles.durationSubLabel}>
-              Hòa âm mượt mà giữa hai bài hát liên tiếp
-            </Text>
-          </View>
-
-          <View
-            style={styles.pillTrack}
-            onLayout={(e) => {
-              const w = e.nativeEvent.layout.width;
-              if (w > 0) {
-                containerWidthShared.value = w;
-              }
-            }}
-          >
-            {/* Nền active di chuyển mượt mà (Sliding Active Pill) */}
-            <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
-
-            {DURATIONS.map((dur) => {
-              const isSelected = transitionSettings.durationSec === dur;
-              return (
-                <TouchableOpacity
-                  key={dur}
-                  disabled={!transitionSettings.enabled}
-                  style={styles.pillBtn}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    const idx = DURATIONS.indexOf(dur);
-                    if (idx >= 0) {
-                      activeIndexShared.value = withSpring(idx, {
-                        damping: 20,
-                        stiffness: 150,
-                        mass: 0.7,
-                      });
-                    }
-                    updateTransitionSettings({ durationSec: dur });
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.pillBtnText,
-                      isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
-                    ]}
-                  >
-                    {dur}s
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+      <Animated.View entering={FadeIn.duration(180)} style={{ flex: 1 }}>
+        {/* ĐĨA THAN VINYL */}
+        <View style={styles.sectionBlock}>
+          <SectionHeader title="ĐĨA THAN VINYL" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Chế độ đĩa than 360°"
+              description="Cần kim tonearm và hiệu ứng xoay 33⅓ RPM trên màn hình đang phát (Now Playing)"
+              isSwitch
+              switchValue={isVinylMode}
+              onSwitchChange={toggleVinylMode}
+            />
+          </ListGroup>
         </View>
 
-        <SettingRow
-          label="Chế độ an toàn (Safe Mode)"
-          description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
-          isSwitch
-          disabled={!transitionSettings.enabled}
-          switchValue={transitionSettings.safeMode}
-          onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
-        />
+        {/* CHUYỂN BÀI THÔNG MINH */}
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader
+            title="CHUYỂN BÀI THÔNG MINH"
+            subtitle="Hòa âm fade âm lượng mượt mà giữa hai bài hát liên tiếp"
+            variant="list"
+          />
+          <ListGroup>
+            <SettingRow
+              label="Kích hoạt chuyển bài"
+              description="Tự động fade âm lượng giữa bài cũ và bài mới"
+              isSwitch
+              switchValue={transitionSettings.enabled}
+              onSwitchChange={(val) => updateTransitionSettings({ enabled: val })}
+            />
 
-        <SettingRow
-          label="Xem nhật ký chuyển bài"
-          description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
-          showChevron
-          onPress={() => {
-            triggerSelectionHaptic();
-            router.push('/settings/transition-logs');
-          }}
-        />
-      </ListGroup>
+            {/* Chip thời gian: mờ khi Switch tắt kèm hiệu ứng sliding pill */}
+            <View
+              style={[
+                styles.durationContainer,
+                !transitionSettings.enabled && styles.durationDisabled,
+              ]}
+            >
+              <View style={styles.durationHeader}>
+                <Text style={styles.durationLabel}>Thời gian chuyển bài</Text>
+                <Text style={styles.durationSubLabel}>
+                  Hòa âm mượt mà giữa hai bài hát liên tiếp
+                </Text>
+              </View>
 
-      <SectionHeader title="HIỆU ỨNG & CHUYỂN ĐỘNG" variant="list" />
-      <ListGroup>
-        <SettingRow
-          label="Tôn trọng Giảm chuyển động của hệ thống"
-          description="Tự động tắt hiệu ứng trượt và nảy nếu iOS bật Reduce Motion (Mặc định: TẮT)"
-          isSwitch
-          switchValue={respectSystemMotion}
-          onSwitchChange={(val) => {
-            triggerSelectionHaptic();
-            setRespectSystemMotion(val);
-            saveRespectSystemReduceMotion(val).catch(() => {});
-          }}
-        />
-      </ListGroup>
+              <View
+                style={styles.pillTrack}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) {
+                    containerWidthShared.value = w;
+                  }
+                }}
+              >
+                {/* Nền active di chuyển mượt mà (Sliding Active Pill) */}
+                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+
+                {DURATIONS.map((dur) => {
+                  const isSelected = transitionSettings.durationSec === dur;
+                  return (
+                    <TouchableOpacity
+                      key={dur}
+                      disabled={!transitionSettings.enabled}
+                      style={styles.pillBtn}
+                      onPress={() => {
+                        triggerSelectionHaptic();
+                        const idx = DURATIONS.indexOf(dur);
+                        if (idx >= 0) {
+                          activeIndexShared.value = withSpring(idx, {
+                            damping: 20,
+                            stiffness: 150,
+                            mass: 0.7,
+                          });
+                        }
+                        updateTransitionSettings({ durationSec: dur });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.pillBtnText,
+                          isSelected && transitionSettings.enabled && styles.pillBtnTextActive,
+                        ]}
+                      >
+                        {dur}s
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <SettingRow
+              label="Chế độ an toàn (Safe Mode)"
+              description="Giữ ổn định khi nghe nhạc trên màn hình khóa"
+              isSwitch
+              disabled={!transitionSettings.enabled}
+              switchValue={transitionSettings.safeMode}
+              onSwitchChange={(val) => updateTransitionSettings({ safeMode: val })}
+            />
+
+            <SettingRow
+              label="Xem nhật ký chuyển bài"
+              description="Chẩn đoán chi tiết các lần hòa âm thực tế trên máy"
+              showChevron
+              onPress={() => {
+                triggerSelectionHaptic();
+                router.push('/settings/transition-logs');
+              }}
+            />
+          </ListGroup>
+        </View>
+
+        {/* HIỆU ỨNG & CHUYỂN ĐỘNG */}
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader title="HIỆU ỨNG & CHUYỂN ĐỘNG" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Tôn trọng Giảm chuyển động của hệ thống"
+              description="Tự động tắt hiệu ứng trượt và nảy nếu iOS bật Reduce Motion (Mặc định: TẮT)"
+              isSwitch
+              switchValue={respectSystemMotion}
+              onSwitchChange={(val) => {
+                triggerSelectionHaptic();
+                setRespectSystemMotion(val);
+                saveRespectSystemReduceMotion(val).catch(() => {});
+              }}
+            />
+          </ListGroup>
+        </View>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -215,6 +226,10 @@ const styles = StyleSheet.create({
   },
   scrollInner: {
     paddingTop: tokens.spacing.sm,
+  },
+  sectionBlock: {},
+  sectionSpaced: {
+    marginTop: 26,
   },
   durationContainer: {
     paddingVertical: tokens.spacing.md,
@@ -229,12 +244,14 @@ const styles = StyleSheet.create({
   durationLabel: {
     ...tokens.typography.body,
     fontSize: 15,
+    fontWeight: '500',
     color: tokens.colors.textPrimary,
   },
   durationSubLabel: {
     ...tokens.typography.footnote,
-    color: tokens.colors.textMuted,
-    marginTop: 2,
+    color: tokens.colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 18,
   },
   pillTrack: {
     position: 'relative',
@@ -242,7 +259,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.bgElevated,
     borderRadius: tokens.radius.pill,
     padding: 4,
-    marginTop: tokens.spacing.xs,
+    marginTop: 10,
     borderWidth: tokens.hairlineWidth,
     borderColor: tokens.colors.separator,
   },

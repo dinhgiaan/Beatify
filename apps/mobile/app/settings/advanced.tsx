@@ -10,7 +10,7 @@ import {
   Share,
   StyleSheet,
 } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
@@ -169,12 +169,9 @@ export default function AdvancedSettingsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.View entering={FadeIn.duration(200)} style={{ flex: 1 }}>
+      <Animated.View entering={FadeIn.duration(180)} style={{ flex: 1 }}>
         {/* 1. NHẬT KÝ CHUYỂN BÀI (Chuyển vào nhóm Nâng cao) */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(30).springify().damping(18)}
-          style={styles.sectionBlock}
-        >
+        <View style={styles.sectionBlock}>
           <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ" variant="list" />
           <ListGroup>
             <SettingRow
@@ -187,13 +184,10 @@ export default function AdvancedSettingsScreen() {
               }}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 2. C1: HIỆU NĂNG TRANG CHỦ */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(60).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="HIỆU NĂNG TRANG CHỦ" variant="list" />
           <ListGroup>
             <SettingRow
@@ -216,13 +210,10 @@ export default function AdvancedSettingsScreen() {
               onSwitchChange={handleToggleHomeDebug}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 3. C2: CHẨN ĐOÁN LỊCH SỬ NGHE */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(90).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="CHẨN ĐOÁN LỊCH SỬ NGHE" variant="list" />
           <ListGroup>
             <SettingRow
@@ -240,13 +231,10 @@ export default function AdvancedSettingsScreen() {
               value={`${historyDiag.unfinalizedClusterPercent.toFixed(1)}% (${historyDiag.unfinalizedCount})`}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 4. THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(120).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="HỆ THỐNG & CHỨNG CHỈ" variant="list" />
           <ListGroup>
             <SettingRow
@@ -266,13 +254,10 @@ export default function AdvancedSettingsScreen() {
               value={gaplessDeltaMs !== null ? `${gaplessDeltaMs} ms` : 'Chưa đo'}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 5. ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(150).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM" variant="list" />
           <ListGroup>
             <SettingRow
@@ -335,13 +320,10 @@ export default function AdvancedSettingsScreen() {
               disabled={isSyncing}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 6. CHẨN ĐOÁN & NHẬT KÝ TAB BAR */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(180).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ TAB BAR" variant="list" />
           <ListGroup>
             <SettingRow
@@ -367,13 +349,10 @@ export default function AdvancedSettingsScreen() {
               }}
             />
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 7. CẤU HÌNH MÁY CHỦ CLOUDFLARE */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(210).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="MÁY CHỦ CLOUDFLARE" variant="list" />
           <ListGroup>
             <View style={styles.inputBox}>
@@ -429,13 +408,10 @@ export default function AdvancedSettingsScreen() {
               </PressableScale>
             </View>
           </ListGroup>
-        </Animated.View>
+        </View>
 
         {/* 8. PHÁT LIÊN KẾT TRỰC TIẾP */}
-        <Animated.View
-          entering={FadeInDown.duration(280).delay(240).springify().damping(18)}
-          style={[styles.sectionBlock, styles.sectionSpaced]}
-        >
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
           <SectionHeader title="PHÁT LIÊN KẾT TRỰC TIẾP" variant="list" />
           <ListGroup>
             <View style={styles.inputBox}>
@@ -463,7 +439,7 @@ export default function AdvancedSettingsScreen() {
               </PressableScale>
             </View>
           </ListGroup>
-        </Animated.View>
+        </View>
       </Animated.View>
     </ScrollView>
   );

@@ -12,7 +12,6 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   FadeIn,
-  FadeInDown,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -234,11 +233,7 @@ export default function ReplayScreen() {
                               : styles.rankNormal;
 
                       return (
-                        <Animated.View
-                          key={t.trackId}
-                          entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
-                          style={styles.trackRow}
-                        >
+                        <View key={t.trackId} style={styles.trackRow}>
                           <View style={[styles.rankBadge, rankStyle]}>
                             <Text style={[styles.trackIndex, idx < 3 && styles.trackIndexTop]}>
                               {idx + 1}
@@ -277,7 +272,7 @@ export default function ReplayScreen() {
                             </Text>
                             <Text style={styles.trackStatsMinutes}>{Math.round(t.minutes)} phút</Text>
                           </View>
-                        </Animated.View>
+                        </View>
                       );
                     }
                   )
@@ -306,11 +301,7 @@ export default function ReplayScreen() {
                               : styles.rankNormal;
 
                       return (
-                        <Animated.View
-                          key={a.artist}
-                          entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
-                          style={styles.artistRow}
-                        >
+                        <View key={a.artist} style={styles.artistRow}>
                           <View style={[styles.rankBadge, rankStyle]}>
                             <Text style={[styles.artistIndex, idx < 3 && styles.artistIndexTop]}>
                               {idx + 1}
@@ -331,7 +322,7 @@ export default function ReplayScreen() {
                             </Text>
                             <Text style={styles.trackStatsMinutes}>{Math.round(a.minutes)} phút</Text>
                           </View>
-                        </Animated.View>
+                        </View>
                       );
                     }
                   )
@@ -341,15 +332,12 @@ export default function ReplayScreen() {
           </Animated.View>
         ) : (
           /* TAB KỶ NIỆM & CỘT MỐC */
-          <Animated.View key={activeTab} entering={FadeIn.duration(240)} style={{ flex: 1 }}>
+          <Animated.View key={activeTab} entering={FadeIn.duration(180)} style={{ flex: 1 }}>
             <View style={styles.sectionBlock}>
               <SectionHeader title="DẤU ẤN ĐẦU TIÊN" variant="list" />
               <ListGroup>
                 {report.firstTrackEver ? (
-                  <Animated.View
-                    entering={FadeInDown.duration(280).delay(40).springify().damping(18)}
-                    style={styles.memoryBox}
-                  >
+                  <View style={styles.memoryBox}>
                     <View style={styles.memoryIconCircle}>
                       <MusicNoteIcon size={22} color={tokens.colors.accent} />
                     </View>
@@ -362,7 +350,7 @@ export default function ReplayScreen() {
                         Bài hát mở màn cho kho nhạc vào {report.firstTrackEver.playedAt}
                       </Text>
                     </View>
-                  </Animated.View>
+                  </View>
                 ) : (
                   <View style={styles.emptyBox}>
                     <Text style={styles.emptyText}>Hãy nghe bài hát đầu tiên để lưu dấu ấn</Text>
@@ -375,10 +363,7 @@ export default function ReplayScreen() {
               <SectionHeader title="BÀI HÁT GẮN BÓ NHẤT" variant="list" />
               <ListGroup>
                 {report.mostPlayedTrackEver ? (
-                  <Animated.View
-                    entering={FadeInDown.duration(280).delay(80).springify().damping(18)}
-                    style={styles.memoryBox}
-                  >
+                  <View style={styles.memoryBox}>
                     <View style={[styles.memoryIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.14)' }]}>
                       <HeartIcon size={22} color="#f43f5e" fill="#f43f5e" />
                     </View>
@@ -391,7 +376,7 @@ export default function ReplayScreen() {
                         Đã đồng hành cùng bạn {report.mostPlayedTrackEver.count} {STATS_LABELS.PLAYS.toLowerCase()}
                       </Text>
                     </View>
-                  </Animated.View>
+                  </View>
                 ) : (
                   <View style={styles.emptyBox}>
                     <Text style={styles.emptyText}>Chưa có bài hát nổi bật</Text>
@@ -403,12 +388,8 @@ export default function ReplayScreen() {
             <View style={[styles.sectionBlock, styles.sectionSpaced]}>
               <SectionHeader title="CỘT MỐC & THÀNH TỰU" variant="list" />
               <ListGroup>
-                {report.milestones.map((m, idx) => (
-                  <Animated.View
-                    key={m.id}
-                    entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
-                    style={styles.milestoneRow}
-                  >
+                {report.milestones.map((m) => (
+                  <View key={m.id} style={styles.milestoneRow}>
                     <View style={[styles.milestoneIconBox, m.achieved && styles.milestoneIconBoxAchieved]}>
                       {renderMilestoneSvg(m.id, m.achieved)}
                     </View>
@@ -433,7 +414,7 @@ export default function ReplayScreen() {
                         <Text style={styles.lockedPillText}>Chưa mở</Text>
                       </View>
                     )}
-                  </Animated.View>
+                  </View>
                 ))}
               </ListGroup>
             </View>

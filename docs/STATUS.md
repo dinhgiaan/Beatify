@@ -130,13 +130,21 @@
   - **Màn hình "Thống kê Replay" (`replay.tsx`):**
     - BẢO TỒN TUYỆT ĐỐI 100% animation trượt active tab (`slidingActivePill`, `withSpring`, `useSharedValue`), vượt qua toàn bộ 14 tests của `uiRegression.test.ts`.
     - `metricBanner`: Thêm khoảng cách dưới 24pt, viền mờ `rgba(255, 255, 255, 0.08)`, số liệu nổi bật 28pt bold màu accent.
-    - Top Bài hát: Danh sách card thoáng đãng, ảnh bìa 44x44, huy hiệu Top 3 sang trọng (vàng kim, bạc, đồng), chuyển cảnh mượt mà với Reanimated `FadeInDown.duration(260).delay(idx * 30).springify().damping(18)`.
-    - Nghệ sĩ nổi bật: Bổ sung avatar tròn ca sĩ 40x40 đồng trục với ảnh bài hát, xếp hạng huy hiệu Top 3, animation so le `FadeInDown`.
+    - Top Bài hát: Danh sách card thoáng đãng, ảnh bìa 44x44, huy hiệu Top 3 sang trọng (vàng kim, bạc, đồng).
+    - Nghệ sĩ nổi bật: Bổ sung avatar tròn ca sĩ 40x40 đồng trục với ảnh bài hát, xếp hạng huy hiệu Top 3.
     - Tab Kỷ niệm: Dấu ấn đầu tiên, Bài hát gắn bó nhất và Cột mốc thành tựu được phân đoạn cách nhau 26pt nhịp nhàng, chữ và ngày tháng cách nhau thông thoáng, không còn dính cục.
   - **Màn hình "Nâng cao" (`advanced.tsx`):**
     - Đóng gói toàn bộ 8 nhóm cài đặt vào từng block độc lập với khoảng thở 26pt, chuyển tiêu đề sang `variant="list"` chuẩn Apple Settings.
     - Sửa triệt để cụm nhập liệu Máy chủ Cloudflare & Phát liên kết trực tiếp: padding thẻ 18pt, chiều cao input 46pt bo góc 10pt, tách biệt nút "Lưu cấu hình máy chủ" và "+ Thêm vào hàng phát" với các ô input, không còn dính chữ.
-    - Hiệu ứng xuất hiện thác nước nhịp nhàng: Toàn bộ 8 nhóm cài đặt lướt vào êm ái bằng `FadeInDown.duration(280).delay(idx * 30).springify().damping(18)`.
+- **16. Mở rộng Chuẩn hóa Khoảng cách & Tinh giản Animation Nhẹ nhàng cho "Hồ sơ", "Phát nhạc", "Lưu trữ & Lịch sử" (`profile.tsx`, `playback.tsx`, `storage.tsx`, `settings/index.tsx`):**
+  - **Chuyển đổi Animation sang phong cách nhẹ nhàng, tinh tế (Gentle & Subtle Fades):**
+    - Loại bỏ hoàn toàn các animation nhảy nảy giật cục `FadeInDown...springify()` trên từng dòng của `replay.tsx` và từng khối của `advanced.tsx`.
+    - Áp dụng hiệu ứng mờ dần nhẹ nhàng, êm ái `FadeIn.duration(180)` trên toàn bộ các màn hình Cài đặt (`profile.tsx`, `playback.tsx`, `storage.tsx`, `replay.tsx`, `advanced.tsx`), đạt 120fps mượt mà, không gây mỏi mắt hay giật layout.
+  - **Khắc phục lỗi dính chữ và thiếu khoảng cách trên toàn bộ Cài đặt:**
+    - **Màn hình "Hồ sơ" (`profile.tsx`):** Tách bạch 3 section (Ảnh đại diện, Phong cách đại diện, Thông tin cá nhân) với khoảng cách 26pt (`sectionSpaced`). Tiêu đề dùng `variant="list"`. Nút "Lưu hồ sơ" tăng khoảng cách trên lên 14pt thông thoáng. Bảo toàn nguyên vẹn `SpringButton`, `slidingActivePill`, `AVATAR_BADGES`, `AnimatedInput`.
+    - **Màn hình "Phát nhạc" (`playback.tsx`):** Phân cách 3 section (Đĩa than Vinyl, Chuyển bài thông minh, Hiệu ứng & Chuyển động) với khoảng cách 26pt. Sửa dính chữ trong khối Chuyển bài thông minh: phụ đề cách tiêu đề 4pt (`lineHeight: 18`), thanh chip thời gian cách trên 10pt. Bảo toàn nguyên vẹn `slidingActivePill` và `withSpring`.
+    - **Màn hình "Lưu trữ & Lịch sử" (`storage.tsx`):** Phân cách 2 section (Nhạc ngoại tuyến, Lịch sử nghe gần đây) với khoảng cách 26pt. Nhãn "Số bài lưu tối đa" cách thanh chip chọn số bài 8pt rõ ràng, không còn dính cục. Bảo toàn nguyên vẹn `slidingActivePill` và `withSpring`.
+    - **Màn hình Cài đặt chính (`settings/index.tsx`):** Tách thẻ Hero Stats khỏi nhóm "TÙY CHỌN ỨNG DỤNG" 24pt, tiêu đề `variant="list"`.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.

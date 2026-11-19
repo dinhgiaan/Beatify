@@ -17,6 +17,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  FadeIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -284,168 +285,177 @@ export default function ProfileScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <SectionHeader title="ẢNH ĐẠI DIỆN" />
-      <ListGroup>
-        <View style={styles.avatarSection}>
-          <UserAvatar
-            avatarUri={avatarMode === 'custom' ? avatarUri : ''}
-            displayName={displayName || 'Người Yêu Nhạc'}
-            avatarKey={avatarKey}
-            size={88}
+      <Animated.View entering={FadeIn.duration(180)} style={{ flex: 1 }}>
+        <View style={styles.sectionBlock}>
+          <SectionHeader title="ẢNH ĐẠI DIỆN" variant="list" />
+          <ListGroup>
+            <View style={styles.avatarSection}>
+              <UserAvatar
+                avatarUri={avatarMode === 'custom' ? avatarUri : ''}
+                displayName={displayName || 'Người Yêu Nhạc'}
+                avatarKey={avatarKey}
+                size={88}
+              />
+            </View>
+          </ListGroup>
+        </View>
+
+        {/* PHÂN ĐOẠN TAB CHUYỂN ĐỔI PHONG CÁCH VỚI HIỆU ỨNG SLIDING ACTIVE PILL */}
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader
+            title="PHONG CÁCH ĐẠI DIỆN"
+            subtitle="Chọn giữa biểu tượng huy hiệu âm nhạc hoặc ảnh cá nhân"
+            variant="list"
           />
-        </View>
-      </ListGroup>
-
-      {/* PHÂN ĐOẠN TAB CHUYỂN ĐỔI PHONG CÁCH VỚI HIỆU ỨNG SLIDING ACTIVE PILL */}
-      <SectionHeader
-        title="PHONG CÁCH ĐẠI DIỆN"
-        subtitle="Chọn giữa biểu tượng huy hiệu âm nhạc hoặc ảnh cá nhân"
-      />
-      <ListGroup>
-        <View style={styles.tabTrackContainer}>
-          <View
-            style={styles.tabTrack}
-            onLayout={(e) => {
-              const w = e.nativeEvent.layout.width;
-              if (w > 0) {
-                tabTrackWidthShared.value = w;
-              }
-            }}
-          >
-            {/* Nền active di chuyển mượt mà dạng trượt (Sliding Active Pill) */}
-            <Animated.View style={[styles.slidingActivePill, modePillAnimStyle]} pointerEvents="none" />
-
-            <Pressable
-              style={styles.modeTabBtn}
-              onPress={() => {
-                triggerSelectionHaptic();
-                avatarModeShared.value = withSpring(0, {
-                  damping: 18,
-                  stiffness: 180,
-                  mass: 0.65,
-                });
-                setAvatarMode('badges');
-              }}
-            >
-              <Text
-                style={[
-                  styles.modeTabBtnText,
-                  avatarMode === 'badges' && styles.modeTabBtnTextActive,
-                ]}
+          <ListGroup>
+            <View style={styles.tabTrackContainer}>
+              <View
+                style={styles.tabTrack}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) {
+                    tabTrackWidthShared.value = w;
+                  }
+                }}
               >
-                Huy hiệu âm nhạc
-              </Text>
-            </Pressable>
+                {/* Nền active di chuyển mượt mà dạng trượt (Sliding Active Pill) */}
+                <Animated.View style={[styles.slidingActivePill, modePillAnimStyle]} pointerEvents="none" />
 
-            <Pressable
-              style={styles.modeTabBtn}
-              onPress={() => {
-                triggerSelectionHaptic();
-                avatarModeShared.value = withSpring(1, {
-                  damping: 18,
-                  stiffness: 180,
-                  mass: 0.65,
-                });
-                setAvatarMode('custom');
-              }}
-            >
-              <Text
-                style={[
-                  styles.modeTabBtnText,
-                  avatarMode === 'custom' && styles.modeTabBtnTextActive,
-                ]}
-              >
-                Ảnh cá nhân
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {avatarMode === 'badges' ? (
-          <View style={styles.badgesGrid}>
-            {AVATAR_BADGES.map((badge) => {
-              const isSelected = avatarKey === badge.key;
-              return (
-                <View key={badge.key} style={styles.badgeCol}>
-                  <SpringButton
-                    style={[
-                      styles.badgeCircleBtn,
-                      isSelected && styles.badgeCircleBtnSelected,
-                    ]}
-                    onPress={() => handleSelectBadge(badge.key)}
-                  >
-                    {badge.renderIcon(26, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
-                  </SpringButton>
+                <Pressable
+                  style={styles.modeTabBtn}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    avatarModeShared.value = withSpring(0, {
+                      damping: 18,
+                      stiffness: 180,
+                      mass: 0.65,
+                    });
+                    setAvatarMode('badges');
+                  }}
+                >
                   <Text
                     style={[
-                      styles.badgeItemText,
-                      isSelected && styles.badgeItemTextSelected,
+                      styles.modeTabBtnText,
+                      avatarMode === 'badges' && styles.modeTabBtnTextActive,
                     ]}
-                    numberOfLines={1}
                   >
-                    {badge.label}
+                    Huy hiệu âm nhạc
                   </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.customPhotoSection}>
-            <View style={styles.avatarBtnRow}>
-              <SpringButton style={styles.pillBtn} onPress={handleTakePhoto}>
-                <CameraIcon size={16} color={tokens.colors.textPrimary} />
-                <Text style={styles.pillBtnText}>Chụp ảnh</Text>
-              </SpringButton>
+                </Pressable>
 
-              <SpringButton style={styles.pillBtn} onPress={handlePickImage}>
-                <DiscIcon size={16} color={tokens.colors.textPrimary} />
-                <Text style={styles.pillBtnText}>Thư viện ảnh</Text>
-              </SpringButton>
-
-              {Boolean(avatarUri) && (
-                <SpringButton
-                  style={[styles.pillBtn, styles.clearBtn]}
-                  onPress={() => setAvatarUri('')}
+                <Pressable
+                  style={styles.modeTabBtn}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    avatarModeShared.value = withSpring(1, {
+                      damping: 18,
+                      stiffness: 180,
+                      mass: 0.65,
+                    });
+                    setAvatarMode('custom');
+                  }}
                 >
-                  <Text style={styles.clearBtnText}>Gỡ ảnh</Text>
-                </SpringButton>
-              )}
+                  <Text
+                    style={[
+                      styles.modeTabBtnText,
+                      avatarMode === 'custom' && styles.modeTabBtnTextActive,
+                    ]}
+                  >
+                    Ảnh cá nhân
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        )}
-      </ListGroup>
 
-      <SectionHeader title="THÔNG TIN CÁ NHÂN" />
-      <ListGroup>
-        <View style={styles.inputBox}>
-          <AnimatedInput
-            label="Tên của bạn"
-            value={displayName}
-            onChangeText={setDisplayName}
-            maxLength={32}
-            placeholder="Tên hiển thị..."
-          />
+            {avatarMode === 'badges' ? (
+              <View style={styles.badgesGrid}>
+                {AVATAR_BADGES.map((badge) => {
+                  const isSelected = avatarKey === badge.key;
+                  return (
+                    <View key={badge.key} style={styles.badgeCol}>
+                      <SpringButton
+                        style={[
+                          styles.badgeCircleBtn,
+                          isSelected && styles.badgeCircleBtnSelected,
+                        ]}
+                        onPress={() => handleSelectBadge(badge.key)}
+                      >
+                        {badge.renderIcon(26, isSelected ? tokens.colors.accent : tokens.colors.textSecondary)}
+                      </SpringButton>
+                      <Text
+                        style={[
+                          styles.badgeItemText,
+                          isSelected && styles.badgeItemTextSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {badge.label}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.customPhotoSection}>
+                <View style={styles.avatarBtnRow}>
+                  <SpringButton style={styles.pillBtn} onPress={handleTakePhoto}>
+                    <CameraIcon size={16} color={tokens.colors.textPrimary} />
+                    <Text style={styles.pillBtnText}>Chụp ảnh</Text>
+                  </SpringButton>
 
-          <AnimatedInput
-            label="Giới thiệu ngắn (Bio)"
-            value={bio}
-            onChangeText={setBio}
-            maxLength={120}
-            multiline
-            placeholder="Viết vài dòng về gu âm nhạc của bạn..."
-            style={styles.bioInput}
-          />
+                  <SpringButton style={styles.pillBtn} onPress={handlePickImage}>
+                    <DiscIcon size={16} color={tokens.colors.textPrimary} />
+                    <Text style={styles.pillBtnText}>Thư viện ảnh</Text>
+                  </SpringButton>
 
-          <SpringButton
-            style={[styles.saveBtn, isSaving && styles.btnDisabled]}
-            onPress={handleSave}
-            disabled={isSaving}
-          >
-            <Text style={styles.saveBtnText}>{isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}</Text>
-          </SpringButton>
+                  {Boolean(avatarUri) && (
+                    <SpringButton
+                      style={[styles.pillBtn, styles.clearBtn]}
+                      onPress={() => setAvatarUri('')}
+                    >
+                      <Text style={styles.clearBtnText}>Gỡ ảnh</Text>
+                    </SpringButton>
+                  )}
+                </View>
+              </View>
+            )}
+          </ListGroup>
         </View>
-      </ListGroup >
-    </ScrollView >
+
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader title="THÔNG TIN CÁ NHÂN" variant="list" />
+          <ListGroup>
+            <View style={styles.inputBox}>
+              <AnimatedInput
+                label="Tên của bạn"
+                value={displayName}
+                onChangeText={setDisplayName}
+                maxLength={32}
+                placeholder="Tên hiển thị..."
+              />
+
+              <AnimatedInput
+                label="Giới thiệu ngắn (Bio)"
+                value={bio}
+                onChangeText={setBio}
+                maxLength={120}
+                multiline
+                placeholder="Viết vài dòng về gu âm nhạc của bạn..."
+                style={styles.bioInput}
+              />
+
+              <SpringButton
+                style={[styles.saveBtn, isSaving && styles.btnDisabled]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                <Text style={styles.saveBtnText}>{isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}</Text>
+              </SpringButton>
+            </View>
+          </ListGroup>
+        </View>
+      </Animated.View>
+    </ScrollView>
   );
 }
 
@@ -456,6 +466,10 @@ const styles = StyleSheet.create({
   },
   scrollInner: {
     paddingTop: tokens.spacing.sm,
+  },
+  sectionBlock: {},
+  sectionSpaced: {
+    marginTop: 26,
   },
   avatarSection: {
     alignItems: 'center',
@@ -599,7 +613,7 @@ const styles = StyleSheet.create({
       backgroundColor: tokens.colors.accent,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: tokens.spacing.xs,
+      marginTop: 14,
     },
     saveBtnText: {
       ...tokens.typography.body,

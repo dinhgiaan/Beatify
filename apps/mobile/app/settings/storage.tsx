@@ -12,6 +12,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  FadeIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
@@ -103,83 +104,90 @@ export default function StorageSettingsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* NHẠC NGOẠI TUYẾN (OFFLINE) */}
-      <SectionHeader title="NHẠC NGOẠI TUYẾN (OFFLINE)" />
-      <ListGroup>
-        <SettingRow
-          label="Dung lượng đã chiếm"
-          value={formatBytes(totalSizeBytes)}
-        />
-        <SettingRow
-          label="Bài hát đã lưu"
-          value={`${offlineTracks.length} bài`}
-        />
-        {offlineTracks.length > 0 && (
-          <SettingRow
-            label="Xóa tất cả nhạc ngoại tuyến"
-            description={`Giải phóng ${formatBytes(totalSizeBytes)} bộ nhớ máy`}
-            isDanger
-            onPress={handleClearAllOffline}
-          />
-        )}
-      </ListGroup>
-
-      {/* LỊCH SỬ NGHE GẦN ĐÂY */}
-      <SectionHeader
-        title="LỊCH SỬ NGHE GẦN ĐÂY"
-        subtitle="Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây"
-      />
-      <ListGroup>
-        <View style={styles.limitBox}>
-          <Text style={styles.limitLabel}>Số bài lưu tối đa</Text>
-          <View
-            style={styles.pillTrack}
-            onLayout={(e) => {
-              const w = e.nativeEvent.layout.width;
-              if (w > 0) {
-                containerWidthShared.value = w;
-              }
-            }}
-          >
-            {/* Nền active di chuyển dạng trượt (Sliding Active Pill) */}
-            <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
-
-            {LIMIT_OPTIONS.map((limitOption) => {
-              const isActive = recentLimit === limitOption;
-              return (
-                <TouchableOpacity
-                  key={limitOption}
-                  style={styles.pillBtn}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    const idx = LIMIT_OPTIONS.indexOf(limitOption);
-                    if (idx >= 0) {
-                      activeIndexShared.value = withSpring(idx, {
-                        damping: 20,
-                        stiffness: 150,
-                        mass: 0.7,
-                      });
-                    }
-                    setRecentLimit(limitOption);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
-                    {limitOption}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+      <Animated.View entering={FadeIn.duration(180)} style={{ flex: 1 }}>
+        {/* NHẠC NGOẠI TUYẾN (OFFLINE) */}
+        <View style={styles.sectionBlock}>
+          <SectionHeader title="NHẠC NGOẠI TUYẾN (OFFLINE)" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Dung lượng đã chiếm"
+              value={formatBytes(totalSizeBytes)}
+            />
+            <SettingRow
+              label="Bài hát đã lưu"
+              value={`${offlineTracks.length} bài`}
+            />
+            {offlineTracks.length > 0 && (
+              <SettingRow
+                label="Xóa tất cả nhạc ngoại tuyến"
+                description={`Giải phóng ${formatBytes(totalSizeBytes)} bộ nhớ máy`}
+                isDanger
+                onPress={handleClearAllOffline}
+              />
+            )}
+          </ListGroup>
         </View>
 
-        <SettingRow
-          label="Xóa toàn bộ lịch sử nghe"
-          description="Làm trống danh sách bài hát vừa nghe"
-          isDanger
-          onPress={handleClearRecent}
-        />
-      </ListGroup>
+        {/* LỊCH SỬ NGHE GẦN ĐÂY */}
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader
+            title="LỊCH SỬ NGHE GẦN ĐÂY"
+            subtitle="Tự động ghi nhận bài hát sau khi nghe tối thiểu 5 giây"
+            variant="list"
+          />
+          <ListGroup>
+            <View style={styles.limitBox}>
+              <Text style={styles.limitLabel}>Số bài lưu tối đa</Text>
+              <View
+                style={styles.pillTrack}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) {
+                    containerWidthShared.value = w;
+                  }
+                }}
+              >
+                {/* Nền active di chuyển dạng trượt (Sliding Active Pill) */}
+                <Animated.View style={[styles.slidingActivePill, pillAnimStyle]} pointerEvents="none" />
+
+                {LIMIT_OPTIONS.map((limitOption) => {
+                  const isActive = recentLimit === limitOption;
+                  return (
+                    <TouchableOpacity
+                      key={limitOption}
+                      style={styles.pillBtn}
+                      onPress={() => {
+                        triggerSelectionHaptic();
+                        const idx = LIMIT_OPTIONS.indexOf(limitOption);
+                        if (idx >= 0) {
+                          activeIndexShared.value = withSpring(idx, {
+                            damping: 20,
+                            stiffness: 150,
+                            mass: 0.7,
+                          });
+                        }
+                        setRecentLimit(limitOption);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.pillBtnText, isActive && styles.pillBtnTextActive]}>
+                        {limitOption}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <SettingRow
+              label="Xóa toàn bộ lịch sử nghe"
+              description="Làm trống danh sách bài hát vừa nghe"
+              isDanger
+              onPress={handleClearRecent}
+            />
+          </ListGroup>
+        </View>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -192,6 +200,10 @@ const styles = StyleSheet.create({
   scrollInner: {
     paddingTop: tokens.spacing.sm,
   },
+  sectionBlock: {},
+  sectionSpaced: {
+    marginTop: 26,
+  },
   limitBox: {
     paddingVertical: tokens.spacing.md,
     paddingHorizontal: tokens.spacing.lg,
@@ -199,8 +211,9 @@ const styles = StyleSheet.create({
   limitLabel: {
     ...tokens.typography.body,
     fontSize: 15,
+    fontWeight: '500',
     color: tokens.colors.textPrimary,
-    marginBottom: tokens.spacing.xs,
+    marginBottom: 8,
   },
   pillTrack: {
     position: 'relative',
@@ -208,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.bgElevated,
     borderRadius: tokens.radius.pill,
     padding: 4,
-    marginTop: tokens.spacing.xs,
+    marginTop: 2,
     borderWidth: tokens.hairlineWidth,
     borderColor: tokens.colors.separator,
   },
