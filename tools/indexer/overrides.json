@@ -695,7 +695,7 @@
     "ccc43e44660c": {
       "title": "Vùng An Toàn (ft. V#)",
       "artist": "B Ray",
-      "album": "Singles",
+      "album": "Cho Bảo",
       "loudnessLufs": -9.74,
       "replayGain": -8.26,
       "cover": "covers/ccc43e44660c.jpg"
@@ -711,7 +711,7 @@
     "338ac8bd15ad": {
       "title": "Feel At Home",
       "artist": "B Ray",
-      "album": "Singles",
+      "album": "Cho Bảo",
       "loudnessLufs": -12.42,
       "replayGain": -5.58,
       "cover": "covers/338ac8bd15ad.jpg"
@@ -850,7 +850,7 @@
     "45ade149c1ba": {
       "title": "The One (ft. Đạt G)",
       "artist": "B Ray",
-      "album": "Singles",
+      "album": "Cho Bảo",
       "loudnessLufs": -9.56,
       "replayGain": -8.44,
       "cover": "covers/45ade149c1ba.jpg"
@@ -2573,6 +2573,14 @@
       "year": 2025,
       "loudnessLufs": -11.23,
       "replayGain": -6.77
+    },
+    "3062503bbdad": {
+      "title": "Ghệ Mới (ft. Young H)",
+      "artist": "B Ray",
+      "album": "Cho Bảo",
+      "loudnessLufs": -9.16,
+      "replayGain": -8.84,
+      "cover": "covers/3062503bbdad.jpg"
     }
   },
   "artistAliases": {

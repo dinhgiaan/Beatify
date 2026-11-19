@@ -8,7 +8,14 @@ import {
   Image,
   Alert,
   StyleSheet,
+  LayoutAnimation,
 } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Track, smartShuffle } from '@music-app/shared';
 import { tokens } from '../theme/tokens';
@@ -66,8 +73,17 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
     return bytes;
   }, [selectedTrackIds, offlineIndex]);
 
+  const toggleSelectModeSmooth = (enabled: boolean, initialSelected?: Set<string>) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSelectMode(enabled);
+    if (initialSelected !== undefined) {
+      setSelectedTrackIds(initialSelected);
+    }
+  };
+
   const handleToggleSelectTrack = (trackId: string) => {
     triggerSelectionHaptic();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedTrackIds((prev) => {
       const next = new Set(prev);
       if (next.has(trackId)) {
@@ -81,6 +97,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
 
   const handleSelectAll = () => {
     triggerSelectionHaptic();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (selectedTrackIds.size === offlineTracks.length) {
       setSelectedTrackIds(new Set());
     } else {
@@ -90,8 +107,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
 
   const handleCancelSelect = () => {
     triggerSelectionHaptic();
-    setIsSelectMode(false);
-    setSelectedTrackIds(new Set());
+    toggleSelectModeSmooth(false, new Set());
   };
 
   // Xóa đơn lẻ 1 bài
@@ -191,11 +207,19 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           }
         }}
       >
-        {/* Checkbox khi ở Select mode */}
+        {/* Checkbox khi ở Select mode có animation xuất hiện mượt mà */}
         {isSelectMode && (
-          <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
-            {isSelected && <CheckIcon size={11} color="#000000" />}
-          </View>
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(120)}
+            style={[styles.checkbox, isSelected && styles.checkboxActive]}
+          >
+            {isSelected && (
+              <Animated.View entering={FadeIn.duration(140)}>
+                <CheckIcon size={11} color="#000000" />
+              </Animated.View>
+            )}
+          </Animated.View>
         )}
 
         {/* Ảnh bìa bài hát */}
@@ -228,16 +252,18 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           </View>
         )}
 
-        {/* Nút xóa lẻ (khi không ở select mode) */}
+        {/* Nút xóa lẻ (khi không ở select mode) có animation ẩn hiện nhẹ nhàng */}
         {!isSelectMode && (
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => handleDeleteSingle(item)}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            activeOpacity={0.7}
-          >
-            <TrashIcon size={15} color={tokens.colors.textMuted} />
-          </TouchableOpacity>
+          <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => handleDeleteSingle(item)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.7}
+            >
+              <TrashIcon size={15} color={tokens.colors.textMuted} />
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </TouchableOpacity>
     );
@@ -279,7 +305,11 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
         <View style={styles.actionBar}>
           <View style={styles.actionLeftRow}>
             {offlineTracks.length > 0 && !isSelectMode && (
-              <>
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+                style={styles.actionLeftRow}
+              >
                 <TouchableOpacity
                   style={styles.playMiniBtn}
                   onPress={handlePlayAll}
@@ -297,7 +327,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                 >
                   <ShuffleIcon size={16} color={tokens.colors.textPrimary} />
                 </TouchableOpacity>
-              </>
+              </Animated.View>
             )}
           </View>
 
@@ -305,7 +335,11 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
             {offlineTracks.length > 0 && (
               <>
                 {isSelectMode ? (
-                  <>
+                  <Animated.View
+                    entering={FadeIn.duration(200)}
+                    exiting={FadeOut.duration(150)}
+                    style={styles.actionRightRow}
+                  >
                     <TouchableOpacity
                       style={[
                         styles.circleSelectBtn,
@@ -315,7 +349,11 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                       activeOpacity={0.7}
                       accessibilityLabel={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                     >
-                      {isAllSelected && <CheckIcon size={13} color="#000000" />}
+                      {isAllSelected && (
+                        <Animated.View entering={FadeIn.duration(150)}>
+                          <CheckIcon size={13} color="#000000" />
+                        </Animated.View>
+                      )}
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -325,15 +363,18 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                     >
                       <Text style={styles.cancelSelectBtnText}>Xong</Text>
                     </TouchableOpacity>
-                  </>
+                  </Animated.View>
                 ) : (
-                  <>
+                  <Animated.View
+                    entering={FadeIn.duration(200)}
+                    exiting={FadeOut.duration(150)}
+                    style={styles.actionRightRow}
+                  >
                     <TouchableOpacity
                       style={styles.circleSelectBtn}
                       onPress={() => {
                         triggerSelectionHaptic();
-                        setIsSelectMode(true);
-                        setSelectedTrackIds(new Set(offlineTracks.map((t) => t.id)));
+                        toggleSelectModeSmooth(true, new Set(offlineTracks.map((t) => t.id)));
                       }}
                       activeOpacity={0.7}
                       accessibilityLabel="Chọn tất cả bài hát"
@@ -347,7 +388,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                     >
                       <TrashIcon size={15} color={tokens.colors.danger} />
                     </TouchableOpacity>
-                  </>
+                  </Animated.View>
                 )}
               </>
             )}
@@ -414,9 +455,11 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
           }}
         />
 
-        {/* Thanh công cụ cố định đáy khi ở Select Mode */}
+        {/* Thanh công cụ cố định đáy khi ở Select Mode với animation trượt êm ái */}
         {isSelectMode && selectedTrackIds.size > 0 && (
-          <View
+          <Animated.View
+            entering={SlideInDown.duration(260)}
+            exiting={SlideOutDown.duration(200)}
             style={[
               styles.bottomDeleteBar,
               { paddingBottom: Math.max(insets.bottom, tokens.spacing.md) },
@@ -432,7 +475,7 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                 Xóa {selectedTrackIds.size} bài ({formatBytes(selectedTotalBytes)})
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
         {/* Modal Màn hình đang phát (NowPlayingView) hiển thị xếp lớp mà không đóng offline downloads bên dưới */}
         <Modal

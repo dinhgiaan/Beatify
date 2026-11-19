@@ -787,5 +787,51 @@ describe('homeSections logic & builders', () => {
                     }
                   }
                 });
+
+                it('buildContinueAlbums: bỏ qua album gom bài lẻ (Singles / Single)', () => {
+                  const singlesAlbum: Album = {
+                    id: 'singles-1',
+                    title: 'Singles',
+                    artist: 'B Ray',
+                    trackIds: ['t1', 't2', 't3', 't4'],
+                  };
+                  const studioAlbum: Album = {
+                    id: 'cho-bao',
+                    title: 'Cho Bảo',
+                    artist: 'B Ray',
+                    trackIds: ['t5', 't6', 't7', 't8'],
+                  };
+
+                  const tracks: Track[] = [
+                    createMockTrack('t1', 'Song 1', 'B Ray', { album: 'Singles' }),
+                    createMockTrack('t2', 'Song 2', 'B Ray', { album: 'Singles' }),
+                    createMockTrack('t3', 'Song 3', 'B Ray', { album: 'Singles' }),
+                    createMockTrack('t4', 'Song 4', 'B Ray', { album: 'Singles' }),
+                    createMockTrack('t5', 'Feel At Home', 'B Ray', { album: 'Cho Bảo' }),
+                    createMockTrack('t6', 'The One', 'B Ray', { album: 'Cho Bảo' }),
+                    createMockTrack('t7', 'Vùng An Toàn', 'B Ray', { album: 'Cho Bảo' }),
+                    createMockTrack('t8', 'Ghệ Mới', 'B Ray', { album: 'Cho Bảo' }),
+                  ];
+
+                  const records: ListeningRecord[] = [
+                    // Nghe 1 bài trong Singles (đủ điều kiện nghe dở nếu không loại trừ)
+                    { trackId: 't1', title: 'Song 1', artist: 'B Ray', durationSec: 180, listenedSec: 180, timestamp: FIXED_NOW - 1000 },
+                    // Nghe 1 bài trong Cho Bảo
+                    { trackId: 't5', title: 'Feel At Home', artist: 'B Ray', durationSec: 180, listenedSec: 180, timestamp: FIXED_NOW - 500 },
+                  ];
+
+                  const ctx: HomeContext = {
+                    tracks,
+                    albums: [singlesAlbum, studioAlbum],
+                    records,
+                    favoriteIds: [],
+                    recentTrackIds: [],
+                    now: FIXED_NOW,
+                  };
+
+                  // MIN_ALBUM_ITEMS = 3 nên nếu chỉ có 1 album studio thì chưa đủ số lượng tối thiểu, trả về null
+                  const section = buildContinueAlbums(ctx, new Set());
+                  expect(section).toBeNull();
+                });
               });
             });

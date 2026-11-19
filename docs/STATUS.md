@@ -72,6 +72,23 @@
     - Đồng bộ tham số `deleteLocal` và `deleteFromR2` qua API `DELETE /local-api/tracks/:id/trash` và `POST /local-api/trash/empty`.
   - **Vận hành Server an toàn:** Server Indexer đã được khởi động lại ở chế độ daemon nền (không watch) trên cổng 4000 (`http://127.0.0.1:4000`), kiểm tra endpoint `/local-api/trash` hoạt động ổn định.
   - **Kiểm thử & Typecheck:** Toàn bộ 425 tests (132 shared, 25 api, 124 mobile bao gồm uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **12. Nâng cấp Animation Mượt mà "Đã tải về máy", Tinh chỉnh Album đang nghe dở & Bổ sung Album "Cho Bảo" (B Ray):**
+  - **Mượt mà hóa Modal Đã tải về máy (`OfflineDownloadsModal.tsx`):**
+    - Tích hợp `LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)` khi bật/tắt chế độ chọn nhiều (`isSelectMode`), chọn tất cả và nhấn nút "Xong", loại bỏ hoàn toàn hiện tượng giật cục layout.
+    - Checkbox từng hàng bài hát: xuất hiện và ẩn êm dịu bằng Reanimated `FadeIn.duration(180)` / `FadeOut.duration(120)`.
+    - Thanh tác vụ xóa ở đáy màn hình (`bottomDeleteBar`): trượt lên/xuống mượt mà bằng `SlideInDown.duration(260)` / `SlideOutDown.duration(200)`.
+    - Action Bar (Play/Shuffle, Circle Select, nút "Xong"): chuyển trạng thái mềm mại với `FadeIn` / `FadeOut`.
+  - **Khắc phục "Album đang nghe dở" trên Trang chủ (`homeSections.ts`):**
+    - Bổ sung hàm lọc `isGenericSinglesAlbum()` trong [packages/shared/src/homeSections.ts](file:///d:/apps%20on%20phone/Beatify/packages/shared/src/homeSections.ts) nhằm loại trừ triệt để các danh mục gom bài lẻ (`Singles`, `Single`, `Unknown Album`).
+    - Section "Album đang nghe dở" chỉ kích hoạt khi người dùng thực sự đang nghe dở album phòng thu / EP đích thực.
+  - **Nhóm Album "Cho Bảo" của B Ray & Tải Bài Mới:**
+    - Gom nhóm chính xác 4 bài hát của B Ray vào chung album `"Cho Bảo"` (Album ID: `cb1c20a9e1db`):
+      1. `Feel At Home` (`338ac8bd15ad`)
+      2. `The One (ft. Đạt G)` (`45ade149c1ba`)
+      3. `Vùng An Toàn (ft. V#)` (`ccc43e44660c`)
+      4. `Ghệ Mới (ft. Young H)` (`3062503bbdad`) - Tải mới thành công từ YouTube kèm ảnh bìa HD và lời bài hát LRC đồng bộ.
+    - Đã đồng bộ toàn bộ file âm thanh, ảnh bìa, lời bài hát và `library.json` mới lên Cloudflare R2 bucket.
+  - **Kiểm thử & Typecheck:** Toàn bộ 426 tests (133 shared, 25 api, 124 mobile bao gồm uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

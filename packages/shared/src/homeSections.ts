@@ -780,8 +780,25 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
                 };
 
                 /**
+                 * Kiểm tra tên album có phải là danh mục gom bài lẻ (Singles/Single/bài lẻ) hay không.
+                 * Các album dạng này không đại diện cho album phòng thu/EP thực sự nên không đưa vào 'Album đang nghe dở'.
+                 */
+                export function isGenericSinglesAlbum(albumTitle?: string): boolean {
+                  if (!albumTitle) return true;
+                  const normalized = albumTitle.trim().toLowerCase();
+                  return (
+                    normalized === 'singles' ||
+                    normalized === 'single' ||
+                    normalized === 'unknown album' ||
+                    normalized === 'untitled album' ||
+                    normalized === 'bài lẻ' ||
+                    normalized === 'đĩa đơn'
+                  );
+                }
+
+                /**
                  * 8. Album đang nghe dở (Continue Albums - kind 'albums')
-                 * - Chỉ xét album có >= 3 bài.
+                 * - Chỉ xét album phòng thu / EP thực thụ có >= 3 bài (loại trừ nhóm gom bài lẻ 'Singles').
                  * - Chỉ tính lượt nghe không-skip trong 90 ngày gần nhất.
                  * - Điều kiện: đã nghe >= 1 bài và chưa nghe hết.
                  * - Sắp theo lần nghe gần nhất giảm dần (không shuffle).
@@ -797,6 +814,9 @@ function getRecordIndex(ctx: HomeContext): RecordIndex {
 
                   for (const album of ctx.albums) {
                     if (!album.trackIds || album.trackIds.length < 3) continue;
+
+                    // Loại trừ các album gom bài lẻ như 'Singles' / 'Single'
+                    if (isGenericSinglesAlbum(album.title)) continue;
 
                     let listenedCount = 0;
                     let maxAlbumPlayedTimestamp = 0;
