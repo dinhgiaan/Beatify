@@ -35,6 +35,7 @@ interface SyncProgress {
 export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isConnectionLost, setIsConnectionLost] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{
     active: boolean;
     step: string;
@@ -55,41 +56,64 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
   const [isScanningOrphans, setIsScanningOrphans] = useState(false);
   const [isConfirmPruneOpen, setIsConfirmPruneOpen] = useState(false);
 
-  // Poll progress while syncing
+  // Tự động kiểm tra và cập nhật tiến trình đồng bộ khi mở modal hoặc đang đồng bộ
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    if (isSyncing) {
-      timer = setInterval(async () => {
-        try {
-          const res = await requestApi<{ progress: SyncProgress }>('/local-api/sync/progress');
-          if (res?.progress) {
-            setSyncProgress(res.progress);
-            if (!res.progress.active && res.progress.percent >= 100) {
-              setIsSyncing(false);
+
+    const fetchProgress = async () => {
+      try {
+        const res = await requestApi<{ progress: SyncProgress }>('/local-api/sync/progress');
+        if (res?.progress) {
+          setIsConnectionLost(false);
+          setSyncProgress(res.progress);
+          if (res.progress.active) {
+            setIsSyncing(true);
+          } else if (isSyncing) {
+            setIsSyncing(false);
+            if (res.progress.percent >= 100) {
               toast.success('Đồng bộ Cloudflare R2 hoàn tất!');
               queryClient.invalidateQueries({ queryKey: ['system-status'] });
             } else if (res.progress.error) {
-              setIsSyncing(false);
               toast.error(`Lỗi đồng bộ: ${res.progress.error}`);
             }
           }
-        } catch {
-          // ignore polling errors
         }
-      }, 1000);
+      } catch {
+        // Nếu đang đồng bộ mà mất kết nối tới server: không ngắt trạng thái đồng bộ, báo đang chờ
+        if (isSyncing) {
+          setIsConnectionLost(true);
+        }
+      }
+    };
+
+    if (isOpen) {
+      // Kiểm tra ngay trạng thái thật khi mở modal
+      fetchProgress();
+
+      // Liên tục cập nhật mỗi giây khi modal mở
+      timer = setInterval(fetchProgress, 1000);
     }
-    return () => clearInterval(timer);
-  }, [isSyncing, queryClient]);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isOpen, isSyncing, queryClient]);
 
   const startSyncMutation = useMutation({
     mutationFn: async () => {
       setIsSyncing(true);
+      setIsConnectionLost(false);
       return requestApi('/local-api/sync', { method: 'POST' });
     },
     onError: (err: unknown) => {
-      setIsSyncing(false);
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Không thể bắt đầu đồng bộ: ${msg}`);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')) {
+        setIsConnectionLost(true);
+        toast.warning('Mất kết nối tới server, đang chờ phản hồi...');
+      } else {
+        setIsSyncing(false);
+        toast.error(`Không thể bắt đầu đồng bộ: ${msg}`);
+      }
     },
   });
 
@@ -179,8 +203,13 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
                 />
               </div>
 
-              <div className="text-xs text-zinc-400  truncate">
-                {syncProgress.step}
+              <div className="text-xs text-zinc-400 truncate flex items-center justify-between">
+                <span>{syncProgress.step}</span>
+                {isConnectionLost && (
+                  <span className="text-amber-400 font-medium animate-pulse ml-2">
+                    ⚠️ Mất kết nối tới server, đang chờ...
+                  </span>
+                )}
               </div>
             </div>
 
@@ -198,11 +227,21 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
                 variant="primary"
                 size="md"
                 onClick={() => startSyncMutation.mutate()}
-                disabled={isSyncing}
+                disabled={isSyncing || syncProgress.active || isConnectionLost}
                 className="gap-2 px-4 font-semibold"
               >
-                {isSyncing ? <RefreshCw size={14} className="animate-spin" /> : <Cloud size={14} />}
-                <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}</span>
+                {isSyncing || syncProgress.active ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Cloud size={14} />
+                )}
+                <span>
+                  {isConnectionLost
+                    ? 'Đang chờ server...'
+                    : isSyncing || syncProgress.active
+                    ? 'Đang đồng bộ...'
+                    : 'Đồng bộ ngay'}
+                </span>
               </Button>
             </div>
 

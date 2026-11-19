@@ -69,7 +69,36 @@ Nếu công cụ của bạn không tự nạp skill, hãy mở file `.agents/sk
 - Thay đổi chỉ trong JS/TS thì **không cần** build lại.
 - **Không đổi phiên bản Xcode, nhãn runner, Expo SDK, React Native** khi chưa hỏi. Dự án ghim Xcode 26.x và Expo SDK 57 ổn định vì iOS 27 (xem `docs/PLAN.md` mục 12.7).
 
+## Ràng buộc về vận hành Server & Dọn dẹp R2
+- **Server Indexer & Dashboard:** Luôn chạy ở chế độ **KHÔNG watch** (`pnpm --filter @music-app/indexer exec tsx src/server/index.ts`). Tuyệt đối không tự ý sửa đổi mã nguồn server khi tiến trình server đang chạy nền hoặc đang thực hiện đồng bộ. Nếu cần can thiệp mã server, phải xin phép người dùng trước.
+- **Quy tắc an toàn khi Prune R2 (Covers / Audio / Lyrics):** Tuyệt đối KHÔNG xóa object trực tiếp trên R2 nếu chưa qua 3 bước kiểm soát bắt buộc:
+  1. Kiểm tra đối chiếu tự động bằng script: xác nhận 100% key định xóa không còn được tham chiếu bởi bất kỳ track active nào trong `library.json`, không có trong `overrides.json` (trường cover), và không có trong `custom_covers`.
+  2. Tải bản sao lưu toàn bộ các object dự kiến prune về thư mục backup cục bộ (`tools/indexer/backups/...`).
+  3. Chỉ thực hiện lệnh xóa đúng danh sách key đã được người dùng phê duyệt rõ ràng và ghi log chi tiết từng key. Các đối tượng đặc biệt như `lyrics-manual/*`, `lyrics/62a7ccbe277b.lrc` (bản dự phòng), các bản `library.backup*.json` phải luôn được bảo vệ, không xóa.
+
+## Bảng chuẩn hóa tên Nghệ sĩ (Artist Alias Table)
+Mọi luồng trích xuất và chuẩn hóa siêu dữ liệu phải tuân thủ bảng ánh xạ danh xưng nghệ sĩ sau:
+| Biến thể / Tên gốc | Tên chuẩn hóa (Canonical) |
+|---|---|
+| `B RAY`, `bray`, `b-ray` | `B Ray` |
+| `SƠN TÙNG M-TP`, `son tung`, `m-tp` | `Sơn Tùng M-TP` |
+| `ĐạtG`, `datg` | `Đạt G` |
+| `RUM` | `Rum` |
+| `Mr.T`, `mrt` | `Mr T` |
+| `Young-H`, `youngh` | `Young H` |
+| `WOWY` | `Wowy` |
+| `JOMBIE`, `jombieg5r` | `Jombie` |
+| `JUSTATEE`, `justa tee` | `JustaTee` |
+| `CENTRAL CEE` | `Central Cee` |
+| `NLE CHOPPA` | `NLE Choppa` |
+| `JACK` | `Jack` |
+| `W-n`, `w/n` | `W/n` |
+| `RYCO` | `RYCO` |
+| `MEGASHOCK` | `MEGASHOCK` |
+| `TOMMY TÈO`, `tommy teo` | `TOMMY TÈO` |
+
 ## Vùng cấm (không làm nếu chưa được người dùng xác nhận rõ ràng)
+- **Tag trong file nhạc KHÔNG được sửa**: Tên hiển thị chuẩn (Title, Artist, Album...) được quản lý hoàn toàn bằng `tools/indexer/overrides.json`. Tuyệt đối không ghi tag trực tiếp vào file âm thanh để bảo toàn nguyên vẹn mã hash `track.id` (SHA-1 12 ký tự của byte file).
 - Không ghi, sửa, xoá, di chuyển file trong `MUSIC_SOURCE_DIR` (chỉ đọc). Việc dọn tag bằng `beets` do người dùng tự chạy. **Ngoại lệ duy nhất:** tính năng Nhập nhạc của dashboard (Phase 4) chỉ được **thêm file mới** vào `MUSIC_IMPORT_DIR`, không ghi đè, không xoá, không sửa file có sẵn, và chỉ sau khi người dùng bấm xác nhận. Khi kiểm thử luôn dùng `fixtures/`, không dùng thư mục nhạc thật.
 - Không xoá object trên R2 (`music/`, `covers/`, `lyrics/`, `_meta/`) khi chưa hiển thị danh sách cụ thể và được người dùng đồng ý.
 - Không `git push --force`, không viết lại lịch sử, không xoá nhánh chính.

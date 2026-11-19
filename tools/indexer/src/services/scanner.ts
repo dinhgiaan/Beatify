@@ -44,6 +44,10 @@ export async function findAudioFiles(dirPath: string): Promise<string[]> {
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
+        // Bỏ qua thư mục ẩn hoặc thư mục đặc biệt như _duplicates, _trash, .git
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) {
+          continue;
+        }
         await walk(fullPath);
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase();

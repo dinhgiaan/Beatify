@@ -133,6 +133,27 @@ async function fetchUrlBuffer(url: string, timeoutMs = 10000): Promise<Buffer | 
   }
 }
 
+export interface DestinationCollisionOptions {
+  channelName?: string;
+  videoId?: string;
+}
+
+export function findMatchingDirName(parentDir: string, targetName: string): string | null {
+  if (!fs.existsSync(parentDir)) return null;
+  try {
+    const entries = fs.readdirSync(parentDir, { withFileTypes: true });
+    const targetNorm = normalizeText(targetName).toLowerCase();
+    for (const entry of entries) {
+      if (entry.isDirectory() && normalizeText(entry.name).toLowerCase() === targetNorm) {
+        return entry.name;
+      }
+    }
+  } catch {
+    // bỏ qua
+  }
+  return null;
+}
+
 /**
  * Phân giải cấu trúc thư mục lưu trữ Thư viện Âm nhạc:
  * <Target Root> / <Tên Nghệ Sĩ> / <Tên Bài Nhạc hoặc Tên Album>
@@ -141,7 +162,8 @@ export function resolveDestinationPaths(
   baseTargetDir: string,
   artist: string,
   album: string,
-  title: string
+  title: string,
+  collisionOptions?: DestinationCollisionOptions
 ): { artistDir: string; finalTrackDir: string; isSingle: boolean } {
   const normBase = path.resolve(baseTargetDir);
   const safeArtist = PathSanitizer.sanitizeSegment(artist || 'Unknown Artist');
@@ -179,19 +201,46 @@ export function resolveDestinationPaths(
   // Trường hợp 4: baseTargetDir là thư mục của chính nghệ sĩ (ví dụ: .../morray)
   else if (baseName.toLowerCase() === safeArtist.toLowerCase()) {
     artistDir = normBase;
+    const existingSinglesDir = findMatchingDirName(artistDir, 'Singles');
+    const resolvedSinglesName = existingSinglesDir || 'Singles';
     if (isSingle) {
-      finalTrackDir = path.join(artistDir, 'Singles', safeTitle);
+      finalTrackDir = path.join(artistDir, resolvedSinglesName, safeTitle);
     } else {
       finalTrackDir = path.join(artistDir, safeAlbum);
     }
   }
   // Trường hợp 5: baseTargetDir là thư mục gốc chung (ví dụ: D:\music_source\_imported hoặc D:\Music\(Rap))
   else {
-    artistDir = path.join(normBase, safeArtist);
+    const existingArtistDir = findMatchingDirName(normBase, safeArtist);
+    const resolvedArtistName = existingArtistDir || safeArtist;
+    artistDir = path.join(normBase, resolvedArtistName);
+
+    const existingSinglesDir = findMatchingDirName(artistDir, 'Singles');
+    const resolvedSinglesName = existingSinglesDir || 'Singles';
+
     if (isSingle) {
-      finalTrackDir = path.join(artistDir, 'Singles', safeTitle);
+      finalTrackDir = path.join(artistDir, resolvedSinglesName, safeTitle);
     } else {
       finalTrackDir = path.join(artistDir, safeAlbum);
+    }
+  }
+
+  // Xử lý chống ghi đè khi thư mục bài hát đã tồn tại và có file nhạc bên trong
+  if (collisionOptions && fs.existsSync(finalTrackDir)) {
+    try {
+      const files = fs.readdirSync(finalTrackDir);
+      const hasAudio = files.some((f) => /\.(mp3|m4a|flac|opus)$/i.test(f));
+      if (hasAudio) {
+        const rawSuffix = collisionOptions.channelName || collisionOptions.videoId;
+        if (rawSuffix) {
+          const suffix = PathSanitizer.sanitizeSegment(rawSuffix);
+          const parentDir = path.dirname(finalTrackDir);
+          const currentBase = path.basename(finalTrackDir);
+          finalTrackDir = path.join(parentDir, `${currentBase} (${suffix})`);
+        }
+      }
+    } catch {
+      // bỏ qua lỗi kiểm tra collision
     }
   }
 
@@ -668,12 +717,16 @@ export const YoutubeService = {
         ? taggedAudioPath
         : rawAudioPath;
 
+      const extractedVid = YoutubeService.extractVideoId(url) || undefined;
       // Phân giải cấu trúc thư mục chuẩn Thư viện Âm nhạc (Option 2): Nghệ sĩ / Album (hoặc Singles)
       const { artistDir, finalTrackDir } = resolveDestinationPaths(
         targetDir,
         finalArtist,
         finalAlbum,
-        finalTitle
+        finalTitle,
+        {
+          videoId: extractedVid,
+        }
       );
 
       // 4. Di chuyển file vào thư mục đích

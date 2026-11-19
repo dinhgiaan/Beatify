@@ -11,7 +11,7 @@
     },
     "e3fecae89474": {
       "title": "Sao Em Vô Tình",
-      "artist": "JACK",
+      "artist": "Jack",
       "album": "Singles",
       "loudnessLufs": -17.27,
       "replayGain": -0.73,
@@ -35,7 +35,7 @@
     },
     "070efa36e613": {
       "title": "Đừng Làm Trái Tim Anh Đau",
-      "artist": "SƠN TÙNG M-TP",
+      "artist": "Sơn Tùng M-TP",
       "album": "Singles",
       "loudnessLufs": -9.31,
       "replayGain": -8.69,
@@ -139,7 +139,7 @@
     },
     "77e21c33e0ff": {
       "title": "Kém Duyên",
-      "artist": "RUM",
+      "artist": "Rum",
       "album": "Singles",
       "loudnessLufs": -8.69,
       "replayGain": -9.31,
@@ -162,7 +162,7 @@
       "cover": "covers/30674e1a783d.jpg"
     },
     "69991caf41d1": {
-      "title": "Liệu Giờ (What If ?)",
+      "title": "Liệu Giờ (What If?)",
       "artist": "2T",
       "album": "Singles",
       "loudnessLufs": -9.6,
@@ -178,7 +178,7 @@
       "cover": "covers/7ca8a9e3392f.jpg"
     },
     "e1d90fcc91e9": {
-      "title": "Em Chưa Từng Biết",
+      "title": "Em Không Hiểu (ft. Minh Huy)",
       "artist": "Changg",
       "album": "Singles",
       "loudnessLufs": -8.97,
@@ -213,8 +213,8 @@
       "cover": "covers/a45b341d5ce0.jpg"
     },
     "b1d223b66897": {
-      "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
-      "artist": "DT Tập Rap",
+      "title": "Muốn Nói Với Em (ft. DT Tập Rap)",
+      "artist": "TTeam",
       "album": "Singles",
       "loudnessLufs": -10.87,
       "replayGain": -7.13,
@@ -222,8 +222,8 @@
     },
     "ae80cceecf09": {
       "title": "Cao Ốc 20",
-      "artist": "B RAY",
-      "album": "MV OFFICIAL",
+      "artist": "B Ray",
+      "album": "Singles",
       "loudnessLufs": -13.18,
       "replayGain": -4.82,
       "cover": "covers/ae80cceecf09.jpg"
@@ -245,7 +245,7 @@
       "cover": "covers/0a66475893b4.jpg"
     },
     "904aedb8db44": {
-      "title": "Chờ Ngày Cưới Em (feat. Hương Ly)",
+      "title": "Chờ Ngày Cưới Em",
       "artist": "Phát Hồ",
       "album": "Singles",
       "loudnessLufs": -10.35,
@@ -261,7 +261,7 @@
       "cover": "covers/91d95f1fd098.jpg"
     },
     "b683b239193c": {
-      "title": "Già Cùng Nhau Là Được (feat. PC)",
+      "title": "Già Cùng Nhau Là Được (ft. PC)",
       "artist": "Tea",
       "album": "Singles",
       "loudnessLufs": -9.94,
@@ -277,8 +277,8 @@
       "cover": "covers/7056d9ee506a.jpg"
     },
     "6f79d746ed44": {
-      "title": "Thu Cuối",
-      "artist": "Mr.T",
+      "title": "Thu Cuối (MR.T Official)",
+      "artist": "Mr T",
       "album": "Singles",
       "loudnessLufs": -8.89,
       "replayGain": -9.11,
@@ -317,7 +317,7 @@
       "cover": "covers/9e06deb93708.jpg"
     },
     "9718d8bedfae": {
-      "title": "Tháng Năm Không Quên (feat. KN)",
+      "title": "Tháng Năm Không Quên",
       "artist": "H2K",
       "album": "Singles",
       "loudnessLufs": -8.43,
@@ -333,7 +333,7 @@
       "cover": "covers/d12a586a39bf.jpg"
     },
     "5e888d01099b": {
-      "title": "Cô Nàng Khác Người (feat. Nger & Wxrdie)",
+      "title": "Cô Nàng Khác Người (ft. MCK)",
       "artist": "Pixel Neko",
       "album": "Singles",
       "loudnessLufs": -12.3,
@@ -342,7 +342,7 @@
     },
     "4314eb0187a9": {
       "title": "Sầu Hồng Gai",
-      "artist": "JOMBIE",
+      "artist": "Jombie",
       "album": "Singles",
       "loudnessLufs": -10.72,
       "replayGain": -7.28,
@@ -693,9 +693,9 @@
       "cover": "covers/f817a5602e07.jpg"
     },
     "ccc43e44660c": {
-      "title": "Vùng An Toàn (feat. V#)",
+      "title": "Vùng An Toàn (ft. V#)",
       "artist": "B Ray",
-      "album": "CHO BẢO",
+      "album": "Singles",
       "loudnessLufs": -9.74,
       "replayGain": -8.26,
       "cover": "covers/ccc43e44660c.jpg"
@@ -711,7 +711,7 @@
     "338ac8bd15ad": {
       "title": "Feel At Home",
       "artist": "B Ray",
-      "album": "CHO BẢO",
+      "album": "Singles",
       "loudnessLufs": -12.42,
       "replayGain": -5.58,
       "cover": "covers/338ac8bd15ad.jpg"
@@ -794,7 +794,7 @@
     "d35ae5681079": {
       "title": "Felina",
       "artist": "B Ray",
-      "album": "UNhiddenGem Mixtape",
+      "album": "Singles",
       "loudnessLufs": -10.32,
       "replayGain": -7.68,
       "cover": "covers/d35ae5681079.jpg"
@@ -848,9 +848,9 @@
       "cover": "covers/e016084e031c.jpg"
     },
     "45ade149c1ba": {
-      "title": "The One (feat. Đạt G)",
+      "title": "The One (ft. Đạt G)",
       "artist": "B Ray",
-      "album": "CHO BẢO",
+      "album": "Singles",
       "loudnessLufs": -9.56,
       "replayGain": -8.44,
       "cover": "covers/45ade149c1ba.jpg"
@@ -920,8 +920,8 @@
       "cover": "covers/7773e67bc078.jpg"
     },
     "675a19cf9e44": {
-      "title": "Nghe như tình yêu",
-      "artist": "MCK remixx prod. By Kewtiie",
+      "title": "Nghe Như Tình Yêu (Remix)",
+      "artist": "MCK",
       "album": "Singles",
       "loudnessLufs": -9.2,
       "replayGain": -8.8,
@@ -937,7 +937,7 @@
     },
     "9f20218e61f6": {
       "title": "crying over you",
-      "artist": "JUSTATEE",
+      "artist": "JustaTee",
       "album": "Singles",
       "loudnessLufs": -9.43,
       "replayGain": -8.57,
@@ -1000,7 +1000,7 @@
       "cover": "covers/fc588ce7ccad.jpg"
     },
     "457234a364d0": {
-      "title": "Cưới Đi (feat. Changg)",
+      "title": "Cưới Đi",
       "artist": "2T",
       "album": "Singles",
       "loudnessLufs": -15.08,
@@ -1056,9 +1056,9 @@
       "cover": "covers/f7beccbb3bad.jpg"
     },
     "c1a57c38ab9c": {
-      "title": "Ác Mộng Đẹp",
+      "title": "Đẹp (Ác Mộng Đẹp)",
       "artist": "Đạt G",
-      "album": "Ác Mộng Đẹp",
+      "album": "Singles",
       "loudnessLufs": -9.97,
       "replayGain": -8.03,
       "cover": "covers/c1a57c38ab9c.jpg"
@@ -1155,7 +1155,7 @@
       "cover": "covers/3ef64dfe6094.jpg"
     },
     "fc3d4df74119": {
-      "title": "B.S.N.L 2 (feat. Young-H)",
+      "title": "B.S.N.L 2",
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -9.07,
@@ -1187,15 +1187,15 @@
       "cover": "covers/b702a154e09e.jpg"
     },
     "59b14252514a": {
-      "title": "Bát Quái",
-      "artist": "G-Family",
-      "album": "2G17",
+      "title": "Bát Quái (2G17)",
+      "artist": "G-FAMILY",
+      "album": "Singles",
       "loudnessLufs": -12.09,
       "replayGain": -5.91,
       "cover": "covers/59b14252514a.jpg"
     },
     "a4b0be8e52ee": {
-      "title": "VIỆT NÊN LÀM (feat. MEGASHOCK)",
+      "title": "Việt Nên Làm (ft. MEGASHOCK)",
       "artist": "RYCO",
       "album": "Singles",
       "loudnessLufs": -8.73,
@@ -1220,7 +1220,7 @@
     },
     "cd620905007c": {
       "title": "Quay Đầu Là Hiphop",
-      "artist": "Lăng LD",
+      "artist": "LĂNG LD",
       "album": "Singles",
       "loudnessLufs": -10.07,
       "replayGain": -7.93,
@@ -1291,7 +1291,7 @@
       "cover": "covers/db4953ad2257.jpg"
     },
     "b686d4957ccb": {
-      "title": "LÀM LIỀU (feat. Kriss Ngo)",
+      "title": "Làm Liều (ft. Kriss Ngo)",
       "artist": "5ber1",
       "album": "Singles",
       "loudnessLufs": -9.3,
@@ -1299,16 +1299,16 @@
       "cover": "covers/b686d4957ccb.jpg"
     },
     "29cf0619dea9": {
-      "title": "Young Milo",
-      "artist": "Buông Hàng",
+      "title": "Buông Hàng",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -11.17,
       "replayGain": -6.83,
       "cover": "covers/29cf0619dea9.jpg"
     },
     "a0c4d8722a3e": {
-      "title": "Bạn Của Tao (feat. Binz, SO & Pjpo)",
-      "artist": "Young-H",
+      "title": "Bạn Của Tao",
+      "artist": "Young H",
       "album": "Singles",
       "loudnessLufs": -12,
       "replayGain": -6,
@@ -1332,15 +1332,15 @@
     },
     "6959fbe45113": {
       "title": "Nhắc tới freestyle không ai không biết tới Quang Tèo",
-      "artist": "Tommy Tèo",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -16.17,
       "replayGain": -1.83,
       "cover": "covers/6959fbe45113.jpg"
     },
     "a4ce91f871da": {
-      "title": "(No Copyright)Alaba Trap",
-      "artist": "Quang Tèo",
+      "title": "Alaba Trap",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -14.23,
       "replayGain": -3.77,
@@ -1355,8 +1355,8 @@
       "cover": "covers/ea2f356c53c4.jpg"
     },
     "77f1e6c8acb9": {
-      "title": "Enemy (feat. Hazel)",
-      "artist": "Tommy Tèo",
+      "title": "Enemy",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -10.78,
       "replayGain": -7.22,
@@ -1371,7 +1371,7 @@
       "cover": "covers/bca1e4f97c6c.jpg"
     },
     "91b0da20a794": {
-      "title": "Little Homie",
+      "title": "Little Homie (Reply Kidchoi)",
       "artist": "B Ray",
       "album": "Singles",
       "loudnessLufs": -13.51,
@@ -1419,8 +1419,8 @@
       "cover": "covers/465ee6fc13fc.jpg"
     },
     "fcaaffec9b8e": {
-      "title": "Quan tài hư Remix - Young Milo - XmaXa",
-      "artist": "XmaXa Music",
+      "title": "Quan Tài Hư (XmaXa Remix)",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -6.82,
       "replayGain": -11.18,
@@ -1444,7 +1444,7 @@
     },
     "7f6bceee98ac": {
       "title": "Band4band",
-      "artist": "CENTRAL CEE",
+      "artist": "Central Cee",
       "album": "Singles",
       "loudnessLufs": -9.49,
       "replayGain": -8.51,
@@ -1475,7 +1475,7 @@
       "cover": "covers/cbe2e7665d0c.jpg"
     },
     "63cf20ea4eda": {
-      "title": "Em Tao Hip Hop (feat. Lục Lăng & Endless)",
+      "title": "Em Tao Hip Hop",
       "artist": "Jombie",
       "album": "Singles",
       "loudnessLufs": -8.98,
@@ -1483,8 +1483,8 @@
       "cover": "covers/63cf20ea4eda.jpg"
     },
     "4ac969d8b56e": {
-      "title": "Chơi (rmx) (feat. MANBO)",
-      "artist": "Hieuthuhai",
+      "title": "Chơi (ft. MANBO) (Remix)",
+      "artist": "HIEUTHUHAI",
       "album": "Singles",
       "loudnessLufs": -11.33,
       "replayGain": -6.67,
@@ -1543,7 +1543,7 @@
     },
     "a427308f206c": {
       "title": "Shotta Flow (Remix) (feat. Blueface)",
-      "artist": "NLE CHOPPA",
+      "artist": "NLE Choppa",
       "album": "Singles",
       "loudnessLufs": -8.09,
       "replayGain": -9.91,
@@ -1553,7 +1553,7 @@
       "reviewed": true
     },
     "83fc58fefa09": {
-      "title": "Điều Tao Nói (feat. Night & Krizzle)",
+      "title": "Điều Tao Nói",
       "artist": "Pikey",
       "album": "Singles",
       "loudnessLufs": -14.63,
@@ -1561,8 +1561,8 @@
       "cover": "covers/83fc58fefa09.jpg"
     },
     "0f227522b46a": {
-      "title": "YoungMilo",
-      "artist": "Da Vàng",
+      "title": "Da Vàng",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "loudnessLufs": -11.71,
       "replayGain": -6.29,
@@ -1577,8 +1577,8 @@
       "cover": "covers/b41aaf633e4b.jpg"
     },
     "cc8758618716": {
-      "title": "GMC",
-      "artist": "CYPHER 2G2G",
+      "title": "Cypher 2G2G",
+      "artist": "G-FAMILY",
       "album": "Singles",
       "loudnessLufs": -12.48,
       "replayGain": -5.52,
@@ -1873,7 +1873,7 @@
       "cover": "covers/16ab2bb6b433.jpg"
     },
     "caec933d1a93": {
-      "title": "YN1 pt.2 (feat. yugaki)",
+      "title": "YN1 pt.2 (ft. yugaki)",
       "artist": "Yxngtabi",
       "album": "Singles",
       "loudnessLufs": -9.6,
@@ -1883,7 +1883,7 @@
     "c7083ea9e4be": {
       "title": "Đúng Như Lời Họ Nói",
       "artist": "B Ray",
-      "album": "UNhiddenGem Mixtape",
+      "album": "Singles",
       "loudnessLufs": -14.05,
       "replayGain": -3.95,
       "cover": "covers/c7083ea9e4be.jpg"
@@ -1923,8 +1923,8 @@
       "cover": "covers/7b3cd68155a9.jpg"
     },
     "69cee77ed867": {
-      "title": "Acy aka TT ( Trường Ca 5B)",
-      "artist": "BỐC THUỐC",
+      "title": "Bốc Thuốc",
+      "artist": "Acy",
       "album": "Singles",
       "loudnessLufs": -14.56,
       "replayGain": -3.44,
@@ -1955,7 +1955,7 @@
       "cover": "covers/ce0becb90c98.jpg"
     },
     "62e884555d9b": {
-      "title": "Going Bad (feat. Drake)",
+      "title": "Going Bad (ft. Drake)",
       "artist": "Meek Mill",
       "album": "Singles",
       "loudnessLufs": -9.48,
@@ -1979,7 +1979,7 @@
       "cover": "covers/e605420f311c.jpg"
     },
     "571d4927e632": {
-      "title": "Go Stupid (feat. Stunna 4 Vegas & NLE Choppa)",
+      "title": "Go Stupid",
       "artist": "Polo G",
       "album": "Singles",
       "loudnessLufs": -8.17,
@@ -2046,8 +2046,8 @@
       "cover": "covers/bf0ff74236d9.jpg"
     },
     "885ca63e5325": {
-      "title": "Phía Bờ Tây// YoungMilo aka Tommy Tèo",
-      "artist": "LợiCathay",
+      "title": "Phía Bờ Tây",
+      "artist": "TOMMY TÈO",
       "album": "Singles",
       "year": 2021,
       "loudnessLufs": -13.52,
@@ -2124,7 +2124,8 @@
       "cover": "covers/d6472b8a2ab8.jpg"
     },
     "144a54348923": {
-      "cover": "covers/144a54348923.jpg"
+      "cover": "covers/144a54348923.jpg",
+      "artist": "B Ray"
     },
     "33fafdbdc812": {
       "cover": "covers/33fafdbdc812.jpg"
@@ -2187,7 +2188,10 @@
       "cover": "covers/e96db687aa84.jpg"
     },
     "4e09d10b0b07": {
-      "cover": "covers/4e09d10b0b07.jpg"
+      "cover": "covers/4e09d10b0b07.jpg",
+      "title": "Tết Đong Đầy",
+      "artist": "KHOA",
+      "album": "Singles"
     },
     "728ef17ee463": {
       "title": "Old Town Road",
@@ -2219,7 +2223,9 @@
       "cover": "covers/85860f363fae.jpg"
     },
     "214bf32d20a7": {
-      "cover": "covers/214bf32d20a7.jpg"
+      "cover": "covers/214bf32d20a7.jpg",
+      "artist": "Mr T",
+      "title": "Thu Cuối (POPS MUSIC)"
     },
     "a171bbc85def": {
       "cover": "covers/a171bbc85def.jpg"
@@ -2248,19 +2254,24 @@
     "d055e9f4451b": {
       "title": "Hai Đứa Nhóc",
       "artist": "Ronboogz",
-      "cover": "covers/d055e9f4451b.jpg"
+      "cover": "covers/d055e9f4451b.jpg",
+      "album": "Singles"
     },
     "778e785a3a93": {
       "title": "Nói Dối",
       "artist": "Ronboogz",
-      "cover": "covers/778e785a3a93.jpg"
+      "cover": "covers/778e785a3a93.jpg",
+      "album": "Singles"
     },
     "e620bac84097": {
-      "cover": "covers/e620bac84097.jpg"
+      "cover": "covers/e620bac84097.jpg",
+      "title": "Tại Vì Sao",
+      "artist": "MCK",
+      "album": "Singles"
     },
     "6792efda3c5c": {
-      "title": "Chìm Sâu (feat. Trung Trần)",
-      "artist": "RPT MCK",
+      "title": "Chìm Sâu",
+      "artist": "MCK",
       "album": "Singles",
       "cover": "covers/6792efda3c5c.jpg",
       "pipelineVersion": "1.5",
@@ -2291,10 +2302,12 @@
       "cover": "covers/8889d028f8fd.jpg"
     },
     "a2fb4e610d0f": {
-      "cover": "covers/a2fb4e610d0f.jpg"
+      "cover": "covers/a2fb4e610d0f.jpg",
+      "artist": "Sơn Tùng M-TP"
     },
     "b4d932a10181": {
-      "cover": "covers/b4d932a10181.jpg"
+      "cover": "covers/b4d932a10181.jpg",
+      "artist": "Sơn Tùng M-TP"
     },
     "73b783b6ee6e": {
       "cover": "covers/73b783b6ee6e.jpg"
@@ -2309,7 +2322,8 @@
       "cover": "covers/97e2cbdc46da.jpg"
     },
     "4f46f58e59c7": {
-      "cover": "covers/4f46f58e59c7.jpg"
+      "cover": "covers/4f46f58e59c7.jpg",
+      "artist": "Wowy"
     },
     "ed07399f13a1": {
       "title": "Đêm Tàn (2013) (feat. J.T.A Khanh Le)",
@@ -2321,7 +2335,8 @@
       "reviewed": true
     },
     "6257f372bf5d": {
-      "cover": "covers/6257f372bf5d.jpg"
+      "cover": "covers/6257f372bf5d.jpg",
+      "artist": "Đạt G"
     },
     "5a47cbde007d": {
       "cover": "covers/5a47cbde007d.jpg"
@@ -2356,6 +2371,7 @@
       "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
       "artist": "DT Tập Rap",
       "cover": "covers/62a7ccbe277b.jpg",
+      "album": "Singles",
       "hidden": true,
       "deletedAt": "2026-11-16T03:24:47.995Z"
     },
@@ -2369,7 +2385,10 @@
       "cover": "covers/d1648d1bcc5a.jpg"
     },
     "e02f64008049": {
-      "cover": "covers/e02f64008049.jpg"
+      "cover": "covers/e02f64008049.jpg",
+      "title": "Có Lẽ Quá Khó Để Quên 1 Người",
+      "artist": "1nG",
+      "album": "Singles"
     },
     "c4bc4fe7a267": {
       "cover": "covers/c4bc4fe7a267.jpg"
@@ -2377,7 +2396,7 @@
     "0dde57433c84": {
       "title": "Mất Kết Nối",
       "artist": "Dương Domic",
-      "album": "Dữ Liệu Quý",
+      "album": "Singles",
       "cover": "covers/0dde57433c84.jpg"
     },
     "581ff2893598": {
@@ -2395,8 +2414,8 @@
     },
     "fe251607f172": {
       "title": "Phía Sau Em",
-      "artist": "Kay Trần & Binz",
-      "album": "Phía Sau Em - Single",
+      "artist": "Kay Trần",
+      "album": "Singles",
       "cover": "covers/fe251607f172.jpg",
       "pipelineVersion": "1.5",
       "source": "itunes",
@@ -2466,31 +2485,37 @@
       "cover": "covers/24c783f6a538.jpg"
     },
     "8495500181f2": {
-      "title": "An Thần (feat. Thắng)",
-      "artist": "Rap Nhà Làm",
-      "cover": "covers/8495500181f2.jpg"
+      "title": "An Thần (ft. Thắng)",
+      "artist": "Low G",
+      "cover": "covers/8495500181f2.jpg",
+      "album": "Singles"
     },
     "cd517fc9b489": {
       "title": "Lan Man",
       "artist": "Ronboogz",
-      "cover": "covers/cd517fc9b489.jpg"
+      "cover": "covers/cd517fc9b489.jpg",
+      "album": "Singles"
     },
     "6cf7ce601e2e": {
       "title": "Khi Mà",
-      "artist": "RONBOOGZ",
-      "cover": "covers/6cf7ce601e2e.jpg"
+      "artist": "Ronboogz",
+      "cover": "covers/6cf7ce601e2e.jpg",
+      "album": "Singles"
     },
     "b3f8d0f174ce": {
       "title": "Xích Thêm Chút (XTC Remix)",
       "artist": "RPT Groovie",
-      "album": "RAPITALOVE",
+      "album": "Singles",
       "cover": "covers/b3f8d0f174ce.jpg",
       "pipelineVersion": "1.5",
       "source": "layer3",
       "reviewed": true
     },
     "751763347162": {
-      "cover": "covers/751763347162.jpg"
+      "cover": "covers/751763347162.jpg",
+      "title": "Tại Vì Sao (Remix)",
+      "artist": "MCK",
+      "album": "Singles"
     },
     "be5421c9e37d": {
       "title": "Thêm Bao Nhiêu Lâu",
@@ -2501,14 +2526,15 @@
       "cover": "covers/0e8f9437a06d.jpg"
     },
     "4db0ac503082": {
-      "title": "3107 (feat. 267)",
+      "title": "3107 (id 072019)",
       "artist": "W/n",
-      "cover": "covers/4db0ac503082.jpg"
+      "cover": "covers/4db0ac503082.jpg",
+      "album": "Singles"
     },
     "4af07a5b2112": {
-      "title": "Mấy Con Mèo",
+      "title": "Mấy Con Mèo (2G17)",
       "artist": "Datmaniac",
-      "album": "2G17",
+      "album": "Singles",
       "cover": "covers/4af07a5b2112.jpg"
     },
     "cc91ce1e51eb": {
@@ -2518,10 +2544,12 @@
       "album": "Singles"
     },
     "782c7700a184": {
-      "cover": "covers/782c7700a184.jpg"
+      "cover": "covers/782c7700a184.jpg",
+      "artist": "Đạt G"
     },
     "ba6e232771fe": {
-      "cover": "covers/ba6e232771fe.jpg"
+      "cover": "covers/ba6e232771fe.jpg",
+      "artist": "Đạt G"
     },
     "ba871e942843": {
       "cover": "covers/ba871e942843.jpg"

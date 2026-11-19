@@ -19,6 +19,7 @@ export class RntpPlayerService implements IPlayerService {
   private currentTracks: Track[] = [];
   private currentLockScreenTimerText: string | null = null;
   private lastLockScreenCacheKey: string | null = null;
+  private currentRepeatMode: RepeatMode = 'off';
   private listeners: Set<(state: PlayerState) => void> = new Set();
   private lastTrackEndTime: number | null = null;
   private gaplessDeltaMs: number | null = null;
@@ -37,6 +38,7 @@ export class RntpPlayerService implements IPlayerService {
       // Native AVPlayer sẽ kết nối trực tiếp tới Cloudflare Worker đã tối ưu direct R2 streaming.
       await TrackPlayer.setupPlayer({
         contentType: 'music',
+        audioMixing: 'mix',
         handleAudioBecomingNoisy: true,
         autoUpdateMetadataFromStream: false,
       });
@@ -173,8 +175,24 @@ export class RntpPlayerService implements IPlayerService {
       }));
 
     TrackPlayer.setMediaItems(mediaItems, safeIndex);
+    // Áp dụng lại chế độ lặp (RepeatMode) đã lưu khi nạp danh sách bài mới
+    let initialRntpMode: RntpRepeatMode;
+    switch (this.currentRepeatMode) {
+      case 'track':
+        initialRntpMode = RntpRepeatMode.One;
+        break;
+      case 'queue':
+        initialRntpMode = RntpRepeatMode.All;
+        break;
+      case 'off':
+      default:
+        initialRntpMode = RntpRepeatMode.Off;
+        break;
+    }
+    TrackPlayer.setRepeatMode(initialRntpMode);
     TrackPlayer.play();
     this.startProgressTimer();
+    transitionManager.setRepeatMode(this.currentRepeatMode);
     transitionManager.updateQueue(validTracks, validTracks[safeIndex]?.id ?? null);
   } catch(err) {
     console.warn('[RNTP] Lỗi khởi tạo phát nhạc:', err);
@@ -262,22 +280,24 @@ this.notifyListeners();
     this.notifyListeners();
 }
 
-  async setRepeatMode(mode: RepeatMode): Promise < void> {
-  await this.setup();
-  let rntpMode: RntpRepeatMode;
-  switch(mode) {
+  async setRepeatMode(mode: RepeatMode): Promise<void> {
+    await this.setup();
+    this.currentRepeatMode = mode;
+    transitionManager.setRepeatMode(mode);
+    let rntpMode: RntpRepeatMode;
+    switch (mode) {
       case 'track':
-  rntpMode = RntpRepeatMode.One;
-  break;
-  case 'queue':
-  rntpMode = RntpRepeatMode.All;
-  break;
-  case 'off':
-  default:
-    rntpMode = RntpRepeatMode.Off;
-  break;
-}
-TrackPlayer.setRepeatMode(rntpMode);
+        rntpMode = RntpRepeatMode.One;
+        break;
+      case 'queue':
+        rntpMode = RntpRepeatMode.All;
+        break;
+      case 'off':
+      default:
+        rntpMode = RntpRepeatMode.Off;
+        break;
+    }
+    TrackPlayer.setRepeatMode(rntpMode);
   }
 
 /**

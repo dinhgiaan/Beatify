@@ -8,7 +8,10 @@ import { searchCovers, downloadCoverImage } from './services/coverFetchService';
 import { setTrackOverride } from './services/overridesManager';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const CUSTOM_COVERS_DIR = path.join(__dirname, '../custom_covers');
 
 async function main() {

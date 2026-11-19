@@ -18,7 +18,18 @@ import Reanimated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { smartShuffle, type Track, type UpdateTrack, type UserProfile, isRealAlbum, formatArtistAndAlbum } from '@music-app/shared';
+import {
+  smartShuffle,
+  type Track,
+  type UpdateTrack,
+  type UserProfile,
+  isRealAlbum,
+  formatArtistAndAlbum,
+  getSmartRecommendations,
+  getTimeOfDay,
+  getTimeOfDayGreeting,
+  type ListeningRecord,
+} from '@music-app/shared';
 import { useLibrary, usePlayer, useOffline } from '../../src/context';
 import { useTabBarMetrics } from '../../src/hooks/useTabBarMetrics';
 import { TrackActionSheet } from '../../src/components/sheet/TrackActionSheet';
@@ -95,10 +106,12 @@ export default function LibraryScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [listeningRecords, setListeningRecords] = useState<ListeningRecord[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       statsStorage.loadUserProfile().then(setUserProfile).catch(() => { });
+      statsStorage.loadListeningRecords().then(setListeningRecords).catch(() => { });
     }, [])
   );
 
@@ -299,6 +312,7 @@ export default function LibraryScreen() {
   const filterOptions = useMemo(() => {
     const list: Array<{ id: string; label: string }> = [
       { id: 'all', label: 'Tất cả' },
+      { id: 'recommendations', label: '✨ Gợi ý' },
       { id: 'favorites', label: 'Yêu thích' },
       { id: 'top_played', label: 'Nghe nhiều nhất' },
     ];
@@ -333,6 +347,15 @@ export default function LibraryScreen() {
     const baseTracks = tracks;
 
     if (activeFilter === 'all') return baseTracks;
+    if (activeFilter === 'recommendations') {
+      const recs = getSmartRecommendations(
+        baseTracks,
+        listeningRecords,
+        userState.favoriteIds,
+        { limit: 50 }
+      );
+      return recs.map((r) => r.track);
+    }
     if (activeFilter === 'favorites') {
       return baseTracks.filter((t) => userState.favoriteIds.includes(t.id));
     }
@@ -358,7 +381,7 @@ export default function LibraryScreen() {
       return baseTracks.filter((t) => (t.genre || '').toLowerCase() === g);
     }
     return baseTracks;
-  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds]);
+  }, [tracks, activeFilter, userState.favoriteIds, isTrackOffline, topTrackIds, listeningRecords]);
 
 
   // Nhóm bài hát theo Nghệ sĩ cho phân đoạn 'artists'
@@ -735,6 +758,18 @@ export default function LibraryScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Banner thông điệp chào gợi ý thông minh theo khung giờ */}
+        {activeSegment === 'songs' && activeFilter === 'recommendations' && (
+          <View style={styles.recommendationBanner}>
+            <Text style={styles.recommendationGreetingTitle}>
+              {getTimeOfDayGreeting(getTimeOfDay()).title} ✨
+            </Text>
+            <Text style={styles.recommendationGreetingSubtitle}>
+              {getTimeOfDayGreeting(getTimeOfDay()).subtitle}
+            </Text>
+          </View>
+        )}
 
         {/* Hàng nút tác vụ nhanh: Phát ngẫu nhiên & Phát tất cả */}
         {filteredTracks.length > 0 && (
@@ -1657,5 +1692,25 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.bold,
+  },
+  recommendationBanner: {
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(29, 185, 84, 0.08)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(29, 185, 84, 0.2)',
+    marginBottom: spacing.xs,
+  },
+  recommendationGreetingTitle: {
+    color: colors.primary,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+  },
+  recommendationGreetingSubtitle: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.caption,
+    marginTop: 2,
   },
 });

@@ -2,7 +2,28 @@
 
 > Agent cập nhật file này sau mỗi lần làm việc. Người dùng đọc để biết đang ở đâu và cần làm gì.
 
-**Phase hiện tại:** Hoàn thành toàn diện **Hệ thống Chuẩn hóa Thực thể Âm nhạc Đa Tầng (Multi-Layer Music Entity Resolution — Tầng 0 đến Tầng 4, Backend API, Web Dashboard UI & Báo cáo Dry-Run CSV)**:
+**Phase hiện tại:** Hoàn tất 5 cập nhật Mobile App cốt lõi (Gợi ý nhạc, UI Modal Lưu trữ ngoại tuyến, Sửa Loop/Repeat, UI Vừa nghe & Playlist, Sửa lỗi ngắt tiếng khi lướt Facebook):
+- **1. Thuật toán Gợi ý nhạc Thông minh (`@music-app/shared/src/recommendation.ts`):**
+  - Chấm điểm đa chiều: Yêu thích (+30đ), Top nghệ sĩ nghe nhiều (+22đ), Khung giờ nghe nhạc tương ứng (+10-35đ), Tần suất nghe (+25đ), Tỷ lệ hoàn thành bài hát (+15đ), Freshness (giảm điểm bài vừa nghe dưới 10 phút, tăng điểm gợi nhớ bài cũ trên 3 ngày).
+  - Khung giờ tự động: Sáng (`morning` 05:00-11:59), Chiều (`afternoon` 12:00-17:59), Tối (`evening` 18:00-22:59), Đêm (`night` 23:00-04:59).
+  - Tích hợp vào Trang chủ Thư viện (`library.tsx`): Filter chip `✨ Gợi ý` nằm ngay cạnh `Tất cả`, hiển thị lời chào ngữ cảnh động theo thời gian thực.
+- **2. Nâng cấp UI Modal Lưu trữ ngoại tuyến (`OfflineDownloadsModal.tsx`):**
+  - Nút "Phát": xóa chữ "Phát", chỉ giữ icon Play đen, mở rộng chiều ngang cân đối (`width: 52, height: 36, borderRadius: 18`).
+  - Nút "Xáo trộn": đồng bộ kích thước chuẩn (`width: 52, height: 36, borderRadius: 18`).
+  - Nút "Chọn": xóa chữ, chuyển sang nút hình tròn select chuẩn Apple. Khi chọn tất cả (`Select All`), nút tự động chuyển màu active xanh kèm icon checkmark `✓` ở giữa.
+- **3. Khắc phục Triệt để Lỗi Loop/Repeat (`transitionManager.ts` & `rntpPlayerService.ts`):**
+  - **Nguyên nhân gốc:** `TransitionManager` tự động skipToIndex trước 4s cuối mà không kiểm tra `repeatMode`, khiến bài bị ngắt sớm sang bài khác và chặn native AVPlayer kích hoạt lặp lại.
+  - **Xử lý:** Bổ sung `setRepeatMode` vào `TransitionManager`. Khi `repeatMode === 'track'`, vô hiệu hóa ngắt bài sớm để native AVPlayer lặp lại 100% trọn vẹn bài hát. Khi `repeatMode === 'queue'`, hỗ trợ chuyển tiếp mượt mà quay vòng về bài đầu tiên khi hết danh sách.
+- **4. Tinh chỉnh Nút Phát tất cả tại Tab "Vừa nghe" & Chi tiết Playlist:**
+  - Tab "Vừa nghe" (`recent.tsx`): Xóa chữ "Phát tất cả", thay bằng icon Play đen, nền Trắng (`#FFFFFF`) tương phản hoàn toàn với nút Shuffle nền Xanh (`colors.primary`), kích thước đối xứng 50-50 (`flex: 1, height: 48`).
+  - Modal Chi tiết Playlist/Album (`CollectionDetailModal.tsx`): Áp dụng chuẩn tương tự: nút Play nền Trắng, nút Shuffle nền Xanh, chỉ hiển thị icon không kèm text.
+- **5. Khắc phục Triệt để Lỗi Bài nhạc Tự Dừng Khi Lướt Facebook:**
+  - **Nguyên nhân gốc:** RNTP mặc định `audioMixing: 'exclusive'`, khiến iOS gửi `interruptionNotification (.began)` mỗi khi Facebook pre-mount các feed Reel/Meta AI (dù video đã mute), làm audio engine tự pause.
+  - **Xử lý:** Cấu hình `audioMixing: 'mix'` trong `TrackPlayer.setupPlayer()`. iOS tự động gắn `.mixWithOthers` vào `AVAudioSession`, giúp app tiếp tục phát nhạc nền liên tục khi lướt mạng xã hội mà không cần build lại bản native.
+
+**Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
+
+**Lịch sử các phase trước:**
 1. **Lõi Phân giải Thực thể Đa Tầng (Multi-Layer Music Entity Resolution) — Tầng 0 + 1 + 2 + 3 + 4:**
    - **Tầng 0 (`nativeMetadataExtractor.ts`):** Trích xuất metadata gốc yt-dlp (`artist`, `track`, `album`, `channel`, `description`, nhận diện kênh `- Topic`).
    - **Tầng 1 (`channelClassifier.ts`):** Phân loại kênh uploader, bóc tách hậu tố (`Official`, `VEVO`), nhận diện aggregator channels theo `aggregatorChannels.json` và whitelist `channelWhitelist.json`, đối soát chéo ứng viên tiêu đề chống đảo vế (`crossCheckWithTitle`) với cơ chế ưu tiên Exact Match tuyệt đối.
@@ -814,6 +835,15 @@
 2. **Bạn:** kích hoạt workflow **Build iOS (unsigned IPA)** trên GitHub Actions (chọn biến thể `development` hoặc `production`).
 3. **Bạn:** tải artifact `.ipa` về PC và cài lên iPhone 16 (iOS 27) bằng **Sideloadly** (bật Auto App Refreshing).
 4. **Bạn:** thực hiện kiểm tra thực tế theo checklist **P0.1 đến P0.15** trong `docs/ACCEPTANCE.md` (cuộn xuống cuối màn hình chính để đối soát `Build SHA`, `Hạn chứng chỉ`, `Atomic Write Branch` và `Khôi phục .tmp` trên bảng Debug).
+5. **Duyệt Prune 503 R2 Orphan Covers (sau khi kiểm tra app xong):**
+   - Đã xác minh bằng script: 503 covers mồ côi (120.61 MB) hoàn toàn không còn được tham chiếu bởi bất kỳ bài hát active nào trong `library.json`, không có trong `overrides.json`, và là cache cũ của các album trước khi chuẩn hóa tên nghệ sĩ.
+   - Đã tải về sao lưu an toàn 100% (503/503 ảnh) tại `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`.
+   - Giữ nguyên các key được bảo vệ: `lyrics-manual/*`, `lyrics/62a7ccbe277b.lrc` (bản BlackBi trong `_duplicates`), 2 file `library.backup*.json`.
+   - Chờ người dùng xác nhận trên app xong sẽ kích hoạt lệnh prune chính thức cho 503 covers này.
+6. **Quyết định hướng xử lý ID mồ côi trong User State (Playlists / Favorites):**
+   - `baa55f484230`: ID bài "Dương Domic - Mất Kết Nối" lưu từ commit `9189219` (hiện tại trong thư viện bài này mang ID `0dde57433c84`). Chờ người dùng quyết định: cập nhật sang ID mới hay xóa khỏi favorites.
+   - `62a7ccbe277b`: ID bản BlackBi (hiện đã chuyển sang `_duplicates`), đang nằm trong playlist `chill chill ha`.
+   - `581ff2893598` và `88c676f27218`: 2 ID mồ côi có sẵn từ trước đợt reorg.
 
 ## Vấn đề đã biết
 - `build-ios.yml` là mẫu chưa chạy thử. So với mẫu, đã đổi: (a) nhãn `macos-26` thay `macos-latest`, (b) Xcode 26.6 cụ thể và chặn nếu không phải Xcode 26.x, (c) thêm job kiểm tra Linux trước khi bật macOS, (d) cache kho tải CocoaPods (`~/Library/Caches/CocoaPods`) thay vì thư mục `ios/Pods`, vì `expo prebuild --clean` xoá `ios/` và tự chạy `pod install` nên cache `Pods` đặt sau prebuild không có tác dụng (suy luận, cần xác nhận ở lần build đầu).

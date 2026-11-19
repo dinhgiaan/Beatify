@@ -6,6 +6,7 @@ import {
   getTransitionCuePoints,
   calculateRealtimeFadeVolume,
 } from '@music-app/shared';
+import type { RepeatMode } from './types';
 import { gainToVolume } from '../../utils/gainToVolume';
 import {
   loadTransitionSettings,
@@ -23,6 +24,7 @@ export class TransitionManager {
   private nextTrack: Track | null = null;
   private currentQueue: Track[] = [];
   private currentIndex = -1;
+  private repeatMode: RepeatMode = 'off';
 
   private isFading = false;
   private fadeStartMs = 0;
@@ -115,6 +117,22 @@ export class TransitionManager {
   }
 
   /**
+   * Cập nhật chế độ lặp để đồng bộ hóa hành vi chuyển bài
+   */
+  public setRepeatMode(mode: RepeatMode): void {
+    this.repeatMode = mode;
+    if (this.currentQueue && this.currentIndex !== -1) {
+      if (this.repeatMode === 'queue' && this.currentIndex === this.currentQueue.length - 1 && this.currentQueue.length > 1) {
+        this.nextTrack = this.currentQueue[0] || null;
+      } else if (this.currentIndex + 1 < this.currentQueue.length) {
+        this.nextTrack = this.currentQueue[this.currentIndex + 1] || null;
+      } else {
+        this.nextTrack = null;
+      }
+    }
+  }
+
+  /**
    * Cập nhật hàng đợi và vị trí bài hát hiện tại
    */
   public updateQueue(queue: Track[], activeTrackId: string | null): void {
@@ -132,7 +150,11 @@ export class TransitionManager {
         // Đổi bài mới: khôi phục volume và reset trạng thái fade
         this.currentIndex = idx;
         this.currentTrack = queue[idx] || null;
-        this.nextTrack = idx + 1 < queue.length ? queue[idx + 1] || null : null;
+        if (this.repeatMode === 'queue' && idx === queue.length - 1 && queue.length > 1) {
+          this.nextTrack = queue[0] || null;
+        } else {
+          this.nextTrack = idx + 1 < queue.length ? queue[idx + 1] || null : null;
+        }
         this.lastHandledTrackId = null;
         this.preloadedTrackId = null;
         this.currentCuePoints = null;
@@ -149,7 +171,12 @@ export class TransitionManager {
       return;
     }
 
-    // Không chuyển bài nếu đang là bài cuối hàng đợi
+    // Nếu repeatMode là 'track', tuyệt đối không ngắt bài chuyển tiếp sớm để native AVPlayer lặp lại trọn vẹn bài hát
+    if (this.repeatMode === 'track') {
+      return;
+    }
+
+    // Không chuyển bài nếu đang là bài cuối hàng đợi và không có nextTrack
     if (!this.nextTrack) {
       return;
     }
@@ -258,7 +285,9 @@ export class TransitionManager {
     compat: ReturnType<typeof evaluateTransitionCompatibility>,
     statusReason: string
   ): void {
-    const nextIdx = this.currentIndex + 1;
+    const nextIdx = this.currentQueue.length > 0
+      ? (this.currentIndex + 1) % this.currentQueue.length
+      : this.currentIndex + 1;
     const targetVolume = gainToVolume(trackB.replayGain);
 
     try {

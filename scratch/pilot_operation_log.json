@@ -1,0 +1,89 @@
+[
+  {
+    "action": "mkdir",
+    "target": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\B.S.N.L 2\\Singles\\B-ray\\B.S.N.L 2 - B-ray.m4a",
+    "to": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2\\B Ray - B.S.N.L 2.m4a"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\B.S.N.L 2\\Singles\\B-ray\\B.S.N.L 2 - B-ray.jpg",
+    "to": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2\\B Ray - B.S.N.L 2.jpg"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\B.S.N.L 2\\Singles\\B-ray\\B.S.N.L 2 - B-ray.lrc",
+    "to": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2\\B Ray - B.S.N.L 2.lrc"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\B.S.N.L 2\\Singles\\B-ray\\info.txt",
+    "to": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2\\info.txt"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\B.S.N.L 2\\Singles\\B-ray\\folder.jpg",
+    "to": "D:\\music for app\\(rap)\\B Ray\\Singles\\B.S.N.L 2\\folder.jpg"
+  },
+  {
+    "action": "mkdir",
+    "target": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK) - Offical Video.m4a",
+    "to": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)\\RYCO - Việt Nên Làm (ft. MEGASHOCK).m4a"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK) - Offical Video.jpg",
+    "to": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)\\RYCO - Việt Nên Làm (ft. MEGASHOCK).jpg"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK) - Offical Video.lrc",
+    "to": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)\\RYCO - Việt Nên Làm (ft. MEGASHOCK).lrc"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\info.txt",
+    "to": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)\\info.txt"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(rap)\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\folder.jpg",
+    "to": "D:\\music for app\\(rap)\\RYCO\\Singles\\Việt Nên Làm (ft. MEGASHOCK)\\folder.jpg"
+  },
+  {
+    "action": "mkdir",
+    "target": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(chill)\\2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\2T - LIỆU GIỜ ( WHAT IF - ) - M-V.m4a",
+    "to": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)\\2T - Liệu Giờ (What If).m4a"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(chill)\\2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\2T - LIỆU GIỜ ( WHAT IF - ) - M-V.jpg",
+    "to": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)\\2T - Liệu Giờ (What If).jpg"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(chill)\\2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\2T - LIỆU GIỜ ( WHAT IF - ) - M-V.lrc",
+    "to": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)\\2T - Liệu Giờ (What If).lrc"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(chill)\\2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\info.txt",
+    "to": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)\\info.txt"
+  },
+  {
+    "action": "move",
+    "from": "D:\\music for app\\(chill)\\2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\folder.jpg",
+    "to": "D:\\music for app\\(chill)\\2T\\Singles\\Liệu Giờ (What If)\\folder.jpg"
+  }
+]

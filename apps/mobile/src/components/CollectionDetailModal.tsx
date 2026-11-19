@@ -303,9 +303,9 @@ export function CollectionDetailModal({
                   onPress={handlePlayAll}
                   disabled={tracks.length === 0}
                   activeOpacity={0.8}
+                  accessibilityLabel="Phát tất cả"
                 >
-                  <PlayIcon size={18} color={colors.textDark} />
-                  <Text style={styles.playAllBtnText}>Phát tất cả</Text>
+                  <PlayIcon size={20} color="#000000" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -313,9 +313,9 @@ export function CollectionDetailModal({
                   onPress={handleShufflePlay}
                   disabled={tracks.length === 0}
                   activeOpacity={0.8}
+                  accessibilityLabel={SHUFFLE_LABELS.ACTION}
                 >
-                  <ShuffleIcon size={18} color={colors.textPrimary} />
-                  <Text style={styles.shuffleBtnText}>{SHUFFLE_LABELS.ACTION}</Text>
+                  <ShuffleIcon size={19} color="#000000" />
                 </TouchableOpacity>
 
                 {type === 'recently_played' && onClearRecentTracks && tracks.length > 0 && (
@@ -555,14 +555,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.primary,
+    backgroundColor: '#FFFFFF',
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
     minHeight: 44,
   },
   playAllBtnText: {
-    color: colors.textDark,
+    color: '#000000',
     fontSize: fontSizes.subhead,
     fontWeight: fontWeights.bold,
   },
@@ -571,16 +570,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
     minHeight: 44,
   },
   shuffleBtnText: {
-    color: colors.textPrimary,
+    color: '#000000',
     fontSize: fontSizes.subhead,
     fontWeight: fontWeights.semibold,
   },

@@ -1,0 +1,560 @@
+[
+  {
+    "category": "(rap)",
+    "oldPath": "A COLORS SHOW\\Singles\\Quavo & Takeoff - HOTEL LOBBY\\A COLORS SHOW - Quavo & Takeoff - HOTEL LOBBY.m4a",
+    "newPath": "Quavo & Takeoff\\Singles\\HOTEL LOBBY\\Quavo & Takeoff - HOTEL LOBBY.m4a",
+    "canonicalArtist": "Quavo & Takeoff",
+    "canonicalTitle": "HOTEL LOBBY",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "B.S.N.L 2\\Singles\\B-ray\\B.S.N.L 2 - B-ray.m4a",
+    "newPath": "B Ray\\Singles\\B.S.N.L 2\\B Ray - B.S.N.L 2.m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "B.S.N.L 2",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Buông Hàng\\Singles\\Young Milo\\Buông Hàng - Young Milo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Buông Hàng\\TOMMY TÈO - Buông Hàng.m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Buông Hàng",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "BẠN CỦA TAO - YoungH\\Video Lyrics\\BẠN CỦA TAO - YoungH - 2015.m4a",
+    "newPath": "Young-H\\Singles\\Bạn Của Tao\\Young-H - Bạn Của Tao.m4a",
+    "canonicalArtist": "Young-H",
+    "canonicalTitle": "Bạn Của Tao",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "BỐC THUỐC\\Singles\\Acy aka TT ( Trường Ca 5B)\\BỐC THUỐC - Acy aka TT ( Trường Ca 5B).m4a",
+    "newPath": "Acy\\Singles\\Bốc Thuốc\\Acy - Bốc Thuốc.m4a",
+    "canonicalArtist": "Acy",
+    "canonicalTitle": "Bốc Thuốc",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "CHƠI (RMX) Ft.MANBO\\Singles\\Hieuthuhai\\CHƠI (RMX) Ft.MANBO - Hieuthuhai.m4a",
+    "newPath": "HIEUTHUHAI\\Singles\\Chơi (Remix) ft. MANBO\\HIEUTHUHAI - Chơi (Remix) ft. MANBO.m4a",
+    "canonicalArtist": "HIEUTHUHAI",
+    "canonicalTitle": "Chơi (Remix) ft. MANBO",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "CYPHER 2G2G\\Singles\\GMC\\CYPHER 2G2G - GMC.m4a",
+    "newPath": "G-FAMILY\\Singles\\Cypher 2G2G\\G-FAMILY - Cypher 2G2G.m4a",
+    "canonicalArtist": "G-FAMILY",
+    "canonicalTitle": "Cypher 2G2G",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Côn Đồ Trên Con Đò\\Singles\\DatManiac\\Côn Đồ Trên Con Đò - DatManiac.m4a",
+    "newPath": "Datmaniac\\Singles\\Côn Đồ Trên Con Đò\\Datmaniac - Côn Đồ Trên Con Đò.m4a",
+    "canonicalArtist": "Datmaniac",
+    "canonicalTitle": "Côn Đồ Trên Con Đò",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Da Vàng\\Singles\\YoungMilo\\Da Vàng - YoungMilo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Da Vàng\\TOMMY TÈO - Da Vàng.m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Da Vàng",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "EM TAO HIP HOP\\Singles\\Jombie\\EM TAO HIP HOP - Jombie.m4a",
+    "newPath": "Jombie\\Singles\\Em Tao Hip Hop\\Jombie - Em Tao Hip Hop.m4a",
+    "canonicalArtist": "Jombie",
+    "canonicalTitle": "Em Tao Hip Hop",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Enemy\\Singles\\Tommy Tèo\\Enemy - Tommy Tèo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Enemy\\TOMMY TÈO - Enemy.m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Enemy",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Going Bad (feat. Drake)\\Singles\\Meek Mill\\Going Bad (feat. Drake) - Meek Mill.m4a",
+    "newPath": "Meek Mill\\Singles\\Going Bad (feat. Drake)\\Meek Mill - Going Bad (feat. Drake).m4a",
+    "canonicalArtist": "Meek Mill",
+    "canonicalTitle": "Going Bad (feat. Drake)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Hổng Nhây Nữa Nha\\Singles\\B Ray (Diss The Night)「Lyrics」\\Hổng Nhây Nữa Nha - B Ray (Diss The Night)「Lyrics」.m4a",
+    "newPath": "B Ray\\Singles\\Hổng Nhây Nữa Nha (Diss The Night)\\B Ray - Hổng Nhây Nữa Nha (Diss The Night).m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Hổng Nhây Nữa Nha (Diss The Night)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "LÀM LIỀU (feat. Kriss Ngo )\\Singles\\5ber1\\LÀM LIỀU (feat. Kriss Ngo ) - 5ber1.m4a",
+    "newPath": "5ber1\\Singles\\Làm Liều (feat. Kriss Ngo)\\5ber1 - Làm Liều (feat. Kriss Ngo).m4a",
+    "canonicalArtist": "5ber1",
+    "canonicalTitle": "Làm Liều (feat. Kriss Ngo)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc\\Singles\\Quay Đầu Là Hiphop\\Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc - Quay Đầu Là Hiphop.m4a",
+    "newPath": "LĂNG LD\\Singles\\Quay Đầu Là Hiphop\\LĂNG LD - Quay Đầu Là Hiphop.m4a",
+    "canonicalArtist": "LĂNG LD",
+    "canonicalTitle": "Quay Đầu Là Hiphop",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "LợiCathay\\Singles\\Phía Bờ Tây- YoungMilo aka Tommy Tèo\\LợiCathay - Phía Bờ Tây- YoungMilo aka Tommy Tèo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Phía Bờ Tây\\TOMMY TÈO - Phía Bờ Tây.m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Phía Bờ Tây",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Polo G - Go Stupid\\Singles\\-Hit the strip after school-\\Polo G - Go Stupid - -Hit the strip after school-.m4a",
+    "newPath": "Polo G\\Singles\\Go Stupid\\Polo G - Go Stupid.m4a",
+    "canonicalArtist": "Polo G",
+    "canonicalTitle": "Go Stupid",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Quang Tèo\\Singles\\(No Copyright)Alaba Trap\\Quang Tèo - (No Copyright)Alaba Trap.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Alaba Trap\\TOMMY TÈO - Alaba Trap.m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Alaba Trap",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK)\\Singles\\Offical Video\\RYCO - -VIỆT- NÊN LÀM (Ft. MEGASHOCK) - Offical Video.m4a",
+    "newPath": "RYCO\\Singles\\Việt Nên Làm (ft. Megashock)\\RYCO - Việt Nên Làm (ft. Megashock).m4a",
+    "canonicalArtist": "RYCO",
+    "canonicalTitle": "Việt Nên Làm (ft. Megashock)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Wowy Karik (OFFICIAL VIDEO HD)\\Singles\\Khu Tao Song\\Wowy Karik (OFFICIAL VIDEO HD) - Khu Tao Song.m4a",
+    "newPath": "Wowy & Karik\\Singles\\Khu Tao Sống\\Wowy & Karik - Khu Tao Sống.m4a",
+    "canonicalArtist": "Wowy & Karik",
+    "canonicalTitle": "Khu Tao Sống",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "XmaXa Music\\Singles\\Quan tài hư Remix - Young Milo - XmaXa\\XmaXa Music - Quan tài hư Remix - Young Milo - XmaXa.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Quan Tài Hư (XmaXa Remix)\\TOMMY TÈO - Quan Tài Hư (XmaXa Remix).m4a",
+    "canonicalArtist": "TOMMY TÈO",
+    "canonicalTitle": "Quan Tài Hư (XmaXa Remix)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "YN1 pt.2 (ft. yugaki\\Singles\\Yxngtabi\\YN1 pt.2 (ft. yugaki - Yxngtabi.m4a",
+    "newPath": "Yxngtabi\\Singles\\YN1 pt.2 (ft. yugaki)\\Yxngtabi - YN1 pt.2 (ft. yugaki).m4a",
+    "canonicalArtist": "Yxngtabi",
+    "canonicalTitle": "YN1 pt.2 (ft. yugaki)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "[2G17] BÁT QUÁI\\Singles\\G.family\\[2G17] BÁT QUÁI - G.family.m4a",
+    "newPath": "G-FAMILY\\Singles\\Bát Quái (2G17)\\G-FAMILY - Bát Quái (2G17).m4a",
+    "canonicalArtist": "G-FAMILY",
+    "canonicalTitle": "Bát Quái (2G17)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "[Reply Kidchoi] Little Homie\\Singles\\B Ray\\[Reply Kidchoi] Little Homie - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Little Homie (Reply Kidchoi)\\B Ray - Little Homie (Reply Kidchoi).m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Little Homie (Reply Kidchoi)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói\\Singles\\B Ray\\[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Đúng Như Lời Họ Nói\\B Ray - Đúng Như Lời Họ Nói.m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Đúng Như Lời Họ Nói",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(rap)",
+    "oldPath": "Điều Tao Nói\\Singles\\Pikey\\Điều Tao Nói - Pikey.m4a",
+    "newPath": "Pikey\\Singles\\Điều Tao Nói\\Pikey - Điều Tao Nói.m4a",
+    "canonicalArtist": "Pikey",
+    "canonicalTitle": "Điều Tao Nói",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "2T - CƯỚI ĐI\\Singles\\Chưa Từng Mặc Váy Cưới\\2T - CƯỚI ĐI - Chưa Từng Mặc Váy Cưới.m4a",
+    "newPath": "2T\\Singles\\Cưới Đi (Lyric Video)\\2T - Cưới Đi (Lyric Video).m4a",
+    "canonicalArtist": "2T",
+    "canonicalTitle": "Cưới Đi (Lyric Video)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "2T - LIỆU GIỜ ( WHAT IF - )\\Singles\\M-V\\2T - LIỆU GIỜ ( WHAT IF - ) - M-V.m4a",
+    "newPath": "2T\\Singles\\Liệu Giờ (What If)\\2T - Liệu Giờ (What If).m4a",
+    "canonicalArtist": "2T",
+    "canonicalTitle": "Liệu Giờ (What If?)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "7clouds\\Singles\\Aaron Smith - Dancin (KRONO Remix) - Lyrics\\7clouds - Aaron Smith - Dancin (KRONO Remix) - Lyrics.m4a",
+    "newPath": "Aaron Smith\\Singles\\Dancin (KRONO Remix)\\Aaron Smith - Dancin (KRONO Remix).m4a",
+    "canonicalArtist": "Aaron Smith",
+    "canonicalTitle": "Dancin (KRONO Remix)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "BlackBi Original\\Singles\\TTeam - MUỐN NÓI VỚI EM - DT Tập Rap\\BlackBi Original - TTeam - MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "newPath": "TTeam\\Singles\\Muốn Nói Với Em (ft. DT Tập Rap)\\TTeam - Muốn Nói Với Em (ft. DT Tập Rap).m4a",
+    "canonicalArtist": "TTeam",
+    "canonicalTitle": "Muốn Nói Với Em (ft. DT Tập Rap)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "CHO HỌ GHÉT ĐI EM\\Singles\\Huỳnh James\\CHO HỌ GHÉT ĐI EM - Huỳnh James.m4a",
+    "newPath": "Huỳnh James\\Singles\\Cho Họ Ghét Đi Em\\Huỳnh James - Cho Họ Ghét Đi Em.m4a",
+    "canonicalArtist": "Huỳnh James",
+    "canonicalTitle": "Cho Họ Ghét Đi Em",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "CHỜ NGÀY CƯỚI EM\\Singles\\Phát Hồ\\CHỜ NGÀY CƯỚI EM - Phát Hồ.m4a",
+    "newPath": "Phát Hồ\\Singles\\Chờ Ngày Cưới Em\\Phát Hồ - Chờ Ngày Cưới Em.m4a",
+    "canonicalArtist": "Phát Hồ",
+    "canonicalTitle": "Chờ Ngày Cưới Em",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "CÓ LẼ QUÁ KHÓ ĐỂ QUÊN 1 NGƯỜI\\Singles\\1nG\\CÓ LẼ QUÁ KHÓ ĐỂ QUÊN 1 NGƯỜI - 1nG.m4a",
+    "newPath": "1nG\\Singles\\Có Lẽ Quá Khó Để Quên 1 Người\\1nG - Có Lẽ Quá Khó Để Quên 1 Người.m4a",
+    "canonicalArtist": "1nG",
+    "canonicalTitle": "Có Lẽ Quá Khó Để Quên 1 Người",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Cô Nàng Khác Người [feat. Nger (MCK)\\Singles\\Pixel Neko\\Cô Nàng Khác Người [feat. Nger (MCK) - Pixel Neko.m4a",
+    "newPath": "Pixel Neko\\Singles\\Cô Nàng Khác Người (ft. MCK)\\Pixel Neko - Cô Nàng Khác Người (ft. MCK).m4a",
+    "canonicalArtist": "Pixel Neko",
+    "canonicalTitle": "Cô Nàng Khác Người (ft. MCK)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Dương Domic - Mất Kết Nối\\Singles\\EP 'Dữ Liệu Quý'\\Dương Domic - Mất Kết Nối - EP 'Dữ Liệu Quý'.m4a",
+    "newPath": "Dương Domic\\Singles\\Mất Kết Nối\\Dương Domic - Mất Kết Nối.m4a",
+    "canonicalArtist": "Dương Domic",
+    "canonicalTitle": "Mất Kết Nối",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 02. Vùng An Toàn - B Ray (ft. V#) - Prod. Hipz\\EvB Records - [CHO BẢO] 02. Vùng An Toàn - B Ray (ft. V#) - Prod. Hipz.m4a",
+    "newPath": "B Ray\\Singles\\Vùng An Toàn (ft. V#)\\B Ray - Vùng An Toàn (ft. V#).m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Vùng An Toàn (ft. V#)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew\\EvB Records - [CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew.m4a",
+    "newPath": "B Ray\\Singles\\The One (ft. Đạt G)\\B Ray - The One (ft. Đạt G).m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "The One (ft. Đạt G)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 07. Feel At Home - B Ray - Prod. Ducnn\\EvB Records - [CHO BẢO] 07. Feel At Home - B Ray - Prod. Ducnn.m4a",
+    "newPath": "B Ray\\Singles\\Feel At Home\\B Ray - Feel At Home.m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Feel At Home",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "FAPTV\\Singles\\Hẹn Ngày Mai Yêu - OST Phim Yêu Ư Để Sau - Long Cao\\FAPTV - Hẹn Ngày Mai Yêu - OST Phim Yêu Ư Để Sau - Long Cao.m4a",
+    "newPath": "Long Cao\\Singles\\Hẹn Ngày Mai Yêu\\Long Cao - Hẹn Ngày Mai Yêu.m4a",
+    "canonicalArtist": "Long Cao",
+    "canonicalTitle": "Hẹn Ngày Mai Yêu",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Fillinus Entertainment\\Singles\\Changg\\Fillinus Entertainment - Changg.m4a",
+    "newPath": "Changg\\Singles\\Em Không Hiểu (ft. Minh Huy)\\Changg - Em Không Hiểu (ft. Minh Huy).m4a",
+    "canonicalArtist": "Changg",
+    "canonicalTitle": "Em Không Hiểu (ft. Minh Huy)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Focus Entertainment\\Singles\\Phía Sau Em - Kay Trần\\Focus Entertainment - Phía Sau Em - Kay Trần.m4a",
+    "newPath": "Kay Trần\\Singles\\Phía Sau Em\\Kay Trần - Phía Sau Em.m4a",
+    "canonicalArtist": "Kay Trần",
+    "canonicalTitle": "Phía Sau Em",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Già Cùng Nhau Là Được Lyrics  -Tea ft.PC\\Singles\\Chillsongs\\Già Cùng Nhau Là Được Lyrics  -Tea ft.PC - Chillsongs.m4a",
+    "newPath": "Tea\\Singles\\Già Cùng Nhau Là Được (ft. PC)\\Tea - Già Cùng Nhau Là Được (ft. PC).m4a",
+    "canonicalArtist": "Tea",
+    "canonicalTitle": "Già Cùng Nhau Là Được (ft. PC)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Lyrics - YÊU 5\\Singles\\Rhymastic\\Lyrics - YÊU 5 - Rhymastic.m4a",
+    "newPath": "Rhymastic\\Singles\\Yêu 5\\Rhymastic - Yêu 5.m4a",
+    "canonicalArtist": "Rhymastic",
+    "canonicalTitle": "Yêu 5",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "M-TP [ Video + Lyric Kara]\\Singles\\Cơn Mưa Ngang Qua (Part 2)\\M-TP [ Video + Lyric Kara] - Cơn Mưa Ngang Qua (Part 2).m4a",
+    "newPath": "Sơn Tùng M-TP\\Singles\\Cơn Mưa Ngang Qua (Part 2)\\Sơn Tùng M-TP - Cơn Mưa Ngang Qua (Part 2).m4a",
+    "canonicalArtist": "Sơn Tùng M-TP",
+    "canonicalTitle": "Cơn Mưa Ngang Qua (Part 2)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "MCK remixx prod. By Kewtiie\\Singles\\Nghe như tình yêu\\MCK remixx prod. By Kewtiie - Nghe như tình yêu.m4a",
+    "newPath": "MCK\\Singles\\Nghe Như Tình Yêu (Remix)\\MCK - Nghe Như Tình Yêu (Remix).m4a",
+    "canonicalArtist": "MCK",
+    "canonicalTitle": "Nghe Như Tình Yêu (Remix)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "MUỐN NÓI VỚI EM\\Singles\\DT Tập Rap\\MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "newPath": "_duplicates\\MUỐN NÓI VỚI EM\\Singles\\DT Tập Rap\\MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "canonicalArtist": "_duplicates\\MUỐN NÓI VỚI EM",
+    "canonicalTitle": "DT Tập Rap (Bản trùng)",
+    "confidence": "Cao",
+    "conflictNote": "BẢN THỪA: Chuyển cách ly vào _duplicates theo chỉ đạo"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Rap Nhà Làm\\Low G\\Rap Nhà Làm - An Thần (ft. Thắng).m4a",
+    "newPath": "Low G\\Singles\\An Thần (ft. Thắng)\\Low G - An Thần (ft. Thắng).m4a",
+    "canonicalArtist": "Low G",
+    "canonicalTitle": "An Thần (ft. Thắng)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Hai Đứa Nhóc\\Ronboogz (Lyrics Video) - Hai Đứa Nhóc.m4a",
+    "newPath": "Ronboogz\\Singles\\Hai Đứa Nhóc\\Ronboogz - Hai Đứa Nhóc.m4a",
+    "canonicalArtist": "Ronboogz",
+    "canonicalTitle": "Hai Đứa Nhóc",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Lan Man\\Ronboogz (Lyrics Video) - Lan Man.m4a",
+    "newPath": "Ronboogz\\Singles\\Lan Man\\Ronboogz - Lan Man.m4a",
+    "canonicalArtist": "Ronboogz",
+    "canonicalTitle": "Lan Man",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Nói Dối\\Ronboogz (Lyrics Video) - Nói Dối.m4a",
+    "newPath": "Ronboogz\\Singles\\Nói Dối\\Ronboogz - Nói Dối.m4a",
+    "canonicalArtist": "Ronboogz",
+    "canonicalTitle": "Nói Dối",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "RONBOOGZ (Official)\\Singles\\Khi Mà\\RONBOOGZ (Official) - Khi Mà.m4a",
+    "newPath": "Ronboogz\\Singles\\Khi Mà\\Ronboogz - Khi Mà.m4a",
+    "canonicalArtist": "Ronboogz",
+    "canonicalTitle": "Khi Mà",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "RPT MCK\\Singles\\Tại Vì Sao\\RPT MCK - Tại Vì Sao.m4a",
+    "newPath": "MCK\\Singles\\Tại Vì Sao\\MCK - Tại Vì Sao.m4a",
+    "canonicalArtist": "MCK",
+    "canonicalTitle": "Tại Vì Sao",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "RPT MCK\\Singles\\Tại Vì Sao (rmx)\\RPT MCK - Tại Vì Sao (rmx).m4a",
+    "newPath": "MCK\\Singles\\Tại Vì Sao (Remix)\\MCK - Tại Vì Sao (Remix).m4a",
+    "canonicalArtist": "MCK",
+    "canonicalTitle": "Tại Vì Sao (Remix)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "RPT MCK (feat. Trung Trần)\\Singles\\Chìm Sâu\\RPT MCK (feat. Trung Trần) - Chìm Sâu.m4a",
+    "newPath": "MCK\\Singles\\Chìm Sâu\\MCK - Chìm Sâu.m4a",
+    "canonicalArtist": "MCK",
+    "canonicalTitle": "Chìm Sâu",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Tháng Năm Không Quên - H2K\\Singles\\RV Underground\\Tháng Năm Không Quên - H2K - RV Underground.m4a",
+    "newPath": "H2K\\Singles\\Tháng Năm Không Quên\\H2K - Tháng Năm Không Quên.m4a",
+    "canonicalArtist": "H2K",
+    "canonicalTitle": "Tháng Năm Không Quên",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "W-n - id 072019\\Singles\\3107\\W-n - id 072019 - 3107.m4a",
+    "newPath": "W-n\\Singles\\3107 (id 072019)\\W-n - 3107 (id 072019).m4a",
+    "canonicalArtist": "W-n",
+    "canonicalTitle": "3107 (id 072019)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "[2G17] Mấy con mèo\\Singles\\Datmaniac\\[2G17] Mấy con mèo - Datmaniac.m4a",
+    "newPath": "Datmaniac\\Singles\\Mấy Con Mèo (2G17)\\Datmaniac - Mấy Con Mèo (2G17).m4a",
+    "canonicalArtist": "Datmaniac",
+    "canonicalTitle": "Mấy Con Mèo (2G17)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "[UNhiddenGem Mixtape] 4. Felina\\Singles\\B Ray\\[UNhiddenGem Mixtape] 4. Felina - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Felina\\B Ray - Felina.m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Felina",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "Ác Mộng Đẹp\\Singles\\Đạt G - Chapter 3- Đẹp - Album -Ác Mộng Đẹp-\\Ác Mộng Đẹp - Đạt G - Chapter 3- Đẹp - Album -Ác Mộng Đẹp-.m4a",
+    "newPath": "Đạt G\\Singles\\Đẹp (Ác Mộng Đẹp)\\Đạt G - Đẹp (Ác Mộng Đẹp).m4a",
+    "canonicalArtist": "Đạt G",
+    "canonicalTitle": "Đẹp (Ác Mộng Đẹp)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "B Ray\\MV OFFICIAL\\B RAY - Cao Ốc 20.m4a",
+    "newPath": "B Ray\\Singles\\Cao Ốc 20\\B Ray - Cao Ốc 20.m4a",
+    "canonicalArtist": "B Ray",
+    "canonicalTitle": "Cao Ốc 20",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "KHOA\\HOMIE BOIZ OFFICIAL\\KHOA - Tết Đong Đầy.m4a",
+    "newPath": "KHOA\\Singles\\Tết Đong Đầy\\KHOA - Tết Đong Đầy.m4a",
+    "canonicalArtist": "KHOA",
+    "canonicalTitle": "Tết Đong Đầy",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  },
+  {
+    "category": "(chill)",
+    "oldPath": "RPT Groovie\\RAPITALOVE\\RPT Groovie - Xích Thêm Chút - XTC Remix.m4a",
+    "newPath": "RPT Groovie\\Singles\\Xích Thêm Chút (XTC Remix)\\RPT Groovie - Xích Thêm Chút (XTC Remix).m4a",
+    "canonicalArtist": "RPT Groovie",
+    "canonicalTitle": "Xích Thêm Chút (XTC Remix)",
+    "confidence": "Cao",
+    "conflictNote": "Đã duyệt chuẩn hóa"
+  }
+]

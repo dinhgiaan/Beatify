@@ -53,6 +53,8 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
 
+  const isAllSelected = offlineTracks.length > 0 && selectedTrackIds.size === offlineTracks.length;
+
   // Tính tổng dung lượng của các bài đang được chọn
   const selectedTotalBytes = useMemo(() => {
     let bytes = 0;
@@ -276,28 +278,27 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
         {/* Thanh công cụ hành động (Action Bar) */}
         <View style={styles.actionBar}>
           <View style={styles.actionLeftRow}>
-            {
-              offlineTracks.length > 0 && !isSelectMode && (
-                <>
-                  <TouchableOpacity
-                    style={styles.playMiniBtn}
-                    onPress={handlePlayAll}
-                    activeOpacity={0.7}
-                  >
-                    <PlayIcon size={14} color="#000000" />
-                    <Text style={styles.playMiniBtnText}>Phát</Text>
-                  </TouchableOpacity>
+            {offlineTracks.length > 0 && !isSelectMode && (
+              <>
+                <TouchableOpacity
+                  style={styles.playMiniBtn}
+                  onPress={handlePlayAll}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Phát tất cả bài đã tải"
+                >
+                  <PlayIcon size={16} color="#000000" />
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.shuffleMiniBtn}
-                    onPress={handleShufflePlay}
-                    activeOpacity={0.7}
-                  >
-                    <ShuffleIcon size={15} color={tokens.colors.textPrimary} />
-                  </TouchableOpacity>
-                </>
-              )
-            }
+                <TouchableOpacity
+                  style={styles.shuffleMiniBtn}
+                  onPress={handleShufflePlay}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Xáo trộn bài đã tải"
+                >
+                  <ShuffleIcon size={16} color={tokens.colors.textPrimary} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.actionRightRow}>
@@ -306,37 +307,37 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
                 {isSelectMode ? (
                   <>
                     <TouchableOpacity
-                      style={styles.selectTextBtn}
+                      style={[
+                        styles.circleSelectBtn,
+                        isAllSelected && styles.circleSelectBtnActive,
+                      ]}
                       onPress={handleSelectAll}
                       activeOpacity={0.7}
+                      accessibilityLabel={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                     >
-                      <Text style={styles.selectTextBtnLabel}>
-                        {selectedTrackIds.size === offlineTracks.length ? 'Bỏ chọn' : 'Chọn hết'}
-                      </Text>
+                      {isAllSelected && <CheckIcon size={13} color="#000000" />}
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.selectTextBtn}
+                      style={styles.cancelSelectBtn}
                       onPress={handleCancelSelect}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.selectTextBtnLabel, { color: tokens.colors.danger }]}>
-                        Hủy
-                      </Text>
+                      <Text style={styles.cancelSelectBtnText}>Xong</Text>
                     </TouchableOpacity>
                   </>
                 ) : (
                   <>
                     <TouchableOpacity
-                      style={styles.selectToggleBtn}
+                      style={styles.circleSelectBtn}
                       onPress={() => {
                         triggerSelectionHaptic();
                         setIsSelectMode(true);
+                        setSelectedTrackIds(new Set(offlineTracks.map((t) => t.id)));
                       }}
                       activeOpacity={0.7}
-                    >
-                      <Text style={styles.selectToggleBtnText}>Chọn</Text>
-                    </TouchableOpacity>
+                      accessibilityLabel="Chọn tất cả bài hát"
+                    />
 
                     <TouchableOpacity
                       style={styles.clearAllBtn}
@@ -505,23 +506,17 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   playMiniBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    width: 52,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: tokens.colors.accent,
-    paddingVertical: 7,
-    paddingHorizontal: tokens.spacing.md,
-    borderRadius: tokens.radius.pill,
-  },
-  playMiniBtnText: {
-    ...tokens.typography.footnote,
-    color: '#000000',
-    fontWeight: '700',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   shuffleMiniBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 52,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: tokens.colors.bgSurface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -531,16 +526,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: tokens.spacing.sm,
   },
-  selectToggleBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: tokens.spacing.md,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.colors.bgSurface,
+  circleSelectBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.8,
+    borderColor: tokens.colors.textMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  selectToggleBtnText: {
+  circleSelectBtnActive: {
+    backgroundColor: tokens.colors.accent,
+    borderColor: tokens.colors.accent,
+  },
+  cancelSelectBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: tokens.spacing.sm,
+  },
+  cancelSelectBtnText: {
     ...tokens.typography.footnote,
-    color: tokens.colors.textPrimary,
-    fontWeight: '500',
+    color: tokens.colors.textSecondary,
+    fontWeight: '600',
   },
   clearAllBtn: {
     width: 32,
@@ -549,15 +556,6 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.bgSurface,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  selectTextBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: tokens.spacing.sm,
-  },
-  selectTextBtnLabel: {
-    ...tokens.typography.footnote,
-    color: tokens.colors.accent,
-    fontWeight: '600',
   },
   listContent: {
     paddingHorizontal: tokens.spacing.lg,

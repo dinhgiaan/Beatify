@@ -2291,8 +2291,8 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
       } else if (existsSync(sidecarLrc)) {
         text = await fs.readFile(sidecarLrc, 'utf-8');
       }
-      if (text) {
-        await uploader.uploadLyrics(item.track.lyrics!.file, text);
+      if (item.track.lyrics?.file && text) {
+        await uploader.uploadLyrics(item.track.lyrics.file, text);
       }
     }
 

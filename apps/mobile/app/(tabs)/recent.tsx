@@ -207,14 +207,15 @@ export default function RecentScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* Cụm 2 nút hành động: Phát tất cả + Icon Shuffle */}
+        {/* Cụm 2 nút hành động: Nút Play (Trắng) và Nút Shuffle (Xanh) */}
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.pillBtn, styles.playAllBtn]}
             onPress={handlePlayAll}
             activeOpacity={0.8}
+            accessibilityLabel="Phát tất cả"
           >
-            <Text style={styles.playAllBtnText}>Phát tất cả</Text>
+            <PlayIcon size={20} color="#000000" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -473,7 +474,11 @@ const styles = StyleSheet.create({
   },
   playAllBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playAllBtnText: {
     fontSize: 15,
@@ -481,7 +486,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   shuffleIconBtn: {
-    width: 48,
+    flex: 1,
     height: 48,
     borderRadius: 24,
     backgroundColor: colors.primary,

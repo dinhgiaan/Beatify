@@ -1,0 +1,938 @@
+[
+  {
+    "batch": 1,
+    "trackId": "88b8b346edb1",
+    "artist": "Quavo & Takeoff",
+    "title": "HOTEL LOBBY",
+    "oldPath": "A COLORS SHOW\\Singles\\Quavo & Takeoff - HOTEL LOBBY\\A COLORS SHOW - Quavo & Takeoff - HOTEL LOBBY.m4a",
+    "newPath": "Quavo & Takeoff\\Singles\\HOTEL LOBBY\\Quavo & Takeoff - HOTEL LOBBY.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "29cf0619dea9",
+    "artist": "TOMMY TÈO",
+    "title": "Buông Hàng",
+    "oldPath": "Buông Hàng\\Singles\\Young Milo\\Buông Hàng - Young Milo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Buông Hàng\\TOMMY TÈO - Buông Hàng.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "a0c4d8722a3e",
+    "artist": "Young-H",
+    "title": "Bạn Của Tao",
+    "oldPath": "BẠN CỦA TAO - YoungH\\Video Lyrics\\BẠN CỦA TAO - YoungH - 2015.m4a",
+    "newPath": "Young-H\\Singles\\Bạn Của Tao\\Young-H - Bạn Của Tao.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "69cee77ed867",
+    "artist": "Acy",
+    "title": "Bốc Thuốc",
+    "oldPath": "BỐC THUỐC\\Singles\\Acy aka TT ( Trường Ca 5B)\\BỐC THUỐC - Acy aka TT ( Trường Ca 5B).m4a",
+    "newPath": "Acy\\Singles\\Bốc Thuốc\\Acy - Bốc Thuốc.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "4ac969d8b56e",
+    "artist": "HIEUTHUHAI",
+    "title": "Chơi (Remix) ft. MANBO",
+    "oldPath": "CHƠI (RMX) Ft.MANBO\\Singles\\Hieuthuhai\\CHƠI (RMX) Ft.MANBO - Hieuthuhai.m4a",
+    "newPath": "HIEUTHUHAI\\Singles\\Chơi (Remix) ft. MANBO\\HIEUTHUHAI - Chơi (Remix) ft. MANBO.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "cc8758618716",
+    "artist": "G-FAMILY",
+    "title": "Cypher 2G2G",
+    "oldPath": "CYPHER 2G2G\\Singles\\GMC\\CYPHER 2G2G - GMC.m4a",
+    "newPath": "G-FAMILY\\Singles\\Cypher 2G2G\\G-FAMILY - Cypher 2G2G.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "5bcc93dca7b7",
+    "artist": "Datmaniac",
+    "title": "Côn Đồ Trên Con Đò",
+    "oldPath": "Côn Đồ Trên Con Đò\\Singles\\DatManiac\\Côn Đồ Trên Con Đò - DatManiac.m4a",
+    "newPath": "Datmaniac\\Singles\\Côn Đồ Trên Con Đò\\Datmaniac - Côn Đồ Trên Con Đò.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "0f227522b46a",
+    "artist": "TOMMY TÈO",
+    "title": "Da Vàng",
+    "oldPath": "Da Vàng\\Singles\\YoungMilo\\Da Vàng - YoungMilo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Da Vàng\\TOMMY TÈO - Da Vàng.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "63cf20ea4eda",
+    "artist": "Jombie",
+    "title": "Em Tao Hip Hop",
+    "oldPath": "EM TAO HIP HOP\\Singles\\Jombie\\EM TAO HIP HOP - Jombie.m4a",
+    "newPath": "Jombie\\Singles\\Em Tao Hip Hop\\Jombie - Em Tao Hip Hop.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "77f1e6c8acb9",
+    "artist": "TOMMY TÈO",
+    "title": "Enemy",
+    "oldPath": "Enemy\\Singles\\Tommy Tèo\\Enemy - Tommy Tèo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Enemy\\TOMMY TÈO - Enemy.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "62e884555d9b",
+    "artist": "Meek Mill",
+    "title": "Going Bad (feat. Drake)",
+    "oldPath": "Going Bad (feat. Drake)\\Singles\\Meek Mill\\Going Bad (feat. Drake) - Meek Mill.m4a",
+    "newPath": "Meek Mill\\Singles\\Going Bad (feat. Drake)\\Meek Mill - Going Bad (feat. Drake).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "5149f4e8fb11",
+    "artist": "B Ray",
+    "title": "Hổng Nhây Nữa Nha (Diss The Night)",
+    "oldPath": "Hổng Nhây Nữa Nha\\Singles\\B Ray (Diss The Night)「Lyrics」\\Hổng Nhây Nữa Nha - B Ray (Diss The Night)「Lyrics」.m4a",
+    "newPath": "B Ray\\Singles\\Hổng Nhây Nữa Nha (Diss The Night)\\B Ray - Hổng Nhây Nữa Nha (Diss The Night).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "b686d4957ccb",
+    "artist": "5ber1",
+    "title": "Làm Liều (feat. Kriss Ngo)",
+    "oldPath": "LÀM LIỀU (feat. Kriss Ngo )\\Singles\\5ber1\\LÀM LIỀU (feat. Kriss Ngo ) - 5ber1.m4a",
+    "newPath": "5ber1\\Singles\\Làm Liều (feat. Kriss Ngo)\\5ber1 - Làm Liều (feat. Kriss Ngo).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "cd620905007c",
+    "artist": "LĂNG LD",
+    "title": "Quay Đầu Là Hiphop",
+    "oldPath": "Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc\\Singles\\Quay Đầu Là Hiphop\\Lăng LD. Lil Wuyn. KhoaWzzzy. Khánh Jayz. Rick. Ryco. BìnhGold. Joka3iz. Cá Nóc - Quay Đầu Là Hiphop.m4a",
+    "newPath": "LĂNG LD\\Singles\\Quay Đầu Là Hiphop\\LĂNG LD - Quay Đầu Là Hiphop.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 1,
+    "trackId": "885ca63e5325",
+    "artist": "TOMMY TÈO",
+    "title": "Phía Bờ Tây",
+    "oldPath": "LợiCathay\\Singles\\Phía Bờ Tây- YoungMilo aka Tommy Tèo\\LợiCathay - Phía Bờ Tây- YoungMilo aka Tommy Tèo.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Phía Bờ Tây\\TOMMY TÈO - Phía Bờ Tây.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "571d4927e632",
+    "artist": "Polo G",
+    "title": "Go Stupid",
+    "oldPath": "Polo G - Go Stupid\\Singles\\-Hit the strip after school-\\Polo G - Go Stupid - -Hit the strip after school-.m4a",
+    "newPath": "Polo G\\Singles\\Go Stupid\\Polo G - Go Stupid.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "a4ce91f871da",
+    "artist": "TOMMY TÈO",
+    "title": "Alaba Trap",
+    "oldPath": "Quang Tèo\\Singles\\(No Copyright)Alaba Trap\\Quang Tèo - (No Copyright)Alaba Trap.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Alaba Trap\\TOMMY TÈO - Alaba Trap.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "db4953ad2257",
+    "artist": "Wowy & Karik",
+    "title": "Khu Tao Sống",
+    "oldPath": "Wowy Karik (OFFICIAL VIDEO HD)\\Singles\\Khu Tao Song\\Wowy Karik (OFFICIAL VIDEO HD) - Khu Tao Song.m4a",
+    "newPath": "Wowy & Karik\\Singles\\Khu Tao Sống\\Wowy & Karik - Khu Tao Sống.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "fcaaffec9b8e",
+    "artist": "TOMMY TÈO",
+    "title": "Quan Tài Hư (XmaXa Remix)",
+    "oldPath": "XmaXa Music\\Singles\\Quan tài hư Remix - Young Milo - XmaXa\\XmaXa Music - Quan tài hư Remix - Young Milo - XmaXa.m4a",
+    "newPath": "TOMMY TÈO\\Singles\\Quan Tài Hư (XmaXa Remix)\\TOMMY TÈO - Quan Tài Hư (XmaXa Remix).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "caec933d1a93",
+    "artist": "Yxngtabi",
+    "title": "YN1 pt.2 (ft. yugaki)",
+    "oldPath": "YN1 pt.2 (ft. yugaki\\Singles\\Yxngtabi\\YN1 pt.2 (ft. yugaki - Yxngtabi.m4a",
+    "newPath": "Yxngtabi\\Singles\\YN1 pt.2 (ft. yugaki)\\Yxngtabi - YN1 pt.2 (ft. yugaki).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "59b14252514a",
+    "artist": "G-FAMILY",
+    "title": "Bát Quái (2G17)",
+    "oldPath": "[2G17] BÁT QUÁI\\Singles\\G.family\\[2G17] BÁT QUÁI - G.family.m4a",
+    "newPath": "G-FAMILY\\Singles\\Bát Quái (2G17)\\G-FAMILY - Bát Quái (2G17).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "91b0da20a794",
+    "artist": "B Ray",
+    "title": "Little Homie (Reply Kidchoi)",
+    "oldPath": "[Reply Kidchoi] Little Homie\\Singles\\B Ray\\[Reply Kidchoi] Little Homie - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Little Homie (Reply Kidchoi)\\B Ray - Little Homie (Reply Kidchoi).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "c7083ea9e4be",
+    "artist": "B Ray",
+    "title": "Đúng Như Lời Họ Nói",
+    "oldPath": "[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói\\Singles\\B Ray\\[UNhiddenGem Mixtape] 2. Đúng Như Lời Họ Nói - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Đúng Như Lời Họ Nói\\B Ray - Đúng Như Lời Họ Nói.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "83fc58fefa09",
+    "artist": "Pikey",
+    "title": "Điều Tao Nói",
+    "oldPath": "Điều Tao Nói\\Singles\\Pikey\\Điều Tao Nói - Pikey.m4a",
+    "newPath": "Pikey\\Singles\\Điều Tao Nói\\Pikey - Điều Tao Nói.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "457234a364d0",
+    "artist": "2T",
+    "title": "Cưới Đi (Lyric Video)",
+    "oldPath": "2T - CƯỚI ĐI\\Singles\\Chưa Từng Mặc Váy Cưới\\2T - CƯỚI ĐI - Chưa Từng Mặc Váy Cưới.m4a",
+    "newPath": "2T\\Singles\\Cưới Đi (Lyric Video)\\2T - Cưới Đi (Lyric Video).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "b9d8657dd013",
+    "artist": "Aaron Smith",
+    "title": "Dancin (KRONO Remix)",
+    "oldPath": "7clouds\\Singles\\Aaron Smith - Dancin (KRONO Remix) - Lyrics\\7clouds - Aaron Smith - Dancin (KRONO Remix) - Lyrics.m4a",
+    "newPath": "Aaron Smith\\Singles\\Dancin (KRONO Remix)\\Aaron Smith - Dancin (KRONO Remix).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "62a7ccbe277b",
+    "artist": "TTeam",
+    "title": "Muốn Nói Với Em (ft. DT Tập Rap)",
+    "oldPath": "BlackBi Original\\Singles\\TTeam - MUỐN NÓI VỚI EM - DT Tập Rap\\BlackBi Original - TTeam - MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "newPath": "TTeam\\Singles\\Muốn Nói Với Em (ft. DT Tập Rap)\\TTeam - Muốn Nói Với Em (ft. DT Tập Rap).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "514461a43c61",
+    "artist": "Huỳnh James",
+    "title": "Cho Họ Ghét Đi Em",
+    "oldPath": "CHO HỌ GHÉT ĐI EM\\Singles\\Huỳnh James\\CHO HỌ GHÉT ĐI EM - Huỳnh James.m4a",
+    "newPath": "Huỳnh James\\Singles\\Cho Họ Ghét Đi Em\\Huỳnh James - Cho Họ Ghét Đi Em.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "904aedb8db44",
+    "artist": "Phát Hồ",
+    "title": "Chờ Ngày Cưới Em",
+    "oldPath": "CHỜ NGÀY CƯỚI EM\\Singles\\Phát Hồ\\CHỜ NGÀY CƯỚI EM - Phát Hồ.m4a",
+    "newPath": "Phát Hồ\\Singles\\Chờ Ngày Cưới Em\\Phát Hồ - Chờ Ngày Cưới Em.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 2,
+    "trackId": "e02f64008049",
+    "artist": "1nG",
+    "title": "Có Lẽ Quá Khó Để Quên 1 Người",
+    "oldPath": "CÓ LẼ QUÁ KHÓ ĐỂ QUÊN 1 NGƯỜI\\Singles\\1nG\\CÓ LẼ QUÁ KHÓ ĐỂ QUÊN 1 NGƯỜI - 1nG.m4a",
+    "newPath": "1nG\\Singles\\Có Lẽ Quá Khó Để Quên 1 Người\\1nG - Có Lẽ Quá Khó Để Quên 1 Người.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "5e888d01099b",
+    "artist": "Pixel Neko",
+    "title": "Cô Nàng Khác Người (ft. MCK)",
+    "oldPath": "Cô Nàng Khác Người [feat. Nger (MCK)\\Singles\\Pixel Neko\\Cô Nàng Khác Người [feat. Nger (MCK) - Pixel Neko.m4a",
+    "newPath": "Pixel Neko\\Singles\\Cô Nàng Khác Người (ft. MCK)\\Pixel Neko - Cô Nàng Khác Người (ft. MCK).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "0dde57433c84",
+    "artist": "Dương Domic",
+    "title": "Mất Kết Nối",
+    "oldPath": "Dương Domic - Mất Kết Nối\\Singles\\EP 'Dữ Liệu Quý'\\Dương Domic - Mất Kết Nối - EP 'Dữ Liệu Quý'.m4a",
+    "newPath": "Dương Domic\\Singles\\Mất Kết Nối\\Dương Domic - Mất Kết Nối.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "ccc43e44660c",
+    "artist": "B Ray",
+    "title": "Vùng An Toàn (ft. V#)",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 02. Vùng An Toàn - B Ray (ft. V#) - Prod. Hipz\\EvB Records - [CHO BẢO] 02. Vùng An Toàn - B Ray (ft. V#) - Prod. Hipz.m4a",
+    "newPath": "B Ray\\Singles\\Vùng An Toàn (ft. V#)\\B Ray - Vùng An Toàn (ft. V#).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "45ade149c1ba",
+    "artist": "B Ray",
+    "title": "The One (ft. Đạt G)",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew\\EvB Records - [CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew.m4a",
+    "newPath": "B Ray\\Singles\\The One (ft. Đạt G)\\B Ray - The One (ft. Đạt G).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "338ac8bd15ad",
+    "artist": "B Ray",
+    "title": "Feel At Home",
+    "oldPath": "EvB Records\\Singles\\[CHO BẢO] 07. Feel At Home - B Ray - Prod. Ducnn\\EvB Records - [CHO BẢO] 07. Feel At Home - B Ray - Prod. Ducnn.m4a",
+    "newPath": "B Ray\\Singles\\Feel At Home\\B Ray - Feel At Home.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "546f67372a94",
+    "artist": "Long Cao",
+    "title": "Hẹn Ngày Mai Yêu",
+    "oldPath": "FAPTV\\Singles\\Hẹn Ngày Mai Yêu - OST Phim Yêu Ư Để Sau - Long Cao\\FAPTV - Hẹn Ngày Mai Yêu - OST Phim Yêu Ư Để Sau - Long Cao.m4a",
+    "newPath": "Long Cao\\Singles\\Hẹn Ngày Mai Yêu\\Long Cao - Hẹn Ngày Mai Yêu.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "e1d90fcc91e9",
+    "artist": "Changg",
+    "title": "Em Không Hiểu (ft. Minh Huy)",
+    "oldPath": "Fillinus Entertainment\\Singles\\Changg\\Fillinus Entertainment - Changg.m4a",
+    "newPath": "Changg\\Singles\\Em Không Hiểu (ft. Minh Huy)\\Changg - Em Không Hiểu (ft. Minh Huy).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "fe251607f172",
+    "artist": "Kay Trần",
+    "title": "Phía Sau Em",
+    "oldPath": "Focus Entertainment\\Singles\\Phía Sau Em - Kay Trần\\Focus Entertainment - Phía Sau Em - Kay Trần.m4a",
+    "newPath": "Kay Trần\\Singles\\Phía Sau Em\\Kay Trần - Phía Sau Em.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "b683b239193c",
+    "artist": "Tea",
+    "title": "Già Cùng Nhau Là Được (ft. PC)",
+    "oldPath": "Già Cùng Nhau Là Được Lyrics  -Tea ft.PC\\Singles\\Chillsongs\\Già Cùng Nhau Là Được Lyrics  -Tea ft.PC - Chillsongs.m4a",
+    "newPath": "Tea\\Singles\\Già Cùng Nhau Là Được (ft. PC)\\Tea - Già Cùng Nhau Là Được (ft. PC).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "71940019dab1",
+    "artist": "Rhymastic",
+    "title": "Yêu 5",
+    "oldPath": "Lyrics - YÊU 5\\Singles\\Rhymastic\\Lyrics - YÊU 5 - Rhymastic.m4a",
+    "newPath": "Rhymastic\\Singles\\Yêu 5\\Rhymastic - Yêu 5.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "f817a5602e07",
+    "artist": "Sơn Tùng M-TP",
+    "title": "Cơn Mưa Ngang Qua (Part 2)",
+    "oldPath": "M-TP [ Video + Lyric Kara]\\Singles\\Cơn Mưa Ngang Qua (Part 2)\\M-TP [ Video + Lyric Kara] - Cơn Mưa Ngang Qua (Part 2).m4a",
+    "newPath": "Sơn Tùng M-TP\\Singles\\Cơn Mưa Ngang Qua (Part 2)\\Sơn Tùng M-TP - Cơn Mưa Ngang Qua (Part 2).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "675a19cf9e44",
+    "artist": "MCK",
+    "title": "Nghe Như Tình Yêu (Remix)",
+    "oldPath": "MCK remixx prod. By Kewtiie\\Singles\\Nghe như tình yêu\\MCK remixx prod. By Kewtiie - Nghe như tình yêu.m4a",
+    "newPath": "MCK\\Singles\\Nghe Như Tình Yêu (Remix)\\MCK - Nghe Như Tình Yêu (Remix).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "b1d223b66897",
+    "artist": "_duplicates\\MUỐN NÓI VỚI EM",
+    "title": "DT Tập Rap (Bản trùng)",
+    "oldPath": "MUỐN NÓI VỚI EM\\Singles\\DT Tập Rap\\MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "newPath": "_duplicates\\MUỐN NÓI VỚI EM\\Singles\\DT Tập Rap\\MUỐN NÓI VỚI EM - DT Tập Rap.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "8495500181f2",
+    "artist": "Low G",
+    "title": "An Thần (ft. Thắng)",
+    "oldPath": "Rap Nhà Làm\\Low G\\Rap Nhà Làm - An Thần (ft. Thắng).m4a",
+    "newPath": "Low G\\Singles\\An Thần (ft. Thắng)\\Low G - An Thần (ft. Thắng).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 3,
+    "trackId": "d055e9f4451b",
+    "artist": "Ronboogz",
+    "title": "Hai Đứa Nhóc",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Hai Đứa Nhóc\\Ronboogz (Lyrics Video) - Hai Đứa Nhóc.m4a",
+    "newPath": "Ronboogz\\Singles\\Hai Đứa Nhóc\\Ronboogz - Hai Đứa Nhóc.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "cd517fc9b489",
+    "artist": "Ronboogz",
+    "title": "Lan Man",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Lan Man\\Ronboogz (Lyrics Video) - Lan Man.m4a",
+    "newPath": "Ronboogz\\Singles\\Lan Man\\Ronboogz - Lan Man.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "778e785a3a93",
+    "artist": "Ronboogz",
+    "title": "Nói Dối",
+    "oldPath": "Ronboogz (Lyrics Video)\\Singles\\Nói Dối\\Ronboogz (Lyrics Video) - Nói Dối.m4a",
+    "newPath": "Ronboogz\\Singles\\Nói Dối\\Ronboogz - Nói Dối.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "6cf7ce601e2e",
+    "artist": "Ronboogz",
+    "title": "Khi Mà",
+    "oldPath": "RONBOOGZ (Official)\\Singles\\Khi Mà\\RONBOOGZ (Official) - Khi Mà.m4a",
+    "newPath": "Ronboogz\\Singles\\Khi Mà\\Ronboogz - Khi Mà.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "e620bac84097",
+    "artist": "MCK",
+    "title": "Tại Vì Sao",
+    "oldPath": "RPT MCK\\Singles\\Tại Vì Sao\\RPT MCK - Tại Vì Sao.m4a",
+    "newPath": "MCK\\Singles\\Tại Vì Sao\\MCK - Tại Vì Sao.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "751763347162",
+    "artist": "MCK",
+    "title": "Tại Vì Sao (Remix)",
+    "oldPath": "RPT MCK\\Singles\\Tại Vì Sao (rmx)\\RPT MCK - Tại Vì Sao (rmx).m4a",
+    "newPath": "MCK\\Singles\\Tại Vì Sao (Remix)\\MCK - Tại Vì Sao (Remix).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "6792efda3c5c",
+    "artist": "MCK",
+    "title": "Chìm Sâu",
+    "oldPath": "RPT MCK (feat. Trung Trần)\\Singles\\Chìm Sâu\\RPT MCK (feat. Trung Trần) - Chìm Sâu.m4a",
+    "newPath": "MCK\\Singles\\Chìm Sâu\\MCK - Chìm Sâu.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "9718d8bedfae",
+    "artist": "H2K",
+    "title": "Tháng Năm Không Quên",
+    "oldPath": "Tháng Năm Không Quên - H2K\\Singles\\RV Underground\\Tháng Năm Không Quên - H2K - RV Underground.m4a",
+    "newPath": "H2K\\Singles\\Tháng Năm Không Quên\\H2K - Tháng Năm Không Quên.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "4db0ac503082",
+    "artist": "W-n",
+    "title": "3107 (id 072019)",
+    "oldPath": "W-n - id 072019\\Singles\\3107\\W-n - id 072019 - 3107.m4a",
+    "newPath": "W-n\\Singles\\3107 (id 072019)\\W-n - 3107 (id 072019).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "4af07a5b2112",
+    "artist": "Datmaniac",
+    "title": "Mấy Con Mèo (2G17)",
+    "oldPath": "[2G17] Mấy con mèo\\Singles\\Datmaniac\\[2G17] Mấy con mèo - Datmaniac.m4a",
+    "newPath": "Datmaniac\\Singles\\Mấy Con Mèo (2G17)\\Datmaniac - Mấy Con Mèo (2G17).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "d35ae5681079",
+    "artist": "B Ray",
+    "title": "Felina",
+    "oldPath": "[UNhiddenGem Mixtape] 4. Felina\\Singles\\B Ray\\[UNhiddenGem Mixtape] 4. Felina - B Ray.m4a",
+    "newPath": "B Ray\\Singles\\Felina\\B Ray - Felina.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "c1a57c38ab9c",
+    "artist": "Đạt G",
+    "title": "Đẹp (Ác Mộng Đẹp)",
+    "oldPath": "Ác Mộng Đẹp\\Singles\\Đạt G - Chapter 3- Đẹp - Album -Ác Mộng Đẹp-\\Ác Mộng Đẹp - Đạt G - Chapter 3- Đẹp - Album -Ác Mộng Đẹp-.m4a",
+    "newPath": "Đạt G\\Singles\\Đẹp (Ác Mộng Đẹp)\\Đạt G - Đẹp (Ác Mộng Đẹp).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "ae80cceecf09",
+    "artist": "B Ray",
+    "title": "Cao Ốc 20",
+    "oldPath": "B Ray\\MV OFFICIAL\\B RAY - Cao Ốc 20.m4a",
+    "newPath": "B Ray\\Singles\\Cao Ốc 20\\B Ray - Cao Ốc 20.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "4e09d10b0b07",
+    "artist": "KHOA",
+    "title": "Tết Đong Đầy",
+    "oldPath": "KHOA\\HOMIE BOIZ OFFICIAL\\KHOA - Tết Đong Đầy.m4a",
+    "newPath": "KHOA\\Singles\\Tết Đong Đầy\\KHOA - Tết Đong Đầy.m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  },
+  {
+    "batch": 4,
+    "trackId": "b3f8d0f174ce",
+    "artist": "RPT Groovie",
+    "title": "Xích Thêm Chút (XTC Remix)",
+    "oldPath": "RPT Groovie\\RAPITALOVE\\RPT Groovie - Xích Thêm Chút - XTC Remix.m4a",
+    "newPath": "RPT Groovie\\Singles\\Xích Thêm Chút (XTC Remix)\\RPT Groovie - Xích Thêm Chút (XTC Remix).m4a",
+    "movedFiles": [
+      "audio",
+      "cover",
+      "lyrics",
+      "info",
+      "folder_img"
+    ],
+    "status": "SUCCESS"
+  }
+]

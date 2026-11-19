@@ -87,7 +87,7 @@ describe('MetadataCleaner', () => {
     const res = MetadataCleaner.clean({
       title: 'Meek Mill - Going Bad ft. Drake (Official Audio) | @432 hz',
     });
-    expect(res.title).toBe('Going Bad');
+    expect(res.title).toBe('Going Bad (ft. Drake)');
     expect(res.artist).toBe('Meek Mill');
     expect(res.artists).toEqual(['Meek Mill', 'Drake']);
   });
@@ -109,7 +109,7 @@ describe('MetadataCleaner', () => {
     });
     expect(res.title).toBe('Xích Thêm Chút - XTC Remix');
     expect(res.artist).toBe('RPT Groovie');
-    expect(res.artists).toEqual(['RPT Groovie', 'TLinh', 'RPT MCK']);
+    expect(res.artists).toEqual(['RPT Groovie', 'tlinh', 'RPT MCK']);
     expect(res.album).toBe('RAPITALOVE');
   });
 
@@ -138,5 +138,79 @@ describe('MetadataCleaner', () => {
     });
     expect(res.title).toBe('Sunflower (Spider-Man: Into the Spider-Verse)');
     expect(res.artist).toBe('Post Malone');
+  });
+
+  // ============================================================
+  // CÁC TEST CASES THEO CHUẨN GIAI ĐOẠN 2 & BƯỚC 7
+  // ============================================================
+  describe('Chuẩn hóa metadata pipeline (Bước 7)', () => {
+    it('1. RYCO - "VIỆT" NÊN LÀM (Ft. MEGASHOCK) Official Video', () => {
+      const res = MetadataCleaner.clean({
+        title: 'RYCO - "VIỆT" NÊN LÀM (Ft. MEGASHOCK) Official Video',
+        channel: 'RYCO Official',
+      });
+      expect(res.artist).toBe('RYCO');
+      expect(res.title).toBe('Việt Nên Làm (ft. MEGASHOCK)');
+    });
+
+    it('2. Thu Cuối | Mr T x Yanbi x Hằng Bingboong | Official Music Video', () => {
+      const res = MetadataCleaner.clean({
+        title: 'Thu Cuối | Mr T x Yanbi x Hằng Bingboong | Official Music Video',
+        channel: 'POPS MUSIC',
+      });
+      expect(res.artist).toBe('Mr T');
+      expect(res.title).toBe('Thu Cuối');
+    });
+
+    it('3. Pho Dac Biet - Yung Ni99', () => {
+      const res = MetadataCleaner.clean({
+        title: 'Pho Dac Biet - Yung Ni99',
+      });
+      expect(res.artist).toBe('Yung Ni99');
+      expect(res.title).toBe('Pho Dac Biet');
+    });
+
+    it('4. BẠN CỦA TAO - YoungH - 2015 [Video Lyrics]', () => {
+      const res = MetadataCleaner.clean({
+        title: 'BẠN CỦA TAO - YoungH - 2015 [Video Lyrics]',
+        channel: 'Viet Underground',
+      });
+      expect(res.artist).toBe('Young H');
+      expect(res.title).toBe('Bạn Của Tao');
+    });
+
+    it('5. [CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew', () => {
+      const res = MetadataCleaner.clean({
+        title: '[CHO BẢO] 03. The One - B Ray (ft. Đạt G) - Prod. Masew',
+        channel: 'EvB Records',
+      });
+      expect(res.artist).toBe('B Ray');
+      expect(res.title).toBe('The One (ft. Đạt G)');
+    });
+
+    it('6. EM TAO HIP HOP - Jombie (kênh aggregator G5R SQUAD Official)', () => {
+      const res = MetadataCleaner.clean({
+        title: 'EM TAO HIP HOP - Jombie',
+        channel: 'G5R SQUAD Official',
+      });
+      expect(res.artist).toBe('Jombie');
+      expect(res.title).toBe('Em Tao Hip Hop');
+    });
+
+    it('7. Chuẩn hóa alias nghệ sĩ chính xác', () => {
+      expect(MetadataCleaner.canonicalizeArtist('B RAY')).toBe('B Ray');
+      expect(MetadataCleaner.canonicalizeArtist('SƠN TÙNG M-TP')).toBe('Sơn Tùng M-TP');
+      expect(MetadataCleaner.canonicalizeArtist('ĐạtG')).toBe('Đạt G');
+      expect(MetadataCleaner.canonicalizeArtist('RUM')).toBe('Rum');
+      expect(MetadataCleaner.canonicalizeArtist('Mr.T')).toBe('Mr T');
+      expect(MetadataCleaner.canonicalizeArtist('Young-H')).toBe('Young H');
+      expect(MetadataCleaner.canonicalizeArtist('WOWY')).toBe('Wowy');
+      expect(MetadataCleaner.canonicalizeArtist('JOMBIE')).toBe('Jombie');
+      expect(MetadataCleaner.canonicalizeArtist('JUSTATEE')).toBe('JustaTee');
+      expect(MetadataCleaner.canonicalizeArtist('CENTRAL CEE')).toBe('Central Cee');
+      expect(MetadataCleaner.canonicalizeArtist('NLE CHOPPA')).toBe('NLE Choppa');
+      expect(MetadataCleaner.canonicalizeArtist('JACK')).toBe('Jack');
+      expect(MetadataCleaner.canonicalizeArtist('W-n')).toBe('W/n');
+    });
   });
 });

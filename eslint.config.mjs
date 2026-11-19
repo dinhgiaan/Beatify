@@ -15,6 +15,7 @@ export default defineConfig(
     '**/ios/**',
     '**/android/**',
     'fixtures/music/**',
+    'scratch/**',
   ]),
   js.configs.recommended,
   tseslint.configs.strict,
