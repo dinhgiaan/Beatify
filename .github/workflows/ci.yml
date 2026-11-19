@@ -26,9 +26,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Cài đặt ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sudo apt-get update -qq -o Acquire::Retries=3 -o Acquire::http::Timeout="15"
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
