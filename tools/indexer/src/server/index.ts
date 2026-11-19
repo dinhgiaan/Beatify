@@ -3013,20 +3013,124 @@ app.post('/local-api/tracks/batch/trash', async (c) => {
   });
 });
 
-// Helper dọn dẹp tài nguyên (lời, ảnh bìa, file Cloudflare R2) khi xóa vĩnh viễn bài hát
+// Helper tra cứu đường dẫn tệp âm thanh thực tế trên đĩa cứng
+async function findTrackAudioPath(id: string): Promise<string | null> {
+  // 1. Kiểm tra trong cachedScannedTracks
+  const cachedItem = cachedScannedTracks.find((t) => t.track.id === id);
+  if (cachedItem && existsSync(cachedItem.filePath)) {
+    return cachedItem.filePath;
+  }
+
+  // 2. Kiểm tra trong youtube_downloads history
+  try {
+    const downloads = await youtubeJobRunner.getDownloads(1000);
+    const dlItem = downloads.find((d) => d.trackId === id || d.id === id);
+    if (dlItem?.libraryRootPath && dlItem?.relativeFilePath) {
+      const fullPath = path.resolve(dlItem.libraryRootPath, dlItem.relativeFilePath);
+      if (existsSync(fullPath)) return fullPath;
+    }
+  } catch {
+    // bỏ qua
+  }
+
+  // 3. Quét các thư mục nhạc nguồn (MUSIC_SOURCE_DIR, MUSIC_IMPORT_DIR)
+  const localConfig = loadLocalConfig();
+  const roots = [localConfig.MUSIC_SOURCE_DIR, localConfig.MUSIC_IMPORT_DIR].filter((r): r is string => Boolean(r && existsSync(r)));
+  for (const root of roots) {
+    try {
+      const files = await findAudioFiles(root);
+      for (const file of files) {
+        try {
+          const tid = await calculateTrackId(file);
+          if (tid === id) {
+            return file;
+          }
+        } catch {
+          // bỏ qua lỗi đọc file
+        }
+      }
+    } catch {
+      // bỏ qua
+    }
+  }
+
+  return null;
+}
+
+// Helper dọn dẹp tài nguyên (tệp đĩa cứng, lời, ảnh bìa, file Cloudflare R2) khi xóa vĩnh viễn bài hát
 async function cleanPurgeTrackResources(
   id: string,
   deleteFromR2: boolean,
+  deleteLocal: boolean,
   s3?: S3Client,
   bucket?: string
-): Promise<{ r2Deleted: boolean }> {
-  // 1. Dọn dẹp file lời bài hát cục bộ nếu có
+): Promise<{ r2Deleted: boolean; localDeleted: boolean }> {
+  let localDeleted = false;
+
+  // 1. Dọn dẹp file lời bài hát cục bộ trong cache indexer nếu có
   const localLrc = path.join(LYRICS_DIR, `${id}.lrc`);
   if (existsSync(localLrc)) {
     await fs.unlink(localLrc).catch(() => { });
+    localDeleted = true;
   }
 
-  // 2. Kiểm tra và dọn dẹp ảnh bìa album nếu không còn bài hát nào khác dùng chung
+  // 2. Nếu người dùng chọn xóa Local: Xóa tệp âm thanh và các tệp đi kèm trong thư mục nhạc nguồn
+  if (deleteLocal) {
+    const audioPath = await findTrackAudioPath(id);
+    if (audioPath && existsSync(audioPath)) {
+      try {
+        await fs.unlink(audioPath).catch(() => { });
+        localDeleted = true;
+
+        // Xóa file lời đi kèm (.lrc)
+        const trackLrc = audioPath.replace(path.extname(audioPath), '.lrc');
+        if (existsSync(trackLrc)) {
+          await fs.unlink(trackLrc).catch(() => { });
+        }
+
+        // Xóa file ảnh bìa riêng của bài hát (.jpg / .png)
+        const trackCoverJpg = audioPath.replace(path.extname(audioPath), '.jpg');
+        if (existsSync(trackCoverJpg)) {
+          await fs.unlink(trackCoverJpg).catch(() => { });
+        }
+        const trackCoverPng = audioPath.replace(path.extname(audioPath), '.png');
+        if (existsSync(trackCoverPng)) {
+          await fs.unlink(trackCoverPng).catch(() => { });
+        }
+
+        // Xóa file info.txt (nếu có)
+        const infoTxt = path.join(path.dirname(audioPath), 'info.txt');
+        if (existsSync(infoTxt)) {
+          await fs.unlink(infoTxt).catch(() => { });
+        }
+
+        // Tự động dọn dẹp thư mục nếu sau khi xóa không còn file bài hát nào
+        const trackDir = path.dirname(audioPath);
+        const remainingInDir = await fs.readdir(trackDir).catch(() => []);
+        const meaningfulFiles = remainingInDir.filter((f) => !f.startsWith('.') && f !== 'Thumbs.db');
+        if (meaningfulFiles.length === 0) {
+          await fs.rm(trackDir, { recursive: true, force: true }).catch(() => { });
+
+          // Kiểm tra tiếp thư mục cha (ví dụ Singles hoặc Album)
+          const parentDir = path.dirname(trackDir);
+          const remainingInParent = await fs.readdir(parentDir).catch(() => []);
+          const parentMeaningful = remainingInParent.filter((f) => !f.startsWith('.') && f !== 'Thumbs.db');
+          if (parentMeaningful.length === 0) {
+            await fs.rm(parentDir, { recursive: true, force: true }).catch(() => { });
+          }
+        }
+
+        // Đồng bộ loại bỏ khỏi cachedScannedTracks
+        cachedScannedTracks = cachedScannedTracks.filter(
+          (t) => t.track.id !== id && path.resolve(t.filePath).toLowerCase() !== path.resolve(audioPath).toLowerCase()
+        );
+      } catch (err) {
+        console.warn(`Lỗi xóa tệp cục bộ trên đĩa (${audioPath}):`, err);
+      }
+    }
+  }
+
+  // 3. Kiểm tra và dọn dẹp ảnh bìa album nếu không còn bài hát nào khác dùng chung
   const targetTrack = cachedScannedTracks.find((t) => t.track.id === id);
   const targetAlbumId = targetTrack?.track.albumId;
   let albumStillInUse = false;
@@ -3066,7 +3170,7 @@ async function cleanPurgeTrackResources(
     }
   }
 
-  return { r2Deleted };
+  return { r2Deleted, localDeleted };
 }
 
 // 11. API: Khôi phục bài hát từ Thùng rác (đơn lẻ)
@@ -3093,10 +3197,11 @@ app.post('/local-api/trash/restore', async (c) => {
   });
 });
 
-// 12. API: Xóa vĩnh viễn khỏi Thùng rác (đơn lẻ, hỗ trợ tùy chọn xóa đồng thời trên R2)
+// 12. API: Xóa vĩnh viễn khỏi Thùng rác (đơn lẻ, hỗ trợ tùy chọn xóa đồng thời trên Local & R2)
 app.delete('/local-api/tracks/:id/trash', async (c) => {
   const id = c.req.param('id');
   const deleteFromR2 = c.req.query('deleteFromR2') === 'true';
+  const deleteLocal = c.req.query('deleteLocal') === 'true';
   await purgeFromTrash(id);
   invalidateStatusCache();
   await autoSyncLibraryFastToR2();
@@ -3124,21 +3229,29 @@ app.delete('/local-api/tracks/:id/trash', async (c) => {
     }
   }
 
-  const { r2Deleted } = await cleanPurgeTrackResources(id, deleteFromR2, s3, bucket);
+  const { r2Deleted, localDeleted } = await cleanPurgeTrackResources(id, deleteFromR2, deleteLocal, s3, bucket);
+
+  const msgParts: string[] = ['Đã xóa vĩnh viễn khỏi thùng rác'];
+  if (localDeleted) msgParts.push('đã xóa tệp trên đĩa cứng (Local)');
+  if (r2Deleted) msgParts.push('đã xóa file tương ứng trên Cloudflare R2');
 
   return c.json({
     status: 200,
-    message: r2Deleted
-      ? 'Đã xóa vĩnh viễn khỏi thùng rác và đã xóa file tương ứng trên Cloudflare R2'
-      : 'Đã xóa vĩnh viễn khỏi thùng rác',
+    message: msgParts.join(', '),
     r2Deleted,
+    localDeleted,
   });
 });
 
 // 12.2. API: Dọn sạch hoặc xóa vĩnh viễn nhiều bài hát trong Thùng rác (Empty Trash / Batch Purge)
 app.post('/local-api/trash/empty', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { ids?: string[]; deleteFromR2?: boolean };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    ids?: string[];
+    deleteFromR2?: boolean;
+    deleteLocal?: boolean;
+  };
   const deleteFromR2 = Boolean(body?.deleteFromR2);
+  const deleteLocal = Boolean(body?.deleteLocal);
   const overrides = await getOverrides();
 
   const targetIds = Array.isArray(body?.ids) && body.ids.length > 0
@@ -3172,19 +3285,30 @@ app.post('/local-api/trash/empty', async (c) => {
     }
   }
 
+  let totalLocalDeleted = 0;
+  let totalR2Deleted = 0;
   for (const id of targetIds) {
-    await cleanPurgeTrackResources(id, deleteFromR2, s3, bucket);
+    const { r2Deleted, localDeleted } = await cleanPurgeTrackResources(id, deleteFromR2, deleteLocal, s3, bucket);
+    if (r2Deleted) totalR2Deleted++;
+    if (localDeleted) totalLocalDeleted++;
   }
 
   await batchPurgeFromTrash(targetIds);
   invalidateStatusCache();
   await autoSyncLibraryFastToR2();
 
+  const msgParts: string[] = [`Đã xóa vĩnh viễn ${targetIds.length} bài hát khỏi thùng rác`];
+  if (deleteLocal && totalLocalDeleted > 0) msgParts.push(`đã xóa ${totalLocalDeleted} tệp trên đĩa cứng (Local)`);
+  if (deleteFromR2 && totalR2Deleted > 0) msgParts.push(`đã xóa file tương ứng trên Cloudflare R2`);
+
   return c.json({
     status: 200,
-    message: `Đã xóa vĩnh viễn ${targetIds.length} bài hát khỏi thùng rác`,
+    message: msgParts.join(', '),
     purgedCount: targetIds.length,
     deleteFromR2,
+    deleteLocal,
+    totalLocalDeleted,
+    totalR2Deleted,
   });
 });
 

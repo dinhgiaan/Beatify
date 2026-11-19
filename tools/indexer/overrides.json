@@ -2124,8 +2124,8 @@
       "cover": "covers/d6472b8a2ab8.jpg"
     },
     "144a54348923": {
-      "cover": "covers/144a54348923.jpg",
-      "artist": "B Ray"
+      "artist": "B Ray",
+      "cover": "covers/144a54348923.jpg"
     },
     "33fafdbdc812": {
       "cover": "covers/33fafdbdc812.jpg"
@@ -2188,10 +2188,10 @@
       "cover": "covers/e96db687aa84.jpg"
     },
     "4e09d10b0b07": {
-      "cover": "covers/4e09d10b0b07.jpg",
       "title": "Tết Đong Đầy",
       "artist": "KHOA",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/4e09d10b0b07.jpg"
     },
     "728ef17ee463": {
       "title": "Old Town Road",
@@ -2223,9 +2223,9 @@
       "cover": "covers/85860f363fae.jpg"
     },
     "214bf32d20a7": {
-      "cover": "covers/214bf32d20a7.jpg",
+      "title": "Thu Cuối (POPS MUSIC)",
       "artist": "Mr T",
-      "title": "Thu Cuối (POPS MUSIC)"
+      "cover": "covers/214bf32d20a7.jpg"
     },
     "a171bbc85def": {
       "cover": "covers/a171bbc85def.jpg"
@@ -2254,20 +2254,20 @@
     "d055e9f4451b": {
       "title": "Hai Đứa Nhóc",
       "artist": "Ronboogz",
-      "cover": "covers/d055e9f4451b.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/d055e9f4451b.jpg"
     },
     "778e785a3a93": {
       "title": "Nói Dối",
       "artist": "Ronboogz",
-      "cover": "covers/778e785a3a93.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/778e785a3a93.jpg"
     },
     "e620bac84097": {
-      "cover": "covers/e620bac84097.jpg",
       "title": "Tại Vì Sao",
       "artist": "MCK",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/e620bac84097.jpg"
     },
     "6792efda3c5c": {
       "title": "Chìm Sâu",
@@ -2302,12 +2302,12 @@
       "cover": "covers/8889d028f8fd.jpg"
     },
     "a2fb4e610d0f": {
-      "cover": "covers/a2fb4e610d0f.jpg",
-      "artist": "Sơn Tùng M-TP"
+      "artist": "Sơn Tùng M-TP",
+      "cover": "covers/a2fb4e610d0f.jpg"
     },
     "b4d932a10181": {
-      "cover": "covers/b4d932a10181.jpg",
-      "artist": "Sơn Tùng M-TP"
+      "artist": "Sơn Tùng M-TP",
+      "cover": "covers/b4d932a10181.jpg"
     },
     "73b783b6ee6e": {
       "cover": "covers/73b783b6ee6e.jpg"
@@ -2322,8 +2322,8 @@
       "cover": "covers/97e2cbdc46da.jpg"
     },
     "4f46f58e59c7": {
-      "cover": "covers/4f46f58e59c7.jpg",
-      "artist": "Wowy"
+      "artist": "Wowy",
+      "cover": "covers/4f46f58e59c7.jpg"
     },
     "ed07399f13a1": {
       "title": "Đêm Tàn (2013) (feat. J.T.A Khanh Le)",
@@ -2335,8 +2335,8 @@
       "reviewed": true
     },
     "6257f372bf5d": {
-      "cover": "covers/6257f372bf5d.jpg",
-      "artist": "Đạt G"
+      "artist": "Đạt G",
+      "cover": "covers/6257f372bf5d.jpg"
     },
     "5a47cbde007d": {
       "cover": "covers/5a47cbde007d.jpg"
@@ -2370,25 +2370,25 @@
     "62a7ccbe277b": {
       "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
       "artist": "DT Tập Rap",
-      "cover": "covers/62a7ccbe277b.jpg",
       "album": "Singles",
+      "cover": "covers/62a7ccbe277b.jpg",
       "hidden": true,
       "deletedAt": "2026-11-16T03:24:47.995Z"
     },
     "514461a43c61": {
-      "cover": "covers/514461a43c61.jpg",
       "title": "Cho Họ Ghét Đi Em",
       "artist": "Huỳnh James",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/514461a43c61.jpg"
     },
     "d1648d1bcc5a": {
       "cover": "covers/d1648d1bcc5a.jpg"
     },
     "e02f64008049": {
-      "cover": "covers/e02f64008049.jpg",
       "title": "Có Lẽ Quá Khó Để Quên 1 Người",
       "artist": "1nG",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/e02f64008049.jpg"
     },
     "c4bc4fe7a267": {
       "cover": "covers/c4bc4fe7a267.jpg"
@@ -2406,11 +2406,11 @@
       "cover": "covers/581ff2893598.jpg",
       "hidden": true,
       "deletedAt": "2026-11-15T17:16:08.105Z",
+      "purged": true,
+      "purgedAt": "2026-11-15T17:16:14.928Z",
       "pipelineVersion": "1.5",
       "source": "layer1",
-      "reviewed": true,
-      "purged": true,
-      "purgedAt": "2026-11-15T17:16:14.928Z"
+      "reviewed": true
     },
     "fe251607f172": {
       "title": "Phía Sau Em",
@@ -2487,20 +2487,20 @@
     "8495500181f2": {
       "title": "An Thần (ft. Thắng)",
       "artist": "Low G",
-      "cover": "covers/8495500181f2.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/8495500181f2.jpg"
     },
     "cd517fc9b489": {
       "title": "Lan Man",
       "artist": "Ronboogz",
-      "cover": "covers/cd517fc9b489.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/cd517fc9b489.jpg"
     },
     "6cf7ce601e2e": {
       "title": "Khi Mà",
       "artist": "Ronboogz",
-      "cover": "covers/6cf7ce601e2e.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/6cf7ce601e2e.jpg"
     },
     "b3f8d0f174ce": {
       "title": "Xích Thêm Chút (XTC Remix)",
@@ -2512,10 +2512,10 @@
       "reviewed": true
     },
     "751763347162": {
-      "cover": "covers/751763347162.jpg",
       "title": "Tại Vì Sao (Remix)",
       "artist": "MCK",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/751763347162.jpg"
     },
     "be5421c9e37d": {
       "title": "Thêm Bao Nhiêu Lâu",
@@ -2528,8 +2528,8 @@
     "4db0ac503082": {
       "title": "3107 (id 072019)",
       "artist": "W/n",
-      "cover": "covers/4db0ac503082.jpg",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/4db0ac503082.jpg"
     },
     "4af07a5b2112": {
       "title": "Mấy Con Mèo (2G17)",
@@ -2538,21 +2538,41 @@
       "cover": "covers/4af07a5b2112.jpg"
     },
     "cc91ce1e51eb": {
-      "cover": "covers/cc91ce1e51eb.jpg",
       "title": "Đường Một Chiều",
       "artist": "Huỳnh Tú",
-      "album": "Singles"
+      "album": "Singles",
+      "cover": "covers/cc91ce1e51eb.jpg"
     },
     "782c7700a184": {
-      "cover": "covers/782c7700a184.jpg",
-      "artist": "Đạt G"
+      "artist": "Đạt G",
+      "cover": "covers/782c7700a184.jpg"
     },
     "ba6e232771fe": {
-      "cover": "covers/ba6e232771fe.jpg",
-      "artist": "Đạt G"
+      "artist": "Đạt G",
+      "cover": "covers/ba6e232771fe.jpg"
     },
     "ba871e942843": {
       "cover": "covers/ba871e942843.jpg"
+    },
+    "301a4880c88c": {
+      "title": "Câu Trả Lời (Live Performance) | CONTINUUM Album Release Showcase",
+      "artist": "J.ADE",
+      "album": "Singles",
+      "year": 2025,
+      "loudnessLufs": -16.6,
+      "replayGain": -1.4,
+      "hidden": true,
+      "deletedAt": "2026-11-19T10:17:01.725Z",
+      "purged": true,
+      "purgedAt": "2026-11-19T10:17:14.698Z"
+    },
+    "da750868a8a1": {
+      "title": "Câu Trả Lời thuê bao quý khách (Visualize Video)",
+      "artist": "J.ADE",
+      "album": "Singles",
+      "year": 2025,
+      "loudnessLufs": -11.23,
+      "replayGain": -6.77
     }
   },
   "artistAliases": {

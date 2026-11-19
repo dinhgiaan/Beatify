@@ -62,6 +62,16 @@
     - Xóa subtitle thừa dưới lời chào; chuẩn hóa nút icon bên phải thành nút tròn `36x36pt`, nền `surfaceElevated` bo tròn chuẩn Apple HIG.
   - **Thay đổi Icon Tab thứ 3 Bottom Bar ([SvgIcons.tsx](file:///d:/apps%20on%20phone/Beatify/apps/mobile/src/components/icons/SvgIcons.tsx)):**
     - Cập nhật biểu tượng `LibraryIcon` thành biểu tượng Your Library hiện đại chuẩn âm nhạc (kệ đĩa/sách nghiêng và đứng), thay thế cho hình cuốn sách cũ.
+- **11. Khắc phục Tính năng Xóa Vĩnh Viễn Trong Thùng Rác (Dashboard & Indexer Server):**
+  - **Dọn dẹp triệt để trên Local:** Đã xóa sạch thư mục bài hát còn sót lại của J.ADE (`D:\music for app\J.ADE`) sau khi xác nhận trên R2 đã được xóa thành công trước đó.
+  - **Bổ sung xóa tệp vật lý Local trong Backend Indexer (`cleanPurgeTrackResources` & `findTrackAudioPath`):** Khi người dùng chọn `deleteLocal: true`, backend tự động truy tìm đường dẫn tệp bài hát gốc (từ `cachedScannedTracks`, `youtube_downloads` hoặc quét tìm trong `MUSIC_SOURCE_DIR`/`MUSIC_IMPORT_DIR`), xóa file âm thanh gốc, file ảnh bìa, file `.lrc`, file `info.txt` và dọn dẹp thư mục cha nếu rỗng.
+  - **Nâng cấp Giao diện Thùng rác Web (`TrashPage.tsx`):**
+    - Trang bị 2 checkbox độc lập, rõ ràng trong toàn bộ các hộp thoại xác nhận (Xóa 1 bài, Xóa các bài đã chọn, Dọn sạch thùng rác):
+      1. *"Xóa vĩnh viễn tệp âm thanh và tệp liên quan trên đĩa cứng (Local)"* (mặc định BẬT).
+      2. *"Xóa đồng thời file bài hát và ảnh bìa trên Cloudflare R2"* (mặc định BẬT).
+    - Đồng bộ tham số `deleteLocal` và `deleteFromR2` qua API `DELETE /local-api/tracks/:id/trash` và `POST /local-api/trash/empty`.
+  - **Vận hành Server an toàn:** Server Indexer đã được khởi động lại ở chế độ daemon nền (không watch) trên cổng 4000 (`http://127.0.0.1:4000`), kiểm tra endpoint `/local-api/trash` hoạt động ổn định.
+  - **Kiểm thử & Typecheck:** Toàn bộ 425 tests (132 shared, 25 api, 124 mobile bao gồm uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

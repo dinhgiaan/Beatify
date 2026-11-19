@@ -33,7 +33,8 @@ export const TrashPage: React.FC = () => {
   const [purgeTarget, setPurgeTarget] = useState<TrashItem | null>(null);
   const [isEmptyTrashOpen, setIsEmptyTrashOpen] = useState(false);
   const [isBatchPurgeOpen, setIsBatchPurgeOpen] = useState(false);
-  const [deleteFromR2, setDeleteFromR2] = useState(false);
+  const [deleteLocal, setDeleteLocal] = useState(true);
+  const [deleteFromR2, setDeleteFromR2] = useState(true);
 
   const { data: trash = [], isLoading, refetch } = useQuery<TrashItem[]>({
     queryKey: ['trash-items'],
@@ -95,8 +96,8 @@ export const TrashPage: React.FC = () => {
 
   // Xóa vĩnh viễn 1 bài
   const purgeMutation = useMutation({
-    mutationFn: async ({ id, deleteFromR2 }: { id: string; deleteFromR2: boolean }) => {
-      return requestApi(`/local-api/tracks/${id}/trash?deleteFromR2=${deleteFromR2}`, {
+    mutationFn: async ({ id, deleteFromR2, deleteLocal }: { id: string; deleteFromR2: boolean; deleteLocal: boolean }) => {
+      return requestApi(`/local-api/tracks/${id}/trash?deleteFromR2=${deleteFromR2}&deleteLocal=${deleteLocal}`, {
         method: 'DELETE',
       });
     },
@@ -118,10 +119,10 @@ export const TrashPage: React.FC = () => {
 
   // Xóa vĩnh viễn hàng loạt hoặc dọn sạch thùng rác
   const batchPurgeMutation = useMutation({
-    mutationFn: async ({ ids, deleteFromR2 }: { ids?: string[]; deleteFromR2: boolean }) => {
+    mutationFn: async ({ ids, deleteFromR2, deleteLocal }: { ids?: string[]; deleteFromR2: boolean; deleteLocal: boolean }) => {
       return requestApi('/local-api/trash/empty', {
         method: 'POST',
-        body: JSON.stringify({ ids, deleteFromR2 }),
+        body: JSON.stringify({ ids, deleteFromR2, deleteLocal }),
       });
     },
     onSuccess: (data: unknown) => {
@@ -172,7 +173,8 @@ export const TrashPage: React.FC = () => {
                 variant="danger"
                 size="sm"
                 onClick={() => {
-                  setDeleteFromR2(false);
+                  setDeleteLocal(true);
+                  setDeleteFromR2(true);
                   setIsEmptyTrashOpen(true);
                 }}
                 className="gap-1.5"
@@ -214,7 +216,8 @@ export const TrashPage: React.FC = () => {
               variant="danger"
               size="sm"
               onClick={() => {
-                setDeleteFromR2(false);
+                setDeleteLocal(true);
+                setDeleteFromR2(true);
                 setIsBatchPurgeOpen(true);
               }}
               disabled={batchPurgeMutation.isPending}
@@ -317,7 +320,8 @@ export const TrashPage: React.FC = () => {
                         size="sm"
                         onClick={() => {
                           setPurgeTarget(item);
-                          setDeleteFromR2(false);
+                          setDeleteLocal(true);
+                          setDeleteFromR2(true);
                         }}
                         disabled={purgeMutation.isPending}
                         className="gap-1.5"
@@ -344,20 +348,29 @@ export const TrashPage: React.FC = () => {
             <p>
               Hành động này không thể hoàn tác. Bài hát <strong>&quot;{purgeTarget?.title}&quot;</strong> sẽ bị xóa vĩnh viễn khỏi hệ thống.
             </p>
-            <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] cursor-pointer select-none">
-              <Checkbox
-                checked={deleteFromR2}
-                onChange={(e) => setDeleteFromR2(e.target.checked)}
-              />
-              <span>Xóa đồng thời file bài hát và ảnh bìa trên Cloudflare R2</span>
-            </label>
+            <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteLocal}
+                  onChange={(e) => setDeleteLocal(e.target.checked)}
+                />
+                <span className="font-medium text-zinc-300">Xóa vĩnh viễn tệp âm thanh và tệp liên quan trên đĩa cứng (Local)</span>
+              </label>
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteFromR2}
+                  onChange={(e) => setDeleteFromR2(e.target.checked)}
+                />
+                <span className="font-medium text-amber-300/90">Xóa đồng thời file bài hát và ảnh bìa trên Cloudflare R2</span>
+              </label>
+            </div>
           </div>
         }
         confirmText="Xóa vĩnh viễn"
         variant="danger"
         onConfirm={() => {
           if (purgeTarget) {
-            purgeMutation.mutate({ id: purgeTarget.id, deleteFromR2 });
+            purgeMutation.mutate({ id: purgeTarget.id, deleteFromR2, deleteLocal });
           }
         }}
       />
@@ -372,19 +385,28 @@ export const TrashPage: React.FC = () => {
             <p>
               Hành động này không thể hoàn tác. <strong>{selectedIds.size} bài hát</strong> được chọn sẽ bị xóa vĩnh viễn khỏi danh sách thùng rác.
             </p>
-            <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] cursor-pointer select-none">
-              <Checkbox
-                checked={deleteFromR2}
-                onChange={(e) => setDeleteFromR2(e.target.checked)}
-              />
-              <span>Xóa đồng thời các file tương ứng trên Cloudflare R2</span>
-            </label>
+            <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteLocal}
+                  onChange={(e) => setDeleteLocal(e.target.checked)}
+                />
+                <span className="font-medium text-zinc-300">Xóa vĩnh viễn tệp âm thanh và tệp liên quan trên đĩa cứng (Local)</span>
+              </label>
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteFromR2}
+                  onChange={(e) => setDeleteFromR2(e.target.checked)}
+                />
+                <span className="font-medium text-amber-300/90">Xóa đồng thời các file tương ứng trên Cloudflare R2</span>
+              </label>
+            </div>
           </div>
         }
         confirmText={`Xóa ${selectedIds.size} bài vĩnh viễn`}
         variant="danger"
         onConfirm={() => {
-          batchPurgeMutation.mutate({ ids: Array.from(selectedIds), deleteFromR2 });
+          batchPurgeMutation.mutate({ ids: Array.from(selectedIds), deleteFromR2, deleteLocal });
         }}
       />
 
@@ -402,19 +424,28 @@ export const TrashPage: React.FC = () => {
             <p>
               Hành động này không thể hoàn tác. Các bản ghi và file liên kết sẽ bị loại bỏ khỏi cơ sở dữ liệu.
             </p>
-            <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] cursor-pointer select-none">
-              <Checkbox
-                checked={deleteFromR2}
-                onChange={(e) => setDeleteFromR2(e.target.checked)}
-              />
-              <span>Xóa đồng thời các file tương ứng trên Cloudflare R2</span>
-            </label>
+            <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteLocal}
+                  onChange={(e) => setDeleteLocal(e.target.checked)}
+                />
+                <span className="font-medium text-zinc-300">Xóa vĩnh viễn tệp âm thanh và tệp liên quan trên đĩa cứng (Local)</span>
+              </label>
+              <label className="flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] hover:text-white cursor-pointer select-none">
+                <Checkbox
+                  checked={deleteFromR2}
+                  onChange={(e) => setDeleteFromR2(e.target.checked)}
+                />
+                <span className="font-medium text-amber-300/90">Xóa đồng thời các file tương ứng trên Cloudflare R2</span>
+              </label>
+            </div>
           </div>
         }
         confirmText="Dọn sạch thùng rác ngay"
         variant="danger"
         onConfirm={() => {
-          batchPurgeMutation.mutate({ deleteFromR2 });
+          batchPurgeMutation.mutate({ deleteFromR2, deleteLocal });
         }}
       />
     </div>
