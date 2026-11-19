@@ -10,7 +10,7 @@ import {
   Share,
   StyleSheet,
 } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '../../src/theme/tokens';
@@ -170,259 +170,300 @@ export default function AdvancedSettingsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Animated.View entering={FadeIn.duration(200)} style={{ flex: 1 }}>
-        {/* NHẬT KÝ CHUYỂN BÀI (Chuyển vào nhóm Nâng cao) */}
-      <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ" />
-      <ListGroup>
-        <SettingRow
-          label="Nhật ký chuyển bài"
-          description="Xem lịch sử hòa âm Smart Transition trên thiết bị"
-          showChevron
-          onPress={() => {
-            triggerSelectionHaptic();
-            router.push('/settings/transition-logs');
-          }}
-        />
-      </ListGroup>
+        {/* 1. NHẬT KÝ CHUYỂN BÀI (Chuyển vào nhóm Nâng cao) */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(30).springify().damping(18)}
+          style={styles.sectionBlock}
+        >
+          <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Nhật ký chuyển bài"
+              description="Xem lịch sử hòa âm Smart Transition trên thiết bị"
+              showChevron
+              onPress={() => {
+                triggerSelectionHaptic();
+                router.push('/settings/transition-logs');
+              }}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* C1: HIỆU NĂNG TRANG CHỦ */}
-      <SectionHeader title="HIỆU NĂNG TRANG CHỦ" />
-      <ListGroup>
-        <SettingRow
-          label="Thời gian tính gần nhất"
-          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.lastElapsedMs.toFixed(1)} ms` : 'Chưa đo'}
-        />
-        <SettingRow
-          label="Số lượng section đề xuất"
-          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.sectionCount} danh mục` : 'Chưa có'}
-        />
-        <SettingRow
-          label="Số bản ghi phân tích"
-          value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.recordCount} bài nghe` : 'Chưa có'}
-        />
-        <SettingRow
-          label="Ghi log chi tiết Trang chủ"
-          description="In nhật ký buildHomeSections ra Console"
-          isSwitch
-          switchValue={isDebugHome}
-          onSwitchChange={handleToggleHomeDebug}
-        />
-      </ListGroup>
+        {/* 2. C1: HIỆU NĂNG TRANG CHỦ */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(60).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="HIỆU NĂNG TRANG CHỦ" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Thời gian tính gần nhất"
+              value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.lastElapsedMs.toFixed(1)} ms` : 'Chưa đo'}
+            />
+            <SettingRow
+              label="Số lượng section đề xuất"
+              value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.sectionCount} danh mục` : 'Chưa có'}
+            />
+            <SettingRow
+              label="Số bản ghi phân tích"
+              value={homeMetrics.lastElapsedMs !== null ? `${homeMetrics.recordCount} bài nghe` : 'Chưa có'}
+            />
+            <SettingRow
+              label="Ghi log chi tiết Trang chủ"
+              description="In nhật ký buildHomeSections ra Console"
+              isSwitch
+              switchValue={isDebugHome}
+              onSwitchChange={handleToggleHomeDebug}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* C2: CHẨN ĐOÁN LỊCH SỬ NGHE */}
-      <SectionHeader title="CHẨN ĐOÁN LỊCH SỬ NGHE" />
-      <ListGroup>
-        <SettingRow
-          label="Tổng số bản ghi nghe"
-          value={`${historyDiag.totalRecords} lượt phát`}
-        />
-        <SettingRow
-          label="Tỷ lệ nghe lướt (Skip < 25%)"
-          description="Số bài dừng sớm trước 25% thời lượng"
-          value={`${historyDiag.skippedPercent.toFixed(1)}% (${historyDiag.skippedCount})`}
-        />
-        <SettingRow
-          label="Cụm chưa chốt (15s - 16s)"
-          description="Số bài có thời lượng nghe trong khoảng 15s - 16s"
-          value={`${historyDiag.unfinalizedClusterPercent.toFixed(1)}% (${historyDiag.unfinalizedCount})`}
-        />
-      </ListGroup>
+        {/* 3. C2: CHẨN ĐOÁN LỊCH SỬ NGHE */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(90).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="CHẨN ĐOÁN LỊCH SỬ NGHE" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Tổng số bản ghi nghe"
+              value={`${historyDiag.totalRecords} lượt phát`}
+            />
+            <SettingRow
+              label="Tỷ lệ nghe lướt (Skip < 25%)"
+              description="Số bài dừng sớm trước 25% thời lượng"
+              value={`${historyDiag.skippedPercent.toFixed(1)}% (${historyDiag.skippedCount})`}
+            />
+            <SettingRow
+              label="Cụm chưa chốt (15s - 16s)"
+              description="Số bài có thời lượng nghe trong khoảng 15s - 16s"
+              value={`${historyDiag.unfinalizedClusterPercent.toFixed(1)}% (${historyDiag.unfinalizedCount})`}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
-      <SectionHeader title="HỆ THỐNG & CHỨNG CHỈ" />
-      <ListGroup>
-        <SettingRow
-          label="Hạn chứng chỉ Sideload"
-          value={expirationDate || 'Không xác định'}
-        />
-        <SettingRow
-          label="Mã bản build (SHA)"
-          value={buildSha.slice(0, 10)}
-        />
-        <SettingRow
-          label="Nền tảng mục tiêu"
-          value="iPhone 11 Pro Max (iOS 26+)"
-        />
-        <SettingRow
-          label="Độ trễ chuyển bài (Gapless)"
-          value={gaplessDeltaMs !== null ? `${gaplessDeltaMs} ms` : 'Chưa đo'}
-        />
-      </ListGroup>
+        {/* 4. THÔNG TIN HỆ THỐNG & CHỨNG CHỈ */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(120).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="HỆ THỐNG & CHỨNG CHỈ" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Hạn chứng chỉ Sideload"
+              value={expirationDate || 'Không xác định'}
+            />
+            <SettingRow
+              label="Mã bản build (SHA)"
+              value={buildSha.slice(0, 10)}
+            />
+            <SettingRow
+              label="Nền tảng mục tiêu"
+              value="iPhone 11 Pro Max (iOS 26+)"
+            />
+            <SettingRow
+              label="Độ trễ chuyển bài (Gapless)"
+              value={gaplessDeltaMs !== null ? `${gaplessDeltaMs} ms` : 'Chưa đo'}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM */}
-      <SectionHeader title="ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM" />
-      <ListGroup>
-        <SettingRow
-          label="Đồng bộ lần cuối"
-          value={formatDateTime(lastSyncTime)}
-        />
-        <SettingRow
-          label="ETag thư viện R2"
-          value={currentEtag ? currentEtag.slice(0, 16) : 'Chưa nhận'}
-        />
-        <SettingRow
-          label="Ghi đĩa atomic"
-          value={atomicWriteBranch}
-        />
-        <SettingRow
-          label="Khôi phục file hỏng"
-          value={recoveryStatus}
-        />
-        {Boolean(writeQueueStatus) && (
-          <SettingRow
-            label="Hàng đợi ghi đĩa"
-            value={writeQueueStatus}
-          />
-        )}
-        {Boolean(lastMoveError) && (
-          <SettingRow
-            label="Lỗi di chuyển file"
-            value={lastMoveError}
-            isDanger
-          />
-        )}
-        {Boolean(lastSyncError) && (
-          <SettingRow
-            label="Lỗi đồng bộ gần nhất"
-            value={lastSyncError}
-            isDanger
-          />
-        )}
-        {Boolean(syncStatus) && (
-          <SettingRow
-            label="Trạng thái đồng bộ"
-            value={syncStatus}
-          />
-        )}
-        <SettingRow
-          label="Kiểm tra bài mới (ETag)"
-          description="Đồng bộ vi sai danh mục từ Cloudflare R2"
-          onPress={handleSyncNow}
-          disabled={isSyncing}
-          rightElement={
-            isSyncing ? (
-              <ActivityIndicator size="small" color={tokens.colors.accent} />
-            ) : undefined
-          }
-        />
-        <SettingRow
-          label="Xóa Cache & Tải lại"
-          description="Xóa bộ nhớ đệm và nạp lại toàn bộ kho nhạc"
-          onPress={handleClearCache}
-          disabled={isSyncing}
-        />
-      </ListGroup>
+        {/* 5. ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(150).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="ĐỒNG BỘ ETAG & BỘ NHỚ ĐỆM" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Đồng bộ lần cuối"
+              value={formatDateTime(lastSyncTime)}
+            />
+            <SettingRow
+              label="ETag thư viện R2"
+              value={currentEtag ? currentEtag.slice(0, 16) : 'Chưa nhận'}
+            />
+            <SettingRow
+              label="Ghi đĩa atomic"
+              value={atomicWriteBranch}
+            />
+            <SettingRow
+              label="Khôi phục file hỏng"
+              value={recoveryStatus}
+            />
+            {Boolean(writeQueueStatus) && (
+              <SettingRow
+                label="Hàng đợi ghi đĩa"
+                value={writeQueueStatus}
+              />
+            )}
+            {Boolean(lastMoveError) && (
+              <SettingRow
+                label="Lỗi di chuyển file"
+                value={lastMoveError}
+                isDanger
+              />
+            )}
+            {Boolean(lastSyncError) && (
+              <SettingRow
+                label="Lỗi đồng bộ gần nhất"
+                value={lastSyncError}
+                isDanger
+              />
+            )}
+            {Boolean(syncStatus) && (
+              <SettingRow
+                label="Trạng thái đồng bộ"
+                value={syncStatus}
+              />
+            )}
+            <SettingRow
+              label="Kiểm tra bài mới (ETag)"
+              description="Đồng bộ vi sai danh mục từ Cloudflare R2"
+              onPress={handleSyncNow}
+              disabled={isSyncing}
+              rightElement={
+                isSyncing ? (
+                  <ActivityIndicator size="small" color={tokens.colors.accent} />
+                ) : undefined
+              }
+            />
+            <SettingRow
+              label="Xóa Cache & Tải lại"
+              description="Xóa bộ nhớ đệm và nạp lại toàn bộ kho nhạc"
+              onPress={handleClearCache}
+              disabled={isSyncing}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* CHẨN ĐOÁN & NHẬT KÝ TAB BAR */}
-      <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ TAB BAR" />
-      <ListGroup>
-        <SettingRow
-          label="Sao chép / Chia sẻ Log Tab Bar"
-          description="Lấy toàn bộ log layout & translateX để gửi chẩn đoán"
-          onPress={() => {
-            triggerSelectionHaptic();
-            const logs = getTabDebugLogs();
-            if (!logs) {
-              Alert.alert('Chưa có log', 'Hãy chuyển qua lại các tab ở màn hình chính trước để ghi nhận dữ liệu.');
-              return;
-            }
-            Share.share({ message: logs, title: 'Beatify TabBar Debug Logs' }).catch(() => {});
-          }}
-        />
-        <SettingRow
-          label="Xóa bộ nhớ Log Tab Bar"
-          description="Làm sạch bộ nhớ đệm log để đo lại từ đầu"
-          onPress={() => {
-            triggerSelectionHaptic();
-            clearTabDebugLogs();
-            Alert.alert('Đã xóa', 'Bộ nhớ đệm log Tab Bar đã được làm sạch.');
-          }}
-        />
-      </ListGroup>
+        {/* 6. CHẨN ĐOÁN & NHẬT KÝ TAB BAR */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(180).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="CHẨN ĐOÁN & NHẬT KÝ TAB BAR" variant="list" />
+          <ListGroup>
+            <SettingRow
+              label="Sao chép / Chia sẻ Log Tab Bar"
+              description="Lấy toàn bộ log layout & translateX để gửi chẩn đoán"
+              onPress={() => {
+                triggerSelectionHaptic();
+                const logs = getTabDebugLogs();
+                if (!logs) {
+                  Alert.alert('Chưa có log', 'Hãy chuyển qua lại các tab ở màn hình chính trước để ghi nhận dữ liệu.');
+                  return;
+                }
+                Share.share({ message: logs, title: 'Beatify TabBar Debug Logs' }).catch(() => {});
+              }}
+            />
+            <SettingRow
+              label="Xóa bộ nhớ Log Tab Bar"
+              description="Làm sạch bộ nhớ đệm log để đo lại từ đầu"
+              onPress={() => {
+                triggerSelectionHaptic();
+                clearTabDebugLogs();
+                Alert.alert('Đã xóa', 'Bộ nhớ đệm log Tab Bar đã được làm sạch.');
+              }}
+            />
+          </ListGroup>
+        </Animated.View>
 
-      {/* CẤU HÌNH MÁY CHỦ CLOUDFLARE */}
-      <SectionHeader title="MÁY CHỦ CLOUDFLARE" />
-      <ListGroup>
-        <View style={styles.inputBox}>
-          <Text style={styles.inputLabel}>Địa chỉ Cloudflare Worker (Server URL)</Text>
-          <TextInput
-            style={[
-              styles.textInput,
-              focusedInput === 'url' && styles.textInputFocused,
-            ]}
-            value={inputUrl}
-            onChangeText={setInputUrl}
-            onFocus={() => setFocusedInput('url')}
-            onBlur={() => setFocusedInput(null)}
-            placeholder="https://beatify-api.worker.dev"
-            placeholderTextColor={tokens.colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
+        {/* 7. CẤU HÌNH MÁY CHỦ CLOUDFLARE */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(210).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="MÁY CHỦ CLOUDFLARE" variant="list" />
+          <ListGroup>
+            <View style={styles.inputBox}>
+              <Text style={styles.inputLabel}>Địa chỉ Cloudflare Worker (Server URL)</Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  focusedInput === 'url' && styles.textInputFocused,
+                ]}
+                value={inputUrl}
+                onChangeText={setInputUrl}
+                onFocus={() => setFocusedInput('url')}
+                onBlur={() => setFocusedInput(null)}
+                placeholder="https://beatify-api.worker.dev"
+                placeholderTextColor={tokens.colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
 
-          <View style={styles.tokenLabelRow}>
-            <Text style={styles.inputLabel}>Khóa bảo mật (API Token)</Text>
-            <TouchableOpacity
-              onPress={() => setShowToken((prev) => !prev)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.toggleTokenText}>{showToken ? 'Ẩn' : 'Hiện'}</Text>
-            </TouchableOpacity>
-          </View>
-          <TextInput
-            style={[
-              styles.textInput,
-              focusedInput === 'token' && styles.textInputFocused,
-            ]}
-            value={inputToken}
-            onChangeText={setInputToken}
-            onFocus={() => setFocusedInput('token')}
-            onBlur={() => setFocusedInput(null)}
-            placeholder="Nhập token bảo mật..."
-            placeholderTextColor={tokens.colors.textMuted}
-            secureTextEntry={!showToken}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+              <View style={styles.tokenLabelRow}>
+                <Text style={styles.inputLabel}>Khóa bảo mật (API Token)</Text>
+                <TouchableOpacity
+                  onPress={() => setShowToken((prev) => !prev)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.toggleTokenText}>{showToken ? 'Ẩn' : 'Hiện'}</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  focusedInput === 'token' && styles.textInputFocused,
+                ]}
+                value={inputToken}
+                onChangeText={setInputToken}
+                onFocus={() => setFocusedInput('token')}
+                onBlur={() => setFocusedInput(null)}
+                placeholder="Nhập token bảo mật..."
+                placeholderTextColor={tokens.colors.textMuted}
+                secureTextEntry={!showToken}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-          <PressableScale
-            style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
-            onPress={handleSaveConfig}
-            disabled={isSavingConfig}
-          >
-            <CheckIcon size={16} color="#000000" />
-            <Text style={styles.saveBtnText}>Lưu cấu hình máy chủ</Text>
-          </PressableScale>
-        </View>
-      </ListGroup>
+              <PressableScale
+                style={[styles.saveBtn, isSavingConfig && styles.btnDisabled]}
+                onPress={handleSaveConfig}
+                disabled={isSavingConfig}
+              >
+                <CheckIcon size={16} color="#000000" />
+                <Text style={styles.saveBtnText}>Lưu cấu hình máy chủ</Text>
+              </PressableScale>
+            </View>
+          </ListGroup>
+        </Animated.View>
 
-      {/* PHÁT LIÊN KẾT TRỰC TIẾP */}
-      <SectionHeader title="PHÁT LIÊN KẾT TRỰC TIẾP" />
-      <ListGroup>
-        <View style={styles.inputBox}>
-          <TextInput
-            style={[
-              styles.textInput,
-              focusedInput === 'audio' && styles.textInputFocused,
-            ]}
-            value={customAudioUrl}
-            onChangeText={setCustomAudioUrl}
-            onFocus={() => setFocusedInput('audio')}
-            onBlur={() => setFocusedInput(null)}
-            placeholder="https://example.com/audio.mp3"
-            placeholderTextColor={tokens.colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <PressableScale
-            style={styles.mysteryAddBtn}
-            onPress={handleAddCustomAudio}
-          >
-            <Text style={styles.mysteryAddBtnText}>+ Thêm vào hàng phát</Text>
-          </PressableScale>
-        </View>
-      </ListGroup>
+        {/* 8. PHÁT LIÊN KẾT TRỰC TIẾP */}
+        <Animated.View
+          entering={FadeInDown.duration(280).delay(240).springify().damping(18)}
+          style={[styles.sectionBlock, styles.sectionSpaced]}
+        >
+          <SectionHeader title="PHÁT LIÊN KẾT TRỰC TIẾP" variant="list" />
+          <ListGroup>
+            <View style={styles.inputBox}>
+              <Text style={styles.inputLabel}>Đường dẫn âm thanh trực tiếp (Audio URL)</Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  focusedInput === 'audio' && styles.textInputFocused,
+                ]}
+                value={customAudioUrl}
+                onChangeText={setCustomAudioUrl}
+                onFocus={() => setFocusedInput('audio')}
+                onBlur={() => setFocusedInput(null)}
+                placeholder="https://example.com/audio.mp3"
+                placeholderTextColor={tokens.colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <PressableScale
+                style={styles.mysteryAddBtn}
+                onPress={handleAddCustomAudio}
+              >
+                <Text style={styles.mysteryAddBtnText}>+ Thêm vào hàng phát</Text>
+              </PressableScale>
+            </View>
+          </ListGroup>
+        </Animated.View>
       </Animated.View>
     </ScrollView>
   );
@@ -436,25 +477,34 @@ const styles = StyleSheet.create({
   scrollInner: {
     paddingTop: tokens.spacing.sm,
   },
+  sectionBlock: {},
+  sectionSpaced: {
+    marginTop: 26,
+  },
   inputBox: {
-    padding: tokens.spacing.lg,
+    padding: 18,
   },
   inputLabel: {
     ...tokens.typography.caption,
-    color: tokens.colors.textMuted,
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+    marginBottom: 8,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   textInput: {
     ...tokens.typography.body,
+    fontSize: 15,
     backgroundColor: tokens.colors.bgElevated,
-    borderRadius: tokens.radius.card - 4,
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 10,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 46,
     color: tokens.colors.textPrimary,
-    borderWidth: tokens.hairlineWidth,
+    borderWidth: 1,
     borderColor: tokens.colors.separator,
-    marginBottom: tokens.spacing.md,
+    marginBottom: 16,
   },
   textInputFocused: {
     borderColor: tokens.colors.accent,
@@ -465,6 +515,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   toggleTokenText: {
     ...tokens.typography.footnote,
@@ -478,8 +529,8 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.xs,
     backgroundColor: tokens.colors.accent,
     borderRadius: tokens.radius.pill,
-    minHeight: 44,
-    marginTop: tokens.spacing.xs,
+    minHeight: 46,
+    marginTop: 6,
   },
   saveBtnText: {
     ...tokens.typography.body,
@@ -490,11 +541,12 @@ const styles = StyleSheet.create({
   mysteryAddBtn: {
     backgroundColor: tokens.colors.bgElevated,
     borderRadius: tokens.radius.pill,
-    minHeight: 44,
+    minHeight: 46,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: tokens.hairlineWidth,
+    borderWidth: 1,
     borderColor: tokens.colors.separator,
+    marginTop: 2,
   },
   mysteryAddBtnText: {
     ...tokens.typography.body,

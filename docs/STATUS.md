@@ -122,6 +122,22 @@
   - **Hiển thị Nhã nhặn theo chuẩn Apple HIG (`HomeGreeting.tsx` & `home.tsx`):**
     - Hiển thị pill nhỏ `• Cảm xúc: [Tâm trạng dự đoán]` dưới lời chào Trang chủ.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **15. Đại tu UI/UX & Chuẩn hóa Khoảng cách Nhịp thở Thị giác cho "Thống kê Replay" và "Nâng cao" (`replay.tsx`, `advanced.tsx`, `SectionHeader.tsx`, `SettingRow.tsx`):**
+  - **Khắc phục triệt để lỗi dính chữ (trên và dưới) giữa các section:**
+    - Đo đạc và thiết lập lại khoảng cách tiêu chuẩn Apple iOS Grouped Table Settings: khoảng cách giữa các nhóm section là 26pt (`sectionSpaced`), khoảng cách từ tiêu đề đến khối card là 8-10pt.
+    - Cập nhật `SectionHeader`: hỗ trợ `containerStyle`, `titleStyle` và chuẩn hóa variant `"list"` (chữ in hoa 13pt/600, letter spacing 0.5, màu textSecondary rõ nét, padding cân đối).
+    - Cập nhật `SettingRow`: tăng khoảng cách giữa label và description từ 2pt lên 3.5pt kèm `lineHeight: 18`, tăng chiều cao hàng lên 50pt (`paddingVertical: 13`), padding text container `12pt` tránh va chạm với giá trị bên phải.
+  - **Màn hình "Thống kê Replay" (`replay.tsx`):**
+    - BẢO TỒN TUYỆT ĐỐI 100% animation trượt active tab (`slidingActivePill`, `withSpring`, `useSharedValue`), vượt qua toàn bộ 14 tests của `uiRegression.test.ts`.
+    - `metricBanner`: Thêm khoảng cách dưới 24pt, viền mờ `rgba(255, 255, 255, 0.08)`, số liệu nổi bật 28pt bold màu accent.
+    - Top Bài hát: Danh sách card thoáng đãng, ảnh bìa 44x44, huy hiệu Top 3 sang trọng (vàng kim, bạc, đồng), chuyển cảnh mượt mà với Reanimated `FadeInDown.duration(260).delay(idx * 30).springify().damping(18)`.
+    - Nghệ sĩ nổi bật: Bổ sung avatar tròn ca sĩ 40x40 đồng trục với ảnh bài hát, xếp hạng huy hiệu Top 3, animation so le `FadeInDown`.
+    - Tab Kỷ niệm: Dấu ấn đầu tiên, Bài hát gắn bó nhất và Cột mốc thành tựu được phân đoạn cách nhau 26pt nhịp nhàng, chữ và ngày tháng cách nhau thông thoáng, không còn dính cục.
+  - **Màn hình "Nâng cao" (`advanced.tsx`):**
+    - Đóng gói toàn bộ 8 nhóm cài đặt vào từng block độc lập với khoảng thở 26pt, chuyển tiêu đề sang `variant="list"` chuẩn Apple Settings.
+    - Sửa triệt để cụm nhập liệu Máy chủ Cloudflare & Phát liên kết trực tiếp: padding thẻ 18pt, chiều cao input 46pt bo góc 10pt, tách biệt nút "Lưu cấu hình máy chủ" và "+ Thêm vào hàng phát" với các ô input, không còn dính chữ.
+    - Hiệu ứng xuất hiện thác nước nhịp nhàng: Toàn bộ 8 nhóm cài đặt lướt vào êm ái bằng `FadeInDown.duration(280).delay(idx * 30).springify().damping(18)`.
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

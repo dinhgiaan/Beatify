@@ -12,6 +12,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   FadeIn,
+  FadeInDown,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +33,7 @@ import {
   ClockIcon,
   TrophyIcon,
   CheckIcon,
+  ProfileIcon,
 } from '../../src/components/icons/SvgIcons';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
 
@@ -175,7 +177,7 @@ export default function ReplayScreen() {
         showsVerticalScrollIndicator={false}
       >
         {activeTab !== 'memories' ? (
-          <Animated.View key={activeTab} entering={FadeIn.duration(220)} style={{ flex: 1 }}>
+          <Animated.View key={activeTab} entering={FadeIn.duration(240)} style={{ flex: 1 }}>
             {/* TỔNG QUAN KỲ (LƯỢT NGHE & PHÚT NGHE) - THIẾT KẾ CÂN ĐỐI KHÔNG BỊ CHE KHUẤT */}
             <View style={styles.metricBanner}>
               <View style={styles.metricItem}>
@@ -198,205 +200,243 @@ export default function ReplayScreen() {
             </View>
 
             {/* TOP BÀI HÁT (THÊM ẢNH BÌA expo-image cachePolicy memory-disk) */}
-            <SectionHeader
-              title={
-                activeTab === 'week'
-                  ? 'BÀI HÁT NGHE NHIỀU TUẦN NÀY'
-                  : activeTab === 'month'
-                    ? 'BÀI HÁT NGHE NHIỀU THÁNG NÀY'
-                    : 'BÀI HÁT NGHE NHIỀU NĂM NAY'
-              }
-            />
-            <ListGroup>
-              {currentPeriodStats.topTracks.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyText}>Chưa có bài hát nào được phát trong kỳ này</Text>
-                </View>
-              ) : (
-                currentPeriodStats.topTracks.map(
-                  (
-                    t: { trackId: string; title: string; artist: string; count: number; minutes: number },
-                    idx: number
-                  ) => {
-                    const matchedTrack = trackMap.get(t.trackId);
-                    const coverUrl = matchedTrack?.cover;
-                    const rankStyle =
-                      idx === 0
-                        ? styles.rankGold
-                        : idx === 1
-                          ? styles.rankSilver
-                          : idx === 2
-                            ? styles.rankBronze
-                            : styles.rankNormal;
+            <View style={styles.sectionBlock}>
+              <SectionHeader
+                title={
+                  activeTab === 'week'
+                    ? 'BÀI HÁT NGHE NHIỀU TUẦN NÀY'
+                    : activeTab === 'month'
+                      ? 'BÀI HÁT NGHE NHIỀU THÁNG NAY'
+                      : 'BÀI HÁT NGHE NHIỀU NĂM NAY'
+                }
+                variant="list"
+              />
+              <ListGroup>
+                {currentPeriodStats.topTracks.length === 0 ? (
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>Chưa có bài hát nào được phát trong kỳ này</Text>
+                  </View>
+                ) : (
+                  currentPeriodStats.topTracks.map(
+                    (
+                      t: { trackId: string; title: string; artist: string; count: number; minutes: number },
+                      idx: number
+                    ) => {
+                      const matchedTrack = trackMap.get(t.trackId);
+                      const coverUrl = matchedTrack?.cover;
+                      const rankStyle =
+                        idx === 0
+                          ? styles.rankGold
+                          : idx === 1
+                            ? styles.rankSilver
+                            : idx === 2
+                              ? styles.rankBronze
+                              : styles.rankNormal;
 
-                    return (
-                      <View key={t.trackId} style={styles.trackRow}>
-                        <View style={[styles.rankBadge, rankStyle]}>
-                          <Text style={[styles.trackIndex, idx < 3 && styles.trackIndexTop]}>
-                            {idx + 1}
-                          </Text>
-                        </View>
+                      return (
+                        <Animated.View
+                          key={t.trackId}
+                          entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
+                          style={styles.trackRow}
+                        >
+                          <View style={[styles.rankBadge, rankStyle]}>
+                            <Text style={[styles.trackIndex, idx < 3 && styles.trackIndexTop]}>
+                              {idx + 1}
+                            </Text>
+                          </View>
 
-                        {/* Thumbnail ảnh bìa nhỏ với expo-image memory-disk */}
-                        <View style={styles.thumbWrapper}>
-                          {coverUrl ? (
-                            <Image
-                              source={{ uri: coverUrl }}
-                              style={styles.thumbImage}
-                              contentFit="cover"
-                              cachePolicy="memory-disk"
-                              transition={150}
-                            />
-                          ) : (
-                            <View style={styles.thumbFallback}>
-                              <DiscIcon size={18} color={tokens.colors.textDim} />
-                            </View>
-                          )}
-                        </View>
+                          {/* Thumbnail ảnh bìa nhỏ với expo-image memory-disk */}
+                          <View style={styles.thumbWrapper}>
+                            {coverUrl ? (
+                              <Image
+                                source={{ uri: coverUrl }}
+                                style={styles.thumbImage}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                transition={150}
+                              />
+                            ) : (
+                              <View style={styles.thumbFallback}>
+                                <DiscIcon size={18} color={tokens.colors.textDim} />
+                              </View>
+                            )}
+                          </View>
 
-                        <View style={styles.trackInfo}>
-                          <Text style={styles.trackTitle} numberOfLines={2} ellipsizeMode="tail">
-                            {cleanTrackTitle(t.title)}
-                          </Text>
-                          <Text style={styles.trackArtist} numberOfLines={1}>
-                            {t.artist}
-                          </Text>
-                        </View>
+                          <View style={styles.trackInfo}>
+                            <Text style={styles.trackTitle} numberOfLines={1} ellipsizeMode="tail">
+                              {cleanTrackTitle(t.title)}
+                            </Text>
+                            <Text style={styles.trackArtist} numberOfLines={1}>
+                              {t.artist}
+                            </Text>
+                          </View>
 
-                        <View style={styles.trackStatsBadge}>
-                          <Text style={styles.trackStatsCount}>
-                            {t.count} {STATS_LABELS.PLAYS.toLowerCase()}
-                          </Text>
-                          <Text style={styles.trackStatsMinutes}>{Math.round(t.minutes)}p</Text>
-                        </View>
-                      </View>
-                    );
-                  }
-                )
-              )}
-            </ListGroup>
+                          <View style={styles.trackStatsBadge}>
+                            <Text style={styles.trackStatsCount}>
+                              {t.count} {STATS_LABELS.PLAYS.toLowerCase()}
+                            </Text>
+                            <Text style={styles.trackStatsMinutes}>{Math.round(t.minutes)} phút</Text>
+                          </View>
+                        </Animated.View>
+                      );
+                    }
+                  )
+                )}
+              </ListGroup>
+            </View>
 
             {/* NGHỆ SĨ NỔI BẬT */}
-            <SectionHeader title="NGHỆ SĨ NỔI BẬT" />
-            <ListGroup>
-              {currentPeriodStats.topArtists.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyText}>Chưa có dữ liệu nghệ sĩ</Text>
-                </View>
-              ) : (
-                currentPeriodStats.topArtists.map(
-                  (a: { artist: string; count: number; minutes: number }, idx: number) => {
-                    const rankStyle =
-                      idx === 0
-                        ? styles.rankGold
-                        : idx === 1
-                          ? styles.rankSilver
-                          : idx === 2
-                            ? styles.rankBronze
-                            : styles.rankNormal;
+            <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+              <SectionHeader title="NGHỆ SĨ NỔI BẬT" variant="list" />
+              <ListGroup>
+                {currentPeriodStats.topArtists.length === 0 ? (
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>Chưa có dữ liệu nghệ sĩ</Text>
+                  </View>
+                ) : (
+                  currentPeriodStats.topArtists.map(
+                    (a: { artist: string; count: number; minutes: number }, idx: number) => {
+                      const rankStyle =
+                        idx === 0
+                          ? styles.rankGold
+                          : idx === 1
+                            ? styles.rankSilver
+                            : idx === 2
+                              ? styles.rankBronze
+                              : styles.rankNormal;
 
-                    return (
-                      <View key={a.artist} style={styles.artistRow}>
-                        <View style={[styles.rankBadge, rankStyle]}>
-                          <Text style={[styles.artistIndex, idx < 3 && styles.artistIndexTop]}>
-                            {idx + 1}
-                          </Text>
-                        </View>
-                        <View style={styles.artistInfo}>
-                          <Text style={styles.artistName} numberOfLines={1}>
-                            {a.artist}
-                          </Text>
-                        </View>
-                        <Text style={styles.artistCount}>
-                          {a.count} {STATS_LABELS.PLAYS.toLowerCase()}
-                        </Text>
-                      </View>
-                    );
-                  }
-                )
-              )}
-            </ListGroup>
+                      return (
+                        <Animated.View
+                          key={a.artist}
+                          entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
+                          style={styles.artistRow}
+                        >
+                          <View style={[styles.rankBadge, rankStyle]}>
+                            <Text style={[styles.artistIndex, idx < 3 && styles.artistIndexTop]}>
+                              {idx + 1}
+                            </Text>
+                          </View>
+                          <View style={styles.artistAvatar}>
+                            <ProfileIcon size={18} color={tokens.colors.textSecondary} />
+                          </View>
+                          <View style={styles.artistInfo}>
+                            <Text style={styles.artistName} numberOfLines={1}>
+                              {a.artist}
+                            </Text>
+                            <Text style={styles.artistRankLabel}>Top {idx + 1} nổi bật</Text>
+                          </View>
+                          <View style={styles.trackStatsBadge}>
+                            <Text style={styles.trackStatsCount}>
+                              {a.count} {STATS_LABELS.PLAYS.toLowerCase()}
+                            </Text>
+                            <Text style={styles.trackStatsMinutes}>{Math.round(a.minutes)} phút</Text>
+                          </View>
+                        </Animated.View>
+                      );
+                    }
+                  )
+                )}
+              </ListGroup>
+            </View>
           </Animated.View>
         ) : (
           /* TAB KỶ NIỆM & CỘT MỐC */
-          <Animated.View key={activeTab} entering={FadeIn.duration(220)} style={{ flex: 1 }}>
-            <SectionHeader title="DẤU ẤN ĐẦU TIÊN" />
-            <ListGroup>
-              {report.firstTrackEver ? (
-                <View style={styles.memoryBox}>
-                  <View style={styles.memoryIconCircle}>
-                    <MusicNoteIcon size={20} color={tokens.colors.accent} />
-                  </View>
-                  <View style={styles.memoryContent}>
-                    <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
-                      {cleanTrackTitle(report.firstTrackEver.title)}
-                    </Text>
-                    <Text style={styles.memorySubtitle}>{report.firstTrackEver.artist}</Text>
-                    <Text style={styles.memoryDate}>
-                      Bài hát mở màn cho kho nhạc vào {report.firstTrackEver.playedAt}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyText}>Hãy nghe bài hát đầu tiên để lưu dấu ấn</Text>
-                </View>
-              )}
-            </ListGroup>
-
-            <SectionHeader title="BÀI HÁT GẮN BÓ NHẤT" />
-            <ListGroup>
-              {report.mostPlayedTrackEver ? (
-                <View style={styles.memoryBox}>
-                  <View style={[styles.memoryIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.12)' }]}>
-                    <HeartIcon size={20} color="#f43f5e" fill="#f43f5e" />
-                  </View>
-                  <View style={styles.memoryContent}>
-                    <Text style={styles.memoryTitle} numberOfLines={2} ellipsizeMode="tail">
-                      {cleanTrackTitle(report.mostPlayedTrackEver.title)}
-                    </Text>
-                    <Text style={styles.memorySubtitle}>{report.mostPlayedTrackEver.artist}</Text>
-                    <Text style={styles.memoryDate}>
-                      Đã đồng hành cùng bạn {report.mostPlayedTrackEver.count} {STATS_LABELS.PLAYS.toLowerCase()}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyText}>Chưa có bài hát nổi bật</Text>
-                </View>
-              )}
-            </ListGroup>
-
-            <SectionHeader title="CỘT MỐC & THÀNH TỰU" />
-            <ListGroup>
-              {report.milestones.map((m) => (
-                <View key={m.id} style={styles.milestoneRow}>
-                  <View style={styles.milestoneIconBox}>
-                    {renderMilestoneSvg(m.id, m.achieved)}
-                  </View>
-                  <View style={styles.milestoneTextCol}>
-                    <Text
-                      style={[
-                        styles.milestoneTitle,
-                        !m.achieved && styles.milestoneTitleLocked,
-                      ]}
-                    >
-                      {m.title}
-                    </Text>
-                    <Text style={styles.milestoneDesc}>{m.desc}</Text>
-                  </View>
-                  {m.achieved ? (
-                    <View style={styles.achievedPill}>
-                      <CheckIcon size={12} color={tokens.colors.accent} />
-                      <Text style={styles.achievedPillText}>Đạt</Text>
+          <Animated.View key={activeTab} entering={FadeIn.duration(240)} style={{ flex: 1 }}>
+            <View style={styles.sectionBlock}>
+              <SectionHeader title="DẤU ẤN ĐẦU TIÊN" variant="list" />
+              <ListGroup>
+                {report.firstTrackEver ? (
+                  <Animated.View
+                    entering={FadeInDown.duration(280).delay(40).springify().damping(18)}
+                    style={styles.memoryBox}
+                  >
+                    <View style={styles.memoryIconCircle}>
+                      <MusicNoteIcon size={22} color={tokens.colors.accent} />
                     </View>
-                  ) : (
-                    <Text style={styles.lockedPillText}>Chưa mở</Text>
-                  )}
-                </View>
-              ))}
-            </ListGroup>
+                    <View style={styles.memoryContent}>
+                      <Text style={styles.memoryTitle} numberOfLines={1} ellipsizeMode="tail">
+                        {cleanTrackTitle(report.firstTrackEver.title)}
+                      </Text>
+                      <Text style={styles.memorySubtitle}>{report.firstTrackEver.artist}</Text>
+                      <Text style={styles.memoryDate}>
+                        Bài hát mở màn cho kho nhạc vào {report.firstTrackEver.playedAt}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>Hãy nghe bài hát đầu tiên để lưu dấu ấn</Text>
+                  </View>
+                )}
+              </ListGroup>
+            </View>
+
+            <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+              <SectionHeader title="BÀI HÁT GẮN BÓ NHẤT" variant="list" />
+              <ListGroup>
+                {report.mostPlayedTrackEver ? (
+                  <Animated.View
+                    entering={FadeInDown.duration(280).delay(80).springify().damping(18)}
+                    style={styles.memoryBox}
+                  >
+                    <View style={[styles.memoryIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.14)' }]}>
+                      <HeartIcon size={22} color="#f43f5e" fill="#f43f5e" />
+                    </View>
+                    <View style={styles.memoryContent}>
+                      <Text style={styles.memoryTitle} numberOfLines={1} ellipsizeMode="tail">
+                        {cleanTrackTitle(report.mostPlayedTrackEver.title)}
+                      </Text>
+                      <Text style={styles.memorySubtitle}>{report.mostPlayedTrackEver.artist}</Text>
+                      <Text style={styles.memoryDate}>
+                        Đã đồng hành cùng bạn {report.mostPlayedTrackEver.count} {STATS_LABELS.PLAYS.toLowerCase()}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>Chưa có bài hát nổi bật</Text>
+                  </View>
+                )}
+              </ListGroup>
+            </View>
+
+            <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+              <SectionHeader title="CỘT MỐC & THÀNH TỰU" variant="list" />
+              <ListGroup>
+                {report.milestones.map((m, idx) => (
+                  <Animated.View
+                    key={m.id}
+                    entering={FadeInDown.duration(260).delay(idx * 30).springify().damping(18)}
+                    style={styles.milestoneRow}
+                  >
+                    <View style={[styles.milestoneIconBox, m.achieved && styles.milestoneIconBoxAchieved]}>
+                      {renderMilestoneSvg(m.id, m.achieved)}
+                    </View>
+                    <View style={styles.milestoneTextCol}>
+                      <Text
+                        style={[
+                          styles.milestoneTitle,
+                          !m.achieved && styles.milestoneTitleLocked,
+                        ]}
+                      >
+                        {m.title}
+                      </Text>
+                      <Text style={styles.milestoneDesc}>{m.desc}</Text>
+                    </View>
+                    {m.achieved ? (
+                      <View style={styles.achievedPill}>
+                        <CheckIcon size={12} color={tokens.colors.accent} />
+                        <Text style={styles.achievedPillText}>Đạt</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.lockedPill}>
+                        <Text style={styles.lockedPillText}>Chưa mở</Text>
+                      </View>
+                    )}
+                  </Animated.View>
+                ))}
+              </ListGroup>
+            </View>
           </Animated.View>
         )}
       </ScrollView>
@@ -463,17 +503,22 @@ const styles = StyleSheet.create({
   scrollInner: {
     paddingTop: tokens.spacing.xs,
   },
+  sectionBlock: {},
+  sectionSpaced: {
+    marginTop: 26,
+  },
   metricBanner: {
     flexDirection: 'row',
     backgroundColor: tokens.colors.bgSurface,
     marginHorizontal: tokens.spacing.lg,
     marginTop: tokens.spacing.md,
+    marginBottom: 24,
     borderRadius: tokens.radius.card,
-    paddingVertical: tokens.spacing.lg,
+    paddingVertical: 18,
     paddingHorizontal: tokens.spacing.md,
     alignItems: 'center',
-    borderWidth: tokens.hairlineWidth,
-    borderColor: tokens.colors.separator,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   metricItem: {
     flex: 1,
@@ -504,16 +549,16 @@ const styles = StyleSheet.create({
   trackRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: tokens.spacing.sm + 2,
-    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: tokens.spacing.lg,
   },
   rankBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: tokens.spacing.xs,
+    marginRight: tokens.spacing.xs + 2,
   },
   rankGold: {
     backgroundColor: 'rgba(245, 158, 11, 0.16)',
@@ -544,12 +589,12 @@ const styles = StyleSheet.create({
     color: tokens.colors.textPrimary,
   },
   thumbWrapper: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: tokens.colors.bgElevated,
-    marginRight: tokens.spacing.sm + 2,
+    marginRight: 12,
   },
   thumbImage: {
     width: '100%',
@@ -570,14 +615,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: tokens.colors.textPrimary,
+    lineHeight: 20,
   },
   trackArtist: {
     ...tokens.typography.footnote,
     color: tokens.colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
   },
   trackStatsBadge: {
     alignItems: 'flex-end',
+    minWidth: 68,
   },
   trackStatsCount: {
     ...tokens.typography.footnote,
@@ -587,14 +634,23 @@ const styles = StyleSheet.create({
   trackStatsMinutes: {
     ...tokens.typography.caption,
     color: tokens.colors.textDim,
-    marginTop: 1,
+    marginTop: 2,
   },
   // Artist Row
   artistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: tokens.spacing.md,
+    paddingVertical: 12,
     paddingHorizontal: tokens.spacing.lg,
+  },
+  artistAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: tokens.colors.bgElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   artistIndex: {
     ...tokens.typography.headline,
@@ -616,6 +672,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: tokens.colors.textPrimary,
   },
+  artistRankLabel: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textDim,
+    marginTop: 2,
+  },
   artistCount: {
     ...tokens.typography.footnote,
     color: tokens.colors.textSecondary,
@@ -625,16 +686,16 @@ const styles = StyleSheet.create({
   memoryBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: tokens.spacing.lg,
+    padding: 18,
   },
   memoryIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: tokens.colors.accentMuted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: tokens.spacing.md,
+    marginRight: 14,
   },
   memoryContent: {
     flex: 1,
@@ -642,31 +703,36 @@ const styles = StyleSheet.create({
   memoryTitle: {
     ...tokens.typography.headline,
     fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 22,
   },
   memorySubtitle: {
     ...tokens.typography.footnote,
     color: tokens.colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
   },
   memoryDate: {
     ...tokens.typography.caption,
     color: tokens.colors.textDim,
-    marginTop: tokens.spacing.xs,
+    marginTop: 6,
   },
   milestoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: tokens.spacing.md,
+    paddingVertical: 13,
     paddingHorizontal: tokens.spacing.lg,
   },
   milestoneIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: tokens.colors.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: tokens.spacing.md,
+    marginRight: 14,
+  },
+  milestoneIconBoxAchieved: {
+    backgroundColor: 'rgba(29, 185, 84, 0.12)',
   },
   milestoneTextCol: {
     flex: 1,
@@ -684,14 +750,15 @@ const styles = StyleSheet.create({
   milestoneDesc: {
     ...tokens.typography.footnote,
     color: tokens.colors.textMuted,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 18,
   },
   achievedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: tokens.radius.pill,
     backgroundColor: tokens.colors.accentMuted,
   },
@@ -699,6 +766,12 @@ const styles = StyleSheet.create({
     ...tokens.typography.caption,
     color: tokens.colors.accent,
     fontWeight: '600',
+  },
+  lockedPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   lockedPillText: {
     ...tokens.typography.caption,

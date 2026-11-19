@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, type StyleProp, type ViewStyle, type TextStyle } from 'react-native';
 import { tokens } from '../../theme/tokens';
 import { colors, fontWeights } from '../../theme';
 
@@ -8,6 +8,8 @@ export interface SectionHeaderProps {
   subtitle?: string;
   rightElement?: React.ReactNode;
   variant?: 'list' | 'section';
+  containerStyle?: StyleProp<ViewStyle>;
+  titleStyle?: StyleProp<TextStyle>;
 }
 
 export function SectionHeader({
@@ -15,14 +17,16 @@ export function SectionHeader({
   subtitle,
   rightElement,
   variant = 'section',
+  containerStyle,
+  titleStyle,
 }: SectionHeaderProps) {
   const isList = variant === 'list';
 
   if (isList) {
     return (
-      <View style={[styles.container, styles.listContainer]}>
+      <View style={[styles.container, styles.listContainer, containerStyle]}>
         <View style={styles.textContainer}>
-          <Text style={styles.listTitle}>{title}</Text>
+          <Text style={[styles.listTitle, titleStyle]}>{title}</Text>
           {Boolean(subtitle) && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
         {rightElement}
@@ -31,10 +35,10 @@ export function SectionHeader({
   }
 
   return (
-    <View style={[styles.container, !subtitle && styles.containerCompact]}>
+    <View style={[styles.container, !subtitle && styles.containerCompact, containerStyle]}>
       {/* E3: Hàng tiêu đề section: 'Xem tất cả' căn giữa trực tiếp theo dòng TIÊU ĐỀ */}
       <View style={styles.topRow}>
-        <Text style={styles.sectionTitle} numberOfLines={1} ellipsizeMode="tail">
+        <Text style={[styles.sectionTitle, titleStyle]} numberOfLines={1} ellipsizeMode="tail">
           {title}
         </Text>
         {rightElement}
@@ -66,8 +70,8 @@ const styles = StyleSheet.create({
     minHeight: 28,
   },
   listContainer: {
-    paddingTop: tokens.spacing.xl,
-    paddingBottom: tokens.spacing.xs + 2,
+    paddingTop: tokens.spacing.md,
+    paddingBottom: tokens.spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -85,6 +89,10 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     ...tokens.typography.sectionHeader,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    color: tokens.colors.textSecondary,
   },
   subtitle: {
     fontSize: 13, // E2: phụ đề 13pt/400 (bắt buộc 1 dòng, ellipsis)

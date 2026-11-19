@@ -136,10 +136,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   container: {
-    minHeight: tokens.spacing.rowHeight,
+    minHeight: tokens.spacing.rowHeight + 2,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: tokens.spacing.md,
+    paddingVertical: 13,
     paddingHorizontal: tokens.spacing.lg,
   },
   disabled: {
@@ -156,12 +156,14 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingRight: tokens.spacing.sm,
+    paddingRight: tokens.spacing.md,
   },
   label: {
     ...tokens.typography.body,
-    fontSize: 16,
+    fontSize: 15.5,
+    fontWeight: '500',
     color: tokens.colors.textPrimary,
+    lineHeight: 21,
   },
   dangerLabel: {
     color: tokens.colors.danger,
@@ -169,7 +171,8 @@ const styles = StyleSheet.create({
   description: {
     ...tokens.typography.footnote,
     color: tokens.colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3.5,
+    lineHeight: 18,
   },
   rightBox: {
     flexDirection: 'row',
