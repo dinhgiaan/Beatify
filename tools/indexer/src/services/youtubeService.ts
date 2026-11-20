@@ -257,25 +257,34 @@ export function resolveDestinationPaths(
  * Hỗ trợ cấu trúc nhiều cấp (ví dụ: .../(rap)/Yung Ni99/Singles/Cold Palmer -> .../(rap)/Yung Ni99)
  */
 export function resolveArtistDirectory(targetDir: string, artistName?: string): string {
-  const normalizedTarget = path.resolve(targetDir);
-  const root = path.parse(normalizedTarget).root;
+  // Tương thích đa nền tảng (Windows & Linux CI): Nếu là đường dẫn Windows có drive letter (e.g. D:/ hoặc C:\),
+  // không dùng path.resolve để tránh bị Linux runner ghép process.cwd() vào trước đường dẫn
+  const isWindowsAbsolute = /^[a-zA-Z]:[/\\]/.test(targetDir);
+  const normalizedTarget = isWindowsAbsolute
+    ? targetDir.replace(/\\/g, '/').replace(/\/+$/, '')
+    : path.resolve(targetDir);
+  const root = isWindowsAbsolute ? normalizedTarget.slice(0, 3) : path.parse(normalizedTarget).root;
   const subfolderPatterns = /^(singles|albums|single|ep|eps|album)$/i;
+
+  const toPlatformPath = (p: string) => {
+    return isWindowsAbsolute && process.platform === 'win32' ? p.replace(/\//g, '\\') : p;
+  };
 
   // 1. Ưu tiên cao nhất: Duyệt ngược lên cây thư mục tìm thư mục có tên khớp với Nghệ sĩ
   if (artistName && artistName.trim()) {
     const normArtist = normalizeText(artistName).toLowerCase().replace(/[^a-z0-9]/g, '');
     let checkDir = normalizedTarget;
     while (checkDir && checkDir !== root) {
-      const segName = path.basename(checkDir);
+      const segName = isWindowsAbsolute ? checkDir.split('/').pop() || '' : path.basename(checkDir);
       // Bỏ qua các thư mục thể loại bọc trong ngoặc đơn như (rap), (chill)
       if (!/^\(.*\)$/.test(segName)) {
         const normSeg = normalizeText(segName).toLowerCase().replace(/[^a-z0-9]/g, '');
         if (normSeg && normArtist && normSeg === normArtist) {
-          return checkDir;
+          return toPlatformPath(checkDir);
         }
       }
-      const parent = path.dirname(checkDir);
-      if (parent === checkDir) break;
+      const parent = isWindowsAbsolute ? checkDir.substring(0, checkDir.lastIndexOf('/')) : path.dirname(checkDir);
+      if (parent === checkDir || !parent) break;
       checkDir = parent;
     }
   }
@@ -284,32 +293,32 @@ export function resolveArtistDirectory(targetDir: string, artistName?: string): 
   // thì thư mục cha ngay trên nó chính là thư mục nghệ sĩ!
   let checkDir = normalizedTarget;
   while (checkDir && checkDir !== root) {
-    const segName = path.basename(checkDir);
+    const segName = isWindowsAbsolute ? checkDir.split('/').pop() || '' : path.basename(checkDir);
     if (subfolderPatterns.test(segName)) {
-      const parent = path.dirname(checkDir);
-      if (parent !== root) {
-        return parent;
+      const parent = isWindowsAbsolute ? checkDir.substring(0, checkDir.lastIndexOf('/')) : path.dirname(checkDir);
+      if (parent && parent !== root) {
+        return toPlatformPath(parent);
       }
     }
-    const parent = path.dirname(checkDir);
-    if (parent === checkDir) break;
+    const parent = isWindowsAbsolute ? checkDir.substring(0, checkDir.lastIndexOf('/')) : path.dirname(checkDir);
+    if (parent === checkDir || !parent) break;
     checkDir = parent;
   }
 
   // 3. Fallback: Nếu thư mục cha chứa tên nghệ sĩ
-  const parentDir = path.dirname(normalizedTarget);
-  const parentBase = path.basename(parentDir);
+  const parentDir = isWindowsAbsolute ? normalizedTarget.substring(0, normalizedTarget.lastIndexOf('/')) : path.dirname(normalizedTarget);
+  const parentBase = isWindowsAbsolute ? parentDir.split('/').pop() || '' : path.basename(parentDir);
   const isParentRoot = parentDir === root;
 
   if (artistName && parentBase && !isParentRoot && !/^\(.*\)$/.test(parentBase)) {
     const normArtist = normalizeText(artistName).toLowerCase();
     const normParent = normalizeText(parentBase).toLowerCase();
     if (normParent === normArtist || (normParent.length >= 4 && normParent.includes(normArtist))) {
-      return parentDir;
+      return toPlatformPath(parentDir);
     }
   }
 
-  return normalizedTarget;
+  return toPlatformPath(normalizedTarget);
 }
 
 /**
