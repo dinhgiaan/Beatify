@@ -48,7 +48,6 @@ export const R2UploadReviewModal: React.FC<R2UploadReviewModalProps> = ({
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (!item) continue;
-      setCurrentIndex(i + 1);
       setCurrentTitle(item.title || 'bài hát');
 
       try {
@@ -58,6 +57,7 @@ export const R2UploadReviewModal: React.FC<R2UploadReviewModalProps> = ({
         const msg = err instanceof Error ? err.message : String(err);
         toast.error(`Lỗi tải bài "${item.title}": ${msg}`);
       }
+      setCurrentIndex(i + 1);
     }
 
     setIsUploading(false);

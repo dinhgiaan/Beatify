@@ -129,7 +129,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsDownloading((prev) => ({ ...prev, [track.id]: true }));
-      setDownloadProgress((prev) => ({ ...prev, [track.id]: 5 }));
+      setDownloadProgress((prev) => ({ ...prev, [track.id]: 2 }));
       try {
         // Tải lyrics trước (nếu có) để lưu trọn bộ
         let lrcContent: string | null = null;
@@ -138,6 +138,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // Bỏ qua lỗi lyrics nếu không có
         }
+        setDownloadProgress((prev) => ({ ...prev, [track.id]: 5 }));
 
         const meta = await downloadTrackOffline(
           track,
@@ -145,10 +146,17 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           serverToken,
           lrcContent,
           (pct) => {
-            setDownloadProgress((prev) => ({ ...prev, [track.id]: pct }));
+            // Giữ tiến trình luôn tăng đơn điệu (monotonic), chống giật lùi
+            setDownloadProgress((prev) => ({
+              ...prev,
+              [track.id]: Math.min(100, Math.max(prev[track.id] || 0, Math.round(pct))),
+            }));
           }
         );
+        setDownloadProgress((prev) => ({ ...prev, [track.id]: 100 }));
         setOfflineIndex((prev) => ({ ...prev, [track.id]: meta }));
+        // Giữ 250ms hiển thị 100% để người dùng nhìn thấy hoàn tất trước khi badge chuyển sang đã tải
+        await new Promise((r) => setTimeout(r, 250));
       } catch (err) {
         console.error('[OfflineProvider] Tải bài hát thất bại:', err);
         Alert.alert('Tải bài hát thất bại', err instanceof Error ? err.message : 'Lỗi kết nối máy chủ');

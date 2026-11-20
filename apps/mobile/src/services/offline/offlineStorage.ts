@@ -199,98 +199,105 @@ export async function downloadTrackOffline(
               const total = downloadProgress.totalBytesExpectedToWrite;
               const written = downloadProgress.totalBytesWritten;
               if (total > 0) {
-                const pct = Math.min(100, Math.max(0, (written / total) * 100));
+                // Ánh xạ audio download vào dải 5% - 80% để các bước sau tăng mượt mà không bị giật lùi
+                const pct = 5 + Math.min(75, Math.max(0, Math.round((written / total) * 75)));
                 onProgress(pct);
+              } else if (written > 0) {
+                // Khi server stream không trả Content-Length: ước tính tiến trình dựa trên bytes đã nhận (giả định 5MB)
+                const estimatedPct = 5 + Math.min(75, Math.round((written / (5 * 1024 * 1024)) * 75));
+                onProgress(estimatedPct);
               }
+            }
+          );
+          const downloadResult = await downloadResumable.downloadAsync();
+          if (!downloadResult || downloadResult.status < 200 || downloadResult.status >= 300) {
+            throw new Error(`Tải file âm thanh thất bại (HTTP ${downloadResult?.status || 500})`);
           }
-    );
-    const downloadResult = await downloadResumable.downloadAsync();
-    if (!downloadResult || downloadResult.status < 200 || downloadResult.status >= 300) {
-      throw new Error(`Tải file âm thanh thất bại (HTTP ${downloadResult?.status || 500})`);
-    }
-  } else {
-    onProgress?.(40);
-    const audioDownloadResult = await FileSystem.downloadAsync(streamUrl, audioAbsPath);
-    if (audioDownloadResult.status < 200 || audioDownloadResult.status >= 300) {
-      throw new Error(`Tải file âm thanh thất bại (HTTP ${audioDownloadResult.status})`);
-    }
-  }
-
-  // Hậu kiểm Magic Bytes để bảo vệ 100% không bị sai định dạng file âm thanh native iOS
-  try {
-    const headerB64 = await FileSystem.readAsStringAsync(audioAbsPath, {
-      encoding: FileSystem.EncodingType.Base64,
-      length: 32,
-    });
-    if (typeof atob === 'function') {
-      const headerBin = atob(headerB64);
-      let realExt = ext;
-      if (headerBin.includes('ftyp')) {
-        realExt = 'm4a';
-      } else if (headerBin.startsWith('fLaC')) {
-        realExt = 'flac';
-      } else if (headerBin.startsWith('OggS')) {
-        realExt = 'ogg';
-      }
-
-      if (realExt !== ext) {
-        const correctRelPath = `${trackFolderRel}/audio.${realExt}`;
-        const correctAbsPath = `${cleanDoc}${correctRelPath}`;
-        await FileSystem.moveAsync({ from: audioAbsPath, to: correctAbsPath });
-        audioRelPath = correctRelPath;
-        audioAbsPath = correctAbsPath;
-      }
-    }
-  } catch {
-    // Bỏ qua lỗi hậu kiểm
-  }
-
-  onProgress?.(85);
-
-  let totalBytes = 0;
-  const audioInfo = await FileSystem.getInfoAsync(audioAbsPath);
-  if (audioInfo.exists && typeof audioInfo.size === 'number') {
-    totalBytes += audioInfo.size;
-  }
-
-  // 2. Tải ảnh bìa (nếu có)
-  let coverRelPath: string | undefined;
-  if (track.cover) {
-    try {
-      const coverUrl = track.cover.startsWith('http')
-        ? track.cover
-        : `${cleanServerUrl}/${track.cover.replace(/^\/+/, '')}${tokenParam}`;
-      const cRel = `${trackFolderRel}/cover.jpg`;
-      const cAbs = `${cleanDoc}${cRel}`;
-      const coverResult = await FileSystem.downloadAsync(coverUrl, cAbs);
-      if (coverResult.status >= 200 && coverResult.status < 300) {
-        coverRelPath = cRel;
-        const cInfo = await FileSystem.getInfoAsync(cAbs);
-        if (cInfo.exists && typeof cInfo.size === 'number') {
-          totalBytes += cInfo.size;
+        } else {
+          onProgress?.(50);
+          const audioDownloadResult = await FileSystem.downloadAsync(streamUrl, audioAbsPath);
+          if (audioDownloadResult.status < 200 || audioDownloadResult.status >= 300) {
+            throw new Error(`Tải file âm thanh thất bại (HTTP ${audioDownloadResult.status})`);
+          }
         }
-      }
-    } catch (coverErr) {
-      console.warn('[offlineStorage] Không tải được ảnh bìa, tiếp tục không có bìa:', coverErr);
-    }
-  }
 
-  // 3. Lưu file lời bài hát (nếu có)
-  let lyricsRelPath: string | undefined;
-  if (lyricsContent && lyricsContent.trim().length > 0) {
-    try {
-      const lRel = `${trackFolderRel}/lyrics.lrc`;
-      const lAbs = `${cleanDoc}${lRel}`;
-      await FileSystem.writeAsStringAsync(lAbs, lyricsContent.trim());
-      lyricsRelPath = lRel;
-      const lInfo = await FileSystem.getInfoAsync(lAbs);
-      if (lInfo.exists && typeof lInfo.size === 'number') {
-        totalBytes += lInfo.size;
-      }
-    } catch (lrcErr) {
-      console.warn('[offlineStorage] Không lưu được file lời, tiếp tục:', lrcErr);
-    }
-  }
+        // Hậu kiểm Magic Bytes để bảo vệ 100% không bị sai định dạng file âm thanh native iOS
+        try {
+          const headerB64 = await FileSystem.readAsStringAsync(audioAbsPath, {
+            encoding: FileSystem.EncodingType.Base64,
+            length: 32,
+          });
+          if (typeof atob === 'function') {
+            const headerBin = atob(headerB64);
+            let realExt = ext;
+            if (headerBin.includes('ftyp')) {
+              realExt = 'm4a';
+            } else if (headerBin.startsWith('fLaC')) {
+              realExt = 'flac';
+            } else if (headerBin.startsWith('OggS')) {
+              realExt = 'ogg';
+            }
+
+            if (realExt !== ext) {
+              const correctRelPath = `${trackFolderRel}/audio.${realExt}`;
+              const correctAbsPath = `${cleanDoc}${correctRelPath}`;
+              await FileSystem.moveAsync({ from: audioAbsPath, to: correctAbsPath });
+              audioRelPath = correctRelPath;
+              audioAbsPath = correctAbsPath;
+            }
+          }
+        } catch {
+          // Bỏ qua lỗi hậu kiểm
+        }
+
+        onProgress?.(85);
+
+        let totalBytes = 0;
+        const audioInfo = await FileSystem.getInfoAsync(audioAbsPath);
+        if (audioInfo.exists && typeof audioInfo.size === 'number') {
+          totalBytes += audioInfo.size;
+        }
+
+        // 2. Tải ảnh bìa (nếu có)
+        let coverRelPath: string | undefined;
+        if (track.cover) {
+          try {
+            const coverUrl = track.cover.startsWith('http')
+              ? track.cover
+              : `${cleanServerUrl}/${track.cover.replace(/^\/+/, '')}${tokenParam}`;
+            const cRel = `${trackFolderRel}/cover.jpg`;
+            const cAbs = `${cleanDoc}${cRel}`;
+            const coverResult = await FileSystem.downloadAsync(coverUrl, cAbs);
+            if (coverResult.status >= 200 && coverResult.status < 300) {
+              coverRelPath = cRel;
+              const cInfo = await FileSystem.getInfoAsync(cAbs);
+              if (cInfo.exists && typeof cInfo.size === 'number') {
+                totalBytes += cInfo.size;
+              }
+            }
+          } catch (coverErr) {
+            console.warn('[offlineStorage] Không tải được ảnh bìa, tiếp tục không có bìa:', coverErr);
+          }
+        }
+        onProgress?.(92);
+
+        // 3. Lưu file lời bài hát (nếu có)
+        let lyricsRelPath: string | undefined;
+        if (lyricsContent && lyricsContent.trim().length > 0) {
+          try {
+            const lRel = `${trackFolderRel}/lyrics.lrc`;
+            const lAbs = `${cleanDoc}${lRel}`;
+            await FileSystem.writeAsStringAsync(lAbs, lyricsContent.trim());
+            lyricsRelPath = lRel;
+            const lInfo = await FileSystem.getInfoAsync(lAbs);
+            if (lInfo.exists && typeof lInfo.size === 'number') {
+              totalBytes += lInfo.size;
+            }
+          } catch (lrcErr) {
+            console.warn('[offlineStorage] Không lưu được file lời, tiếp tục:', lrcErr);
+          }
+        }
+        onProgress?.(97);
 
   const meta: OfflineTrackMeta = {
     trackId: track.id,
@@ -309,6 +316,8 @@ export async function downloadTrackOffline(
   const currentIndex = await loadOfflineIndex();
   currentIndex[track.id] = meta;
   await saveOfflineIndex(currentIndex);
+
+  onProgress?.(100);
 
   return meta;
 }

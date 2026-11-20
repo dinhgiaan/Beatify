@@ -213,6 +213,21 @@
     - Đã quét và tái tạo `library.json` chuẩn hóa (363 bài hát, 223 nghệ sĩ duy nhất).
     - Đồng bộ thành công `library.json` và `_meta/overrides.json` lên Cloudflare R2 bucket.
   - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (437 tests across packages/shared, apps/mobile, apps/api, tools/indexer), typecheck và lint đều vượt qua 100%.
+- **22. Gia cố Toàn diện Tiến trình (% Progress) Chống Đứng Số & Chống Treo:**
+  - **1. Đồng bộ Cloudflare R2 (Server & Web Dashboard):**
+    - Sửa triệt để lỗi hardcode `percent: 80` khi tải ảnh bìa album: tính toán nội suy mượt mà `80% -> 95%` (`coverPct = 80 + Math.round((coverIdx / totalCovers) * 15)`).
+    - Cập nhật tiến trình đều đặn cho cả ảnh bìa đã có sẵn trên R2 để giữ nhịp chạy của thanh progress.
+    - Bổ sung Watchdog Timer 15 phút phía Server: tự động giải phóng trạng thái `active: false` nếu kết nối socket mạng bị ngắt, không để server bị kẹt vĩnh viễn.
+    - S3Client (`R2Uploader`): Thêm `maxAttempts: 3` tự động thử lại khi mạng chập chờn.
+    - Web Dashboard (`SyncModal.tsx`): Bổ sung cơ chế tiến trình đơn điệu (monotonic progress, không bao giờ giật lùi), bổ sung Watchdog mất kết nối (thoát trạng thái treo và thông báo sau 15 giây mất tín hiệu server).
+  - **2. Tải Nhạc Ngoại tuyến (Offline Download trên iPhone):**
+    - Tái cấu trúc phân bổ dải tiến trình logic: Tải file âm thanh (**5% -> 80%**), Hậu kiểm Magic bytes (**85%**), Tải ảnh bìa (**92%**), Lưu file lời LRC (**97%**), Lưu metadata hoàn tất (**100%**).
+    - Khắc phục lỗi đứng số ở 5% khi server stream không trả header `Content-Length`: tự động ước tính tiến trình dựa trên byte đã nhận.
+    - Triệt tiêu hoàn toàn lỗi tụt % giật lùi (từ 100% lùi về 85%) và giữ 250ms hiển thị 100% trước khi chuyển đổi trạng thái đã tải.
+  - **3. Nhập Nhạc YouTube (YouTube Downloader):**
+    - Bắt tiến trình thời gian thực từ stdout của `yt-dlp` (`[download] xx.x%`), ánh xạ mượt mà từ 15% -> 48% thay vì đứng im ở 15%.
+    - Chuẩn hóa tính toán tiến trình trong `R2UploadReviewModal.tsx`.
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

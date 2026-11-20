@@ -68,7 +68,8 @@ export interface YoutubeDownloadResult {
 function runCommand(
   command: string,
   args: string[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onData?: (chunk: string) => void
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
     DependencyChecker.refreshSystemPath();
@@ -78,10 +79,14 @@ function runCommand(
     let stderr = '';
 
     child.stdout.on('data', (d) => {
-      stdout += d.toString();
+      const str = d.toString();
+      stdout += str;
+      if (onData) onData(str);
     });
     child.stderr.on('data', (d) => {
-      stderr += d.toString();
+      const str = d.toString();
+      stderr += str;
+      if (onData) onData(str);
     });
 
     child.on('error', (err) => reject(err));
@@ -609,7 +614,23 @@ export const YoutubeService = {
         url,
       ];
 
-      const dlResult = await runCommand('yt-dlp', ytdlpArgs);
+      const dlResult = await runCommand(
+        'yt-dlp',
+        ytdlpArgs,
+        undefined,
+        (chunk) => {
+          // Bắt tiến trình tải thời gian thực từ yt-dlp: [download]  45.0% of ...
+          const match = chunk.match(/\[download\]\s+([\d.]+)%/);
+          if (match && match[1]) {
+            const ytdlPct = parseFloat(match[1]);
+            if (!isNaN(ytdlPct)) {
+              // Ánh xạ 0-100% của yt-dlp vào dải 15% - 48% của toàn tiến trình bài hát
+              const mappedPct = 15 + Math.round((ytdlPct / 100) * 33);
+              onProgress?.(mappedPct, `Đang tải âm thanh từ YouTube (${Math.round(ytdlPct)}%)...`);
+            }
+          }
+        }
+      );
       if (dlResult.exitCode !== 0) {
         throw new Error(`Lỗi tải âm thanh từ yt-dlp: ${dlResult.stderr}`);
       }

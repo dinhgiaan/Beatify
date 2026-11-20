@@ -72,13 +72,24 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
   // Tự động kiểm tra và cập nhật tiến trình đồng bộ khi mở modal hoặc đang đồng bộ
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let consecutiveLostCount = 0;
 
     const fetchProgress = async () => {
       try {
         const res = await requestApi<{ progress: SyncProgress }>('/local-api/sync/progress');
         if (res?.progress) {
+          consecutiveLostCount = 0;
           setIsConnectionLost(false);
-          setSyncProgress(res.progress);
+          setSyncProgress((prev) => {
+            // Giữ cho percent luôn tăng đơn điệu (monotonic) khi đang active, chống giật lùi
+            const safePercent = res.progress.active
+              ? Math.max(prev.percent, Math.min(100, Math.max(0, res.progress.percent)))
+              : Math.min(100, Math.max(0, res.progress.percent));
+            return {
+              ...res.progress,
+              percent: safePercent,
+            };
+          });
           if (res.progress.active) {
             setIsSyncing(true);
           } else if (isSyncing) {
@@ -92,9 +103,21 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
           }
         }
       } catch {
-        // Nếu đang đồng bộ mà mất kết nối tới server: không ngắt trạng thái đồng bộ, báo đang chờ
+        consecutiveLostCount++;
+        // Nếu đang đồng bộ mà mất kết nối tới server: không ngắt ngay trạng thái đồng bộ
         if (isSyncing) {
           setIsConnectionLost(true);
+          // Watchdog: Nếu mất kết nối quá 15 giây liên tiếp, thoát khỏi trạng thái treo
+          if (consecutiveLostCount >= 15) {
+            setIsSyncing(false);
+            setSyncProgress((prev) => ({
+              ...prev,
+              active: false,
+              step: 'Mất kết nối tới server (Hết thời gian chờ 15s)',
+              error: 'Server không phản hồi',
+            }));
+            toast.error('Mất kết nối tới server indexer quá 15 giây. Vui lòng kiểm tra lại tiến trình server.');
+          }
         }
       }
     };

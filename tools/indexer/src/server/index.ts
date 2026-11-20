@@ -2146,6 +2146,21 @@ async function executeR2Sync(
   const mode = options.mode || 'full';
   const selectedTrackIds = options.trackIds ? new Set(options.trackIds) : null;
 
+  // Watchdog Timer 15 phút: đảm bảo nếu có lỗi mạng treo socket thì tiến trình tự động giải phóng
+  const syncWatchdogTimer = setTimeout(() => {
+    if (currentSyncProgress.active) {
+      currentSyncProgress = {
+        active: false,
+        step: 'Tiến trình đồng bộ tự động dừng do vượt quá thời gian tối đa (15 phút)',
+        current: 0,
+        total: 0,
+        percent: 0,
+        error: 'Sync watchdog timeout (15 phút)',
+      };
+      console.warn('[Sync Watchdog] Tiến trình đồng bộ R2 bị timeout sau 15 phút');
+    }
+  }, 15 * 60 * 1000);
+
   currentSyncProgress = {
     active: true,
     step: mode === 'only-new'
@@ -2316,11 +2331,13 @@ async function executeR2Sync(
     // Nếu mode === 'full', quét thêm các cover album còn lại trong coversByAlbumId
     if (mode === 'full') {
       let coverIdx = 0;
+      const totalCovers = allCoversToUpload.size || 1;
       for (const [coverId, buffer] of allCoversToUpload.entries()) {
         coverIdx++;
         const coverKey = `covers/${coverId}.jpg`;
         const isCoverOnCloud = existingCoverKeys.has(coverKey);
         const hasCustomCover = existsSync(path.join(CUSTOM_COVERS_DIR, `${coverId}.jpg`));
+        const coverPct = Math.min(95, Math.max(80, 80 + Math.round((coverIdx / totalCovers) * 15)));
 
         if (!isCoverOnCloud || hasCustomCover) {
           currentSyncProgress = {
@@ -2328,12 +2345,22 @@ async function executeR2Sync(
             step: `Đang tải ảnh bìa (${coverIdx}/${allCoversToUpload.size})...`,
             current: coverIdx,
             total: allCoversToUpload.size,
-            percent: 80,
+            percent: coverPct,
             error: null,
           };
           await uploader.uploadCover(coverId, buffer);
           newCoversUploaded++;
           existingCoverKeys.add(coverKey);
+        } else if (coverIdx % 5 === 0 || coverIdx === allCoversToUpload.size) {
+          // Cập nhật nhịp tiến trình đều đặn cho ảnh đã có sẵn, tránh đứng số
+          currentSyncProgress = {
+            active: true,
+            step: `Đã có sẵn ảnh bìa (${coverIdx}/${allCoversToUpload.size})...`,
+            current: coverIdx,
+            total: allCoversToUpload.size,
+            percent: coverPct,
+            error: null,
+          };
         }
       }
     }
@@ -2395,6 +2422,10 @@ async function executeR2Sync(
       percent: 0,
       error: errMsg,
     };
+  } finally {
+    if (syncWatchdogTimer) {
+      clearTimeout(syncWatchdogTimer);
+    }
   }
 }
 

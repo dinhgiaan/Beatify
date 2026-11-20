@@ -18,6 +18,7 @@ export class R2Uploader {
         accessKeyId: config.R2_ACCESS_KEY_ID,
         secretAccessKey: config.R2_SECRET_ACCESS_KEY,
       },
+      maxAttempts: 3,
     });
   }
 
