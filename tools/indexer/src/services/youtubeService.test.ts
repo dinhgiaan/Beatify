@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { YoutubeService, resolveDestinationPaths } from './youtubeService';
+import { YoutubeService, resolveDestinationPaths, resolveArtistDirectory } from './youtubeService';
 
 describe('YoutubeService', () => {
   it('kiểm tra hợp lệ URL YouTube và YouTube Music', () => {
@@ -46,6 +46,16 @@ describe('YoutubeService', () => {
       const res = resolveDestinationPaths('D:/music/_imported', 'morray', 'Street Sermons', 'quicksand');
       expect(res.isSingle).toBe(false);
       expect(res.finalTrackDir.replace(/\\/g, '/')).toContain('/_imported/morray/Street Sermons');
+    });
+
+    it('resolveArtistDirectory: nhận diện đúng thư mục nghệ sĩ khi bài hát nằm sâu trong Singles/<Tên bài>', () => {
+      const artistDir = resolveArtistDirectory('D:/music for app/(rap)/Yung Ni99/Singles/Cold Palmer', 'Yung Ni99');
+      expect(artistDir.replace(/\\/g, '/')).toBe('D:/music for app/(rap)/Yung Ni99');
+    });
+
+    it('resolveArtistDirectory: nhận diện đúng thư mục nghệ sĩ khi bài hát nằm trong Album/<Tên album>', () => {
+      const artistDir = resolveArtistDirectory('D:/music for app/(chill)/B Ray/Albums/Loser2Lover', 'B Ray');
+      expect(artistDir.replace(/\\/g, '/')).toBe('D:/music for app/(chill)/B Ray');
     });
   });
 });

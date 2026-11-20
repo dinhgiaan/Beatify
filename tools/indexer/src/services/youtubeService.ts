@@ -253,33 +253,58 @@ export function resolveDestinationPaths(
 }
 
 /**
- * Xác định thư mục Nghệ sĩ (Artist Directory).
- * Ví dụ:
- * - "D:\music for app\(rap)\DAWGS F\Singles" -> "D:\music for app\(rap)\DAWGS F"
- * - "D:\music for app\(rap)\DAWGS F\Albums" -> "D:\music for app\(rap)\DAWGS F"
- * - "D:\music for app\(rap)\DAWGS F\Album XYZ" -> "D:\music for app\(rap)\DAWGS F"
- * - "D:\music for app\(rap)\DAWGS F" -> "D:\music for app\(rap)\DAWGS F"
+ * Xác định thư mục Nghệ sĩ (Artist Directory) chuẩn xác trong thư viện.
+ * Hỗ trợ cấu trúc nhiều cấp (ví dụ: .../(rap)/Yung Ni99/Singles/Cold Palmer -> .../(rap)/Yung Ni99)
  */
 export function resolveArtistDirectory(targetDir: string, artistName?: string): string {
   const normalizedTarget = path.resolve(targetDir);
-  const baseName = path.basename(normalizedTarget);
-  const parentDir = path.dirname(normalizedTarget);
-  const parentBase = path.basename(parentDir);
-
-  // Không bao giờ lùi lên ổ đĩa gốc (e.g. "D:\" hoặc "/")
-  const isParentRoot = parentDir === path.parse(parentDir).root;
-
-  // 1. Thư mục dạng Singles / Albums / Single / EP
+  const root = path.parse(normalizedTarget).root;
   const subfolderPatterns = /^(singles|albums|single|ep|eps|album)$/i;
-  if (subfolderPatterns.test(baseName) && !isParentRoot) {
-    return parentDir;
+
+  // 1. Ưu tiên cao nhất: Duyệt ngược lên cây thư mục tìm thư mục có tên khớp với Nghệ sĩ
+  if (artistName && artistName.trim()) {
+    const normArtist = normalizeText(artistName).toLowerCase().replace(/[^a-z0-9]/g, '');
+    let checkDir = normalizedTarget;
+    while (checkDir && checkDir !== root) {
+      const segName = path.basename(checkDir);
+      // Bỏ qua các thư mục thể loại bọc trong ngoặc đơn như (rap), (chill)
+      if (!/^\(.*\)$/.test(segName)) {
+        const normSeg = normalizeText(segName).toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normSeg && normArtist && normSeg === normArtist) {
+          return checkDir;
+        }
+      }
+      const parent = path.dirname(checkDir);
+      if (parent === checkDir) break;
+      checkDir = parent;
+    }
   }
 
-  // 2. Thư mục cha trùng hoặc chứa tên nghệ sĩ (ví dụ targetDir là tên 1 Album cụ thể)
-  if (artistName && parentBase && !isParentRoot) {
+  // 2. Nếu một trong các thư mục tổ tiên là "Singles", "Albums", "Single", "EP", "Album"
+  // thì thư mục cha ngay trên nó chính là thư mục nghệ sĩ!
+  let checkDir = normalizedTarget;
+  while (checkDir && checkDir !== root) {
+    const segName = path.basename(checkDir);
+    if (subfolderPatterns.test(segName)) {
+      const parent = path.dirname(checkDir);
+      if (parent !== root) {
+        return parent;
+      }
+    }
+    const parent = path.dirname(checkDir);
+    if (parent === checkDir) break;
+    checkDir = parent;
+  }
+
+  // 3. Fallback: Nếu thư mục cha chứa tên nghệ sĩ
+  const parentDir = path.dirname(normalizedTarget);
+  const parentBase = path.basename(parentDir);
+  const isParentRoot = parentDir === root;
+
+  if (artistName && parentBase && !isParentRoot && !/^\(.*\)$/.test(parentBase)) {
     const normArtist = normalizeText(artistName).toLowerCase();
     const normParent = normalizeText(parentBase).toLowerCase();
-    if (normParent === normArtist || normParent.includes(normArtist) || normArtist.includes(normParent)) {
+    if (normParent === normArtist || (normParent.length >= 4 && normParent.includes(normArtist))) {
       return parentDir;
     }
   }
