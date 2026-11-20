@@ -173,6 +173,17 @@
     - Thanh tác vụ hàng loạt (Floating Batch Action Bar): Thêm nút **"Lên R2 (X bài)"** khi tích chọn nhiều bài hát (kết hợp hoàn hảo với bộ lọc *"Chưa upload R2"*).
     - Kết nối tự động mở `SyncModal` hiển thị thanh tiến trình trực quan theo thời gian thực khi bấm tải.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **19. Dọn dẹp 54 Thư mục Dư thừa (Chill & Rap), Bảo toàn 100% Avatar Nghệ sĩ & Đồng bộ R2:**
+  - **Phát hiện & Phân tích nguyên nhân:** Quá trình gộp bài và chuẩn hóa nghệ sĩ trước đây để lại 54 thư mục nghệ sĩ cũ không còn chứa bài hát nào (28 thư mục trong `D:\music for app\(chill)` và 26 thư mục trong `D:\music for app\(rap)`). Nhiều thư mục này vẫn còn lưu file ảnh đại diện `artist.png` của ca sĩ nhưng không hiển thị được do bài hát đã chuyển sang thư mục tên chuẩn.
+  - **Bảo toàn 100% Ảnh đại diện Ca sĩ:**
+    - Di chuyển và khôi phục thành công avatar sang các thư mục nghệ sĩ chuẩn: `2T`, `Dương Domic`, `Tea`, `Rhymastic`, `Datmaniac`, `Meek Mill`, `Polo G`, `Wowy & Karik`, `HIEUTHUHAI`, `Jombie`.
+  - **Sao lưu An toàn Tuyệt đối Trước khi Dọn dẹp:**
+    - Toàn bộ 54 thư mục dư thừa cùng toàn bộ tệp bên trong đã được sao lưu dự phòng vào `tools/indexer/backups/redundant_folders_backup_2026-11-20T12-16-35-668Z`.
+  - **Dọn dẹp Đĩa cứng & Tái tạo Thư viện:**
+    - Đã xóa sạch 54 thư mục dư thừa rỗng bài hát trên đĩa cứng local.
+    - Quét và tái tạo lại `library.json` (363 bài hát hoạt động) và đồng bộ trực tiếp lên Cloudflare R2 bucket.
+    - Dashboard và Website hiển thị danh sách nghệ sĩ sạch sẽ, không còn nghệ sĩ rác hay trùng tên ảo.
+  - **Kiểm thử & Typecheck:** Toàn bộ tests, typecheck và lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 
