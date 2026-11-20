@@ -81,6 +81,7 @@ vi.mock('@rntp/player', () => ({
     seekTo: vi.fn(),
     setVolume: vi.fn(),
     skipToIndex: vi.fn(),
+    setRepeatMode: vi.fn(),
     getActiveMediaItem: vi.fn().mockReturnValue(null),
     getPlaybackState: vi.fn().mockReturnValue('idle'),
     getProgress: vi.fn().mockReturnValue({ position: 0, duration: 0, buffered: 0 }),

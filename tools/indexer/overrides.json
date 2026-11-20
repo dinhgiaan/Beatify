@@ -2131,8 +2131,8 @@
       "cover": "covers/33fafdbdc812.jpg"
     },
     "56069b4f29b7": {
-      "cover": "covers/56069b4f29b7.jpg",
-      "title": "Haru Haru (하루하루)"
+      "title": "Haru Haru (하루하루)",
+      "cover": "covers/56069b4f29b7.jpg"
     },
     "cc30f3f3bcb8": {
       "cover": "covers/cc30f3f3bcb8.jpg"
@@ -2376,11 +2376,11 @@
       "cover": "covers/777e296bab9d.jpg"
     },
     "71fc8f46b2b7": {
-      "cover": "covers/71fc8f46b2b7.jpg",
-      "artist": "AMEE",
       "title": "Ex's Hate Me (Part 2) (feat. B Ray)",
+      "artist": "AMEE",
       "album": "dreAMEE",
-      "year": 2020
+      "year": 2020,
+      "cover": "covers/71fc8f46b2b7.jpg"
     },
     "62a7ccbe277b": {
       "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
@@ -2408,8 +2408,8 @@
       "cover": "covers/e02f64008049.jpg"
     },
     "c4bc4fe7a267": {
-      "cover": "covers/c4bc4fe7a267.jpg",
-      "title": "Lối Nhỏ x Nghe Bài Này Đi Em (Live Ngẫu Hứng)"
+      "title": "Lối Nhỏ x Nghe Bài Này Đi Em (Live Ngẫu Hứng)",
+      "cover": "covers/c4bc4fe7a267.jpg"
     },
     "0dde57433c84": {
       "title": "Mất Kết Nối",
@@ -2609,6 +2609,24 @@
       "loudnessLufs": -9.16,
       "replayGain": -8.84,
       "cover": "covers/3062503bbdad.jpg"
+    },
+    "3fc454232358": {
+      "title": "Wild West [with Playboicamau]",
+      "artist": "Yung Ni99",
+      "album": "Singles",
+      "year": 2026,
+      "loudnessLufs": -8.61,
+      "replayGain": -9.39,
+      "cover": "covers/3fc454232358.jpg"
+    },
+    "f3157e86050e": {
+      "title": "Câu Trả Lời (Visualize Video)",
+      "artist": "J.ADE",
+      "album": "Singles",
+      "year": 2025,
+      "loudnessLufs": -11.23,
+      "replayGain": -6.77,
+      "cover": "covers/f3157e86050e.jpg"
     }
   },
   "artistAliases": {

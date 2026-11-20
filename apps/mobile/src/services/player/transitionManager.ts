@@ -300,6 +300,7 @@ export class TransitionManager {
 
       // Khôi phục volume chuẩn cho bài tiếp theo ngay lập tức
       TrackPlayer.setVolume(targetVolume);
+      TrackPlayer.play();
       this.isFading = false;
       this.fadeTimer = null;
 

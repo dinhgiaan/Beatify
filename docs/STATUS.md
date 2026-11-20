@@ -213,28 +213,50 @@
     - Đã quét và tái tạo `library.json` chuẩn hóa (363 bài hát, 223 nghệ sĩ duy nhất).
     - Đồng bộ thành công `library.json` và `_meta/overrides.json` lên Cloudflare R2 bucket.
   - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (437 tests across packages/shared, apps/mobile, apps/api, tools/indexer), typecheck và lint đều vượt qua 100%.
-- **24. Khắc phục Triệt để Lỗi Định tuyến Thư mục Nghệ sĩ Sâu & Nhận diện Sai Thư mục Bài hát (`resolveArtistDirectory`):**
+- **25. Hoàn tất 100% Ảnh Đại Diện Nghệ Sĩ (Local Disk & Cloudflare R2):**
+  - **Kiểm tra & Rà soát:** Toàn bộ 224 nghệ sĩ trong thư viện được kiểm tra tự động qua `/local-api/artists`.
+  - **Khắc phục & Tải Avatar:** Bổ sung ảnh đại diện chuẩn, chất lượng cao (900x900 PNG) kèm metadata `Curator: Kato` và `desktop.ini` cho toàn bộ 14 nghệ sĩ còn thiếu (`1nG`, `G-FAMILY`, `Aaron Smith`, `Changg`, `Huỳnh James`, `Kay Trần`, `Low G`, `Pixel Neko`, `TTeam`, `5ber1`, `Acy`, `Pikey`, `Quavo & Takeoff`, `Yxngtabi`).
+  - **Tỷ lệ hoàn thành:** Đạt **224 / 224 nghệ sĩ (100%)** có avatar trên đĩa cục bộ.
+  - **Đồng bộ R2:** Chạy fast-sync đưa 100% dữ liệu thư viện (`library.json`, `_meta/overrides.json`) lên Cloudflare R2 bucket.
+
+- **26. Khắc phục Triệt để Lỗi Kẹt Player & Không Tự Chuyển Bài Sau Khi Hết Loop (`apps/mobile`):**
   - **Nguyên nhân gốc (Root cause):**
-    - Cấu trúc thư mục đĩa cứng của các bài hát đơn lẻ được lưu theo định dạng đa cấp: `D:\music for app\(rap)\<Nghệ sĩ>\Singles\<Tên bài hát>\<File âm thanh>`.
-    - Hàm `resolveArtistDirectory` cũ chỉ kiểm tra thư mục cha trực tiếp (`parentBase`). Khi gặp `Cold Palmer`, thư mục cha là `Singles` (không khớp tên nghệ sĩ), dẫn đến hàm trả về chính `Cold Palmer` làm thư mục gốc của ca sĩ `Yung Ni99`!
-    - Hậu quả: Khi import bài mới (`Wild West`), hệ thống gợi ý lưu nhầm vào `Cold Palmer`, và avatar của nghệ sĩ bị fallback hiển thị ảnh bìa của bài hát `Cold Palmer`.
+    1. Khi bài hát kết thúc (`PlaybackState.Ended`), native AVPlayer trên iOS đạt mốc cuối file (`currentTime == duration`) và chuyển trạng thái sang `.ended` kèm lệnh deactivate audio session. RNTP v5 thiếu callback xử lý `PlaybackState.Ended` ở phía JavaScript khiến app không phát lệnh chuyển bài tiếp theo.
+    2. Khi người dùng bấm Play (`togglePlay` $\to$ `playerService.play()`), native AVPlayer đang kẹt ở điểm cuối file (duration) nên lệnh `engine.play()` không thể phát lại từ đầu nếu không thực hiện tua (`seekTo 0`), dẫn đến tình trạng "bấm play/stop hay gì cũng không được".
+    3. Nút `next()` khi ở bài cuối hàng đợi gọi `skipToNext()` của native vốn trả về `false` khi `repeatMode == .off`, dẫn đến không thể tua ngược lại bài đầu tiên nếu người dùng chủ động bấm Next.
+    4. Trong `transitionManager.executeTrackSwitch`, sau khi gọi `skipToIndex` và `seekTo`, thiếu lời gọi tường minh `TrackPlayer.play()`, khiến bài mới bị kẹt ở trạng thái pause nếu player trước đó bị ngắt luồng.
   - **Giải pháp xử lý:**
-    - Nâng cấp `resolveArtistDirectory` duyệt ngược toàn bộ chuỗi tổ tiên (Ancestors Tree):
-      1. Khớp chính xác tên nghệ sĩ (`normSeg === normArtist`) ở bất kỳ tầng thư mục cha nào (bỏ qua các thư mục thể loại bọc trong ngoặc `(rap)`, `(chill)`).
-      2. Nếu gặp thư mục `Singles`, `Albums`, `Single`, `EP`, tự động xác định thư mục cha ngay trên nó là thư mục gốc của nghệ sĩ.
-    - Kết quả: `Yung Ni99` được nhận diện chuẩn xác 100% tại `D:\music for app\(rap)\Yung Ni99`, avatar tự động nhận `artist.png` gốc, và các bài hát mới sẽ được lưu đúng vào `Singles/<Tên bài>` riêng biệt.
-  - **Kiểm thử:** Bổ sung test cases trong `youtubeService.test.ts`, toàn bộ 439 tests và typecheck vượt qua 100%. Đã rebuild bundle web dashboard mới nhất.
-- **24. Khắc phục Triệt để Lỗi Định tuyến Thư mục Nghệ sĩ Sâu & Nhận diện Sai Thư mục Bài hát (`resolveArtistDirectory`):**
+    1. Lắng nghe sự kiện `PlaybackState.Ended` trong `rntpPlayerService.ts`:
+       - Nếu `repeatMode === 'track'`: tự động `seekTo(0)` và tiếp tục phát.
+       - Nếu còn bài trong hàng đợi (`currentIdx + 1 < queue.length`): tự động gọi `skipToIndex(currentIdx + 1)` và `play()`.
+       - Nếu là bài cuối cùng và `repeatMode === 'queue'`: tự động wrap về bài 0 và `play()`.
+       - Nếu là bài cuối cùng và `repeatMode === 'off'`: tua sẵn về 0 (`seekTo(0)`) và khôi phục âm lượng gốc để người dùng bấm Play là phát lại được ngay.
+    2. Cập nhật `playerService.play()`: tự động kiểm tra nếu `state === PlaybackState.Ended` hoặc `position >= duration - 0.5s` thì tự động `seekTo(0)` trước khi `play()`, giải quyết dứt điểm hiện tượng đơ/kẹt nút Play.
+    3. Cập nhật `playerService.next()`: nếu đang ở bài cuối cùng của danh sách nhiều bài, tự động wrap về bài đầu tiên (index 0) và phát tiếp.
+    4. Bổ sung `TrackPlayer.play()` trong `transitionManager.executeTrackSwitch`.
+  - **Kiểm thử & Typecheck:** Toàn bộ test suite 443 tests (bao gồm 4 test cases mới trong `rntpPlayerService.test.ts`), lint và typecheck đều vượt qua 100%.
+- **25. Hoàn tất 100% Ảnh Đại Diện Nghệ Sĩ (Local Disk & Cloudflare R2):**
+  - **Kiểm tra & Rà soát:** Toàn bộ 224 nghệ sĩ trong thư viện được kiểm tra tự động qua `/local-api/artists`.
+  - **Khắc phục & Tải Avatar:** Bổ sung ảnh đại diện chuẩn, chất lượng cao (900x900 PNG) kèm metadata `Curator: Kato` và `desktop.ini` cho toàn bộ 14 nghệ sĩ còn thiếu (`1nG`, `G-FAMILY`, `Aaron Smith`, `Changg`, `Huỳnh James`, `Kay Trần`, `Low G`, `Pixel Neko`, `TTeam`, `5ber1`, `Acy`, `Pikey`, `Quavo & Takeoff`, `Yxngtabi`).
+  - **Tỷ lệ hoàn thành:** Đạt **224 / 224 nghệ sĩ (100%)** có avatar trên đĩa cục bộ.
+  - **Đồng bộ R2:** Chạy fast-sync đưa 100% dữ liệu thư viện (`library.json`, `_meta/overrides.json`) lên Cloudflare R2 bucket.
+
+- **26. Khắc phục Triệt để Lỗi Kẹt Player & Không Tự Chuyển Bài Sau Khi Hết Loop (`apps/mobile`):**
   - **Nguyên nhân gốc (Root cause):**
-    - Cấu trúc thư mục đĩa cứng của các bài hát đơn lẻ được lưu theo định dạng đa cấp: `D:\music for app\(rap)\<Nghệ sĩ>\Singles\<Tên bài hát>\<File âm thanh>`.
-    - Hàm `resolveArtistDirectory` cũ chỉ kiểm tra thư mục cha trực tiếp (`parentBase`). Khi gặp `Cold Palmer`, thư mục cha là `Singles` (không khớp tên nghệ sĩ), dẫn đến hàm trả về chính `Cold Palmer` làm thư mục gốc của ca sĩ `Yung Ni99`!
-    - Hậu quả: Khi import bài mới (`Wild West`), hệ thống gợi ý lưu nhầm vào `Cold Palmer`, và avatar của nghệ sĩ bị fallback hiển thị ảnh bìa của bài hát `Cold Palmer`.
+    1. Khi bài hát kết thúc (`PlaybackState.Ended`), native AVPlayer trên iOS đạt mốc cuối file (`currentTime == duration`) và chuyển trạng thái sang `.ended` kèm lệnh deactivate audio session. RNTP v5 thiếu callback xử lý `PlaybackState.Ended` ở phía JavaScript khiến app không phát lệnh chuyển bài tiếp theo.
+    2. Khi người dùng bấm Play (`togglePlay` $\to$ `playerService.play()`), native AVPlayer đang kẹt ở điểm cuối file (duration) nên lệnh `engine.play()` không thể phát lại từ đầu nếu không thực hiện tua (`seekTo 0`), dẫn đến tình trạng "bấm play/stop hay gì cũng không được".
+    3. Nút `next()` khi ở bài cuối hàng đợi gọi `skipToNext()` của native vốn trả về `false` khi `repeatMode == .off`, dẫn đến không thể tua ngược lại bài đầu tiên nếu người dùng chủ động bấm Next.
+    4. Trong `transitionManager.executeTrackSwitch`, sau khi gọi `skipToIndex` và `seekTo`, thiếu lời gọi tường minh `TrackPlayer.play()`, khiến bài mới bị kẹt ở trạng thái pause nếu player trước đó bị ngắt luồng.
   - **Giải pháp xử lý:**
-    - Nâng cấp `resolveArtistDirectory` duyệt ngược toàn bộ chuỗi tổ tiên (Ancestors Tree):
-      1. Khớp chính xác tên nghệ sĩ (`normSeg === normArtist`) ở bất kỳ tầng thư mục cha nào (bỏ qua các thư mục thể loại bọc trong ngoặc `(rap)`, `(chill)`).
-      2. Nếu gặp thư mục `Singles`, `Albums`, `Single`, `EP`, tự động xác định thư mục cha ngay trên nó là thư mục gốc của nghệ sĩ.
-    - Kết quả: `Yung Ni99` được nhận diện chuẩn xác 100% tại `D:\music for app\(rap)\Yung Ni99`, avatar tự động nhận `artist.png` gốc, và các bài hát mới sẽ được lưu đúng vào `Singles/<Tên bài>` riêng biệt.
-  - **Kiểm thử:** Bổ sung test cases trong `youtubeService.test.ts`, toàn bộ 439 tests và typecheck vượt qua 100%. Đã rebuild bundle web dashboard mới nhất.
+    1. Lắng nghe sự kiện `PlaybackState.Ended` trong `rntpPlayerService.ts`:
+       - Nếu `repeatMode === 'track'`: tự động `seekTo(0)` và tiếp tục phát.
+       - Nếu còn bài trong hàng đợi (`currentIdx + 1 < queue.length`): tự động gọi `skipToIndex(currentIdx + 1)` và `play()`.
+       - Nếu là bài cuối cùng và `repeatMode === 'queue'`: tự động wrap về bài 0 và `play()`.
+       - Nếu là bài cuối cùng và `repeatMode === 'off'`: tua sẵn về 0 (`seekTo(0)`) và khôi phục âm lượng gốc để người dùng bấm Play là phát lại được ngay.
+    2. Cập nhật `playerService.play()`: tự động kiểm tra nếu `state === PlaybackState.Ended` hoặc `position >= duration - 0.5s` thì tự động `seekTo(0)` trước khi `play()`, giải quyết dứt điểm hiện tượng đơ/kẹt nút Play.
+    3. Cập nhật `playerService.next()`: nếu đang ở bài cuối cùng của danh sách nhiều bài, tự động wrap về bài đầu tiên (index 0) và phát tiếp.
+    4. Bổ sung `TrackPlayer.play()` trong `transitionManager.executeTrackSwitch`.
+  - **Kiểm thử & Typecheck:** Toàn bộ test suite 443 tests (bao gồm 4 test cases mới trong `rntpPlayerService.test.ts`), lint và typecheck đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

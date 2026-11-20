@@ -93,12 +93,22 @@ export class RntpPlayerService implements IPlayerService {
         this.notifyListeners();
       });
 
-      TrackPlayer.addEventListener(Event.PlaybackStateChanged, () => {
+      TrackPlayer.addEventListener(Event.PlaybackStateChanged, async (event) => {
+        const playbackState = (event && typeof event === 'object' && 'state' in event)
+          ? (event as { state: PlaybackState }).state
+          : TrackPlayer.getPlaybackState();
+
         if (TrackPlayer.isPlaying()) {
           this.startProgressTimer();
         } else {
           this.stopProgressTimer();
         }
+
+        // Tự động chuyển bài và xử lý khi bài hát kết thúc (PlaybackState.Ended)
+        if (playbackState === PlaybackState.Ended || playbackState === ('ended' as PlaybackState)) {
+          await this.handlePlaybackEnded();
+        }
+
         this.notifyListeners();
       });
 
@@ -202,48 +212,112 @@ export class RntpPlayerService implements IPlayerService {
     this.notifyListeners();
   }
 
-  async play(): Promise < void> {
-  await this.setup();
-  try {
-    TrackPlayer.play();
-    this.startProgressTimer();
-  } catch(err) {
-    console.warn('[RNTP] Lỗi play():', err);
-    // Nếu play thất bại do lỗi trạng thái native AVPlayer, nạp lại mediaItems hiện tại
-    if (this.currentTracks.length > 0) {
+  /**
+   * Xử lý tự động khi một bài hát phát đến điểm kết thúc (PlaybackState.Ended)
+   * Ngăn chặn hoàn toàn hiện tượng kẹt player ở cuối bài và đảm bảo chuyển bài mượt mà
+   */
+  private async handlePlaybackEnded(): Promise<void> {
+    try {
+      // 1. Chế độ lặp 1 bài (track loop): tua về đầu và tiếp tục phát ngay
+      if (this.currentRepeatMode === 'track') {
+        await TrackPlayer.seekTo(0);
+        await TrackPlayer.play();
+        return;
+      }
+
       const activeItem = TrackPlayer.getActiveMediaItem();
-      const activeIdx = activeItem
-        ? Math.max(0, this.currentTracks.findIndex((t) => t.id === activeItem.mediaId))
-        : 0;
-      await this.playQueue(this.currentTracks, activeIdx);
+      const currentIdx = activeItem
+        ? this.currentTracks.findIndex((t) => t.id === activeItem.mediaId)
+        : -1;
+
+      // 2. Nếu có bài tiếp theo trong hàng đợi: tự động chuyển sang bài kế tiếp
+      if (currentIdx >= 0 && currentIdx + 1 < this.currentTracks.length) {
+        await this.skipToIndex(currentIdx + 1);
+        await this.play();
+        return;
+      }
+
+      // 3. Nếu là bài cuối cùng trong hàng đợi
+      if (currentIdx >= 0 && currentIdx === this.currentTracks.length - 1) {
+        if (this.currentRepeatMode === 'queue') {
+          // Lặp lại cả hàng đợi: wrap về bài đầu tiên
+          await this.skipToIndex(0);
+          await this.play();
+        } else {
+          // Kết thúc hàng đợi: Tua về 0 và khôi phục âm lượng gốc để người dùng bấm Play là phát được ngay
+          await TrackPlayer.seekTo(0);
+          transitionManager.restoreBaseVolume('queue_ended');
+        }
+      }
+    } catch (err) {
+      console.warn('[RNTP] Lỗi handlePlaybackEnded:', err);
     }
   }
-    this.notifyListeners();
-}
 
-  async pause(): Promise < void> {
-  await this.setup();
-  try {
-    TrackPlayer.pause();
-    this.stopProgressTimer();
-    transitionManager.restoreBaseVolume('manual_pause');
-  } catch(err) {
-    console.warn('[RNTP] Lỗi pause():', err);
-  }
+  async play(): Promise<void> {
+    await this.setup();
+    try {
+      const state = TrackPlayer.getPlaybackState();
+      const progress = TrackPlayer.getProgress();
+      // Nếu bài hát đã phát hết (Ended) hoặc đang nằm sát cuối bài hát (position >= duration - 0.5s)
+      // BẮT BUỘC phải tua về 0 (seekTo 0) để AVPlayer có thể phát lại, tránh bị treo AVPlayer ở điểm cuối
+      if (
+        state === PlaybackState.Ended ||
+        state === ('ended' as PlaybackState) ||
+        (progress.duration > 0 && progress.position >= progress.duration - 0.5)
+      ) {
+        await TrackPlayer.seekTo(0);
+      }
+      TrackPlayer.play();
+      this.startProgressTimer();
+    } catch (err) {
+      console.warn('[RNTP] Lỗi play():', err);
+      // Nếu play thất bại do lỗi trạng thái native AVPlayer, nạp lại mediaItems hiện tại
+      if (this.currentTracks.length > 0) {
+        const activeItem = TrackPlayer.getActiveMediaItem();
+        const activeIdx = activeItem
+          ? Math.max(0, this.currentTracks.findIndex((t) => t.id === activeItem.mediaId))
+          : 0;
+        await this.playQueue(this.currentTracks, activeIdx);
+      }
+    }
     this.notifyListeners();
-}
+  }
 
-  async next(): Promise < void> {
-  await this.setup();
-  this.lastTrackEndTime = Date.now();
-  try {
-    transitionManager.restoreBaseVolume('manual_next');
-    TrackPlayer.skipToNext();
-  } catch(err) {
-    console.warn('Không thể chuyển bài tiếp:', err);
-  }
+  async pause(): Promise<void> {
+    await this.setup();
+    try {
+      TrackPlayer.pause();
+      this.stopProgressTimer();
+      transitionManager.restoreBaseVolume('manual_pause');
+    } catch (err) {
+      console.warn('[RNTP] Lỗi pause():', err);
+    }
     this.notifyListeners();
-}
+  }
+
+  async next(): Promise<void> {
+    await this.setup();
+    this.lastTrackEndTime = Date.now();
+    try {
+      transitionManager.restoreBaseVolume('manual_next');
+      const activeItem = TrackPlayer.getActiveMediaItem();
+      const currentIdx = activeItem
+        ? this.currentTracks.findIndex((t) => t.id === activeItem.mediaId)
+        : -1;
+
+      // Nếu đang ở bài cuối cùng trong danh sách nhiều bài: wrap về bài 0 và phát
+      if (currentIdx >= 0 && currentIdx === this.currentTracks.length - 1 && this.currentTracks.length > 1) {
+        await this.skipToIndex(0);
+        await this.play();
+      } else {
+        TrackPlayer.skipToNext();
+      }
+    } catch (err) {
+      console.warn('Không thể chuyển bài tiếp:', err);
+    }
+    this.notifyListeners();
+  }
 
   async previous(): Promise < void> {
   await this.setup();
