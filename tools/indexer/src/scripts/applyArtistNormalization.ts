@@ -27,7 +27,7 @@ const config: IndexerConfig = {
 const trackUpdates: Record<string, { artist?: string; title?: string }> = {
   // Kênh uploader / Phân mảnh -> Tên nghệ sĩ chuẩn
   '0e8f9437a06d': { artist: 'Sol7', title: 'Anh Không Hiểu' },
-  '807cd4466b97': { artist: '2T', title: 'Tam Thập Lục Kế' },
+  '807cd4466b97': { artist: 'Thằng Lằng House', title: 'Tam Thập Lục Kế' },
   'bf0ff74236d9': { artist: 'Bình Gold', title: 'Ông Bà Già Tao Lo Hết' },
   'ba871e942843': { artist: 'Ricky Star', title: 'Level Up (feat. Lil Wuyn, Robe & Terry)' },
   '24c783f6a538': { artist: 'Rum', title: 'Liên Khúc Duyên (Kém Duyên, Lỡ Duyên, Tùy Duyên) (feat. NIT)' },
@@ -42,9 +42,9 @@ const trackUpdates: Record<string, { artist?: string; title?: string }> = {
   // Gộp biến thể nghệ sĩ / Crew
   'fd35815b0b4c': { artist: 'Sol7', title: 'Iceman' },
   '0a66475893b4': { artist: 'Phát Hồ', title: 'Yêu Là Cưới' },
-  '4dd39ac9d7f1': { artist: '2T', title: 'Động' },
-  '6d6da9e5404d': { artist: '2T', title: 'Bạn Thân Bản Thân' },
-  '16ab2bb6b433': { artist: '2T', title: 'Khởi' },
+  '4dd39ac9d7f1': { artist: 'TonDee', title: 'Động' },
+  '6d6da9e5404d': { artist: 'TonDee', title: 'Bạn Thân Bản Thân' },
+  '16ab2bb6b433': { artist: 'TonDee', title: 'Khởi' },
   'e95d656c15df': { artist: 'YoungTazle', title: 'Dawgs F' },
 
   // Chuẩn hóa viết hoa / viết thường
@@ -79,8 +79,6 @@ const newAliases: Record<string, string> = {
   'fueled by ramen and twenty one pilots': 'twenty one pilots',
   'sol7 dcod': 'Sol7',
   'phat ho x2x': 'Phát Hồ',
-  'tondee': '2T',
-  'thang lang house': '2T',
   'y.tazle': 'YoungTazle',
   'youngtazle': 'YoungTazle',
   '1ng - 2can - dick': '1nG',
