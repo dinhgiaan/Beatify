@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import type { Library, UserState } from '@music-app/shared';
+import type { Library, UserState, Overrides } from '@music-app/shared';
 import { UserStateSchema } from '@music-app/shared';
 import type { IndexerConfig } from '../config';
 
@@ -78,6 +78,18 @@ export class R2Uploader {
           generatedAt: library.generatedAt,
           dataVersion: library.version.toString(),
         },
+      })
+    );
+  }
+
+  async uploadOverrides(overrides: Overrides): Promise<void> {
+    const jsonString = JSON.stringify(overrides, null, 2);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: '_meta/overrides.json',
+        Body: Buffer.from(jsonString, 'utf-8'),
+        ContentType: 'application/json',
       })
     );
   }

@@ -184,6 +184,15 @@
     - Quét và tái tạo lại `library.json` (363 bài hát hoạt động) và đồng bộ trực tiếp lên Cloudflare R2 bucket.
     - Dashboard và Website hiển thị danh sách nghệ sĩ sạch sẽ, không còn nghệ sĩ rác hay trùng tên ảo.
   - **Kiểm thử & Typecheck:** Toàn bộ tests, typecheck và lint đều vượt qua 100%.
+- **20. Chuẩn hóa & Gộp Nghệ sĩ Phân mảnh, Loại bỏ Kênh Uploader & Đồng bộ Toàn diện:**
+  - **Khắc phục triệt để nghệ sĩ phân mảnh & tên kênh rác:**
+    - Rà soát toàn bộ 363 bài hát, phát hiện và chuẩn hóa 41 trường hợp bài hát có tên nghệ sĩ bị phân mảnh (tên uploader YouTube, nhóm phân rã, định dạng viết hoa/thường không đồng nhất, biến thể crew).
+    - **Loại bỏ tên kênh uploader:** `Fueled By Ramen and twenty one pilots` $\to$ `twenty one pilots` (bài *Stressed Out*), `Vu Binh` $\to$ `Sol7` (bài *Anh Không Hiểu*), `Thằng Lằng House` $\to$ `2T` (bài *Tam Thập Lục Kế*), `Review` $\to$ `Bình Gold` (bài *Ông Bà Già Tao Lo Hết*), `Thiện Võ` $\to$ `Ricky Star` (bài *Level Up*), `Phước Hoài` $\to$ `Rum` (bài *Liên Khúc Duyên*), `mrdd47` $\to$ `HURRYKNG` (bài *Hột Xoàn*), `Party` $\to$ `2Pac`, `Minh Lý Official ( Hollim)` $\to$ `Minh Lý`, `Cofm ♪` $\to$ `Cofm` (xóa ký tự nốt nhạc `♪`), `DAVID LAID` $\to$ `Calvin Harris` (bài *Outside*).
+    - **Gộp biến thể nghệ sĩ & Crew:** `Sol7 DCOD` $\to$ `Sol7`, `PHÁT HỒ X2X` $\to$ `Phát Hồ`, `TonDee` (3 bài: *Động*, *Khởi*, *Bạn Thân Bản Thân*) $\to$ `2T`, `Y.TAZLE` $\to$ `YoungTazle`, `1NG - 2CAN - DICK` $\to$ `1nG`.
+    - **Chuẩn hóa chữ hoa / chữ thường theo chuẩn Spotify:** `KARIK` $\to$ `Karik`, `ĐÌNH DŨNG` $\to$ `Đình Dũng`, `VŨ PHỤNG TIÊN` $\to$ `Vũ Phụng Tiên`, `TĂNG PHÚC` $\to$ `Tăng Phúc`, `MINH VƯƠNG M4U` $\to$ `Minh Vương M4U`, `KHOA` $\to$ `Khoa`, `DATKAA` $\to$ `DatKaa`, `FREAKY` $\to$ `Freaky`, `LYLY` $\to$ `LyLy`, `MANBO` $\to$ `Manbo`, `LEMESE` $\to$ `Lemese`, `UMIE` $\to$ `Umie`, `RYAN OAKES` $\to$ `Ryan Oakes`, `FIFTY FIFTY (피프티피프티)` $\to$ `FIFTY FIFTY`, `morray` $\to$ `Morray`, `willistic` $\to$ `Willistic`, `híu` $\to$ `Híu`, `puppy` $\to$ `Puppy`, `Lee Ken`, `Donald Gold`.
+  - **Bảo toàn nguyên tắc bất biến:** Không can thiệp tag trong file gốc (để bảo toàn 100% hash `track.id`), toàn bộ ánh xạ chuẩn hóa được lưu an toàn trong `tools/indexer/overrides.json` và `config/artistAliases.json`.
+  - **Kết quả:** Tổng số nghệ sĩ trên website và app đã tinh gọn từ **234 nghệ sĩ xuống 221 nghệ sĩ** (gộp thành công 13 nghệ sĩ rác/phân mảnh), hiển thị đúng tên ca sĩ gốc và tự động đồng bộ 2 chiều lên Cloudflare R2 bucket (`library.json` và `_meta/overrides.json`).
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 
