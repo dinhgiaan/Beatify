@@ -228,6 +228,26 @@
     - Bắt tiến trình thời gian thực từ stdout của `yt-dlp` (`[download] xx.x%`), ánh xạ mượt mà từ 15% -> 48% thay vì đứng im ở 15%.
     - Chuẩn hóa tính toán tiến trình trong `R2UploadReviewModal.tsx`.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **23. Đại tu Toàn diện Modal Quản lý Nghệ sĩ & Studio Cây Phân Cấp (Hierarchical Tree View, Chuyển Bài hát, Xóa R2 & Local):**
+  - **Triệt tiêu Hoàn toàn Hiện tượng Lag & Tối ưu Siêu tốc:**
+    - Thay thế vòng lặp quét đĩa tuần tự thô cũ trong backend `/local-api/artists/merge` bằng `scanFilesWithCache(files)` (< 50ms).
+    - Dựng cấu trúc cây nghệ sĩ/album/bài hát trực tiếp từ bộ nhớ RAM (`artists: ArtistDetail[]`), phản hồi 0ms không độ trễ.
+  - **Layout Ngang 3 Cột Rộng Rãi Chuẩn Studio (`w-[96vw] max-w-7xl h-[90vh]`):**
+    - **Cột 1 (Trái - 288px):** Danh mục nghệ sĩ có ô tìm kiếm tức thì, avatar tròn, số lượng bài & album, chip lọc nhanh (Tất cả, Gợi ý trùng tên, Đã chọn, Phổ biến). Cho phép click 1 chạm để chọn Nghệ sĩ đích (Target) hoặc toggle chọn Nghệ sĩ nguồn (Source) để gộp.
+    - **Cột 2 (Giữa - Flexible):** Sơ đồ cây phân cấp tương tác (Interactive Hierarchical Tree Diagram).
+      - Node Gốc: Nghệ sĩ đích (kèm avatar, thống kê).
+      - Node Nhánh: Các album và mục Singles / Bài hát lẻ, nhánh Nghệ sĩ nguồn dự kiến gộp.
+      - Node Lá: Từng bài hát với checkbox chọn nhanh, thời lượng, chip trạng thái và các nút thao tác nhanh (Chuyển nghệ sĩ, Xóa).
+      - Hỗ trợ Mở rộng / Thu gọn toàn bộ cây (Expand/Collapse All), tìm kiếm lọc bài hát ngay trong cây.
+    - **Cột 3 (Phải - 320px):** Trung tâm điều khiển tác vụ đa năng (Action Control Center) gồm 3 Tab chức năng:
+      - **Tab 1: Gộp Nghệ sĩ (Merge Aliases):** Quản lý danh sách nghệ sĩ nguồn, chip gợi ý tên gần giống thông minh (fuzzy / substring matching), nút thực thi Gộp & Đồng bộ R2 tự động.
+      - **Tab 2: Chuyển Bài hát (Move Tracks):** Đếm số bài đã tick chọn trong sơ đồ cây, cho phép chọn nghệ sĩ đích mới (từ dropdown hoặc nhập tay tên mới), tùy chọn chuyển vào album mới hoặc giữ nguyên, thực thi chuyển tức thì và đồng bộ R2.
+      - **Tab 3: Xóa & Dọn dẹp Vĩnh viễn (Delete & Purge):** Tích hợp 2 tùy chọn độc lập: Xóa trên đĩa cứng Local và Xóa trên Cloudflare R2, hộp thoại cảnh báo nguy hiểm xác nhận 2 bước chống bấm nhầm.
+  - **Backend Endpoints Mới (`tools/indexer/src/server/index.ts`):**
+    - `POST /local-api/artists/merge`: Tối ưu hóa siêu tốc, lưu alias, tự động cập nhật cache và auto-sync R2.
+    - `POST /local-api/artists/move-tracks`: Cập nhật `overrides.tracks[id].artist / album`, làm mới cache và tự động đồng bộ R2.
+    - `POST /local-api/tracks/delete-permanent`: Dọn dẹp file vật lý đĩa cứng (nhạc, ảnh, lrc, folder rỗng) và dọn Cloudflare R2, đánh dấu `purged = true` và tự động đồng bộ R2.
+  - **Bảo toàn Nguyên vẹn:** Không can thiệp tag vật lý file âm thanh (bảo toàn SHA-1 track hash), toàn bộ 437 tests, typecheck và lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

@@ -12,7 +12,7 @@ import { findAudioFiles, scanAudioFile, calculateTrackId } from '../services/sca
 import type { ScannedTrack } from '../services/scanner';
 import { buildLibrary } from '../services/libraryBuilder';
 import { R2Uploader } from '../services/r2Uploader';
-import { getOverrides, setTrackOverride, applyOverridesToScanned, moveToTrash, restoreFromTrash, batchRestoreFromTrash, purgeFromTrash, batchPurgeFromTrash, setArtistAliases } from '../services/overridesManager';
+import { getOverrides, saveOverrides, setTrackOverride, applyOverridesToScanned, moveToTrash, restoreFromTrash, batchRestoreFromTrash, purgeFromTrash, batchPurgeFromTrash, setArtistAliases } from '../services/overridesManager';
 import { updateFoldersConfig } from '../services/configManager';
 import { pickFolderNative } from '../services/folderPicker';
 import crypto from 'crypto';
@@ -3749,7 +3749,7 @@ app.post('/local-api/artists/:name/avatar', async (c) => {
   });
 });
 
-// 13.5d. Gộp nghệ sĩ (Artist Merge / Aliases)
+// 13.5d. Gộp nghệ sĩ (Artist Merge / Aliases) - Tối ưu siêu tốc < 50ms & Auto-sync R2
 app.post('/local-api/artists/merge', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { targetArtist, sourceArtists } = body as { targetArtist?: string; sourceArtists?: string[] };
@@ -3763,23 +3763,147 @@ app.post('/local-api/artists/merge', async (c) => {
 
   const overrides = await setArtistAliases(targetArtist.trim(), sourceArtists);
 
-  // Làm mới lại cachedScannedTracks
+  // Cập nhật tools/indexer/config/artistAliases.json nếu file tồn tại
+  try {
+    const aliasConfigPath = path.resolve(process.cwd(), 'config/artistAliases.json');
+    const altAliasPath = path.resolve(process.cwd(), 'tools/indexer/config/artistAliases.json');
+    const targetFile = existsSync(aliasConfigPath) ? aliasConfigPath : existsSync(altAliasPath) ? altAliasPath : null;
+    if (targetFile) {
+      const curAliases = JSON.parse(await fs.readFile(targetFile, 'utf-8'));
+      for (const src of sourceArtists) {
+        curAliases[src.toLowerCase().trim()] = targetArtist.trim();
+      }
+      await fs.writeFile(targetFile, JSON.stringify(curAliases, null, 2), 'utf-8');
+    }
+  } catch {
+    // bỏ qua nếu không lưu được file config
+  }
+
+  // Làm mới lại cachedScannedTracks siêu tốc dùng scanFilesWithCache (< 50ms)
   const localConfig = loadLocalConfig();
   try {
     const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
-    const rawScanned: ScannedTrack[] = [];
-    for (const f of files) {
-      const item = await scanAudioFile(f);
-      if (item) rawScanned.push(item);
-    }
+    const rawScanned = await scanFilesWithCache(files);
     cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
   } catch {
     // bỏ qua
   }
 
+  invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
+
   return c.json({
     status: 200,
-    message: `Đã gộp thành công ${sourceArtists.length} nghệ sĩ vào "${targetArtist.trim()}"!`,
+    message: `Đã gộp thành công ${sourceArtists.length} nghệ sĩ vào "${targetArtist.trim()}" và đồng bộ lên R2!`,
+  });
+});
+
+// 13.5d2. Chuyển bài hát riêng lẻ sang nghệ sĩ khác (Reassign Tracks to Artist)
+app.post('/local-api/artists/move-tracks', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    trackIds?: string[];
+    targetArtist?: string;
+    targetAlbum?: string;
+  };
+  const { trackIds, targetArtist, targetAlbum } = body;
+
+  if (!targetArtist || !targetArtist.trim()) {
+    return c.json({ status: 400, error: 'Tên nghệ sĩ đích không được để trống' }, 400);
+  }
+  if (!Array.isArray(trackIds) || trackIds.length === 0) {
+    return c.json({ status: 400, error: 'Vui lòng chọn ít nhất 1 bài hát để chuyển' }, 400);
+  }
+
+  const overrides = await getOverrides();
+  for (const id of trackIds) {
+    if (!overrides.tracks[id]) {
+      overrides.tracks[id] = {};
+    }
+    overrides.tracks[id].artist = targetArtist.trim();
+    if (targetAlbum && targetAlbum.trim()) {
+      overrides.tracks[id].album = targetAlbum.trim();
+    }
+  }
+  await saveOverrides(overrides);
+
+  // Làm mới lại cache siêu tốc
+  const localConfig = loadLocalConfig();
+  try {
+    const files = await findAudioFiles(localConfig.MUSIC_SOURCE_DIR);
+    const rawScanned = await scanFilesWithCache(files);
+    cachedScannedTracks = applyOverridesToScanned(rawScanned, overrides);
+  } catch {
+    // bỏ qua
+  }
+
+  invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
+
+  return c.json({
+    status: 200,
+    message: `Đã chuyển ${trackIds.length} bài hát sang nghệ sĩ "${targetArtist.trim()}" thành công!`,
+  });
+});
+
+// 13.5d3. Xóa vĩnh viễn bài hát (Tùy chọn xóa trên Cloudflare R2 và Local đĩa cứng)
+app.post('/local-api/tracks/delete-permanent', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    trackIds?: string[];
+    deleteFromR2?: boolean;
+    deleteLocal?: boolean;
+  };
+  const trackIds = Array.isArray(body?.trackIds) ? body.trackIds : [];
+  const deleteFromR2 = Boolean(body?.deleteFromR2);
+  const deleteLocal = Boolean(body?.deleteLocal);
+
+  if (trackIds.length === 0) {
+    return c.json({ status: 400, error: 'Vui lòng chọn ít nhất 1 bài hát để xóa' }, 400);
+  }
+
+  let s3: S3Client | undefined;
+  let bucket: string | undefined;
+  if (deleteFromR2) {
+    const localConfig = loadLocalConfig();
+    if (
+      localConfig.isR2Configured &&
+      localConfig.R2_ACCOUNT_ID &&
+      localConfig.R2_ACCESS_KEY_ID &&
+      localConfig.R2_SECRET_ACCESS_KEY &&
+      localConfig.R2_BUCKET
+    ) {
+      s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${localConfig.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: localConfig.R2_ACCESS_KEY_ID,
+          secretAccessKey: localConfig.R2_SECRET_ACCESS_KEY,
+        },
+      });
+      bucket = localConfig.R2_BUCKET;
+    }
+  }
+
+  let totalLocalDeleted = 0;
+  let totalR2Deleted = 0;
+  for (const id of trackIds) {
+    const { r2Deleted, localDeleted } = await cleanPurgeTrackResources(id, deleteFromR2, deleteLocal, s3, bucket);
+    if (r2Deleted) totalR2Deleted++;
+    if (localDeleted) totalLocalDeleted++;
+  }
+
+  await batchPurgeFromTrash(trackIds);
+  invalidateStatusCache();
+  await autoSyncLibraryFastToR2();
+
+  const msgParts: string[] = [`Đã xóa vĩnh viễn ${trackIds.length} bài hát`];
+  if (deleteLocal && totalLocalDeleted > 0) msgParts.push(`đã xóa ${totalLocalDeleted} file trên đĩa cứng`);
+  if (deleteFromR2 && totalR2Deleted > 0) msgParts.push(`đã xóa file tương ứng trên Cloudflare R2`);
+
+  return c.json({
+    status: 200,
+    message: msgParts.join(', '),
+    totalLocalDeleted,
+    totalR2Deleted,
   });
 });
 

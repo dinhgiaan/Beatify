@@ -63,6 +63,31 @@ export async function mergeArtistsApi(targetArtist: string, sourceArtists: strin
   });
 }
 
+export async function moveTracksToArtistApi(
+  trackIds: string[],
+  targetArtist: string,
+  targetAlbum?: string
+): Promise<{ status: number; message: string }> {
+  return requestApi<{ status: number; message: string }>('/local-api/artists/move-tracks', {
+    method: 'POST',
+    body: JSON.stringify({ trackIds, targetArtist, targetAlbum }),
+  });
+}
+
+export async function deleteTracksPermanentApi(
+  trackIds: string[],
+  deleteFromR2 = true,
+  deleteLocal = true
+): Promise<{ status: number; message: string; totalLocalDeleted?: number; totalR2Deleted?: number }> {
+  return requestApi<{ status: number; message: string; totalLocalDeleted?: number; totalR2Deleted?: number }>(
+    '/local-api/tracks/delete-permanent',
+    {
+      method: 'POST',
+      body: JSON.stringify({ trackIds, deleteFromR2, deleteLocal }),
+    }
+  );
+}
+
 export async function openArtistFolderApi(artistName: string, folderPath?: string | null): Promise<{ status: number; message: string; folderPath?: string }> {
   return requestApi<{ status: number; message: string; folderPath?: string }>(
     `/local-api/artists/${encodeURIComponent(artistName)}/open-folder`,
