@@ -269,7 +269,7 @@
       "cover": "covers/b683b239193c.jpg"
     },
     "7056d9ee506a": {
-      "title": "Ngoài cửa số là cơn mưa đang đổ chéo ....Mashup - Tình ca - KICK",
+      "title": "Ngoài Cửa Sổ Là Cơn Mưa Đang Đổ Chéo (Mashup Tình Ca)",
       "artist": "Thành Junior",
       "album": "Singles",
       "loudnessLufs": -12.88,
@@ -277,7 +277,7 @@
       "cover": "covers/7056d9ee506a.jpg"
     },
     "6f79d746ed44": {
-      "title": "Thu Cuối (MR.T Official)",
+      "title": "Thu Cuối (feat. Yanbi & Hằng BingBoong)",
       "artist": "Mr T",
       "album": "Singles",
       "loudnessLufs": -8.89,
@@ -389,8 +389,8 @@
       "cover": "covers/e164d95a6951.jpg"
     },
     "94dab9660ae1": {
-      "title": "Mưa đang rơi _ BABY $MOKE",
-      "artist": "Mr Clown",
+      "title": "Mưa Đang Rơi",
+      "artist": "BABY $MOKE",
       "album": "Singles",
       "loudnessLufs": -16.42,
       "replayGain": -1.58,
@@ -1171,7 +1171,7 @@
       "cover": "covers/2499630e5dfc.jpg"
     },
     "9b993aa96829": {
-      "title": "Hai Thế Giới full",
+      "title": "Hai Thế Giới (feat. Karik)",
       "artist": "Wowy",
       "album": "Singles",
       "loudnessLufs": -18.69,
@@ -2131,7 +2131,8 @@
       "cover": "covers/33fafdbdc812.jpg"
     },
     "56069b4f29b7": {
-      "cover": "covers/56069b4f29b7.jpg"
+      "cover": "covers/56069b4f29b7.jpg",
+      "title": "Haru Haru (하루하루)"
     },
     "cc30f3f3bcb8": {
       "cover": "covers/cc30f3f3bcb8.jpg"
@@ -2375,7 +2376,11 @@
       "cover": "covers/777e296bab9d.jpg"
     },
     "71fc8f46b2b7": {
-      "cover": "covers/71fc8f46b2b7.jpg"
+      "cover": "covers/71fc8f46b2b7.jpg",
+      "artist": "AMEE",
+      "title": "Ex's Hate Me (Part 2) (feat. B Ray)",
+      "album": "dreAMEE",
+      "year": 2020
     },
     "62a7ccbe277b": {
       "title": "Muốn Nói Với Em (feat. Mai Xuân Thứ)",
@@ -2403,7 +2408,8 @@
       "cover": "covers/e02f64008049.jpg"
     },
     "c4bc4fe7a267": {
-      "cover": "covers/c4bc4fe7a267.jpg"
+      "cover": "covers/c4bc4fe7a267.jpg",
+      "title": "Lối Nhỏ x Nghe Bài Này Đi Em (Live Ngẫu Hứng)"
     },
     "0dde57433c84": {
       "title": "Mất Kết Nối",
@@ -2612,7 +2618,6 @@
     "phat ho x2x": "Phát Hồ",
     "y.tazle": "YoungTazle",
     "youngtazle": "YoungTazle",
-    "1ng - 2can - dick": "1nG",
     "mrdd47": "HURRYKNG",
     "vu binh": "Sol7",
     "minh ly official ( hollim)": "Minh Lý",
@@ -2627,7 +2632,6 @@
     "datkaa": "DatKaa",
     "freaky": "Freaky",
     "lyly": "LyLy",
-    "manbo": "Manbo",
     "hurrykng": "HURRYKNG",
     "lemese": "Lemese",
     "umie": "Umie",

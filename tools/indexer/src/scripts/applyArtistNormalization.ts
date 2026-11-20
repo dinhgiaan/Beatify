@@ -24,7 +24,7 @@ const config: IndexerConfig = {
 };
 
 // 1. Danh sách overrides theo track ID
-const trackUpdates: Record<string, { artist?: string; title?: string }> = {
+const trackUpdates: Record<string, { artist?: string; title?: string; album?: string; year?: number }> = {
   // Kênh uploader / Phân mảnh -> Tên nghệ sĩ chuẩn
   '0e8f9437a06d': { artist: 'Sol7', title: 'Anh Không Hiểu' },
   '807cd4466b97': { artist: 'Thằng Lằng House', title: 'Tam Thập Lục Kế' },
@@ -38,6 +38,13 @@ const trackUpdates: Record<string, { artist?: string; title?: string }> = {
   'd1648d1bcc5a': { artist: 'Cofm', title: 'Ai Đưa Em Về Nếu Một Ngày Chúng Ta Không Còn Gặp (Mashup)' },
   '6fef042a7643': { artist: '1nG', title: 'Ai Đưa Em Về Nếu Một Ngày Chúng Ta Không Còn Gặp (feat. 2Can & Dick)' },
   'f77dc08ffaef': { artist: 'Calvin Harris', title: 'Outside (David Laid Gym Edit)' },
+  '94dab9660ae1': { artist: 'BABY $MOKE', title: 'Mưa Đang Rơi' },
+  '71fc8f46b2b7': { artist: 'AMEE', title: "Ex's Hate Me (Part 2) (feat. B Ray)", album: 'dreAMEE', year: 2020 },
+  '56069b4f29b7': { title: 'Haru Haru (하루하루)' },
+  '6f79d746ed44': { title: 'Thu Cuối (feat. Yanbi & Hằng BingBoong)' },
+  'c4bc4fe7a267': { title: 'Lối Nhỏ x Nghe Bài Này Đi Em (Live Ngẫu Hứng)' },
+  '7056d9ee506a': { title: 'Ngoài Cửa Sổ Là Cơn Mưa Đang Đổ Chéo (Mashup Tình Ca)' },
+  '9b993aa96829': { title: 'Hai Thế Giới (feat. Karik)' },
 
   // Gộp biến thể nghệ sĩ / Crew
   'fd35815b0b4c': { artist: 'Sol7', title: 'Iceman' },
@@ -81,7 +88,6 @@ const newAliases: Record<string, string> = {
   'phat ho x2x': 'Phát Hồ',
   'y.tazle': 'YoungTazle',
   'youngtazle': 'YoungTazle',
-  '1ng - 2can - dick': '1nG',
   'mrdd47': 'HURRYKNG',
   'vu binh': 'Sol7',
   'minh ly official ( hollim)': 'Minh Lý',
@@ -96,7 +102,6 @@ const newAliases: Record<string, string> = {
   'datkaa': 'DatKaa',
   'freaky': 'Freaky',
   'lyly': 'LyLy',
-  'manbo': 'Manbo',
   'hurrykng': 'HURRYKNG',
   'lemese': 'Lemese',
   'umie': 'Umie',
@@ -124,6 +129,8 @@ async function run() {
     }
     if (update.artist) overrides.tracks[id].artist = update.artist;
     if (update.title) overrides.tracks[id].title = update.title;
+    if (update.album) overrides.tracks[id].album = update.album;
+    if (update.year) overrides.tracks[id].year = update.year;
   }
 
   for (const [alias, target] of Object.entries(newAliases)) {

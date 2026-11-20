@@ -193,6 +193,26 @@
   - **Bảo toàn nguyên tắc bất biến:** Không can thiệp tag trong file gốc (để bảo toàn 100% hash `track.id`), toàn bộ ánh xạ chuẩn hóa được lưu an toàn trong `tools/indexer/overrides.json` và `config/artistAliases.json`.
   - **Kết quả:** Tổng số nghệ sĩ trên website và app đã tinh gọn từ **234 nghệ sĩ xuống 223 nghệ sĩ** (gộp thành công 11 nghệ sĩ rác/phân mảnh), hiển thị đúng tên ca sĩ gốc và tự động đồng bộ 2 chiều lên Cloudflare R2 bucket (`library.json` và `_meta/overrides.json`).
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **21. Rà soát Toàn diện Thư viện (363 bài hát), Tách độc lập TonDee/2T và Làm sạch 7 Lỗi Metadata Rác:**
+  - **Phân định độc lập TonDee, 2T và Thằng Lằng House:**
+    - `2T`: 2 bài ballad (*Cưới Đi*, *Liệu Giờ (What If?)*) trong `(chill)`.
+    - `TonDee`: 3 bài rap (*Khởi*, *Động*, *Bạn Thân Bản Thân*) trong `(rap)`.
+    - `Thằng Lằng House`: 1 bài rap (*Tam Thập Lục Kế*).
+    - Xóa bỏ triệt để các alias gộp nhầm trong `artistAliases.json` và `overrides.json`.
+  - **Audit đối chiếu 100% 363 bài hát với cây thư mục ổ cứng `D:\music for app` & Làm sạch 7 Lỗi Metadata:**
+    - Rà soát toàn bộ sự khác biệt giữa nghệ sĩ/tiêu đề và tên thư mục/file gốc, xác nhận KHÔNG CÒN trường hợp gộp nhầm ca sĩ nào khác.
+    - Sửa triệt để 7 lỗi tiêu đề/kênh rác YouTube còn sót lại:
+      1. `94dab9660ae1`: Kênh YouTube `Mr Clown` $\to$ Nghệ sĩ & Rapper gốc: **`BABY $MOKE`**, Tiêu đề: **`Mưa Đang Rơi`**.
+      2. `71fc8f46b2b7`: Tiêu đề rác `Lyric Video (from album “dreAMEE”)` $\to$ Bài hát chuẩn: **`Ex's Hate Me (Part 2) (feat. B Ray)`**, Nghệ sĩ: **`AMEE`**, Album: **`dreAMEE`**, Năm: `2020`.
+      3. `56069b4f29b7`: `Haru Haru(하루하루) M/v` $\to$ **`Haru Haru (하루하루)`**.
+      4. `6f79d746ed44`: `Thu Cuối (MR.T Official)` $\to$ **`Thu Cuối (feat. Yanbi & Hằng BingBoong)`**.
+      5. `c4bc4fe7a267`: `[Live Ngẫu Hứng] Lối Nhỏ x Nghe Bài Này Đi Em (Củ Cải ( Beat prod by Whisky))` $\to$ **`Lối Nhỏ x Nghe Bài Này Đi Em (Live Ngẫu Hứng)`**.
+      6. `7056d9ee506a`: `Ngoài cửa số là cơn mưa đang đổ chéo ....Mashup - Tình ca - KICK` $\to$ **`Ngoài Cửa Sổ Là Cơn Mưa Đang Đổ Chéo (Mashup Tình Ca)`**.
+      7. `9b993aa96829`: `Hai Thế Giới full` $\to$ **`Hai Thế Giới (feat. Karik)`**.
+  - **Tái tạo Thư viện & Đồng bộ R2:**
+    - Đã quét và tái tạo `library.json` chuẩn hóa (363 bài hát, 223 nghệ sĩ duy nhất).
+    - Đồng bộ thành công `library.json` và `_meta/overrides.json` lên Cloudflare R2 bucket.
+  - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (437 tests across packages/shared, apps/mobile, apps/api, tools/indexer), typecheck và lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 
