@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Cloud,
   RefreshCw,
@@ -36,6 +36,19 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConnectionLost, setIsConnectionLost] = useState(false);
+  const [syncMode, setSyncMode] = useState<'full' | 'only-new' | 'selected'>('only-new');
+
+  const { data: status } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: () =>
+      requestApi<{ unsyncedCount?: number; unsyncedMB?: string; syncedCount?: number; totalTracks?: number }>(
+        '/local-api/status'
+      ),
+    enabled: isOpen,
+  });
+
+  const unsyncedCount = Number(status?.unsyncedCount || 0);
+
   const [syncProgress, setSyncProgress] = useState<{
     active: boolean;
     step: string;
@@ -100,10 +113,14 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen, isSyncing, queryClient]);
 
   const startSyncMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: { mode?: 'full' | 'only-new' | 'selected'; trackIds?: string[] } = {}) => {
       setIsSyncing(true);
       setIsConnectionLost(false);
-      return requestApi('/local-api/sync', { method: 'POST' });
+      setSyncMode(payload.mode || 'only-new');
+      return requestApi('/local-api/sync', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -213,36 +230,76 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Sync Action Button */}
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[12.5px] font-bold text-[var(--text-primary)]">
-                  Bắt đầu đồng bộ
+            {/* Sync Action Buttons */}
+            <div className="space-y-3">
+              {/* Option 1: Chỉ đồng bộ bài mới */}
+              <div className="p-3.5 rounded-xl border border-white/[0.08] bg-black/25 flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-bold text-white">Chỉ đồng bộ bài hát mới</span>
+                    {unsyncedCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/30">
+                        {unsyncedCount} bài chưa lên Cloud
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10.5px] text-zinc-400 bg-white/[0.05]">
+                        Đã đầy đủ
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11.5px] text-zinc-400 mt-0.5">
+                    Chỉ tải lên các bài hát mới thêm và cập nhật thư viện, siêu nhanh trong 2-3 giây.
+                  </div>
                 </div>
-                <div className="text-[11px] text-[var(--text-muted)]">
-                  Chỉ tải lên những bài hát và ảnh bìa chưa có trên Cloudflare R2
-                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => startSyncMutation.mutate({ mode: 'only-new' })}
+                  disabled={isSyncing || syncProgress.active || isConnectionLost || unsyncedCount === 0}
+                  className="gap-1.5 px-3.5 py-1.5 font-bold shrink-0 bg-[#1DB954] hover:bg-[#1ed760] text-black cursor-pointer"
+                >
+                  {isSyncing && syncMode === 'only-new' ? (
+                    <RefreshCw size={13} className="animate-spin text-black" />
+                  ) : (
+                    <Cloud size={13} className="text-black" />
+                  )}
+                  <span>
+                    {isConnectionLost
+                      ? 'Đang chờ...'
+                      : isSyncing && syncMode === 'only-new'
+                      ? 'Đang đồng bộ...'
+                      : 'Đồng bộ bài mới'}
+                  </span>
+                </Button>
               </div>
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => startSyncMutation.mutate()}
-                disabled={isSyncing || syncProgress.active || isConnectionLost}
-                className="gap-2 px-4 font-semibold"
-              >
-                {isSyncing || syncProgress.active ? (
-                  <RefreshCw size={14} className="animate-spin" />
-                ) : (
-                  <Cloud size={14} />
-                )}
-                <span>
-                  {isConnectionLost
-                    ? 'Đang chờ server...'
-                    : isSyncing || syncProgress.active
-                    ? 'Đang đồng bộ...'
-                    : 'Đồng bộ ngay'}
-                </span>
-              </Button>
+
+              {/* Option 2: Đồng bộ toàn bộ thư viện */}
+              <div className="p-3.5 rounded-xl border border-white/[0.08] bg-black/15 flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-zinc-300">
+                    Đồng bộ toàn bộ thư viện
+                  </div>
+                  <div className="text-[11.5px] text-zinc-500 mt-0.5">
+                    Quét lại toàn bộ đĩa, kiểm tra toàn diện ảnh bìa và lời bài hát.
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => startSyncMutation.mutate({ mode: 'full' })}
+                  disabled={isSyncing || syncProgress.active || isConnectionLost}
+                  className="gap-1.5 px-3.5 py-1.5 font-medium shrink-0 cursor-pointer"
+                >
+                  {isSyncing && syncMode === 'full' ? (
+                    <RefreshCw size={13} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={13} />
+                  )}
+                  <span>
+                    {isSyncing && syncMode === 'full' ? 'Đang đồng bộ tất cả...' : 'Đồng bộ tất cả'}
+                  </span>
+                </Button>
+              </div>
             </div>
 
             {/* Orphan files scanner */}

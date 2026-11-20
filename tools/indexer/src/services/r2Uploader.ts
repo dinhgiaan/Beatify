@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import type { Library, UserState } from '@music-app/shared';
 import { UserStateSchema } from '@music-app/shared';
 import type { IndexerConfig } from '../config';
@@ -108,5 +108,19 @@ export class R2Uploader {
         ContentType: 'application/json',
       })
     );
+  }
+
+  async getExistingTrackKeys(): Promise<Set<string>> {
+    try {
+      const res = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: 'music/',
+        })
+      );
+      return new Set((res.Contents || []).map((o) => o.Key || '').filter(Boolean));
+    } catch {
+      return new Set<string>();
+    }
   }
 }

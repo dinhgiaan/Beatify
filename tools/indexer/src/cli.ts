@@ -164,15 +164,21 @@ Cách dùng:
 
     const uploader = new R2Uploader(config);
 
-    // 1. Upload audio files
-    console.log(`📤 Đang tải ${scannedTracks.length} file nhạc lên R2...`);
+    // 1. Upload audio files (Đồng bộ vi sai: chỉ tải các file chưa có trên R2)
+    console.log(`📤 Đang kiểm tra và đồng bộ ${scannedTracks.length} file nhạc lên R2...`);
+    const existingKeys = await uploader.getExistingTrackKeys().catch(() => new Set<string>());
+    let newUploadCount = 0;
     for (let i = 0; i < scannedTracks.length; i++) {
       const item = scannedTracks[i];
       if (!item) continue;
-      process.stdout.write(`  [${i + 1}/${scannedTracks.length}] ${item.track.title}...\r`);
+      if (existingKeys.has(item.track.file)) {
+        continue;
+      }
+      process.stdout.write(`  [${i + 1}/${scannedTracks.length}] Tải mới: ${item.track.title}...\r`);
       await uploader.uploadAudio(item.track.file, item.filePath);
+      newUploadCount++;
     }
-    console.log(`\n✅ Đã tải xong toàn bộ file nhạc.`);
+    console.log(`\n✅ Đã đồng bộ file nhạc (${newUploadCount} file mới tải lên, ${scannedTracks.length - newUploadCount} file đã có sẵn).`);
 
     // 2. Upload covers (gồm cả ảnh bài hát riêng và ảnh album)
     console.log(`🖼️ Đang tải ${coversByTrackId.size} ảnh bìa bài hát & ${coversByAlbumId.size} ảnh bìa album...`);

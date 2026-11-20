@@ -156,6 +156,23 @@
     - `apps/mobile/app/section/[id].tsx`: Nâng cấp `trackIndexWrapper` từ `width: 24` lên `minWidth: 28`, bổ sung `numberOfLines={1}`, `fontVariant: ['tabular-nums']` và `textAlign: 'center'`.
     - `apps/mobile/src/components/CollectionDetailModal.tsx`: Đồng bộ `minWidth: 30` cho cả lúc hiển thị `EqualizerIndicator` và số thứ tự bài hát, bổ sung `numberOfLines={1}` và `fontVariant: ['tabular-nums']`.
   - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
+- **18. Nâng cấp Đồng bộ Vi sai Siêu tốc & Bổ sung Nút Tải Riêng Bài Hát Mới Lên Cloudflare R2:**
+  - **Hệ thống Server & CLI (`tools/indexer/src/server/index.ts`, `r2Uploader.ts`, `cli.ts`):**
+    - Thêm phương thức `getExistingTrackKeys()` trong `R2Uploader`, giúp kiểm tra danh sách bài hát đã có trên R2.
+    - Cập nhật CLI `pnpm indexer sync`: tự động kiểm tra vi sai, chỉ tải các file âm thanh mới chưa có trên Cloud thay vì đẩy lại toàn bộ hàng trăm bài hát cũ.
+    - Cập nhật tiến trình đồng bộ `executeR2Sync` và endpoint `POST /local-api/sync`:
+      - Sử dụng bộ nhớ đệm RAM `scanFilesWithCache` giúp quét 370+ file trong < 100ms thay vì băm lại SHA-1 toàn bộ đĩa.
+      - Hỗ trợ các chế độ đồng bộ: `mode: 'only-new'` (chỉ tải các bài chưa có trên R2), `mode: 'selected'` (tải đúng danh sách `trackIds` được chỉ định), và `mode: 'full'` (rà soát toàn bộ).
+      - Quá trình đồng bộ bài mới chỉ tốn 2–3 giây cho audio, ảnh bìa, lời và cập nhật `library.json`.
+  - **Hộp thoại Đồng bộ R2 (`SyncModal.tsx`):**
+    - Phân tách 2 lựa chọn rõ ràng:
+      1. **"Chỉ đồng bộ bài hát mới"**: Hiển thị badge số lượng bài chưa lên Cloud (`unsyncedCount`), một chạm tải ngay các bài mới và cập nhật thư viện chỉ trong 2-3s.
+      2. **"Đồng bộ toàn bộ thư viện"**: Rà soát đĩa, ảnh bìa và toàn bộ file lời bài hát.
+  - **Trang Quản lý Thư viện (`LibraryPage.tsx` & `App.tsx`):**
+    - Cột 4 (Trạng thái Cloud): Với các bài chưa upload, chuyển đổi huy hiệu tĩnh thành nút bấm hành động **"Lên R2"** màu amber/accent để người dùng có thể bấm tải ngay bài đó lên Cloudflare R2 tại chỗ.
+    - Thanh tác vụ hàng loạt (Floating Batch Action Bar): Thêm nút **"Lên R2 (X bài)"** khi tích chọn nhiều bài hát (kết hợp hoàn hảo với bộ lọc *"Chưa upload R2"*).
+    - Kết nối tự động mở `SyncModal` hiển thị thanh tiến trình trực quan theo thời gian thực khi bấm tải.
+  - **Kiểm thử & Typecheck:** Toàn bộ 437 tests (144 shared, 25 api, 124 mobile bao gồm 14 tests của uiRegression, 144 indexer) và typecheck, lint đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

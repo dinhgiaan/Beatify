@@ -78,16 +78,18 @@ export type QuickFilter =
 
 export const LibraryPage: React.FC<{
   onPlayTrack?: (track: PlayingTrack, newQueue?: PlayingTrack[]) => void;
+  onOpenSyncModal?: () => void;
   playingTrackId?: string;
   isAudioPlaying?: boolean;
   onTogglePlayPause?: () => void;
-}> = ({ onPlayTrack, playingTrackId, isAudioPlaying, onTogglePlayPause }) => {
+}> = ({ onPlayTrack, onOpenSyncModal, playingTrackId, isAudioPlaying, onTogglePlayPause }) => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortField>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [isUploadingR2, setIsUploadingR2] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -872,6 +874,46 @@ export const LibraryPage: React.FC<{
     };
   }, [isPollingBatchCover, isBatchAppleCoverModalOpen]);
 
+  const handleSingleUploadToR2 = async (track: TrackItem) => {
+    const toastId = toast.loading(`Đang chuẩn bị tải "${track.title}" lên Cloudflare R2...`);
+    try {
+      await requestApi('/local-api/sync', {
+        method: 'POST',
+        body: JSON.stringify({
+          mode: 'selected',
+          trackIds: [track.id],
+        }),
+      });
+      toast.success(`Đang tải "${track.title}" lên Cloudflare R2!`, { id: toastId });
+      onOpenSyncModal?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải lên R2: ${msg}`, { id: toastId });
+    }
+  };
+
+  const handleBatchUploadToR2 = async () => {
+    if (selectedTrackIds.size === 0) return;
+    setIsUploadingR2(true);
+    const toastId = toast.loading(`Đang chuẩn bị tải ${selectedTrackIds.size} bài hát lên Cloudflare R2...`);
+    try {
+      await requestApi('/local-api/sync', {
+        method: 'POST',
+        body: JSON.stringify({
+          mode: 'selected',
+          trackIds: Array.from(selectedTrackIds),
+        }),
+      });
+      toast.success(`Đang tải ${selectedTrackIds.size} bài hát lên Cloudflare R2!`, { id: toastId });
+      onOpenSyncModal?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Lỗi tải lên R2: ${msg}`, { id: toastId });
+    } finally {
+      setIsUploadingR2(false);
+    }
+  };
+
   const formatDuration = (sec: number) => {
     if (!sec || isNaN(sec)) return '0:00';
     const m = Math.floor(sec / 60);
@@ -1479,13 +1521,15 @@ export const LibraryPage: React.FC<{
                           <span>Đã upload</span>
                         </span>
                       ) : (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25 whitespace-nowrap shadow-xs"
-                          title="Chưa upload lên R2 (chỉ lưu trên máy tính)"
+                        <button
+                          type="button"
+                          onClick={() => handleSingleUploadToR2(t)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 hover:bg-[#1DB954]/20 text-amber-300 hover:text-[#1DB954] border border-amber-500/30 hover:border-[#1DB954]/40 whitespace-nowrap shadow-xs transition-colors cursor-pointer group"
+                          title="Bấm để tải riêng bài hát này lên Cloudflare R2"
                         >
-                          <CloudOff size={11} />
-                          <span>Chưa upload</span>
-                        </span>
+                          <Cloud size={11} className="group-hover:scale-110 transition-transform" />
+                          <span>Lên R2</span>
+                        </button>
                       )}
                     </div>
 
@@ -1697,6 +1741,22 @@ export const LibraryPage: React.FC<{
                 <div className="h-4 w-[1px] bg-white/10" />
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleBatchUploadToR2()}
+                    disabled={isUploadingR2}
+                    className="h-8 text-xs px-3.5 gap-1.5 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold cursor-pointer shadow-sm"
+                    title={`Tải riêng ${selectedTrackIds.size} bài hát đã chọn lên Cloudflare R2`}
+                  >
+                    {isUploadingR2 ? (
+                      <RefreshCw size={12} className="animate-spin text-black" />
+                    ) : (
+                      <Cloud size={12} className="text-black" />
+                    )}
+                    <span>Lên R2 ({selectedTrackIds.size})</span>
+                  </Button>
+
                   <Button
                     variant="secondary"
                     size="sm"

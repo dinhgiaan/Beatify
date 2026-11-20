@@ -36,6 +36,7 @@ function LibraryRoute() {
   return (
     <LibraryPage
       onPlayTrack={ctx.onPlayTrack}
+      onOpenSyncModal={ctx.onOpenSyncModal}
       playingTrackId={ctx.playingTrackId}
       isAudioPlaying={ctx.isAudioPlaying}
       onTogglePlayPause={ctx.onTogglePlayPause}

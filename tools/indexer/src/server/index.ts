@@ -2134,10 +2134,25 @@ app.post('/local-api/sync/fast', async (c) => {
 });
 
 // 6.1. Hàm thực thi đồng bộ R2 ngầm (không block HTTP request, cập nhật tiến trình liên tục)
-async function executeR2Sync(config: IndexerConfig): Promise<void> {
+interface ExecuteSyncOptions {
+  mode?: 'full' | 'only-new' | 'selected';
+  trackIds?: string[];
+}
+
+async function executeR2Sync(
+  config: IndexerConfig,
+  options: ExecuteSyncOptions = {}
+): Promise<void> {
+  const mode = options.mode || 'full';
+  const selectedTrackIds = options.trackIds ? new Set(options.trackIds) : null;
+
   currentSyncProgress = {
     active: true,
-    step: 'Đang quét thư mục âm thanh trên máy tính...',
+    step: mode === 'only-new'
+      ? 'Đang kiểm tra các bài hát mới chưa lên Cloud...'
+      : mode === 'selected'
+      ? 'Đang kiểm tra các bài hát đã chọn...'
+      : 'Đang quét thư mục âm thanh trên máy tính...',
     current: 0,
     total: 0,
     percent: 5,
@@ -2146,11 +2161,7 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
 
   try {
     const files = await findAudioFiles(config.MUSIC_SOURCE_DIR);
-    const rawTracks: ScannedTrack[] = [];
-    for (const f of files) {
-      const item = await scanAudioFile(f);
-      if (item) rawTracks.push(item);
-    }
+    const rawTracks: ScannedTrack[] = await scanFilesWithCache(files);
 
     currentSyncProgress.step = 'Đang lọc bài hát và áp dụng siêu dữ liệu...';
     currentSyncProgress.percent = 15;
@@ -2201,31 +2212,64 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
     const existingR2Keys = await getR2TrackKeys(true);
     const existingCoverKeys = await getR2CoverKeys(true);
 
-    const totalSteps = scannedTracks.length + allCoversToUpload.size + 1;
+    let tracksToProcess: ScannedTrack[] = [];
+    if (mode === 'only-new') {
+      tracksToProcess = scannedTracks.filter((item) => !existingR2Keys.has(item.track.file));
+      if (tracksToProcess.length === 0) {
+        currentSyncProgress = {
+          active: false,
+          step: 'Toàn bộ bài hát đã có sẵn trên Cloudflare R2! Không có bài hát mới.',
+          current: 0,
+          total: 0,
+          percent: 100,
+          error: null,
+        };
+        invalidateStatusCache();
+        return;
+      }
+    } else if (mode === 'selected' && selectedTrackIds) {
+      tracksToProcess = scannedTracks.filter((item) => selectedTrackIds.has(item.track.id));
+      if (tracksToProcess.length === 0) {
+        currentSyncProgress = {
+          active: false,
+          step: 'Không tìm thấy bài hát đã chọn trong kho nhạc.',
+          current: 0,
+          total: 0,
+          percent: 100,
+          error: null,
+        };
+        invalidateStatusCache();
+        return;
+      }
+    } else {
+      tracksToProcess = scannedTracks;
+    }
+
+    const totalSteps = tracksToProcess.length + 1;
     let completedSteps = 0;
     let newAudioUploaded = 0;
     let newCoversUploaded = 0;
 
-    for (const [i, item] of scannedTracks.entries()) {
+    for (const [i, item] of tracksToProcess.entries()) {
       completedSteps++;
       const pct = 15 + Math.round((completedSteps / totalSteps) * 65);
       const isAlreadyOnCloud = existingR2Keys.has(item.track.file);
 
-      if (isAlreadyOnCloud) {
+      if (isAlreadyOnCloud && mode === 'full') {
         currentSyncProgress = {
           active: true,
-          step: `Đã có sẵn trên Cloud (${i + 1}/${scannedTracks.length}): "${item.track.title}"`,
+          step: `Đã có sẵn trên Cloud (${i + 1}/${tracksToProcess.length}): "${item.track.title}"`,
           current: i + 1,
-          total: scannedTracks.length,
+          total: tracksToProcess.length,
           percent: pct,
           error: null,
         };
       } else {
         currentSyncProgress = {
           active: true,
-          step: `Đang tải âm thanh mới (${i + 1}/${scannedTracks.length}): "${item.track.title}"`,
+          step: `Đang tải âm thanh (${i + 1}/${tracksToProcess.length}): "${item.track.title}"`,
           current: i + 1,
-          total: scannedTracks.length,
+          total: tracksToProcess.length,
           percent: pct,
           error: null,
         };
@@ -2233,66 +2277,64 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
         newAudioUploaded++;
         existingR2Keys.add(item.track.file);
       }
-    }
 
-    let coverIdx = 0;
-    for (const [coverId, buffer] of allCoversToUpload.entries()) {
-      coverIdx++;
-      completedSteps++;
-      const pct = 15 + Math.round((completedSteps / totalSteps) * 65);
-      const coverKey = `covers/${coverId}.jpg`;
-      const isCoverOnCloud = existingCoverKeys.has(coverKey);
-      const hasCustomCover = existsSync(path.join(CUSTOM_COVERS_DIR, `${coverId}.jpg`));
+      // Tải ảnh bìa bài hát / album
+      if (item.coverBuffer) {
+        const coverId = item.track.id;
+        const coverKey = `covers/${coverId}.jpg`;
+        if (mode !== 'only-new' || !existingCoverKeys.has(coverKey)) {
+          await uploader.uploadCover(coverId, item.coverBuffer);
+          newCoversUploaded++;
+          existingCoverKeys.add(coverKey);
+        }
+        if (item.track.albumId) {
+          const albumCoverKey = `covers/${item.track.albumId}.jpg`;
+          if (mode !== 'only-new' || !existingCoverKeys.has(albumCoverKey)) {
+            await uploader.uploadCover(item.track.albumId, item.coverBuffer);
+            newCoversUploaded++;
+            existingCoverKeys.add(albumCoverKey);
+          }
+        }
+      }
 
-      if (isCoverOnCloud && !hasCustomCover) {
-        currentSyncProgress = {
-          active: true,
-          step: `Ảnh bìa đã có sẵn trên Cloud (${coverIdx}/${allCoversToUpload.size})...`,
-          current: coverIdx,
-          total: allCoversToUpload.size,
-          percent: pct,
-          error: null,
-        };
-      } else {
-        currentSyncProgress = {
-          active: true,
-          step: `Đang tải ảnh bìa (${coverIdx}/${allCoversToUpload.size})...`,
-          current: coverIdx,
-          total: allCoversToUpload.size,
-          percent: pct,
-          error: null,
-        };
-        await uploader.uploadCover(coverId, buffer);
-        newCoversUploaded++;
-        existingCoverKeys.add(coverKey);
+      // Tải lời bài hát nếu có
+      if (item.track.lyrics?.file) {
+        const lrcFile = path.join(LYRICS_DIR, `${item.track.id}.lrc`);
+        const sidecarLrc = item.filePath.replace(path.extname(item.filePath), '.lrc');
+        let text = '';
+        if (existsSync(lrcFile)) {
+          text = await fs.readFile(lrcFile, 'utf-8');
+        } else if (existsSync(sidecarLrc)) {
+          text = await fs.readFile(sidecarLrc, 'utf-8');
+        }
+        if (text) {
+          await uploader.uploadLyrics(item.track.lyrics.file, text);
+        }
       }
     }
 
-    // Đồng bộ lời bài hát có cập nhật tiến trình mượt mà
-    const tracksWithLyrics = scannedTracks.filter((item) => Boolean(item.track.lyrics?.file));
-    let lyricsIdx = 0;
-    for (const item of tracksWithLyrics) {
-      lyricsIdx++;
-      const lyricsPct = 80 + Math.round((lyricsIdx / Math.max(tracksWithLyrics.length, 1)) * 14);
-      currentSyncProgress = {
-        active: true,
-        step: `Đang đồng bộ lời bài hát (${lyricsIdx}/${tracksWithLyrics.length}): "${item.track.title}"`,
-        current: lyricsIdx,
-        total: tracksWithLyrics.length,
-        percent: lyricsPct,
-        error: null,
-      };
+    // Nếu mode === 'full', quét thêm các cover album còn lại trong coversByAlbumId
+    if (mode === 'full') {
+      let coverIdx = 0;
+      for (const [coverId, buffer] of allCoversToUpload.entries()) {
+        coverIdx++;
+        const coverKey = `covers/${coverId}.jpg`;
+        const isCoverOnCloud = existingCoverKeys.has(coverKey);
+        const hasCustomCover = existsSync(path.join(CUSTOM_COVERS_DIR, `${coverId}.jpg`));
 
-      const lrcFile = path.join(LYRICS_DIR, `${item.track.id}.lrc`);
-      const sidecarLrc = item.filePath.replace(path.extname(item.filePath), '.lrc');
-      let text = '';
-      if (existsSync(lrcFile)) {
-        text = await fs.readFile(lrcFile, 'utf-8');
-      } else if (existsSync(sidecarLrc)) {
-        text = await fs.readFile(sidecarLrc, 'utf-8');
-      }
-      if (item.track.lyrics?.file && text) {
-        await uploader.uploadLyrics(item.track.lyrics.file, text);
+        if (!isCoverOnCloud || hasCustomCover) {
+          currentSyncProgress = {
+            active: true,
+            step: `Đang tải ảnh bìa (${coverIdx}/${allCoversToUpload.size})...`,
+            current: coverIdx,
+            total: allCoversToUpload.size,
+            percent: 80,
+            error: null,
+          };
+          await uploader.uploadCover(coverId, buffer);
+          newCoversUploaded++;
+          existingCoverKeys.add(coverKey);
+        }
       }
     }
 
@@ -2316,6 +2358,11 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
 
     await uploader.uploadLibrary(library);
 
+    // Lưu local library.json
+    const baseDir = process.cwd().endsWith('indexer') ? process.cwd() : path.join(process.cwd(), 'tools/indexer');
+    const localLibraryPath = path.join(baseDir, 'library.json');
+    await fs.writeFile(localLibraryPath, JSON.stringify(library, null, 2), 'utf-8').catch(() => {});
+
     // Đồng bộ trạng thái "Đã lên Cloud" cho các bài trong danh sách tải YouTube
     try {
       const uploadedTrackIds = new Set(library.tracks.map((t) => t.id));
@@ -2326,7 +2373,11 @@ async function executeR2Sync(config: IndexerConfig): Promise<void> {
 
     currentSyncProgress = {
       active: false,
-      step: `Đồng bộ hoàn tất: ${library.tracks.length} bài hát (mới tải: ${newAudioUploaded} bài, ${newCoversUploaded} bìa)!`,
+      step: mode === 'only-new'
+        ? `Đồng bộ bài mới hoàn tất: đã tải lên ${newAudioUploaded} bài hát mới và cập nhật thư viện!`
+        : mode === 'selected'
+        ? `Đã tải lên ${newAudioUploaded} bài hát đã chọn lên Cloudflare R2!`
+        : `Đồng bộ hoàn tất: ${library.tracks.length} bài hát (mới tải: ${newAudioUploaded} bài, ${newCoversUploaded} bìa)!`,
       current: totalSteps,
       total: totalSteps,
       percent: 100,
@@ -2358,14 +2409,27 @@ app.post('/local-api/sync', async (c) => {
     return c.json({ status: 200, message: 'Đồng bộ đang diễn ra', active: true });
   }
 
+  let body: ExecuteSyncOptions = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    // Không có body thì mặc định là full sync
+  }
+
   // Khởi động đồng bộ ngầm không block HTTP request
-  executeR2Sync(config).catch((err) => {
+  executeR2Sync(config, body).catch((err) => {
     console.error('[Sync Error]', err);
   });
 
+  const msg = body.mode === 'only-new'
+    ? 'Đã bắt đầu đồng bộ các bài mới lên Cloudflare R2'
+    : body.mode === 'selected'
+    ? 'Đã bắt đầu tải các bài đã chọn lên Cloudflare R2'
+    : 'Đã bắt đầu đồng bộ R2 thành công';
+
   return c.json({
     status: 200,
-    message: 'Đã bắt đầu đồng bộ R2 thành công',
+    message: msg,
     active: true,
   });
 });
