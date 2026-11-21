@@ -1276,7 +1276,7 @@
     },
     "94506edd2286": {
       "title": "Without Me (REMIX)",
-      "artist": "50Cent",
+      "artist": "50 Cent",
       "album": "Singles",
       "loudnessLufs": -8.31,
       "replayGain": -9.69,
@@ -2630,6 +2630,21 @@
       "year": 2019,
       "loudnessLufs": -8.63,
       "replayGain": -9.37
+    },
+    "b4421d0119b9": {
+      "cover": "covers/b4421d0119b9.jpg"
+    },
+    "7e9f3b97b0a7": {
+      "cover": "covers/7e9f3b97b0a7.jpg"
+    },
+    "1739f75ec544": {
+      "cover": "covers/1739f75ec544.jpg"
+    },
+    "121021bc0b5e": {
+      "cover": "covers/121021bc0b5e.jpg"
+    },
+    "5bf5bb9fb9d0": {
+      "cover": "covers/5bf5bb9fb9d0.jpg"
     }
   },
   "artistAliases": {

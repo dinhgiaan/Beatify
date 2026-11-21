@@ -601,7 +601,38 @@
       - **Bối cảnh:** File âm thanh `bf0ff74236d9` tại thư mục máy tính (`D:\music for app\(rap)\Review\Singles\Bố em là cán bộ...`) có nội dung âm thanh và ảnh bìa thực tế 100% là bài "Bố Em Là Cán Bộ" của B Ray ft. Young H (kênh YouTube Review). Trước đó trong `overrides.json`, bài hát bị gán nhầm tên là "Ông Bà Già Tao Lo Hết" của Bình Gold.
       - **Xử lý:** Cập nhật `overrides.json` đính chính `title: "Bố Em Là Cán Bộ (feat. Young H)"`, `artist: "B Ray"`. Đồng bộ lại `library.json` (365 tracks, 225 albums) và upload lên Cloudflare R2 (`library.json`, `_meta/overrides.json`).
     - **Kiểm thử tự động:** Toàn bộ 56 test files (443 tests) pass 100%, typecheck và lint 0 lỗi trên toàn bộ 5 packages monorepo.
-**Cập nhật lần cuối:** 2026-11-21 (Tối ưu triệt để expo-image cache, prefetch cover, sửa Worker cover fallback, đính chính metadata bài Bố Em Là Cán Bộ bf0ff74236d9)
+30. **Khắc phục Toàn diện Sai lệch Thư viện (13 Ảnh bìa Bài hát, 9 Avatar Nghệ sĩ Quốc tế, Chuẩn hóa 50 Cent & Dọn dẹp Playlist):**
+    - **Dọn sạch 100% Track ID Mồ côi & Cập nhật Playlist:**
+      - Playlist "chill chill ha" (`pl_mwcdv3vx7kk3`): Đã xóa sạch 3 track ID mồ côi cũ (`62a7ccbe277b`, `581ff2893598`, `da750868a8a1`), đồng thời bổ sung bài hát mới `f3157e86050e` ("Câu Trả Lời" - J.ADE). Số bài: 241 bài hợp lệ 100%.
+      - Playlist "gang gang" (`pl_mwdbh98gagxx`): Đã xóa sạch 1 track ID mồ côi cũ `88c676f27218`. Số bài: 122 bài hợp lệ 100%.
+      - Đồng bộ hai chiều thành công lên Cloudflare R2 bucket (`_meta/user_state.json`) và file local.
+    - **Khắc phục Triệt để 13 Ảnh bìa Bài hát bị Dán nhầm (Cover Art Remedy):**
+      - Tải thumbnail độ phân giải cao gốc từ YouTube chính thức của từng video ID.
+      - Chuyển đổi sang ảnh vuông 1:1 có nền mờ Ambient Glow chuẩn HD bằng FFmpeg `q:v 2` qua `imageConversionService`:
+        1. `4ac969d8b56e` "Chơi (ft. MANBO) (Remix)" - HIEUTHUHAI (thay bìa MAMMA MIA cũ).
+        2. `9718d8bedfae` "Tháng Năm Không Quên" - H2K (thay bìa VESOLAND cũ).
+        3. `818a1389bc85` "Nscn" - Yung Ni99 (thay bìa Wild West cũ).
+        4. `2fa503b4a5e2` "Young Money" - Yung Ni99 (thay bìa Wild West cũ).
+        5. `4af07a5b2112` "Mấy Con Mèo (2G17)" - Datmaniac (thay bìa Côn Đồ Trên Con Đò cũ).
+        6. `d35ae5681079` "Felina" - B Ray (thay bìa B.S.N.L 2 cũ).
+        7. `91b0da20a794` "Little Homie (Reply Kidchoi)" - B Ray (thay bìa B.S.N.L 2 cũ).
+        8. `b4421d0119b9` "Đúng Như Lời Họ Nói" - B Ray (thay bìa B.S.N.L 2 cũ).
+        9. `7e9f3b97b0a7` "Enemy" - TOMMY TÈO (thay bìa Oh No cũ).
+        10. `1739f75ec544` "Da Vàng" - TOMMY TÈO (thay bìa Buông Hàng cũ).
+        11. `121021bc0b5e` "Em Tao Hip Hop" - Jombie (thay bìa Westside SQUAD cũ).
+        12. `5bf5bb9fb9d0` "Em Của Ngày Hôm Qua" - Sơn Tùng M-TP (bìa MV chính thức).
+        13. `b1f6755d4bdf` "Như Ngày Hôm Qua" - Sơn Tùng M-TP (bìa MV chính thức).
+      - Đã lưu vào `tools/indexer/custom_covers/*.jpg`, cập nhật `overrides.json` và upload toàn bộ 13 ảnh bìa lên Cloudflare R2 bucket (`covers/*.jpg`).
+    - **Thay thế Avatar Kênh Rác bằng Chân dung Studio 9 Nghệ sĩ Quốc tế:**
+      - Xóa bỏ triệt để logo kênh YouTube trung gian (`7clouds`, `Cakes & Eclairs`, `Lyrical Lemonade`).
+      - Cập nhật ảnh chân dung studio 1000×1000 lossless PNG (`artist.png` và `folder.png` Windows system icon) cho 9 nghệ sĩ: Dido, Miley Cyrus, twenty one pilots, Juice WRLD, Justin Bieber, Central Cee, Denzel Curry, Eminem, Lil Tecca.
+    - **Chuẩn hóa Danh xưng Nghệ sĩ 50 Cent:**
+      - Cập nhật `tools/indexer/config/artistAliases.json`: `"50cent": "50 Cent"`, `"50 cent": "50 Cent"`.
+      - Cập nhật `overrides.json` cho bài `94506edd2286` "Without Me (REMIX)" sang artist "50 Cent".
+    - **Đồng bộ Thư viện R2 & Kiểm thử:**
+      - Quét lại toàn bộ 367 files, sinh `library.json` mới (365 tracks, 225 albums), upload thành công `library.json` và `_meta/overrides.json` lên Cloudflare R2.
+      - Toàn bộ monorepo: 56 test files (443 tests) pass 100%, typecheck và lint 0 lỗi.
+**Cập nhật lần cuối:** 2026-11-21 (Khắc phục 13 ảnh bìa dán nhầm, 9 avatar nghệ sĩ quốc tế, chuẩn hóa 50 Cent, dọn sạch 100% ID mồ côi playlist)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
