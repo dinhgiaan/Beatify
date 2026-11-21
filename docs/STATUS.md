@@ -235,6 +235,16 @@
   - **Cập nhật Playlist "chill chill ha":** Cập nhật playlist `pl_mwcdv3vx7kk3` trong `user_state.json`, hoán đổi bài cũ bằng bài mới `1691c42d5646`, đồng bộ `_meta/state.json` lên Cloudflare R2.
   - **Tải lên R2 & Tái tạo Thư viện:** Tải file nhạc `music/1691c42d5646.m4a`, ảnh bìa `covers/1691c42d5646.jpg` & `covers/a4d597a33c5f.jpg`, lời bài hát `lyrics/1691c42d5646.lrc`, quét và tái tạo `library.json` (365 bài, 226 album), đồng bộ `library.json` và `_meta/overrides.json` lên Cloudflare R2.
   - **Làm mới Server Dashboard:** Kích hoạt làm mới cache tức thì cho server trên cổng 4000.
+- **29. Khắc phục Triệt để Dữ liệu Nghệ sĩ H2K & Bài hát "Tháng Năm Không Quên", Chuẩn hóa Siêu dữ liệu Rác Toàn Thư viện:**
+  - **Khắc phục Avatar Nghệ sĩ H2K:** Cập nhật ảnh đại diện chính thức của ca sĩ H2K (Lê Huỳnh Khải) chuẩn 1000x1000 Studio lossless PNG vào `D:\music for app\(chill)\H2K\artist.png` và `folder.png`.
+  - **Khắc phục Ảnh bìa "Tháng Năm Không Quên":** Thay thế ảnh chụp màn hình đóng logo Rap Việt Underground bằng Single Cover Studio chính thức 1000x1000 từ Apple Music / iTunes (bức tranh bìa nam sinh áo trắng dưới tán cây sân trường có chữ thư pháp *"Tháng năm Không quên – H2K X KN"*). Đồng bộ vào Local, `custom_covers/9718d8bedfae.jpg` và Cloudflare R2 `covers/9718d8bedfae.jpg`.
+  - **Bổ sung Lời bài hát (.lrc) có Timestamp:** Tạo file lời đồng bộ LRC cho "Tháng Năm Không Quên" tại Local và Cloudflare R2 `lyrics/9718d8bedfae.lrc`.
+  - **Làm sạch Siêu dữ liệu Rác trong Thư viện:**
+    - `dc9d4516cc3d`: Bỏ đuôi file `.mp3` $\to$ `"hello em có khỏe không 👽"` (Dfoxie37).
+    - `3ffbd2db847e`: Bỏ đuôi file `.mp3` $\to$ `"cà phê phin ☕"` (Dfoxie37).
+    - `f3157e86050e`: Bỏ chữ rác `(Visualize Video)` $\to$ `"Câu Trả Lời"` (J.ADE).
+  - **Đồng bộ R2 & Tái tạo Thư viện:** Tái tạo `library.json` (365 bài, 225 album), đồng bộ `library.json` và `_meta/overrides.json` lên Cloudflare R2, làm mới cache server cổng 4000.
+  - **Kiểm thử Toàn dự án:** 56/56 test files, 443/443 tests PASS 100%, typecheck và lint hoàn hảo.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 
