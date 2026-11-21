@@ -308,8 +308,12 @@ export const Layout: React.FC = () => {
 
     if (audioRef.current) {
       audioRef.current.src = track.fileUrl;
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
       audioRef.current.volume = isMuted ? 0 : volume;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => {
+        setIsPlaying(false);
+      });
     }
   };
 
@@ -354,7 +358,14 @@ export const Layout: React.FC = () => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(() => {});
+      // Nếu bài hát đã chạm cuối thời lượng hoặc gần hết bài, tua về đầu để phát lại mượt mà
+      if (duration > 0 && Math.abs(audioRef.current.currentTime - duration) < 0.5) {
+        audioRef.current.currentTime = 0;
+        setCurrentTime(0);
+      }
+      audioRef.current.play().catch(() => {
+        setIsPlaying(false);
+      });
       setIsPlaying(true);
     }
   };
@@ -451,13 +462,26 @@ export const Layout: React.FC = () => {
         }
       } else {
         setLoopMode('none');
-        setIsPlaying(false);
+        // Khi hết vòng lặp tùy chỉnh: nếu có bài tiếp theo thì tự động chuyển bài
+        if (queue.length > 1) {
+          playNextTrack();
+        } else {
+          setIsPlaying(false);
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            setCurrentTime(0);
+          }
+        }
       }
     } else if (queue.length > 1) {
       // Tự động chuyển sang bài tiếp theo trong hàng đợi (hoặc bài ngẫu nhiên nếu bật Shuffle)
       playNextTrack();
     } else {
       setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        setCurrentTime(0);
+      }
     }
   };
 

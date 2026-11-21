@@ -57,6 +57,110 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/**
+ * Mục nghệ sĩ trong danh mục bên trái (Tối ưu hóa tránh re-render DOM)
+ */
+interface ArtistListItemProps {
+  artist: ArtistDetail;
+  isTarget: boolean;
+  isSource: boolean;
+  isSuggested: boolean;
+  onSelectTarget: (name: string) => void;
+  onToggleSource: (name: string) => void;
+}
+
+const ArtistListItem = React.memo<ArtistListItemProps>(({
+  artist,
+  isTarget,
+  isSource,
+  isSuggested,
+  onSelectTarget,
+  onToggleSource,
+}) => {
+  return (
+    <div
+      onClick={() => onSelectTarget(artist.name)}
+      className={`group px-3 py-2 rounded-xl flex items-center justify-between gap-2.5 transition-all cursor-pointer border ${
+        isTarget
+          ? 'bg-emerald-500/15 border-emerald-500/50 shadow-sm'
+          : isSource
+          ? 'bg-amber-500/10 border-amber-500/40'
+          : 'hover:bg-[var(--bg-hover)] border-transparent'
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full overflow-hidden bg-black/40 border border-white/10 shrink-0 flex items-center justify-center">
+          {artist.avatarUrl ? (
+            <img
+              src={artist.avatarUrl}
+              alt={artist.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <Users size={13} className="text-[var(--text-muted)]" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`text-[12.5px] font-bold truncate ${
+                isTarget
+                  ? 'text-emerald-400'
+                  : isSource
+                  ? 'text-amber-300'
+                  : 'text-[var(--text-primary)]'
+              }`}
+            >
+              {artist.name}
+            </span>
+            {isSuggested && !isTarget && !isSource && (
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"
+                title="Tên tương tự, có thể gộp"
+              />
+            )}
+          </div>
+          <div className="text-[10.5px] text-[var(--text-muted)] flex items-center gap-1.5 mt-0.5">
+            <span>{artist.trackCount} bài</span>
+            {artist.albumCount > 0 && <span>• {artist.albumCount} album</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Nút thao tác nhanh: chọn gộp nguồn */}
+      {!isTarget && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSource(artist.name);
+          }}
+          className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            isSource
+              ? 'bg-amber-500 text-black hover:bg-amber-400'
+              : 'text-[var(--text-muted)] hover:text-amber-300 hover:bg-amber-500/20'
+          }`}
+          title={isSource ? 'Bỏ chọn gộp nguồn' : 'Chọn làm nghệ sĩ nguồn để gộp vào đích'}
+        >
+          <GitMerge size={13} />
+        </button>
+      )}
+      {isTarget && (
+        <span className="text-[9.5px] px-2 py-0.5 rounded bg-emerald-500 text-black font-extrabold uppercase shrink-0 tracking-wide">
+          Đích
+        </span>
+      )}
+    </div>
+  );
+});
+ArtistListItem.displayName = 'ArtistListItem';
+
 export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
   isOpen,
   onClose,
@@ -68,7 +172,9 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Nghệ sĩ đích đang xem / chọn
-  const [targetArtist, setTargetArtist] = useState(initialTargetArtist || '');
+  const [targetArtist, setTargetArtist] = useState(
+    () => initialTargetArtist || (artists.length > 0 ? artists[0]?.name || '' : '')
+  );
   // Các nghệ sĩ nguồn muốn gộp
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   // Các bài hát đang được tích chọn trong sơ đồ cây
@@ -110,7 +216,7 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
     } else if (artists.length > 0 && !targetArtist) {
       setTargetArtist(artists[0]?.name || '');
     }
-  }, [initialTargetArtist, artists, targetArtist]);
+  }, [initialTargetArtist, artists]);
 
   // Bộ đệm chuẩn hóa chuỗi tên nghệ sĩ (Tránh tính toán lại regex lặp đi lặp lại)
   const normalizedMap = useMemo(() => {
@@ -138,6 +244,11 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
     });
   }, [artists, targetArtist, normalizedMap]);
 
+  // O(1) Set tra cứu nghệ sĩ gợi ý
+  const suggestedSourcesSet = useMemo(() => {
+    return new Set(suggestedSources.map((s) => s.name));
+  }, [suggestedSources]);
+
   // Danh sách nghệ sĩ lọc ở cột trái
   const filteredArtists = useMemo(() => {
     const normSearch = normalize(artistSearch);
@@ -147,7 +258,7 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
         if (!normA.includes(normSearch)) return false;
       }
       if (artistFilter === 'suggestions') {
-        return suggestedSources.some((s) => s.name === a.name);
+        return suggestedSourcesSet.has(a.name);
       }
       if (artistFilter === 'selected') {
         return selectedSources.has(a.name) || a.name === targetArtist;
@@ -157,7 +268,7 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
       }
       return true;
     });
-  }, [artists, artistSearch, artistFilter, suggestedSources, selectedSources, targetArtist, normalizedMap]);
+  }, [artists, artistSearch, artistFilter, suggestedSourcesSet, selectedSources, targetArtist, normalizedMap]);
 
   // Danh sách hiển thị cắt lớp (Chunking) để DOM mount tức thì < 16ms
   const displayedArtists = useMemo(() => {
@@ -172,6 +283,63 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
     return artists.filter((a) => selectedSources.has(a.name));
   }, [artists, selectedSources]);
 
+  // Chuẩn hóa từ khóa lọc trong cây
+  const normalizedTreeSearch = useMemo(() => normalize(treeSearch), [treeSearch]);
+
+  // Phân loại và lập chỉ mục trước các bài hát trong album và singles của nghệ sĩ đích
+  const { albumsWithTracks, singlesTracks } = useMemo(() => {
+    if (!targetDetail) {
+      return { albumsWithTracks: [], singlesTracks: [] };
+    }
+
+    const singles: ArtistTrack[] = [];
+    const tracksByAlbum = new Map<string, ArtistTrack[]>();
+    for (const al of targetDetail.albums) {
+      tracksByAlbum.set(al.id, []);
+    }
+
+    for (const track of targetDetail.tracks) {
+      if (normalizedTreeSearch && !normalize(track.title).includes(normalizedTreeSearch)) {
+        continue;
+      }
+
+      if (!track.albumId || track.album === 'Singles' || track.album === 'Single') {
+        singles.push(track);
+      } else {
+        const list = tracksByAlbum.get(track.albumId);
+        if (list) {
+          list.push(track);
+        } else {
+          const matchedAl = targetDetail.albums.find((a) => a.title === track.album);
+          if (matchedAl) {
+            tracksByAlbum.get(matchedAl.id)?.push(track);
+          } else {
+            singles.push(track);
+          }
+        }
+      }
+    }
+
+    const albums = targetDetail.albums
+      .map((al) => ({
+        album: al,
+        tracks: tracksByAlbum.get(al.id) || [],
+      }))
+      .filter((item) => !normalizedTreeSearch || item.tracks.length > 0);
+
+    return { albumsWithTracks: albums, singlesTracks: singles };
+  }, [targetDetail, normalizedTreeSearch]);
+
+  // Danh sách bài hát đã lọc sẵn cho từng nghệ sĩ nguồn
+  const sourceDetailsWithTracks = useMemo(() => {
+    return sourceDetails.map((src) => ({
+      ...src,
+      filteredTracks: normalizedTreeSearch
+        ? src.tracks.filter((t) => normalize(t.title).includes(normalizedTreeSearch))
+        : src.tracks,
+    }));
+  }, [sourceDetails, normalizedTreeSearch]);
+
   // Tổng số bài hát từ các nguồn gộp
   const totalSourceTracks = useMemo(() => {
     return sourceDetails.reduce((acc, a) => acc + a.trackCount, 0);
@@ -179,6 +347,24 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
 
   // Tổng số bài hát của nghệ sĩ đích sau khi gộp
   const totalAfterMerge = (targetDetail?.trackCount || 0) + totalSourceTracks;
+
+  // Chọn nghệ sĩ đích (memoized callback)
+  const selectTarget = useCallback((name: string) => {
+    setTargetArtist(name);
+  }, []);
+
+  // Toggle chọn nghệ sĩ nguồn để gộp (memoized callback)
+  const toggleSource = useCallback((name: string) => {
+    setSelectedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  }, []);
 
   // Toggle mở rộng node trong cây
   const toggleNode = useCallback((nodeId: string) => {
@@ -206,28 +392,31 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
     setExpandedNodes(new Set());
   };
 
-  // Toggle chọn nghệ sĩ nguồn để gộp
-  const toggleSource = (name: string) => {
-    if (name === targetArtist) return;
-    const next = new Set(selectedSources);
-    if (next.has(name)) {
-      next.delete(name);
-    } else {
-      next.add(name);
-    }
-    setSelectedSources(next);
-  };
+  // Toggle chọn bài hát trong cây (memoized callback)
+  const toggleTrackSelection = useCallback((trackId: string) => {
+    setSelectedTrackIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) {
+        next.delete(trackId);
+      } else {
+        next.add(trackId);
+      }
+      return next;
+    });
+  }, []);
 
-  // Toggle chọn bài hát trong cây
-  const toggleTrackSelection = (trackId: string) => {
-    const next = new Set(selectedTrackIds);
-    if (next.has(trackId)) {
-      next.delete(trackId);
-    } else {
-      next.add(trackId);
-    }
-    setSelectedTrackIds(next);
-  };
+  // Chuyển nhanh 1 bài hát (memoized callback)
+  const handleQuickMoveTrack = useCallback((trackId: string) => {
+    setSelectedTrackIds(new Set([trackId]));
+    setActiveActionTab('move');
+  }, []);
+
+  // Xóa nhanh 1 bài hát (memoized callback)
+  const handleQuickDeleteTrack = useCallback((trackId: string) => {
+    setSelectedTrackIds(new Set([trackId]));
+    setActiveActionTab('delete');
+    setIsConfirmDeleteOpen(true);
+  }, []);
 
   // Chọn toàn bộ bài hát của 1 album
   const toggleSelectAlbumTracks = (albumTracks: ArtistTrack[]) => {
@@ -478,96 +667,17 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
                 </div>
               ) : (
                 <>
-                  {displayedArtists.map((a) => {
-                    const isTarget = a.name === targetArtist;
-                    const isSource = selectedSources.has(a.name);
-                    const isSuggested = suggestedSources.some((s) => s.name === a.name);
-
-                    return (
-                      <div
-                        key={a.name}
-                        onClick={() => {
-                          setTargetArtist(a.name);
-                        }}
-                        className={`group px-3 py-2 rounded-xl flex items-center justify-between gap-2.5 transition-all cursor-pointer border ${
-                          isTarget
-                            ? 'bg-emerald-500/15 border-emerald-500/50 shadow-sm'
-                            : isSource
-                            ? 'bg-amber-500/10 border-amber-500/40'
-                            : 'hover:bg-[var(--bg-hover)] border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          {/* Avatar */}
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-black/40 border border-white/10 shrink-0 flex items-center justify-center">
-                            {a.avatarUrl ? (
-                              <img
-                                src={a.avatarUrl}
-                                alt={a.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <Users size={13} className="text-[var(--text-muted)]" />
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`text-[12.5px] font-bold truncate ${
-                                  isTarget
-                                    ? 'text-emerald-400'
-                                    : isSource
-                                    ? 'text-amber-300'
-                                    : 'text-[var(--text-primary)]'
-                                }`}
-                              >
-                                {a.name}
-                              </span>
-                              {isSuggested && !isTarget && !isSource && (
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"
-                                  title="Tên tương tự, có thể gộp"
-                                />
-                              )}
-                            </div>
-                            <div className="text-[10.5px] text-[var(--text-muted)] flex items-center gap-1.5 mt-0.5">
-                              <span>{a.trackCount} bài</span>
-                              {a.albumCount > 0 && <span>• {a.albumCount} album</span>}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Nút thao tác nhanh: chọn gộp nguồn */}
-                        {!isTarget && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSource(a.name);
-                            }}
-                            className={`p-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                              isSource
-                                ? 'bg-amber-500 text-black hover:bg-amber-400'
-                                : 'text-[var(--text-muted)] hover:text-amber-300 hover:bg-amber-500/20'
-                            }`}
-                            title={isSource ? 'Bỏ chọn gộp nguồn' : 'Chọn làm nghệ sĩ nguồn để gộp vào đích'}
-                          >
-                            <GitMerge size={13} />
-                          </button>
-                        )}
-                        {isTarget && (
-                          <span className="text-[9.5px] px-2 py-0.5 rounded bg-emerald-500 text-black font-extrabold uppercase shrink-0 tracking-wide">
-                            Đích
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {displayedArtists.map((a) => (
+                    <ArtistListItem
+                      key={a.name}
+                      artist={a}
+                      isTarget={a.name === targetArtist}
+                      isSource={selectedSources.has(a.name)}
+                      isSuggested={suggestedSourcesSet.has(a.name)}
+                      onSelectTarget={selectTarget}
+                      onToggleSource={toggleSource}
+                    />
+                  ))}
 
                   {/* Nút tải thêm nghệ sĩ nếu danh sách dài */}
                   {filteredArtists.length > visibleLimit && (
@@ -729,14 +839,7 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
 
                         {expandedNodes.has('albums') && (
                           <div className="pl-4 border-l border-white/10 space-y-3 ml-2">
-                            {targetDetail.albums.map((album) => {
-                              const albumTracks = targetDetail.tracks.filter(
-                                (t) =>
-                                  (t.albumId === album.id || t.album === album.title) &&
-                                  (!treeSearch.trim() ||
-                                    normalize(t.title).includes(normalize(treeSearch)))
-                              );
-                              if (treeSearch && albumTracks.length === 0) return null;
+                            {albumsWithTracks.map(({ album, tracks: albumTracks }) => {
                               const isExpanded = expandedNodes.has(`album_${album.id}`);
                               const isAllSelected =
                                 albumTracks.length > 0 &&
@@ -788,15 +891,8 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
                                           track={t}
                                           isSelected={selectedTrackIds.has(t.id)}
                                           onToggleSelect={() => toggleTrackSelection(t.id)}
-                                          onQuickMove={() => {
-                                            setSelectedTrackIds(new Set([t.id]));
-                                            setActiveActionTab('move');
-                                          }}
-                                          onQuickDelete={() => {
-                                            setSelectedTrackIds(new Set([t.id]));
-                                            setActiveActionTab('delete');
-                                            setIsConfirmDeleteOpen(true);
-                                          }}
+                                          onQuickMove={() => handleQuickMoveTrack(t.id)}
+                                          onQuickDelete={() => handleQuickDeleteTrack(t.id)}
                                         />
                                       ))}
                                     </div>
@@ -810,53 +906,37 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
                     )}
 
                     {/* NHÁNH 2: SINGLES & ĐĨA ĐƠN LẺ */}
-                    {(() => {
-                      const singlesTracks = targetDetail.tracks.filter(
-                        (t) =>
-                          (!t.albumId || t.album === 'Singles' || t.album === 'Single') &&
-                          (!treeSearch.trim() || normalize(t.title).includes(normalize(treeSearch)))
-                      );
-                      if (singlesTracks.length === 0) return null;
-
-                      return (
-                        <div className="space-y-2.5">
-                          <div
-                            onClick={() => toggleNode('singles')}
-                            className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer hover:text-emerald-400 select-none py-1"
-                          >
-                            {expandedNodes.has('singles') ? (
-                              <ChevronDown size={14} className="text-emerald-400" />
-                            ) : (
-                              <ChevronRight size={14} className="text-[var(--text-muted)]" />
-                            )}
-                            <Music size={14} className="text-emerald-400" />
-                            <span>Đĩa Đơn &amp; Bài Hát Lẻ ({singlesTracks.length} bài)</span>
-                          </div>
-
-                          {expandedNodes.has('singles') && (
-                            <div className="pl-4 border-l border-white/10 space-y-1 ml-2">
-                              {singlesTracks.map((t) => (
-                                <TrackRowItem
-                                  key={t.id}
-                                  track={t}
-                                  isSelected={selectedTrackIds.has(t.id)}
-                                  onToggleSelect={() => toggleTrackSelection(t.id)}
-                                  onQuickMove={() => {
-                                    setSelectedTrackIds(new Set([t.id]));
-                                    setActiveActionTab('move');
-                                  }}
-                                  onQuickDelete={() => {
-                                    setSelectedTrackIds(new Set([t.id]));
-                                    setActiveActionTab('delete');
-                                    setIsConfirmDeleteOpen(true);
-                                  }}
-                                />
-                              ))}
-                            </div>
+                    {singlesTracks.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div
+                          onClick={() => toggleNode('singles')}
+                          className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer hover:text-emerald-400 select-none py-1"
+                        >
+                          {expandedNodes.has('singles') ? (
+                            <ChevronDown size={14} className="text-emerald-400" />
+                          ) : (
+                            <ChevronRight size={14} className="text-[var(--text-muted)]" />
                           )}
+                          <Music size={14} className="text-emerald-400" />
+                          <span>Đĩa Đơn &amp; Bài Hát Lẻ ({singlesTracks.length} bài)</span>
                         </div>
-                      );
-                    })()}
+
+                        {expandedNodes.has('singles') && (
+                          <div className="pl-4 border-l border-white/10 space-y-1 ml-2">
+                            {singlesTracks.map((t) => (
+                              <TrackRowItem
+                                key={t.id}
+                                track={t}
+                                isSelected={selectedTrackIds.has(t.id)}
+                                onToggleSelect={() => toggleTrackSelection(t.id)}
+                                onQuickMove={() => handleQuickMoveTrack(t.id)}
+                                onQuickDelete={() => handleQuickDeleteTrack(t.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* NHÁNH 3: CÁC NGHỆ SĨ NGUỒN ĐANG CHỌN GỘP (MERGE PREVIEW BRANCHES) */}
                     {selectedSources.size > 0 && (
@@ -878,13 +958,8 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
 
                         {expandedNodes.has('sources') && (
                           <div className="pl-4 border-l-2 border-dashed border-amber-500/40 space-y-3 ml-2">
-                            {sourceDetails.map((src) => {
+                            {sourceDetailsWithTracks.map((src) => {
                               const isExpanded = expandedNodes.has(`source_${src.name}`);
-                              const srcTracks = src.tracks.filter(
-                                (t) =>
-                                  !treeSearch.trim() ||
-                                  normalize(t.title).includes(normalize(treeSearch))
-                              );
 
                               return (
                                 <div
@@ -920,22 +995,15 @@ export const ArtistMergeDialog: React.FC<ArtistMergeDialogProps> = ({
                                   {/* Danh sách bài hát của nguồn */}
                                   {isExpanded && (
                                     <div className="space-y-1 pt-1.5 border-t border-amber-500/20">
-                                      {srcTracks.map((t) => (
+                                      {src.filteredTracks.map((t) => (
                                         <TrackRowItem
                                           key={t.id}
                                           track={t}
                                           badgeText={`từ: ${src.name}`}
                                           isSelected={selectedTrackIds.has(t.id)}
                                           onToggleSelect={() => toggleTrackSelection(t.id)}
-                                          onQuickMove={() => {
-                                            setSelectedTrackIds(new Set([t.id]));
-                                            setActiveActionTab('move');
-                                          }}
-                                          onQuickDelete={() => {
-                                            setSelectedTrackIds(new Set([t.id]));
-                                            setActiveActionTab('delete');
-                                            setIsConfirmDeleteOpen(true);
-                                          }}
+                                          onQuickMove={() => handleQuickMoveTrack(t.id)}
+                                          onQuickDelete={() => handleQuickDeleteTrack(t.id)}
                                         />
                                       ))}
                                     </div>
@@ -1364,7 +1432,7 @@ interface TrackRowItemProps {
   onQuickDelete: () => void;
 }
 
-const TrackRowItem: React.FC<TrackRowItemProps> = ({
+const TrackRowItem = React.memo<TrackRowItemProps>(({
   track,
   badgeText,
   isSelected,
@@ -1442,4 +1510,5 @@ const TrackRowItem: React.FC<TrackRowItemProps> = ({
       </div>
     </div>
   );
-};
+});
+TrackRowItem.displayName = 'TrackRowItem';
