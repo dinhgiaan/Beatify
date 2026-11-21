@@ -245,6 +245,19 @@
     - `f3157e86050e`: Bỏ chữ rác `(Visualize Video)` $\to$ `"Câu Trả Lời"` (J.ADE).
   - **Đồng bộ R2 & Tái tạo Thư viện:** Tái tạo `library.json` (365 bài, 225 album), đồng bộ `library.json` và `_meta/overrides.json` lên Cloudflare R2, làm mới cache server cổng 4000.
   - **Kiểm thử Toàn dự án:** 56/56 test files, 443/443 tests PASS 100%, typecheck và lint hoàn hảo.
+- **30. Khắc phục Triệt để Lỗi Cache Bìa Nhạc "Tháng Năm Không Quên" (H2K) vs VeSoLand & Cơ chế Cache-Busting Tự Động:**
+  - **Nguyên nhân gốc (Root Cause):**
+    1. Tệp bìa nhạc cũ của bài "Tháng Năm Không Quên" (`9718d8bedfae`) và "VeSoLand" (`753664688754`) từng có mã MD5 giống hệt nhau (`30f040052f6f08a06d2a956d19b0794d`, cả hai đều từng tải từ video của kênh YouTube "Rap Việt Underground" có logo màu đỏ).
+    2. Cloudflare Worker thiết lập `Cache-Control: private, max-age=31536000, immutable` khi URL chứa tham số `v`.
+    3. Mobile app (bản build #55) ghim cứng tham số `&v=hd` trong `resolveTrackUrls` và `resolveAlbumUrls`. iOS (`NSURLCache` và `expo-image`) đã lưu cache vĩnh viễn tệp ảnh bìa cũ vào bộ nhớ flash của iPhone. Khi người dùng bấm "Đồng bộ", URL không thay đổi nên iOS không gửi request lên R2 mà hiển thị lại ảnh bìa cũ trong cache máy. Ngoài ra, nút "Xóa và tải lại" trước đây chỉ xóa `library.cache.json`, không giải phóng bộ nhớ đệm hình ảnh của `expo-image`.
+  - **Giải pháp xử lý triệt để:**
+    - Cập nhật ảnh bìa chính thức iTunes 1000x1000 cho "Tháng Năm Không Quên" (325,875 bytes) trên R2, local và `custom_covers`.
+    - Bổ sung trường `coverVersion` (8 ký tự đầu của sha1 ảnh bìa) vào `TrackSchema` và `AlbumSchema` (`packages/shared/src/schemas.ts`), tuân thủ thiết kế `docs/PLAN.md` mục 7.2.
+    - `tools/indexer`: tự động tính toán `coverVersion` khi build library. `Tháng Năm Không Quên` mang `coverVersion: 642be069`, `VeSoLand` mang `coverVersion: 2baeb507`. Đã đồng bộ `library.json` mới lên Cloudflare R2.
+    - `LibraryContext.tsx`: gắn động `?v=${track.coverVersion}` thay vì ghim cứng `&v=hd`. Khi ảnh bìa đổi, URL tự đổi và iOS tự động tải ảnh mới.
+    - Cập nhật `clearLibraryCache()` gọi đồng thời `Image.clearDiskCache()` và `Image.clearMemoryCache()` của `expo-image`.
+    - `apps/mobile/app/settings/storage.tsx`: Bổ sung mục "Xóa bộ nhớ đệm ảnh bìa" trong cài đặt Lưu trữ, cho phép người dùng chủ động xóa cache ảnh trên iPhone bất cứ lúc nào. Bảo toàn 100% hiệu ứng viên thuốc trượt (`slidingActivePill`).
+    - Kiểm thử: 56 files, 443/443 tests passed 100%, typecheck và lint hoàn hảo.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

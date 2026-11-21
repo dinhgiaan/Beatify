@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { Library, Album, Track } from '@music-app/shared';
 import { LibrarySchema, interleaveTracksByArtist } from '@music-app/shared';
 import type { ScannedTrack } from './scanner';
@@ -24,6 +25,7 @@ export function buildLibrary(scannedTracks: ScannedTrack[]): {
       }
       // Đảm bảo mỗi bài hát có ảnh bìa độc lập theo ID riêng
       item.track.cover = item.track.cover || `covers/${item.track.id}.jpg`;
+      item.track.coverVersion = crypto.createHash('sha1').update(item.coverBuffer).digest('hex').slice(0, 8);
     }
 
     tracks.push(item.track);
@@ -42,12 +44,14 @@ export function buildLibrary(scannedTracks: ScannedTrack[]): {
 
   const albums: Album[] = [];
   for (const [id, data] of albumsMap.entries()) {
+    const albumCoverBuf = coversByAlbumId.get(id);
     albums.push({
       id,
       title: data.title,
       artist: data.artist,
       year: data.year,
-      cover: coversByAlbumId.has(id) ? `covers/${id}.jpg` : undefined,
+      cover: albumCoverBuf ? `covers/${id}.jpg` : undefined,
+      coverVersion: albumCoverBuf ? crypto.createHash('sha1').update(albumCoverBuf).digest('hex').slice(0, 8) : undefined,
       trackIds: data.trackIds,
     });
   }

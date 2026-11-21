@@ -20,6 +20,7 @@ import { useOffline, usePlayer } from '../../src/context';
 import { formatBytes } from '../../src/services/offline/offlineStorage';
 import { ListGroup, SectionHeader, SettingRow } from '../../src/components/common';
 import { triggerSelectionHaptic } from '../../src/utils/haptics';
+import { Image } from 'expo-image';
 
 const LIMIT_OPTIONS = [10, 20, 30, 40, 50] as const;
 
@@ -89,6 +90,31 @@ export default function StorageSettingsScreen() {
           text: 'Xóa ngay',
           style: 'destructive',
           onPress: () => clearRecentTracks(),
+        },
+      ]
+    );
+  };
+
+  const handleClearImageCache = () => {
+    triggerSelectionHaptic();
+    Alert.alert(
+      'Xóa bộ nhớ đệm ảnh bìa?',
+      'Thao tác này sẽ xóa các ảnh bìa đang lưu tạm trên iPhone. Ứng dụng sẽ tải lại ảnh bìa mới từ máy chủ.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa bộ nhớ đệm',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Image.clearDiskCache();
+              await Image.clearMemoryCache();
+              triggerSelectionHaptic();
+              Alert.alert('Đã xóa', 'Bộ nhớ đệm ảnh bìa trên iPhone đã được giải phóng thành công.');
+            } catch {
+              Alert.alert('Lỗi', 'Không thể xóa bộ nhớ đệm hình ảnh.');
+            }
+          },
         },
       ]
     );
@@ -184,6 +210,23 @@ export default function StorageSettingsScreen() {
               description="Làm trống danh sách bài hát vừa nghe"
               isDanger
               onPress={handleClearRecent}
+            />
+          </ListGroup>
+        </View>
+
+        {/* BỘ NHỚ ĐỆM HÌNH ẢNH */}
+        <View style={[styles.sectionBlock, styles.sectionSpaced]}>
+          <SectionHeader
+            title="BỘ NHỚ ĐỆM HÌNH ẢNH (COVERS)"
+            subtitle="Ảnh bìa album và bài hát được lưu tạm trên iPhone để tải nhanh hơn"
+            variant="list"
+          />
+          <ListGroup>
+            <SettingRow
+              label="Xóa bộ nhớ đệm ảnh bìa"
+              description="Buộc iPhone tải lại toàn bộ ảnh bìa mới nhất từ máy chủ"
+              isDanger
+              onPress={handleClearImageCache}
             />
           </ListGroup>
         </View>

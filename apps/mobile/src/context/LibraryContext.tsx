@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Linking, Alert, AppState } from 'react-native';
+import { Image } from 'expo-image';
 import {
   type Track,
   type Album,
@@ -72,7 +73,8 @@ export function resolveTrackUrls(track: Track, serverUrl: string, serverToken: s
   let cover = track.cover;
   const match = cover?.match(/[0-9a-fA-F]{12}/);
   const coverId = match ? match[0] : (track.albumId || track.id);
-  const verParam = tokenParam ? '&v=hd' : '?v=hd';
+  const ver = track.coverVersion || 'hd';
+  const verParam = tokenParam ? `&v=${encodeURIComponent(ver)}` : `?v=${encodeURIComponent(ver)}`;
 
   if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
     if (cover.includes('/covers/') && cleanUrl && coverId) {
@@ -102,7 +104,8 @@ export function resolveAlbumUrls(album: Album, serverUrl: string, serverToken: s
   let cover = album.cover;
   const match = cover?.match(/[0-9a-fA-F]{12}/);
   const coverId = match ? match[0] : (album.trackIds?.[0] || album.id);
-  const verParam = tokenParam ? '&v=hd' : '?v=hd';
+  const ver = album.coverVersion || 'hd';
+  const verParam = tokenParam ? `&v=${encodeURIComponent(ver)}` : `?v=${encodeURIComponent(ver)}`;
 
   if (cover && (cover.startsWith('http://') || cover.startsWith('https://'))) {
     if (cover.includes('/covers/') && cleanUrl && coverId) {
@@ -590,6 +593,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const clearLibraryCache = useCallback(async () => {
     try {
       await FileSystem.deleteAsync(LIBRARY_CACHE_FILE, { idempotent: true });
+      await Image.clearDiskCache();
+      await Image.clearMemoryCache();
       setCurrentEtag(null);
       setLastSyncTime(null);
       setLastSyncError(null);
