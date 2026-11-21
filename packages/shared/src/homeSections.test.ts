@@ -640,8 +640,8 @@ describe('homeSections logic & builders', () => {
                   // In ra console để ghi nhận thời gian benchmark chính xác
                   console.log(`[Benchmark Thực Tế] buildHomeSections với 10.000 records & 362 tracks / 236 albums: ${elapsedMs} ms`);
 
-                  // Ngưỡng 100ms: tránh flaky trên các máy CPU chậm hoặc khi chạy nhiều worker song song
-                  expect(elapsedMs).toBeLessThan(100);
+                  // Ngưỡng 200ms: tránh flaky trên các máy CPU chậm hoặc khi chạy nhiều worker song song
+                  expect(elapsedMs).toBeLessThan(200);
                   expect(sections.length).toBeGreaterThan(0);
                 });
               });

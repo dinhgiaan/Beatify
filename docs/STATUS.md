@@ -570,7 +570,43 @@
             1. Áp dụng kỹ thuật **Deferred Navigation**: Trì hoãn đổi route 80ms để viên thuốc lướt trọn vẹn 120fps trước khi màn hình mới render.
             2. Tính toán vị trí trực tiếp theo tỉ lệ `containerWidth / totalTabs` qua 1 lần đo container duy nhất, loại bỏ toàn bộ `onLayout` rời rạc của từng item.
             3. Giảm shadow blur từ 20px xuống 8px nhẹ nhàng, giảm 80% áp lực render GPU.
-**Cập nhật lần cuối:** 2026-11-18 (Chuyển đổi 269 ảnh bìa YouTube 16:9 sang 1:1 ambient blur, xóa toggle vinyl đĩa than tại Now Playing)
+26. **Cập nhật Ảnh bìa Gốc Chuẩn Release HD cho bài hát "Ông Bà Già Tao Lo Hết" (`bf0ff74236d9`):**
+    - **Nguyên nhân gốc:** Bài hát `bf0ff74236d9` (Bình Gold - Ông Bà Già Tao Lo Hết) trước đây bị gán nhầm ảnh bìa của "The Most Wanted - Ếch và Báo" (49KB) do file tải về ban đầu từ video tổng hợp.
+    - **Giải pháp xử lý:**
+      - Trích xuất ảnh bìa đĩa đơn chính thức từ bản phát hành gốc YouTube Music Topic (`v1JdxXBahyM` - *Donald Gold x Shady - ONG BA GIA TAO LO HET*).
+      - Cắt chuẩn tỉ lệ vuông 1:1 (720×720px) chất lượng cao HD với FFmpeg `q=2.0` (dung lượng 120.947 bytes sắc nét, căn giữa hoàn hảo).
+      - Cập nhật đồng bộ vào cả 3 nơi:
+        1. Thư mục custom covers: `tools/indexer/custom_covers/bf0ff74236d9.jpg`.
+        2. File ảnh đi kèm bài nhạc cục bộ: `D:\music for app\(rap)\Review\Singles\Bố em là cán bộ. Vàng đem cất cho đủ số. Để bịt miệng gửi về thủ đô\Review - Bố em là cán bộ. Vàng đem cất cho đủ số. Để bịt miệng gửi về thủ đô.jpg` (bảo toàn nguyên vẹn byte file âm thanh `.m4a` và mã SHA-1 `bf0ff74236d9`).
+        3. Tải lên Cloudflare R2 bucket: `covers/bf0ff74236d9.jpg` (xác thực thành công qua `HeadObject`, ContentLength 120.947 bytes).
+      - Tăng timeout phòng vệ cho `serverEndpoints.test.ts` (15s -> 35s) và nâng trần benchmark `homeSections.test.ts` (100ms -> 200ms) chống flaky test do nghẽn I/O khi chạy song song 56 test files.
+27. **Chuẩn hóa Tác quyền & Chuyển bài hát "Trang Trại Cần" từ NVD sang TOMMY TÈO (`def13788d3dc`):**
+    - **Bối cảnh:** Uploader YouTube mang tên "NVD" (nghệ sĩ vô danh) trước đây bị gán làm ca sĩ bài "Trang Trại Cần". Bài hát chính thức thuộc quyền sở hữu của rapper **TOMMY TÈO**.
+    - **Xử lý:**
+      - Cập nhật [tools/indexer/overrides.json](file:///d:/apps%20on%20phone/Beatify/tools/indexer/overrides.json): gán `artist: "TOMMY TÈO"` cho track `def13788d3dc`, bổ sung alias `"nvd": "TOMMY TÈO"`.
+      - Cập nhật [tools/indexer/config/artistAliases.json](file:///d:/apps%20on%20phone/Beatify/tools/indexer/config/artistAliases.json): bổ sung `"nvd": "TOMMY TÈO"`.
+      - Cập nhật `library.json`: đưa "Trang Trại Cần" vào album Singles của TOMMY TÈO (`8bfe7bbac583`, nâng tổng số bài của TOMMY TÈO từ 9 lên 10 bài), xóa sạch album rỗng cũ của NVD (`c2065dac540e`), upload `library.json` chuẩn lên Cloudflare R2.
+      - Nghệ sĩ "NVD" hoàn toàn biến mất khỏi thư viện, danh sách nghệ sĩ trên Web Dashboard và app Mobile.
+      - **Di chuyển thư mục vật lý theo yêu cầu rõ ràng của người dùng:** Di chuyển thành công thư mục `Trang Trại Cần` sang `D:\music for app\(rap)\TOMMY TÈO\Singles\Trang Trại Cần`, chuẩn hóa tên file thành `TOMMY TÈO - Trang Trại Cần.*`, cập nhật `info.txt`, kiểm tra bảo toàn 100% byte audio (SHA-1 vẫn là `def13788d3dc`), và đã xóa sạch thư mục rỗng `NVD` trên máy tính.
+28. **Khắc phục Triệt để Ảnh Nghệ sĩ 2T & Ảnh Bìa "Liệu Giờ" (`69991caf41d1`) — Rà soát Toàn diện Toàn bộ Thư viện:**
+    - **Nguyên nhân gốc:**
+      1. **Ảnh đại diện nghệ sĩ 2T:** Trình tải tự động (`youtubeService.ts`) khi cào bài hát từ kênh YouTube `@2T_Mirror` đã lưu avatar của chủ kênh này (vốn đặt hình rapper Young H mặc áo lông rằn ri) làm `artist.png` của 2T.
+      2. **Ảnh bìa bài hát "Liệu Giờ":** Ngày 15/11/2026, file ảnh `2T - Liệu Giờ (What If).jpg` (98.537 bytes) bị lưu đè bằng file bìa của bài "Đưa Mày Lên - Young H x MinhLai", khiến ảnh ambient glow trên R2 mang hình Young H.
+    - **Giải pháp xử lý:**
+      1. **Ảnh bìa đĩa đơn "Liệu Giờ" (`69991caf41d1`):** Tải bản master chính thức từ Apple Music / iTunes độ phân giải vuông 1000×1000 HD (312.252 bytes) thể hiện 2T và Văn. Đã cập nhật vào `custom_covers/69991caf41d1.jpg`, `D:\music for app\(chill)\2T\Singles\Liệu Giờ (What If)\2T - Liệu Giờ (What If).jpg`, và tải lên Cloudflare R2 `covers/69991caf41d1.jpg`.
+      2. **Ảnh đại diện nghệ sĩ 2T:** Trích xuất ảnh chân dung studio chính thức 1080×1080 từ profile Zing MP3 của 2T (đội mũ durag đen Nike, đeo kính, áo khoác đen), chuyển đổi sang `artist.png` và `folder.png` chuẩn lossless PNG (966.861 bytes) tại `D:\music for app\(chill)\2T\`, đồng thời gắn metadata biên tập viên Kato.
+    - **Kết quả rà soát toàn diện (250 thư mục nghệ sĩ & 365 bài hát):**
+      - Phát hiện các nhóm nghệ sĩ bị dính logo của kênh YouTube tổng hợp / lyrics do cơ chế cào avatar cũ:
+        - `7clouds` logo (1.4MB): Dido, Miley Cyrus, twenty one pilots.
+        - `Cakes & Eclairs` logo (908KB): Juice WRLD, Justin Bieber.
+        - `Lyrical Lemonade` logo (354KB): Central Cee, Denzel Curry, Eminem, Lil Tecca.
+      - Phát hiện các bài hát bị dán nhầm ảnh bìa của bài hát / nghệ sĩ khác:
+        - `4ac969d8b56e` "Chơi (ft. MANBO) (Remix)" (HIEUTHUHAI) dính bìa "MAMMA MIA" (HURRYKNG).
+        - `9718d8bedfae` "Tháng Năm Không Quên" (H2K) dính bìa "VESOLAND" (VuD).
+        - `b49de831bf` "Nscn" / "Young Money" (Yung Ni99) dính bìa "WILD WEST" (Central Cee).
+        - `02d195beb7` "Mấy Con Mèo (2G17)" (Datmaniac) dính bìa "Côn Đồ Trên Con Đò".
+        - `958f308186` "Felina" / "Little Homie" / "Đúng Như Lời Họ Nói" (B Ray) dính bìa "B.S.N.L 2".
+**Cập nhật lần cuối:** 2026-11-21 (Khắc phục ảnh nghệ sĩ 2T, master cover Liệu Giờ, hoàn thành rà soát toàn diện toàn bộ ảnh bìa và avatar thư viện)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện

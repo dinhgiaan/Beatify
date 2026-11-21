@@ -48,6 +48,7 @@ backups/
 
 # Giữ .ipa bản tốt gần nhất trên máy, không đưa lên GitHub
 builds/
+scratch/
 *.zip
 
 # Tài liệu tham khảo tải về
