@@ -213,50 +213,34 @@
     - Đã quét và tái tạo `library.json` chuẩn hóa (363 bài hát, 223 nghệ sĩ duy nhất).
     - Đồng bộ thành công `library.json` và `_meta/overrides.json` lên Cloudflare R2 bucket.
   - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (437 tests across packages/shared, apps/mobile, apps/api, tools/indexer), typecheck và lint đều vượt qua 100%.
-- **25. Hoàn tất 100% Ảnh Đại Diện Nghệ Sĩ (Local Disk & Cloudflare R2):**
-  - **Kiểm tra & Rà soát:** Toàn bộ 224 nghệ sĩ trong thư viện được kiểm tra tự động qua `/local-api/artists`.
-  - **Khắc phục & Tải Avatar:** Bổ sung ảnh đại diện chuẩn, chất lượng cao (900x900 PNG) kèm metadata `Curator: Kato` và `desktop.ini` cho toàn bộ 14 nghệ sĩ còn thiếu (`1nG`, `G-FAMILY`, `Aaron Smith`, `Changg`, `Huỳnh James`, `Kay Trần`, `Low G`, `Pixel Neko`, `TTeam`, `5ber1`, `Acy`, `Pikey`, `Quavo & Takeoff`, `Yxngtabi`).
-  - **Tỷ lệ hoàn thành:** Đạt **224 / 224 nghệ sĩ (100%)** có avatar trên đĩa cục bộ.
-  - **Đồng bộ R2:** Chạy fast-sync đưa 100% dữ liệu thư viện (`library.json`, `_meta/overrides.json`) lên Cloudflare R2 bucket.
-
-- **26. Khắc phục Triệt để Lỗi Kẹt Player & Không Tự Chuyển Bài Sau Khi Hết Loop (`apps/mobile`):**
-  - **Nguyên nhân gốc (Root cause):**
-    1. Khi bài hát kết thúc (`PlaybackState.Ended`), native AVPlayer trên iOS đạt mốc cuối file (`currentTime == duration`) và chuyển trạng thái sang `.ended` kèm lệnh deactivate audio session. RNTP v5 thiếu callback xử lý `PlaybackState.Ended` ở phía JavaScript khiến app không phát lệnh chuyển bài tiếp theo.
-    2. Khi người dùng bấm Play (`togglePlay` $\to$ `playerService.play()`), native AVPlayer đang kẹt ở điểm cuối file (duration) nên lệnh `engine.play()` không thể phát lại từ đầu nếu không thực hiện tua (`seekTo 0`), dẫn đến tình trạng "bấm play/stop hay gì cũng không được".
-    3. Nút `next()` khi ở bài cuối hàng đợi gọi `skipToNext()` của native vốn trả về `false` khi `repeatMode == .off`, dẫn đến không thể tua ngược lại bài đầu tiên nếu người dùng chủ động bấm Next.
-    4. Trong `transitionManager.executeTrackSwitch`, sau khi gọi `skipToIndex` và `seekTo`, thiếu lời gọi tường minh `TrackPlayer.play()`, khiến bài mới bị kẹt ở trạng thái pause nếu player trước đó bị ngắt luồng.
-  - **Giải pháp xử lý:**
-    1. Lắng nghe sự kiện `PlaybackState.Ended` trong `rntpPlayerService.ts`:
-       - Nếu `repeatMode === 'track'`: tự động `seekTo(0)` và tiếp tục phát.
-       - Nếu còn bài trong hàng đợi (`currentIdx + 1 < queue.length`): tự động gọi `skipToIndex(currentIdx + 1)` và `play()`.
-       - Nếu là bài cuối cùng và `repeatMode === 'queue'`: tự động wrap về bài 0 và `play()`.
-       - Nếu là bài cuối cùng và `repeatMode === 'off'`: tua sẵn về 0 (`seekTo(0)`) và khôi phục âm lượng gốc để người dùng bấm Play là phát lại được ngay.
-    2. Cập nhật `playerService.play()`: tự động kiểm tra nếu `state === PlaybackState.Ended` hoặc `position >= duration - 0.5s` thì tự động `seekTo(0)` trước khi `play()`, giải quyết dứt điểm hiện tượng đơ/kẹt nút Play.
-    3. Cập nhật `playerService.next()`: nếu đang ở bài cuối cùng của danh sách nhiều bài, tự động wrap về bài đầu tiên (index 0) và phát tiếp.
-    4. Bổ sung `TrackPlayer.play()` trong `transitionManager.executeTrackSwitch`.
-  - **Kiểm thử & Typecheck:** Toàn bộ test suite 443 tests (bao gồm 4 test cases mới trong `rntpPlayerService.test.ts`), lint và typecheck đều vượt qua 100%.
-- **25. Hoàn tất 100% Ảnh Đại Diện Nghệ Sĩ (Local Disk & Cloudflare R2):**
-  - **Kiểm tra & Rà soát:** Toàn bộ 224 nghệ sĩ trong thư viện được kiểm tra tự động qua `/local-api/artists`.
-  - **Khắc phục & Tải Avatar:** Bổ sung ảnh đại diện chuẩn, chất lượng cao (900x900 PNG) kèm metadata `Curator: Kato` và `desktop.ini` cho toàn bộ 14 nghệ sĩ còn thiếu (`1nG`, `G-FAMILY`, `Aaron Smith`, `Changg`, `Huỳnh James`, `Kay Trần`, `Low G`, `Pixel Neko`, `TTeam`, `5ber1`, `Acy`, `Pikey`, `Quavo & Takeoff`, `Yxngtabi`).
-  - **Tỷ lệ hoàn thành:** Đạt **224 / 224 nghệ sĩ (100%)** có avatar trên đĩa cục bộ.
-  - **Đồng bộ R2:** Chạy fast-sync đưa 100% dữ liệu thư viện (`library.json`, `_meta/overrides.json`) lên Cloudflare R2 bucket.
-
-- **26. Khắc phục Triệt để Lỗi Kẹt Player & Không Tự Chuyển Bài Sau Khi Hết Loop (`apps/mobile`):**
-  - **Nguyên nhân gốc (Root cause):**
-    1. Khi bài hát kết thúc (`PlaybackState.Ended`), native AVPlayer trên iOS đạt mốc cuối file (`currentTime == duration`) và chuyển trạng thái sang `.ended` kèm lệnh deactivate audio session. RNTP v5 thiếu callback xử lý `PlaybackState.Ended` ở phía JavaScript khiến app không phát lệnh chuyển bài tiếp theo.
-    2. Khi người dùng bấm Play (`togglePlay` $\to$ `playerService.play()`), native AVPlayer đang kẹt ở điểm cuối file (duration) nên lệnh `engine.play()` không thể phát lại từ đầu nếu không thực hiện tua (`seekTo 0`), dẫn đến tình trạng "bấm play/stop hay gì cũng không được".
-    3. Nút `next()` khi ở bài cuối hàng đợi gọi `skipToNext()` của native vốn trả về `false` khi `repeatMode == .off`, dẫn đến không thể tua ngược lại bài đầu tiên nếu người dùng chủ động bấm Next.
-    4. Trong `transitionManager.executeTrackSwitch`, sau khi gọi `skipToIndex` và `seekTo`, thiếu lời gọi tường minh `TrackPlayer.play()`, khiến bài mới bị kẹt ở trạng thái pause nếu player trước đó bị ngắt luồng.
-  - **Giải pháp xử lý:**
-    1. Lắng nghe sự kiện `PlaybackState.Ended` trong `rntpPlayerService.ts`:
-       - Nếu `repeatMode === 'track'`: tự động `seekTo(0)` và tiếp tục phát.
-       - Nếu còn bài trong hàng đợi (`currentIdx + 1 < queue.length`): tự động gọi `skipToIndex(currentIdx + 1)` và `play()`.
-       - Nếu là bài cuối cùng và `repeatMode === 'queue'`: tự động wrap về bài 0 và `play()`.
-       - Nếu là bài cuối cùng và `repeatMode === 'off'`: tua sẵn về 0 (`seekTo(0)`) và khôi phục âm lượng gốc để người dùng bấm Play là phát lại được ngay.
-    2. Cập nhật `playerService.play()`: tự động kiểm tra nếu `state === PlaybackState.Ended` hoặc `position >= duration - 0.5s` thì tự động `seekTo(0)` trước khi `play()`, giải quyết dứt điểm hiện tượng đơ/kẹt nút Play.
-    3. Cập nhật `playerService.next()`: nếu đang ở bài cuối cùng của danh sách nhiều bài, tự động wrap về bài đầu tiên (index 0) và phát tiếp.
-    4. Bổ sung `TrackPlayer.play()` trong `transitionManager.executeTrackSwitch`.
-  - **Kiểm thử & Typecheck:** Toàn bộ test suite 443 tests (bao gồm 4 test cases mới trong `rntpPlayerService.test.ts`), lint và typecheck đều vượt qua 100%.
+- **27. Đại tu Toàn diện Dashboard Website (`tools/dashboard`), Khắc phục Triệt để Lag Modal Gộp Nghệ Sĩ, Tối ưu Route Code-Splitting & Sửa Lỗi Audio Player:**
+  - **Triệt tiêu 100% Lag Modal Gộp Nghệ Sĩ (`ArtistMergeDialog.tsx`):**
+    - Tránh re-render khi mount: Khởi tạo trực tiếp `targetArtist` trong `useState` bằng callback lazy thay vì chờ `useEffect` kích hoạt lần 2.
+    - O(1) tra cứu gợi ý: Chuyển đổi mảng `suggestedSources` sang `Set` (`suggestedSourcesSet.has(...)`), triệt tiêu chi phí quét tuyến tính O(N) lặp lại trên từng hàng nghệ sĩ.
+    - Lập chỉ mục trước (Pre-indexing) cây thư mục: Sử dụng `useMemo` phân loại và lọc bài hát theo Album/Singles ngay từ đầu, loại bỏ việc gọi `.filter()` và `normalize(t.title)` bên trong JSX render loop.
+    - Memoization các thành phần con: Tách `ArtistListItem` và bọc `TrackRowItem` bằng `React.memo`, kết hợp memoized callbacks (`selectTarget`, `toggleSource`, `toggleTrackSelection`, `handleQuickMoveTrack`, `handleQuickDeleteTrack`) $\to$ click chọn bài trong cây chỉ tốn < 1ms re-render, không gây giật lag toàn bộ giao diện.
+    - Nâng cấp trải nghiệm Studio: Hỗ trợ layout ngang 3 cột thoáng đãng (`w-[98.5vw] max-w-[1780px] h-[94vh]`), tích hợp nút Phóng to / Thu nhỏ toàn màn hình (Maximize/Minimize).
+  - **Tối ưu Hóa Bundle & Route Code-Splitting (`App.tsx` & `vite.config.ts`):**
+    - Chuyển toàn bộ 8 trang tuyến đường (`DashboardPage`, `YoutubeMusicPage`, `HistoryPage`, `DownloadedVideosManagerPage`, `LibraryPage`, `ArtistsPage`, `PlaylistsPage`, `ImportPage`, `TrashPage`) sang `React.lazy()` kết hợp `<Suspense>` và loader fallback mượt mà.
+    - Cấu hình `manualChunks` trong `vite.config.ts`: Tách riêng các vendor libraries (`vendor-react`, `vendor-motion`, `vendor-query`, `vendor-icons`), giúp trình duyệt cache vĩnh viễn các gói thư viện. Bundle chính giảm từ 1.2MB xuống chỉ còn 304KB, các trang tải theo yêu cầu chỉ tốn ~25KB - 110KB.
+  - **Sửa Lỗi Kẹt Player & Không Chuyển Bài Sau Khi Hết Loop Trên Website (`Layout.tsx`):**
+    - Sửa `handleAudioEnded`: Khi kết thúc vòng lặp tùy chỉnh (`remainingLoops == 0`), nếu hàng đợi còn bài tiếp theo (`queue.length > 1`) thì tự động gọi `playNextTrack()` chuyển bài mượt mà. Nếu chỉ có 1 bài, tua sẵn về đầu bài (`currentTime = 0`) để bấm Play phát lại được ngay.
+    - Sửa `togglePlayPause`: Tự động kiểm tra nếu bài hát đã chạm cuối thời lượng (`currentTime >= duration - 0.5s`) thì tự động tua về 0 trước khi phát, bảo vệ không bị kẹt player.
+  - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (443 tests), lint và typecheck đều vượt qua 100%.
+- **27. Đại tu Toàn diện Dashboard Website (`tools/dashboard`), Khắc phục Triệt để Lag Modal Gộp Nghệ Sĩ, Tối ưu Route Code-Splitting & Sửa Lỗi Audio Player:**
+  - **Triệt tiêu 100% Lag Modal Gộp Nghệ Sĩ (`ArtistMergeDialog.tsx`):**
+    - Tránh re-render khi mount: Khởi tạo trực tiếp `targetArtist` trong `useState` bằng callback lazy thay vì chờ `useEffect` kích hoạt lần 2.
+    - O(1) tra cứu gợi ý: Chuyển đổi mảng `suggestedSources` sang `Set` (`suggestedSourcesSet.has(...)`), triệt tiêu chi phí quét tuyến tính O(N) lặp lại trên từng hàng nghệ sĩ.
+    - Lập chỉ mục trước (Pre-indexing) cây thư mục: Sử dụng `useMemo` phân loại và lọc bài hát theo Album/Singles ngay từ đầu, loại bỏ việc gọi `.filter()` và `normalize(t.title)` bên trong JSX render loop.
+    - Memoization các thành phần con: Tách `ArtistListItem` và bọc `TrackRowItem` bằng `React.memo`, kết hợp memoized callbacks (`selectTarget`, `toggleSource`, `toggleTrackSelection`, `handleQuickMoveTrack`, `handleQuickDeleteTrack`) $\to$ click chọn bài trong cây chỉ tốn < 1ms re-render, không gây giật lag toàn bộ giao diện.
+    - Nâng cấp trải nghiệm Studio: Hỗ trợ layout ngang 3 cột thoáng đãng (`w-[98.5vw] max-w-[1780px] h-[94vh]`), tích hợp nút Phóng to / Thu nhỏ toàn màn hình (Maximize/Minimize).
+  - **Tối ưu Hóa Bundle & Route Code-Splitting (`App.tsx` & `vite.config.ts`):**
+    - Chuyển toàn bộ 8 trang tuyến đường (`DashboardPage`, `YoutubeMusicPage`, `HistoryPage`, `DownloadedVideosManagerPage`, `LibraryPage`, `ArtistsPage`, `PlaylistsPage`, `ImportPage`, `TrashPage`) sang `React.lazy()` kết hợp `<Suspense>` và loader fallback mượt mà.
+    - Cấu hình `manualChunks` trong `vite.config.ts`: Tách riêng các vendor libraries (`vendor-react`, `vendor-motion`, `vendor-query`, `vendor-icons`), giúp trình duyệt cache vĩnh viễn các gói thư viện. Bundle chính giảm từ 1.2MB xuống chỉ còn 304KB, các trang tải theo yêu cầu chỉ tốn ~25KB - 110KB.
+  - **Sửa Lỗi Kẹt Player & Không Chuyển Bài Sau Khi Hết Loop Trên Website (`Layout.tsx`):**
+    - Sửa `handleAudioEnded`: Khi kết thúc vòng lặp tùy chỉnh (`remainingLoops == 0`), nếu hàng đợi còn bài tiếp theo (`queue.length > 1`) thì tự động gọi `playNextTrack()` chuyển bài mượt mà. Nếu chỉ có 1 bài, tua sẵn về đầu bài (`currentTime = 0`) để bấm Play phát lại được ngay.
+    - Sửa `togglePlayPause`: Tự động kiểm tra nếu bài hát đã chạm cuối thời lượng (`currentTime >= duration - 0.5s`) thì tự động tua về 0 trước khi phát, bảo vệ không bị kẹt player.
+  - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (443 tests), lint và typecheck đều vượt qua 100%.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 
