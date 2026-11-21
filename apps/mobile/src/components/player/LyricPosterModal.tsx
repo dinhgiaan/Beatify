@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   Text,
-  Image,
   TouchableOpacity,
   TextInput,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   Alert,
   type TextStyle,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Track } from '@music-app/shared';
 import { colors, fontSizes, fontWeights, spacing, radius } from '../../theme';
@@ -200,7 +200,8 @@ export function LyricPosterModal({
                 source={{ uri: track.cover }}
                 style={styles.previewArtworkBg}
                 blurRadius={28}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
               />
             ) : null}
 
@@ -246,7 +247,12 @@ export function LyricPosterModal({
               {/* Thông tin Bài hát & Nghệ sĩ góc dưới */}
               <View style={[styles.posterFooter, { backgroundColor: activeTheme.badgeBg }]}>
                 {track?.cover ? (
-                  <Image source={{ uri: track.cover }} style={styles.footerCover} resizeMode="cover" />
+                  <Image
+                    source={{ uri: track.cover }}
+                    style={styles.footerCover}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                 ) : (
                   <View style={styles.footerPlaceholder}>
                     <DiscIcon size={16} color={activeTheme.accentColor} />

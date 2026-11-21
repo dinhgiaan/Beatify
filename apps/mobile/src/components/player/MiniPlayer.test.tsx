@@ -88,6 +88,10 @@ vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
 
+vi.mock('expo-image', () => ({
+  Image: (props: Record<string, unknown>) => React.createElement('image', props),
+}));
+
 vi.mock('./Waveform', () => ({
   Waveform: () => null,
 }));

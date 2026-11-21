@@ -12,8 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -315,7 +315,13 @@ export function EditTrackModal({
                 <View style={styles.coverRow}>
                   <View style={styles.coverBox}>
                     {coverUri ? (
-                      <Image source={{ uri: coverUri }} style={styles.coverImg} resizeMode="cover" />
+                      <Image
+                        key={coverUri}
+                        source={{ uri: coverUri }}
+                        style={styles.coverImg}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                      />
                     ) : (
                       <View style={styles.coverEmptyBox}>
                         <Text style={styles.coverEmptyText}>Chưa có bìa</Text>

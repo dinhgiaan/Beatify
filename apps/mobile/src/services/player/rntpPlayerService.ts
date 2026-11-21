@@ -176,14 +176,12 @@ export class RntpPlayerService implements IPlayerService {
         albumTitle: track.album,
         duration: track.duration,
         artworkUrl:
-          track.cover && track.cover.startsWith('file://')
-          ? track.cover
-            : track.file.startsWith('file://')
-        ? undefined
-        : track.cover &&
-          (track.cover.startsWith('http://') || track.cover.startsWith('https://'))
-          ? track.cover
-          : undefined,
+          track.cover &&
+          (track.cover.startsWith('file://') ||
+            (!track.file.startsWith('file://') &&
+              (track.cover.startsWith('http://') || track.cover.startsWith('https://'))))
+            ? track.cover
+            : undefined,
       }));
 
     TrackPlayer.setMediaItems(mediaItems, safeIndex);

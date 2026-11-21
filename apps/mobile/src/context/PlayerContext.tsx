@@ -33,6 +33,7 @@ import {
 } from '../services/player/turntablePreferences';
 import { useLibrary, resolveTrackUrls } from './LibraryContext';
 import { useOffline } from './OfflineContext';
+import { Image as ExpoImage } from 'expo-image';
 
 export interface PlayerContextValue {
   tracks: Track[];
@@ -316,6 +317,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [tracks]);
 
+  // Tự động prefetch trước ảnh bìa cho 2 bài tiếp theo trong hàng đợi vào memory-disk cache
+  useEffect(() => {
+    if (!queueTracks || queueTracks.length === 0) return;
+    const next1 = queueTracks[currentTrackIndex + 1]?.cover;
+    const next2 = queueTracks[currentTrackIndex + 2]?.cover;
+    if (next1 && (next1.startsWith('http://') || next1.startsWith('https://'))) {
+      ExpoImage.prefetch(next1, 'memory-disk').catch(() => {});
+    }
+    if (next2 && (next2.startsWith('http://') || next2.startsWith('https://'))) {
+      ExpoImage.prefetch(next2, 'memory-disk').catch(() => {});
+    }
+  }, [currentTrackIndex, queueTracks]);
+
   // 3. Handlers điều khiển phát nhạc
   const playQueue = useCallback(
     async (trackList = queueTracks, startIndex = currentTrackIndex) => {
@@ -323,15 +337,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       const offlineAwareTracks = trackList.map((t) => {
         const localAudio = getOfflineAudioUri(t.id);
+        const resolved = resolveTrackUrls(t, serverUrl, serverToken);
         if (localAudio) {
           const localCover = getOfflineCoverUri(t.id);
           return {
-            ...t,
+            ...resolved,
             file: localAudio,
-            cover: localCover || undefined,
+            cover: localCover || resolved.cover,
           };
         }
-        return resolveTrackUrls(t, serverUrl, serverToken);
+        return resolved;
       });
 
       // Nếu đang mất mạng (isOffline = true), cách ly 100% chỉ cho phép phát nhạc offline cục bộ
@@ -400,12 +415,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       const offlineAwareTracks = updated.map((t) => {
         const localAudio = getOfflineAudioUri(t.id);
+        const resolved = resolveTrackUrls(t, serverUrl, serverToken);
         if (localAudio) {
           const localCover = getOfflineCoverUri(t.id);
           return {
-            ...t,
+            ...resolved,
             file: localAudio,
-            cover: localCover || undefined,
+            cover: localCover || resolved.cover,
           };
         }
         return resolveTrackUrls(t, serverUrl, serverToken);

@@ -5,10 +5,10 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  Image,
   StyleSheet,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Track, smartShuffle } from '@music-app/shared';
 import {
@@ -133,7 +133,13 @@ export function CollectionDetailModal({
         {/* Ảnh bìa bài hát */}
         <View style={styles.trackCoverWrapper}>
           {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+            <Image
+              source={{ uri: item.cover }}
+              style={styles.trackCoverImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={item.id}
+            />
           ) : (
             <View style={styles.trackCoverPlaceholder}>
               <DiscIcon size={16} color={colors.textTertiary} />
@@ -254,7 +260,8 @@ export function CollectionDetailModal({
                       styles.coverImage,
                       type === 'artist' && styles.coverArtistCircle,
                     ]}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
                   />
                 ) : type === 'artist' ? (
                   <HeadphonesIcon size={64} color={colors.primary} />
@@ -273,7 +280,12 @@ export function CollectionDetailModal({
               </Text>
               {type === 'album' && artistCoverUrl ? (
                 <View style={styles.albumArtistHeroRow}>
-                  <Image source={{ uri: artistCoverUrl }} style={styles.albumArtistHeroAvatar} resizeMode="cover" />
+                  <Image
+                    source={{ uri: artistCoverUrl }}
+                    style={styles.albumArtistHeroAvatar}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                   <Text style={styles.subtitleText} numberOfLines={1}>
                     <Text style={styles.albumArtistItalic}>{subtitle?.split(' • ')[0]}</Text>
                     {subtitle?.includes(' • ') ? ` • ${subtitle.split(' • ').slice(1).join(' • ')}` : ''}

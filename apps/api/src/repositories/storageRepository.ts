@@ -130,9 +130,37 @@ export class R2StorageRepository implements IStorageRepository {
     };
   }
 
-  async getCover(albumId: string): Promise<StorageObject | null> {
-    const key = `covers/${albumId}.jpg`;
-    const object = await this.bucket.get(key);
+  async getCover(id: string): Promise<StorageObject | null> {
+    const key = `covers/${id}.jpg`;
+    let object = await this.bucket.get(key);
+    if (!object) {
+      // Fallback: nếu không có covers/<id>.jpg, tra cứu library.json để lấy albumId hoặc track.cover
+      try {
+        const libData = await this.getLibrary();
+        if (libData?.library) {
+          const track = libData.library.tracks.find((t) => t.id === id);
+          if (track) {
+            const match = track.cover?.match(/[0-9a-fA-F]{12}/);
+            const altId = match && match[0] !== id ? match[0] : (track.albumId !== id ? track.albumId : undefined);
+            if (altId) {
+              object = await this.bucket.get(`covers/${altId}.jpg`);
+            }
+          } else {
+            const album = libData.library.albums.find((a) => a.id === id);
+            if (album) {
+              const match = album.cover?.match(/[0-9a-fA-F]{12}/);
+              const altId = match && match[0] !== id ? match[0] : (album.trackIds?.[0] !== id ? album.trackIds?.[0] : undefined);
+              if (altId) {
+                object = await this.bucket.get(`covers/${altId}.jpg`);
+              }
+            }
+          }
+        }
+      } catch {
+        // bỏ qua lỗi fallback
+      }
+    }
+
     if (!object) return null;
 
     return {

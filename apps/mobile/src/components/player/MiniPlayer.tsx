@@ -2,11 +2,11 @@ import React, { useRef } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import AnimatedReanimated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { usePlayer } from '../../context';
@@ -105,9 +105,14 @@ export function MiniPlayer({ onPress }: MiniPlayerProps = {}) {
         <View style={styles.artworkWrapper}>
           {currentTrack.cover ? (
             <Image
+              key={currentTrack.id}
               source={{ uri: currentTrack.cover }}
               style={styles.artworkImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              transition={150}
+              recyclingKey={currentTrack.id}
             />
           ) : (
             <View style={styles.artworkPlaceholder}>

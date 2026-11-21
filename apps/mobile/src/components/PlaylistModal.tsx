@@ -10,10 +10,10 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
-  Image,
   Dimensions,
   LayoutAnimation,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -475,7 +475,13 @@ export function PlaylistModal({
                           {/* Ảnh bìa bài hát trong Playlist */}
                           <View style={styles.trackCoverWrapper}>
                             {track.cover ? (
-                              <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+                              <Image
+                                source={{ uri: track.cover }}
+                                style={styles.trackCoverImg}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                recyclingKey={track.id}
+                              />
                             ) : (
                               <View style={styles.trackCoverPlaceholder}>
                                 <DiscIcon size={16} color="#71717a" />
@@ -544,7 +550,13 @@ export function PlaylistModal({
                       {/* Ảnh bìa bài hát yêu thích */}
                       <View style={styles.trackCoverWrapper}>
                         {track.cover ? (
-                          <Image source={{ uri: track.cover }} style={styles.trackCoverImg} resizeMode="cover" />
+                          <Image
+                            source={{ uri: track.cover }}
+                            style={styles.trackCoverImg}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            recyclingKey={track.id}
+                          />
                         ) : (
                           <View style={styles.trackCoverPlaceholder}>
                             <DiscIcon size={16} color="#71717a" />

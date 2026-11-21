@@ -5,11 +5,11 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  Image,
   Alert,
   StyleSheet,
   LayoutAnimation,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -225,7 +225,13 @@ export function OfflineDownloadsModal({ visible, onClose }: OfflineDownloadsModa
         {/* Ảnh bìa bài hát */}
         <View style={styles.coverBox}>
           {item.cover ? (
-            <Image source={{ uri: item.cover }} style={styles.coverImage} resizeMode="cover" />
+            <Image
+              source={{ uri: item.cover }}
+              style={styles.coverImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={item.id}
+            />
           ) : (
             <DiscIcon size={20} color={tokens.colors.textDim} />
           )}

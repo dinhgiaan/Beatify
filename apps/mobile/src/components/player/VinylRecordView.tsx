@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Image,
   StyleSheet,
   Animated,
   Easing,
-  type ImageSourcePropType,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { colors, radius } from '../../theme';
 import { DiscIcon } from '../icons/SvgIcons';
 
@@ -231,7 +230,8 @@ const spinInterpolate = spinAnim.interpolate({
             >
               {coverUri ? (
                 <Image
-                  source={{ uri: coverUri } as ImageSourcePropType}
+                  key={coverUri}
+                  source={{ uri: coverUri }}
                   style={[
                     styles.labelArtwork,
                     {
@@ -240,7 +240,9 @@ const spinInterpolate = spinAnim.interpolate({
                       borderRadius: centerLabelSize / 2,
                     },
                   ]}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
                 />
               ) : (
                 <View style={[styles.labelPlaceholder, { width: centerLabelSize, height: centerLabelSize }]}>

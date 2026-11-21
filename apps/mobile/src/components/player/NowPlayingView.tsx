@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   FlatList,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   Vibration,
   LayoutAnimation,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlayer, useProgress, useLibrary } from '../../context';
@@ -166,27 +166,9 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
   useEffect(() => {
     if (trackAspect && trackAspect > 0) {
       setCoverAspect(trackAspect);
-      return;
-    }
-    if (!currentTrack?.cover) {
+    } else {
       setCoverAspect(1.0);
-      return;
     }
-    let active = true;
-    Image.getSize(
-      currentTrack.cover,
-      (w, h) => {
-        if (active && w > 0 && h > 0) {
-          setCoverAspect(w / h);
-        }
-      },
-      () => {
-        if (active) setCoverAspect(1.0);
-      }
-    );
-    return () => {
-      active = false;
-    };
   }, [currentTrack?.cover, trackAspect]);
 
   const hasLyrics = Boolean(
@@ -378,11 +360,16 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
                     accessibilityLabel="Chạm để chuyển chế độ hiển thị ảnh bìa tràn viền hoặc thu gọn"
                   >
                     <Image
+                      key={currentTrack.id}
                       source={{ uri: currentTrack.cover }}
                       style={styles.artworkImage}
-                      resizeMode={coverFit}
+                      contentFit={coverFit}
+                      cachePolicy="memory-disk"
+                      priority="high"
+                      transition={150}
+                      recyclingKey={currentTrack.id}
                       onLoad={(e) => {
-                        const { width: w, height: h } = e.nativeEvent.source;
+                        const { width: w, height: h } = e.source;
                         if (w > 0 && h > 0) {
                           setCoverAspect(w / h);
                         }
@@ -451,7 +438,13 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps = {}) {
                     {/* Ảnh bìa bài hát trong hàng đợi */}
                     <View style={styles.queueCoverWrapper}>
                       {item.cover ? (
-                        <Image source={{ uri: item.cover }} style={styles.queueCoverImg} resizeMode="cover" />
+                        <Image
+                          source={{ uri: item.cover }}
+                          style={styles.queueCoverImg}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          recyclingKey={item.id}
+                        />
                       ) : (
                         <View style={styles.queueCoverPlaceholder}>
                           <DiscIcon size={16} color={colors.textTertiary} />

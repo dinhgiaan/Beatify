@@ -584,7 +584,24 @@
         - `b49de831bf` "Nscn" / "Young Money" (Yung Ni99) dính bìa "WILD WEST" (Central Cee).
         - `02d195beb7` "Mấy Con Mèo (2G17)" (Datmaniac) dính bìa "Côn Đồ Trên Con Đò".
         - `958f308186` "Felina" / "Little Homie" / "Đúng Như Lời Họ Nói" (B Ray) dính bìa "B.S.N.L 2".
-**Cập nhật lần cuối:** 2026-11-21 (Khắc phục ảnh nghệ sĩ 2T, master cover Liệu Giờ, hoàn thành rà soát toàn diện toàn bộ ảnh bìa và avatar thư viện)
+29. **Nâng cấp Triệt để Hiển thị Ảnh bìa Mobile App (expo-image & SDWebImage Cache) & Sửa Metadata bài hát `bf0ff74236d9`:**
+    - **Sửa lỗi hiển thị ảnh bìa Media Player (chậm, không hiện, hiện bìa cũ / bài khác):**
+      - **Nguyên nhân gốc:**
+        1. Các component player (`MiniPlayer`, `NowPlayingView`, `VinylRecordView`, `CollectionDetailModal`, `OfflineDownloadsModal`, `PlaylistModal`, `UserAvatar`, `LyricPosterModal`, `EditTrackModal`) trước đây sử dụng `Image` của `react-native` vốn không có cơ chế memory-disk cache qua SDWebImage native trên iOS, không giải phóng bitmap cũ khi đổi bài.
+        2. `NowPlayingView` gọi `Image.getSize(currentTrack.cover)` mỗi lần đổi bài làm phát sinh thêm 1 request HTTP mạng không cần thiết, làm nghẽn hàng đợi mạng và gây chậm trễ hiển thị.
+        3. `PlayerContext.tsx` khi có `localAudio` lại ép `cover: localCover || undefined` khiến bài đã tải về nhưng chưa tải ảnh bìa bị xóa trắng URL remote cover, dẫn đến mất hẳn ảnh bìa cả trong app lẫn Lock Screen.
+        4. Cloudflare Worker `/covers/:albumId` chưa có cơ chế fallback tra cứu chéo qua `library.json` khi ảnh bìa được lưu theo `trackId` thay vì `albumId` (hoặc ngược lại).
+      - **Giải pháp hoàn thiện:**
+        - Nâng cấp 100% các component hiển thị ảnh sang `expo-image` (`SDWebImage` native C/Obj-C) với `cachePolicy="memory-disk"`, `priority="high"`, `transition={150}`, đồng thời gán `recyclingKey={track.id}` và `key={track.id}` buộc `UIImageView` giải phóng và thay thế bitmap cũ tức thì khi đổi bài.
+        - Loại bỏ hoàn toàn `Image.getSize` thừa thãi trong `NowPlayingView`.
+        - Tích hợp `ExpoImage.prefetch` trong `PlayerContext` tự động tải trước ảnh bìa cho 2 bài hát tiếp theo trong hàng đợi vào cache bộ nhớ và đĩa.
+        - Sửa logic nạp cover trong `PlayerContext`: bảo toàn URL remote (`localCover || resolved.cover`).
+        - Bổ sung cơ chế fallback thông minh trong Cloudflare Worker (`storageRepository.ts`): tự động tra cứu chéo theo `track.albumId`, `track.cover`, `album.cover`, `album.trackIds[0]` để luôn phục vụ ảnh bìa hợp lệ thay vì trả về 404.
+    - **Đính chính siêu dữ liệu bài hát `bf0ff74236d9` (Bố Em Là Cán Bộ vs Ông Bà Già Tao Lo Hết):**
+      - **Bối cảnh:** File âm thanh `bf0ff74236d9` tại thư mục máy tính (`D:\music for app\(rap)\Review\Singles\Bố em là cán bộ...`) có nội dung âm thanh và ảnh bìa thực tế 100% là bài "Bố Em Là Cán Bộ" của B Ray ft. Young H (kênh YouTube Review). Trước đó trong `overrides.json`, bài hát bị gán nhầm tên là "Ông Bà Già Tao Lo Hết" của Bình Gold.
+      - **Xử lý:** Cập nhật `overrides.json` đính chính `title: "Bố Em Là Cán Bộ (feat. Young H)"`, `artist: "B Ray"`. Đồng bộ lại `library.json` (365 tracks, 225 albums) và upload lên Cloudflare R2 (`library.json`, `_meta/overrides.json`).
+    - **Kiểm thử tự động:** Toàn bộ 56 test files (443 tests) pass 100%, typecheck và lint 0 lỗi trên toàn bộ 5 packages monorepo.
+**Cập nhật lần cuối:** 2026-11-21 (Tối ưu triệt để expo-image cache, prefetch cover, sửa Worker cover fallback, đính chính metadata bài Bố Em Là Cán Bộ bf0ff74236d9)
 **Quy tắc phạm vi:** Quy tắc đóng băng đã được dỡ bỏ cho đợt thiết kế lại trải nghiệm theo `docs/beatify-plan.md` (Thiết kế lại Pha 1 đến Pha 6). Không tự thêm tính năng ngoài tài liệu này. Ý tưởng mới ghi vào `docs/IDEAS.md`.
 
 ## Thiết bị và điều kiện
