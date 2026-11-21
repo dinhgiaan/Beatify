@@ -227,20 +227,14 @@
     - Sửa `handleAudioEnded`: Khi kết thúc vòng lặp tùy chỉnh (`remainingLoops == 0`), nếu hàng đợi còn bài tiếp theo (`queue.length > 1`) thì tự động gọi `playNextTrack()` chuyển bài mượt mà. Nếu chỉ có 1 bài, tua sẵn về đầu bài (`currentTime = 0`) để bấm Play phát lại được ngay.
     - Sửa `togglePlayPause`: Tự động kiểm tra nếu bài hát đã chạm cuối thời lượng (`currentTime >= duration - 0.5s`) thì tự động tua về 0 trước khi phát, bảo vệ không bị kẹt player.
   - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (443 tests), lint và typecheck đều vượt qua 100%.
-- **27. Đại tu Toàn diện Dashboard Website (`tools/dashboard`), Khắc phục Triệt để Lag Modal Gộp Nghệ Sĩ, Tối ưu Route Code-Splitting & Sửa Lỗi Audio Player:**
-  - **Triệt tiêu 100% Lag Modal Gộp Nghệ Sĩ (`ArtistMergeDialog.tsx`):**
-    - Tránh re-render khi mount: Khởi tạo trực tiếp `targetArtist` trong `useState` bằng callback lazy thay vì chờ `useEffect` kích hoạt lần 2.
-    - O(1) tra cứu gợi ý: Chuyển đổi mảng `suggestedSources` sang `Set` (`suggestedSourcesSet.has(...)`), triệt tiêu chi phí quét tuyến tính O(N) lặp lại trên từng hàng nghệ sĩ.
-    - Lập chỉ mục trước (Pre-indexing) cây thư mục: Sử dụng `useMemo` phân loại và lọc bài hát theo Album/Singles ngay từ đầu, loại bỏ việc gọi `.filter()` và `normalize(t.title)` bên trong JSX render loop.
-    - Memoization các thành phần con: Tách `ArtistListItem` và bọc `TrackRowItem` bằng `React.memo`, kết hợp memoized callbacks (`selectTarget`, `toggleSource`, `toggleTrackSelection`, `handleQuickMoveTrack`, `handleQuickDeleteTrack`) $\to$ click chọn bài trong cây chỉ tốn < 1ms re-render, không gây giật lag toàn bộ giao diện.
-    - Nâng cấp trải nghiệm Studio: Hỗ trợ layout ngang 3 cột thoáng đãng (`w-[98.5vw] max-w-[1780px] h-[94vh]`), tích hợp nút Phóng to / Thu nhỏ toàn màn hình (Maximize/Minimize).
-  - **Tối ưu Hóa Bundle & Route Code-Splitting (`App.tsx` & `vite.config.ts`):**
-    - Chuyển toàn bộ 8 trang tuyến đường (`DashboardPage`, `YoutubeMusicPage`, `HistoryPage`, `DownloadedVideosManagerPage`, `LibraryPage`, `ArtistsPage`, `PlaylistsPage`, `ImportPage`, `TrashPage`) sang `React.lazy()` kết hợp `<Suspense>` và loader fallback mượt mà.
-    - Cấu hình `manualChunks` trong `vite.config.ts`: Tách riêng các vendor libraries (`vendor-react`, `vendor-motion`, `vendor-query`, `vendor-icons`), giúp trình duyệt cache vĩnh viễn các gói thư viện. Bundle chính giảm từ 1.2MB xuống chỉ còn 304KB, các trang tải theo yêu cầu chỉ tốn ~25KB - 110KB.
-  - **Sửa Lỗi Kẹt Player & Không Chuyển Bài Sau Khi Hết Loop Trên Website (`Layout.tsx`):**
-    - Sửa `handleAudioEnded`: Khi kết thúc vòng lặp tùy chỉnh (`remainingLoops == 0`), nếu hàng đợi còn bài tiếp theo (`queue.length > 1`) thì tự động gọi `playNextTrack()` chuyển bài mượt mà. Nếu chỉ có 1 bài, tua sẵn về đầu bài (`currentTime = 0`) để bấm Play phát lại được ngay.
-    - Sửa `togglePlayPause`: Tự động kiểm tra nếu bài hát đã chạm cuối thời lượng (`currentTime >= duration - 0.5s`) thì tự động tua về 0 trước khi phát, bảo vệ không bị kẹt player.
-  - **Kiểm thử & Typecheck:** Toàn bộ 56 file test (443 tests), lint và typecheck đều vượt qua 100%.
+- **28. Thay thế Bài Hát "Old Town Road" (Lil Nas X) bằng Bản Video Chính thức 2:37s (`r7qovpFAGrQ`), Dọn dẹp Bản 5:02s Cũ trên Local và Cloudflare R2, Cập nhật Playlist "chill chill ha":**
+  - **Sao lưu an toàn:** Tạo bản sao lưu dự phòng toàn bộ tệp local và cache của bản cũ (`728ef17ee463`) tại `tools/indexer/backups/replace_old_town_road_*`.
+  - **Tải mới từ YouTube:** Tải bản video chính thức `https://www.youtube.com/watch?v=r7qovpFAGrQ` (Lil Nas X - Old Town Road ft. Billy Ray Cyrus, 157s / 2:37) vào `D:\music for app\(chill)\Lil Nas X\Singles\Old Town Road (ft. Billy Ray Cyrus)`.
+  - **Tối ưu âm thanh & metadata:** Đo ReplayGain (-9.37 dB) và Loudness LUFS (-8.63), tạo ảnh bìa vuông 1:1 Ambient, trích xuất lời bài hát đồng bộ (.lrc từ LRCLIB), phân tích BPM & Camelot Key (Essentia).
+  - **Xóa triệt để bản 5:02s cũ:** Xóa thư mục local `Old Town Road (Official Movie)`, xóa cache custom covers & lyrics, xóa 3 object trên Cloudflare R2 (`music/728ef17ee463.m4a`, `covers/728ef17ee463.jpg`, `lyrics/728ef17ee463.lrc`), gỡ bỏ bài cũ khỏi `overrides.json` và `audio_analysis_cache.json`.
+  - **Cập nhật Playlist "chill chill ha":** Cập nhật playlist `pl_mwcdv3vx7kk3` trong `user_state.json`, hoán đổi bài cũ bằng bài mới `1691c42d5646`, đồng bộ `_meta/state.json` lên Cloudflare R2.
+  - **Tải lên R2 & Tái tạo Thư viện:** Tải file nhạc `music/1691c42d5646.m4a`, ảnh bìa `covers/1691c42d5646.jpg` & `covers/a4d597a33c5f.jpg`, lời bài hát `lyrics/1691c42d5646.lrc`, quét và tái tạo `library.json` (365 bài, 226 album), đồng bộ `library.json` và `_meta/overrides.json` lên Cloudflare R2.
+  - **Làm mới Server Dashboard:** Kích hoạt làm mới cache tức thì cho server trên cổng 4000.
 
 **Điểm dừng ĐD3 (R2 Prune):** Vẫn giữ nguyên trạng thái chờ duyệt danh sách 503 ảnh bìa mồ côi (đã sao lưu cục bộ 100% 503 file về `tools/indexer/backups/reorg_logs_20261118/orphan_covers_backup`). CHƯA xóa bất kỳ file nào trên R2.
 

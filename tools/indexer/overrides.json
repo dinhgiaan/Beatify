@@ -2198,11 +2198,6 @@
       "album": "Singles",
       "cover": "covers/4e09d10b0b07.jpg"
     },
-    "728ef17ee463": {
-      "title": "Old Town Road",
-      "artist": "Lil Nas X",
-      "cover": "covers/728ef17ee463.jpg"
-    },
     "43630561edb2": {
       "cover": "covers/43630561edb2.jpg"
     },
@@ -2627,6 +2622,14 @@
       "loudnessLufs": -11.23,
       "replayGain": -6.77,
       "cover": "covers/f3157e86050e.jpg"
+    },
+    "1691c42d5646": {
+      "title": "Old Town Road (ft. Billy Ray Cyrus)",
+      "artist": "Lil Nas X",
+      "album": "Singles",
+      "year": 2019,
+      "loudnessLufs": -8.63,
+      "replayGain": -9.37
     }
   },
   "artistAliases": {
